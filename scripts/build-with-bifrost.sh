@@ -44,7 +44,7 @@ export GOWORK=off CGO_ENABLED=1
 FLAGS=(-mod=readonly -trimpath -buildvcs=false -tags=bifrost)
 go list "${FLAGS[@]}" -deps ./bifrost-http ./registry-plugin ./registry-plugin/abi-probe >/dev/null
 {
- printf 'Bifrost checkout: '; git -C "$BF" rev-parse HEAD
+ printf 'Bifrost checkout: '; git -c safe.directory='*' -C "$BF" rev-parse HEAD 2>/dev/null || printf 'unknown (git safe.directory)'
  printf 'Go: '; go version
  printf 'Toolchain env: '; go env GOVERSION GOOS GOARCH CGO_ENABLED GOWORK
  printf 'Build flags: '; printf '%s ' "${FLAGS[@]}"; printf '\n'
