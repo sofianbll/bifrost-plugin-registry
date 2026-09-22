@@ -10,15 +10,15 @@
   "pipeline_verification": {
     "date": "2026-09-23",
     "environment": "staging Pulsar, port 9210 (prod intacte, 9208)",
-    "evidence": "docs/INSTALL.md — plugin status active, panneau admin HTTP 200, garde pre_builtin 401 registry_virtual_key_required sur /v1/chat/completions",
-    "remaining": "tests garde/projection avec providers et VK réels (docs/ACCEPTANCE.md)"
+    "evidence": "docs/INSTALL.md \u2014 plugin status active, panneau admin HTTP 200, garde pre_builtin 401 registry_virtual_key_required sur /v1/chat/completions",
+    "remaining": "tests garde/projection avec providers et VK r\u00e9els (docs/ACCEPTANCE.md)"
   },
   "native_ui_injected": false,
   "automatic_native_apply": false,
   "production_ready": false,
   "native_build": {
     "date": "2026-09-23",
-    "builder": "pulsar (docker, golang:1.27-alpine, musl — cohérent avec l'image de prod Alpine)",
+    "builder": "pulsar (docker, golang:1.27-alpine, musl \u2014 coh\u00e9rent avec l'image de prod Alpine)",
     "target_bifrost": "transports/v2.2.1",
     "checkout_commit": "6493abd3d1422c9bfde95f242fd57b38e73ce881",
     "go_version": "go1.27.1 linux/amd64",
@@ -33,8 +33,17 @@
     },
     "remaining_for_production": [
       "tests dans le vrai pipeline HTTP (staging, checklist docs/ACCEPTANCE.md)",
-      "gateway dynamique + .so déployés ensemble, remplaçant l'image officielle",
-      "fragment plugin.fragment.json fusionné dans la config de staging"
-    ]
+      "gateway dynamique + .so d\u00e9ploy\u00e9s ensemble, rempla\u00e7ant l'image officielle",
+      "fragment plugin.fragment.json fusionn\u00e9 dans la config de staging"
+    ],
+    "registry_prod": {
+      "file": "configs/registry.prod.json",
+      "revision": "343c751d96ded6f9",
+      "models": 119,
+      "groups": 30,
+      "policies": 38,
+      "allowlist_coverage": "804/804",
+      "note": "regenerer apres rotation de VK: scripts/import-prod-registry.py"
+    }
   }
 }
