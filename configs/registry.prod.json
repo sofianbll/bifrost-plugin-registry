@@ -1,0 +1,3461 @@
+{
+  "schema_version": 1,
+  "default_naming": "both",
+  "models": [
+    {
+      "id": "claude-opus-4-6",
+      "alias": "claude-opus-4-6",
+      "provider": "Claude",
+      "provider_key_ids": [
+        "16"
+      ],
+      "upstream_model": "claude-opus-4-6",
+      "canonical_model": "claude-opus-4-6",
+      "model_family": "anthropic",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "anthropic"
+    },
+    {
+      "id": "claude-sonnet-4-6",
+      "alias": "claude-sonnet-4-6",
+      "provider": "Claude",
+      "provider_key_ids": [
+        "16"
+      ],
+      "upstream_model": "claude-sonnet-4-6",
+      "canonical_model": "claude-sonnet-4-6",
+      "model_family": "anthropic",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "anthropic"
+    },
+    {
+      "id": "codestral-2508",
+      "alias": "codestral-2508",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "codestral-2508",
+      "canonical_model": "codestral-2508",
+      "model_family": "mistral",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "mistral"
+    },
+    {
+      "id": "codestral-embed",
+      "alias": "codestral-embed",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "codestral-embed",
+      "canonical_model": "codestral-embed",
+      "model_family": "mistral",
+      "endpoints": [
+        "embeddings"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "mistral"
+    },
+    {
+      "id": "codestral-embed-2505",
+      "alias": "codestral-embed-2505",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "codestral-embed-2505",
+      "canonical_model": "codestral-embed-2505",
+      "model_family": "mistral",
+      "endpoints": [
+        "embeddings"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "mistral"
+    },
+    {
+      "id": "codestral-latest",
+      "alias": "codestral-latest",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "codestral-latest",
+      "canonical_model": "codestral-latest",
+      "model_family": "mistral",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "mistral"
+    },
+    {
+      "id": "codex-auto-review",
+      "alias": "codex-auto-review",
+      "provider": "Codex",
+      "provider_key_ids": [
+        "17"
+      ],
+      "upstream_model": "codex-auto-review",
+      "canonical_model": "codex-auto-review",
+      "model_family": "openai",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "openai"
+    },
+    {
+      "id": "deepseek-flash",
+      "alias": "deepseek-flash",
+      "provider": "deepseek",
+      "provider_key_ids": [
+        "7"
+      ],
+      "upstream_model": "deepseek-flash",
+      "canonical_model": "deepseek-flash",
+      "model_family": "",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod transition 2026-09-23"
+    },
+    {
+      "id": "deepseek-v4-pro.deepseek",
+      "alias": "deepseek-v4-pro",
+      "provider": "deepseek",
+      "provider_key_ids": [
+        "7"
+      ],
+      "upstream_model": "deepseek-v4-pro",
+      "canonical_model": "deepseek-v4-pro",
+      "model_family": "",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "deepseek"
+    },
+    {
+      "id": "deepseek-v4-pro.opencode-go",
+      "alias": "deepseek-v4-pro",
+      "provider": "opencode-go",
+      "provider_key_ids": [
+        "18"
+      ],
+      "upstream_model": "deepseek-v4-pro",
+      "canonical_model": "deepseek-v4-pro",
+      "model_family": "",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "deepseek"
+    },
+    {
+      "id": "deepseek-v4.1-flash.deepseek",
+      "alias": "deepseek-v4.1-flash",
+      "provider": "deepseek",
+      "provider_key_ids": [
+        "7"
+      ],
+      "upstream_model": "deepseek-v4.1-flash",
+      "canonical_model": "deepseek-v4.1-flash",
+      "model_family": "",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "deepseek"
+    },
+    {
+      "id": "deepseek-v4.1-flash.opencode-go",
+      "alias": "deepseek-v4.1-flash",
+      "provider": "opencode-go",
+      "provider_key_ids": [
+        "18"
+      ],
+      "upstream_model": "deepseek-v4.1-flash",
+      "canonical_model": "deepseek-v4.1-flash",
+      "model_family": "",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "deepseek"
+    },
+    {
+      "id": "gemini-2.5-flash",
+      "alias": "gemini-2.5-flash",
+      "provider": "vertex",
+      "provider_key_ids": [
+        "4"
+      ],
+      "upstream_model": "gemini-2.5-flash",
+      "canonical_model": "gemini-2.5-flash",
+      "model_family": "gemini",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "google"
+    },
+    {
+      "id": "gemini-2.5-flash-lite",
+      "alias": "gemini-2.5-flash-lite",
+      "provider": "vertex",
+      "provider_key_ids": [
+        "4"
+      ],
+      "upstream_model": "gemini-2.5-flash-lite",
+      "canonical_model": "gemini-2.5-flash-lite",
+      "model_family": "gemini",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "google"
+    },
+    {
+      "id": "gemini-2.5-pro",
+      "alias": "gemini-2.5-pro",
+      "provider": "vertex",
+      "provider_key_ids": [
+        "4"
+      ],
+      "upstream_model": "gemini-2.5-pro",
+      "canonical_model": "gemini-2.5-pro",
+      "model_family": "gemini",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "google"
+    },
+    {
+      "id": "gemini-3-flash",
+      "alias": "gemini-3-flash",
+      "provider": "Google",
+      "provider_key_ids": [
+        "15"
+      ],
+      "upstream_model": "gemini-3-flash",
+      "canonical_model": "gemini-3-flash",
+      "model_family": "gemini",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "google"
+    },
+    {
+      "id": "gemini-3.1-flash-image",
+      "alias": "gemini-3.1-flash-image",
+      "provider": "Google",
+      "provider_key_ids": [
+        "15"
+      ],
+      "upstream_model": "gemini-3.1-flash-image",
+      "canonical_model": "gemini-3.1-flash-image",
+      "model_family": "gemini",
+      "endpoints": [
+        "images/generations"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "google"
+    },
+    {
+      "id": "gemini-3.1-flash-lite",
+      "alias": "gemini-3.1-flash-lite",
+      "provider": "Google",
+      "provider_key_ids": [
+        "15"
+      ],
+      "upstream_model": "gemini-3.1-flash-lite",
+      "canonical_model": "gemini-3.1-flash-lite",
+      "model_family": "gemini",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "google"
+    },
+    {
+      "id": "gemini-3.1-pro",
+      "alias": "gemini-3.1-pro",
+      "provider": "Google",
+      "provider_key_ids": [
+        "15"
+      ],
+      "upstream_model": "gemini-3.1-pro",
+      "canonical_model": "gemini-3.1-pro",
+      "model_family": "gemini",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "google"
+    },
+    {
+      "id": "gemini-3.5-flash-lite",
+      "alias": "gemini-3.5-flash-lite",
+      "provider": "Google",
+      "provider_key_ids": [
+        "15"
+      ],
+      "upstream_model": "gemini-3.5-flash-lite",
+      "canonical_model": "gemini-3.5-flash-lite",
+      "model_family": "gemini",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "google"
+    },
+    {
+      "id": "gemini-3.6-flash",
+      "alias": "gemini-3.6-flash",
+      "provider": "Google",
+      "provider_key_ids": [
+        "15"
+      ],
+      "upstream_model": "gemini-3.6-flash",
+      "canonical_model": "gemini-3.6-flash",
+      "model_family": "gemini",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "google"
+    },
+    {
+      "id": "gemini-3.7-flash",
+      "alias": "gemini-3.7-flash",
+      "provider": "Google",
+      "provider_key_ids": [
+        "15"
+      ],
+      "upstream_model": "gemini-3.7-flash",
+      "canonical_model": "gemini-3.7-flash",
+      "model_family": "gemini",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "google"
+    },
+    {
+      "id": "gemini-3.8-flash",
+      "alias": "gemini-3.8-flash",
+      "provider": "Google",
+      "provider_key_ids": [
+        "15"
+      ],
+      "upstream_model": "gemini-3.8-flash",
+      "canonical_model": "gemini-3.8-flash",
+      "model_family": "gemini",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "google"
+    },
+    {
+      "id": "gemini-pro-agent",
+      "alias": "gemini-pro-agent",
+      "provider": "Google",
+      "provider_key_ids": [
+        "15"
+      ],
+      "upstream_model": "gemini-pro-agent",
+      "canonical_model": "gemini-pro-agent",
+      "model_family": "gemini",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "google"
+    },
+    {
+      "id": "glm-5-2",
+      "alias": "glm-5-2",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "glm-5-2",
+      "canonical_model": "glm-5-2",
+      "model_family": "mistral",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23"
+    },
+    {
+      "id": "glm-5.1",
+      "alias": "glm-5.1",
+      "provider": "opencode-go",
+      "provider_key_ids": [
+        "18"
+      ],
+      "upstream_model": "glm-5.1",
+      "canonical_model": "glm-5.1",
+      "model_family": "",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "zai"
+    },
+    {
+      "id": "glm-5.2.mistral",
+      "alias": "glm-5.2",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "glm-5.2",
+      "canonical_model": "glm-5.2",
+      "model_family": "mistral",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "zai"
+    },
+    {
+      "id": "glm-5.2.opencode-go",
+      "alias": "glm-5.2",
+      "provider": "opencode-go",
+      "provider_key_ids": [
+        "18"
+      ],
+      "upstream_model": "glm-5.2",
+      "canonical_model": "glm-5.2",
+      "model_family": "",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "zai"
+    },
+    {
+      "id": "glm-5.3-flash",
+      "alias": "glm-5.3-flash",
+      "provider": "opencode-go",
+      "provider_key_ids": [
+        "18"
+      ],
+      "upstream_model": "glm-5.3-flash",
+      "canonical_model": "glm-5.3-flash",
+      "model_family": "",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "zai"
+    },
+    {
+      "id": "glm-5.3.mistral",
+      "alias": "glm-5.3",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "glm-5.3",
+      "canonical_model": "glm-5.3",
+      "model_family": "mistral",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "zai"
+    },
+    {
+      "id": "glm-5.3.opencode-go",
+      "alias": "glm-5.3",
+      "provider": "opencode-go",
+      "provider_key_ids": [
+        "18"
+      ],
+      "upstream_model": "glm-5.3",
+      "canonical_model": "glm-5.3",
+      "model_family": "",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "zai"
+    },
+    {
+      "id": "gpt-5.5",
+      "alias": "gpt-5.5",
+      "provider": "Codex",
+      "provider_key_ids": [
+        "17"
+      ],
+      "upstream_model": "gpt-5.5",
+      "canonical_model": "gpt-5.5",
+      "model_family": "openai",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "openai"
+    },
+    {
+      "id": "gpt-5.6-luna.codex",
+      "alias": "gpt-5.6-luna",
+      "provider": "Codex",
+      "provider_key_ids": [
+        "17"
+      ],
+      "upstream_model": "gpt-5.6-luna",
+      "canonical_model": "gpt-5.6-luna",
+      "model_family": "openai",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "openai"
+    },
+    {
+      "id": "gpt-5.6-luna.opencode-go",
+      "alias": "gpt-5.6-luna",
+      "provider": "opencode-go",
+      "provider_key_ids": [
+        "18"
+      ],
+      "upstream_model": "gpt-5.6-luna",
+      "canonical_model": "gpt-5.6-luna",
+      "model_family": "",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "openai"
+    },
+    {
+      "id": "gpt-5.6-sol",
+      "alias": "gpt-5.6-sol",
+      "provider": "Codex",
+      "provider_key_ids": [
+        "17"
+      ],
+      "upstream_model": "gpt-5.6-sol",
+      "canonical_model": "gpt-5.6-sol",
+      "model_family": "openai",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "openai"
+    },
+    {
+      "id": "gpt-5.6-terra",
+      "alias": "gpt-5.6-terra",
+      "provider": "Codex",
+      "provider_key_ids": [
+        "17"
+      ],
+      "upstream_model": "gpt-5.6-terra",
+      "canonical_model": "gpt-5.6-terra",
+      "model_family": "openai",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "openai"
+    },
+    {
+      "id": "gpt-6-astra",
+      "alias": "gpt-6-astra",
+      "provider": "Codex",
+      "provider_key_ids": [
+        "17"
+      ],
+      "upstream_model": "gpt-6-astra",
+      "canonical_model": "gpt-6-astra",
+      "model_family": "openai",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "openai"
+    },
+    {
+      "id": "gpt-image-1.5",
+      "alias": "gpt-image-1.5",
+      "provider": "Codex",
+      "provider_key_ids": [
+        "17"
+      ],
+      "upstream_model": "gpt-image-1.5",
+      "canonical_model": "gpt-image-1.5",
+      "model_family": "openai",
+      "endpoints": [
+        "images/generations"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "openai"
+    },
+    {
+      "id": "gpt-image-2",
+      "alias": "gpt-image-2",
+      "provider": "Codex",
+      "provider_key_ids": [
+        "17"
+      ],
+      "upstream_model": "gpt-image-2",
+      "canonical_model": "gpt-image-2",
+      "model_family": "openai",
+      "endpoints": [
+        "images/generations"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "openai"
+    },
+    {
+      "id": "gpt-image-2.5",
+      "alias": "gpt-image-2.5",
+      "provider": "Codex",
+      "provider_key_ids": [
+        "17"
+      ],
+      "upstream_model": "gpt-image-2.5",
+      "canonical_model": "gpt-image-2.5",
+      "model_family": "openai",
+      "endpoints": [
+        "images/generations"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "openai"
+    },
+    {
+      "id": "gpt-image-2.5-flare",
+      "alias": "gpt-image-2.5-flare",
+      "provider": "Codex",
+      "provider_key_ids": [
+        "17"
+      ],
+      "upstream_model": "gpt-image-2.5-flare",
+      "canonical_model": "gpt-image-2.5-flare",
+      "model_family": "openai",
+      "endpoints": [
+        "images/generations"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "openai"
+    },
+    {
+      "id": "gpt-image-2.5-sunburst",
+      "alias": "gpt-image-2.5-sunburst",
+      "provider": "Codex",
+      "provider_key_ids": [
+        "17"
+      ],
+      "upstream_model": "gpt-image-2.5-sunburst",
+      "canonical_model": "gpt-image-2.5-sunburst",
+      "model_family": "openai",
+      "endpoints": [
+        "images/generations"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "openai"
+    },
+    {
+      "id": "gpt-oss-120b-medium",
+      "alias": "gpt-oss-120b-medium",
+      "provider": "Codex",
+      "provider_key_ids": [
+        "17"
+      ],
+      "upstream_model": "gpt-oss-120b-medium",
+      "canonical_model": "gpt-oss-120b-medium",
+      "model_family": "openai",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "openai"
+    },
+    {
+      "id": "grok-4.6",
+      "alias": "grok-4.6",
+      "provider": "opencode-go",
+      "provider_key_ids": [
+        "18"
+      ],
+      "upstream_model": "grok-4.6",
+      "canonical_model": "grok-4.6",
+      "model_family": "",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "xai"
+    },
+    {
+      "id": "grok-4.7",
+      "alias": "grok-4.7",
+      "provider": "opencode-go",
+      "provider_key_ids": [
+        "18"
+      ],
+      "upstream_model": "grok-4.7",
+      "canonical_model": "grok-4.7",
+      "model_family": "",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "xai"
+    },
+    {
+      "id": "hy3",
+      "alias": "hy3",
+      "provider": "opencode-go",
+      "provider_key_ids": [
+        "18"
+      ],
+      "upstream_model": "hy3",
+      "canonical_model": "hy3",
+      "model_family": "",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "tencent"
+    },
+    {
+      "id": "hy4-preview",
+      "alias": "hy4-preview",
+      "provider": "opencode-go",
+      "provider_key_ids": [
+        "18"
+      ],
+      "upstream_model": "hy4-preview",
+      "canonical_model": "hy4-preview",
+      "model_family": "",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "tencent"
+    },
+    {
+      "id": "image-segmentation-001",
+      "alias": "image-segmentation-001",
+      "provider": "vertex",
+      "provider_key_ids": [
+        "4"
+      ],
+      "upstream_model": "image-segmentation-001",
+      "canonical_model": "image-segmentation-001",
+      "model_family": "gemini",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "google"
+    },
+    {
+      "id": "kimi-k2.6",
+      "alias": "kimi-k2.6",
+      "provider": "opencode-go",
+      "provider_key_ids": [
+        "18"
+      ],
+      "upstream_model": "kimi-k2.6",
+      "canonical_model": "kimi-k2.6",
+      "model_family": "",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "moonshot"
+    },
+    {
+      "id": "kimi-k2.7-code",
+      "alias": "kimi-k2.7-code",
+      "provider": "opencode-go",
+      "provider_key_ids": [
+        "18"
+      ],
+      "upstream_model": "kimi-k2.7-code",
+      "canonical_model": "kimi-k2.7-code",
+      "model_family": "",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "moonshot"
+    },
+    {
+      "id": "kimi-k3",
+      "alias": "kimi-k3",
+      "provider": "opencode-go",
+      "provider_key_ids": [
+        "18"
+      ],
+      "upstream_model": "kimi-k3",
+      "canonical_model": "kimi-k3",
+      "model_family": "",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "moonshot"
+    },
+    {
+      "id": "labs-leanstral-1-5",
+      "alias": "labs-leanstral-1-5",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "labs-leanstral-1-5",
+      "canonical_model": "labs-leanstral-1-5",
+      "model_family": "mistral",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "mistral"
+    },
+    {
+      "id": "labs-leanstral-1-5-1",
+      "alias": "labs-leanstral-1-5-1",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "labs-leanstral-1-5-1",
+      "canonical_model": "labs-leanstral-1-5-1",
+      "model_family": "mistral",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "mistral"
+    },
+    {
+      "id": "longcat-2.0",
+      "alias": "longcat-2.0",
+      "provider": "opencode-go",
+      "provider_key_ids": [
+        "18"
+      ],
+      "upstream_model": "longcat-2.0",
+      "canonical_model": "longcat-2.0",
+      "model_family": "",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "meituan"
+    },
+    {
+      "id": "magistral-medium-latest",
+      "alias": "magistral-medium-latest",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "magistral-medium-latest",
+      "canonical_model": "magistral-medium-latest",
+      "model_family": "mistral",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "mistral"
+    },
+    {
+      "id": "magistral-small-latest",
+      "alias": "magistral-small-latest",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "magistral-small-latest",
+      "canonical_model": "magistral-small-latest",
+      "model_family": "mistral",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "mistral"
+    },
+    {
+      "id": "mimo-v2.5",
+      "alias": "mimo-v2.5",
+      "provider": "opencode-go",
+      "provider_key_ids": [
+        "18"
+      ],
+      "upstream_model": "mimo-v2.5",
+      "canonical_model": "mimo-v2.5",
+      "model_family": "",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "xiaomi"
+    },
+    {
+      "id": "mimo-v2.5-pro",
+      "alias": "mimo-v2.5-pro",
+      "provider": "opencode-go",
+      "provider_key_ids": [
+        "18"
+      ],
+      "upstream_model": "mimo-v2.5-pro",
+      "canonical_model": "mimo-v2.5-pro",
+      "model_family": "",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "xiaomi"
+    },
+    {
+      "id": "mimo-v2.6-flash",
+      "alias": "mimo-v2.6-flash",
+      "provider": "opencode-go",
+      "provider_key_ids": [
+        "18"
+      ],
+      "upstream_model": "mimo-v2.6-flash",
+      "canonical_model": "mimo-v2.6-flash",
+      "model_family": "",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "xiaomi"
+    },
+    {
+      "id": "mimo-v2.6-pro",
+      "alias": "mimo-v2.6-pro",
+      "provider": "opencode-go",
+      "provider_key_ids": [
+        "18"
+      ],
+      "upstream_model": "mimo-v2.6-pro",
+      "canonical_model": "mimo-v2.6-pro",
+      "model_family": "",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "xiaomi"
+    },
+    {
+      "id": "minimax-m2.5",
+      "alias": "minimax-m2.5",
+      "provider": "opencode-go",
+      "provider_key_ids": [
+        "18"
+      ],
+      "upstream_model": "minimax-m2.5",
+      "canonical_model": "minimax-m2.5",
+      "model_family": "",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "minimax"
+    },
+    {
+      "id": "minimax-m2.7",
+      "alias": "minimax-m2.7",
+      "provider": "opencode-go",
+      "provider_key_ids": [
+        "18"
+      ],
+      "upstream_model": "minimax-m2.7",
+      "canonical_model": "minimax-m2.7",
+      "model_family": "",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "minimax"
+    },
+    {
+      "id": "minimax-m3",
+      "alias": "minimax-m3",
+      "provider": "opencode-go",
+      "provider_key_ids": [
+        "18"
+      ],
+      "upstream_model": "minimax-m3",
+      "canonical_model": "minimax-m3",
+      "model_family": "",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "minimax"
+    },
+    {
+      "id": "ministral-14b-2512",
+      "alias": "ministral-14b-2512",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "ministral-14b-2512",
+      "canonical_model": "ministral-14b-2512",
+      "model_family": "mistral",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "mistral"
+    },
+    {
+      "id": "ministral-14b-latest",
+      "alias": "ministral-14b-latest",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "ministral-14b-latest",
+      "canonical_model": "ministral-14b-latest",
+      "model_family": "mistral",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "mistral"
+    },
+    {
+      "id": "ministral-3b-2512",
+      "alias": "ministral-3b-2512",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "ministral-3b-2512",
+      "canonical_model": "ministral-3b-2512",
+      "model_family": "mistral",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "mistral"
+    },
+    {
+      "id": "ministral-3b-latest",
+      "alias": "ministral-3b-latest",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "ministral-3b-latest",
+      "canonical_model": "ministral-3b-latest",
+      "model_family": "mistral",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "mistral"
+    },
+    {
+      "id": "ministral-8b-2512",
+      "alias": "ministral-8b-2512",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "ministral-8b-2512",
+      "canonical_model": "ministral-8b-2512",
+      "model_family": "mistral",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "mistral"
+    },
+    {
+      "id": "ministral-8b-latest",
+      "alias": "ministral-8b-latest",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "ministral-8b-latest",
+      "canonical_model": "ministral-8b-latest",
+      "model_family": "mistral",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "mistral"
+    },
+    {
+      "id": "mistral-code-fim-latest",
+      "alias": "mistral-code-fim-latest",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "mistral-code-fim-latest",
+      "canonical_model": "mistral-code-fim-latest",
+      "model_family": "mistral",
+      "endpoints": [
+        "completions",
+        "chat/completions"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "mistral"
+    },
+    {
+      "id": "mistral-code-latest",
+      "alias": "mistral-code-latest",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "mistral-code-latest",
+      "canonical_model": "mistral-code-latest",
+      "model_family": "mistral",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "mistral"
+    },
+    {
+      "id": "mistral-embed",
+      "alias": "mistral-embed",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "mistral-embed",
+      "canonical_model": "mistral-embed",
+      "model_family": "mistral",
+      "endpoints": [
+        "embeddings"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "mistral"
+    },
+    {
+      "id": "mistral-embed-2312",
+      "alias": "mistral-embed-2312",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "mistral-embed-2312",
+      "canonical_model": "mistral-embed-2312",
+      "model_family": "mistral",
+      "endpoints": [
+        "embeddings"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "mistral"
+    },
+    {
+      "id": "mistral-large-2512",
+      "alias": "mistral-large-2512",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "mistral-large-2512",
+      "canonical_model": "mistral-large-2512",
+      "model_family": "mistral",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "mistral"
+    },
+    {
+      "id": "mistral-large-latest",
+      "alias": "mistral-large-latest",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "mistral-large-latest",
+      "canonical_model": "mistral-large-latest",
+      "model_family": "mistral",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "mistral"
+    },
+    {
+      "id": "mistral-medium",
+      "alias": "mistral-medium",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "mistral-medium",
+      "canonical_model": "mistral-medium",
+      "model_family": "mistral",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "mistral"
+    },
+    {
+      "id": "mistral-medium-2604",
+      "alias": "mistral-medium-2604",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "mistral-medium-2604",
+      "canonical_model": "mistral-medium-2604",
+      "model_family": "mistral",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "mistral"
+    },
+    {
+      "id": "mistral-medium-3",
+      "alias": "mistral-medium-3",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "mistral-medium-3",
+      "canonical_model": "mistral-medium-3",
+      "model_family": "mistral",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "mistral"
+    },
+    {
+      "id": "mistral-medium-3-5",
+      "alias": "mistral-medium-3-5",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "mistral-medium-3-5",
+      "canonical_model": "mistral-medium-3-5",
+      "model_family": "mistral",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "mistral"
+    },
+    {
+      "id": "mistral-medium-3.5",
+      "alias": "mistral-medium-3.5",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "mistral-medium-3.5",
+      "canonical_model": "mistral-medium-3.5",
+      "model_family": "mistral",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "mistral"
+    },
+    {
+      "id": "mistral-medium-latest",
+      "alias": "mistral-medium-latest",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "mistral-medium-latest",
+      "canonical_model": "mistral-medium-latest",
+      "model_family": "mistral",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "mistral"
+    },
+    {
+      "id": "mistral-moderation-2603",
+      "alias": "mistral-moderation-2603",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "mistral-moderation-2603",
+      "canonical_model": "mistral-moderation-2603",
+      "model_family": "mistral",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "mistral"
+    },
+    {
+      "id": "mistral-ocr-2512",
+      "alias": "mistral-ocr-2512",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "mistral-ocr-2512",
+      "canonical_model": "mistral-ocr-2512",
+      "model_family": "mistral",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "mistral"
+    },
+    {
+      "id": "mistral-ocr-3",
+      "alias": "mistral-ocr-3",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "mistral-ocr-3",
+      "canonical_model": "mistral-ocr-3",
+      "model_family": "mistral",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "mistral"
+    },
+    {
+      "id": "mistral-ocr-3-0",
+      "alias": "mistral-ocr-3-0",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "mistral-ocr-3-0",
+      "canonical_model": "mistral-ocr-3-0",
+      "model_family": "mistral",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "mistral"
+    },
+    {
+      "id": "mistral-ocr-4",
+      "alias": "mistral-ocr-4",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "mistral-ocr-4",
+      "canonical_model": "mistral-ocr-4",
+      "model_family": "mistral",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "mistral"
+    },
+    {
+      "id": "mistral-ocr-4-0",
+      "alias": "mistral-ocr-4-0",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "mistral-ocr-4-0",
+      "canonical_model": "mistral-ocr-4-0",
+      "model_family": "mistral",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "mistral"
+    },
+    {
+      "id": "mistral-ocr-4-1",
+      "alias": "mistral-ocr-4-1",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "mistral-ocr-4-1",
+      "canonical_model": "mistral-ocr-4-1",
+      "model_family": "mistral",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "mistral"
+    },
+    {
+      "id": "mistral-ocr-latest",
+      "alias": "mistral-ocr-latest",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "mistral-ocr-latest",
+      "canonical_model": "mistral-ocr-latest",
+      "model_family": "mistral",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "mistral"
+    },
+    {
+      "id": "mistral-small-2603",
+      "alias": "mistral-small-2603",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "mistral-small-2603",
+      "canonical_model": "mistral-small-2603",
+      "model_family": "mistral",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "mistral"
+    },
+    {
+      "id": "mistral-small-latest",
+      "alias": "mistral-small-latest",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "mistral-small-latest",
+      "canonical_model": "mistral-small-latest",
+      "model_family": "mistral",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "mistral"
+    },
+    {
+      "id": "mistral-vibe-cli-fast",
+      "alias": "mistral-vibe-cli-fast",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "mistral-vibe-cli-fast",
+      "canonical_model": "mistral-vibe-cli-fast",
+      "model_family": "mistral",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "mistral"
+    },
+    {
+      "id": "mistral-vibe-cli-latest",
+      "alias": "mistral-vibe-cli-latest",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "mistral-vibe-cli-latest",
+      "canonical_model": "mistral-vibe-cli-latest",
+      "model_family": "mistral",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "mistral"
+    },
+    {
+      "id": "mistral-vibe-cli-with-tools",
+      "alias": "mistral-vibe-cli-with-tools",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "mistral-vibe-cli-with-tools",
+      "canonical_model": "mistral-vibe-cli-with-tools",
+      "model_family": "mistral",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "mistral"
+    },
+    {
+      "id": "multimodalembedding",
+      "alias": "multimodalembedding",
+      "provider": "vertex",
+      "provider_key_ids": [
+        "4"
+      ],
+      "upstream_model": "multimodalembedding",
+      "canonical_model": "multimodalembedding",
+      "model_family": "gemini",
+      "endpoints": [
+        "embeddings"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "google"
+    },
+    {
+      "id": "muse-spark-1.2-contributor",
+      "alias": "muse-spark-1.2-contributor",
+      "provider": "opencode-go",
+      "provider_key_ids": [
+        "18"
+      ],
+      "upstream_model": "muse-spark-1.2-contributor",
+      "canonical_model": "muse-spark-1.2-contributor",
+      "model_family": "",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "meta"
+    },
+    {
+      "id": "muse-spark-1.3-contributor",
+      "alias": "muse-spark-1.3-contributor",
+      "provider": "opencode-go",
+      "provider_key_ids": [
+        "18"
+      ],
+      "upstream_model": "muse-spark-1.3-contributor",
+      "canonical_model": "muse-spark-1.3-contributor",
+      "model_family": "",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "meta"
+    },
+    {
+      "id": "omen-alpha",
+      "alias": "omen-alpha",
+      "provider": "opencode-go",
+      "provider_key_ids": [
+        "18"
+      ],
+      "upstream_model": "omen-alpha",
+      "canonical_model": "omen-alpha",
+      "model_family": "",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23"
+    },
+    {
+      "id": "qwen3.6-plus",
+      "alias": "qwen3.6-plus",
+      "provider": "opencode-go",
+      "provider_key_ids": [
+        "18"
+      ],
+      "upstream_model": "qwen3.6-plus",
+      "canonical_model": "qwen3.6-plus",
+      "model_family": "",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "alibaba"
+    },
+    {
+      "id": "qwen3.7-max",
+      "alias": "qwen3.7-max",
+      "provider": "opencode-go",
+      "provider_key_ids": [
+        "18"
+      ],
+      "upstream_model": "qwen3.7-max",
+      "canonical_model": "qwen3.7-max",
+      "model_family": "",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "alibaba"
+    },
+    {
+      "id": "qwen3.7-plus",
+      "alias": "qwen3.7-plus",
+      "provider": "opencode-go",
+      "provider_key_ids": [
+        "18"
+      ],
+      "upstream_model": "qwen3.7-plus",
+      "canonical_model": "qwen3.7-plus",
+      "model_family": "",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "alibaba"
+    },
+    {
+      "id": "qwen3.8-flash",
+      "alias": "qwen3.8-flash",
+      "provider": "opencode-go",
+      "provider_key_ids": [
+        "18"
+      ],
+      "upstream_model": "qwen3.8-flash",
+      "canonical_model": "qwen3.8-flash",
+      "model_family": "",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "alibaba"
+    },
+    {
+      "id": "qwen3.8-max",
+      "alias": "qwen3.8-max",
+      "provider": "opencode-go",
+      "provider_key_ids": [
+        "18"
+      ],
+      "upstream_model": "qwen3.8-max",
+      "canonical_model": "qwen3.8-max",
+      "model_family": "",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "alibaba"
+    },
+    {
+      "id": "text-embedding-005",
+      "alias": "text-embedding-005",
+      "provider": "vertex",
+      "provider_key_ids": [
+        "4"
+      ],
+      "upstream_model": "text-embedding-005",
+      "canonical_model": "text-embedding-005",
+      "model_family": "gemini",
+      "endpoints": [
+        "embeddings"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "google"
+    },
+    {
+      "id": "text-multilingual-embedding-002",
+      "alias": "text-multilingual-embedding-002",
+      "provider": "vertex",
+      "provider_key_ids": [
+        "4"
+      ],
+      "upstream_model": "text-multilingual-embedding-002",
+      "canonical_model": "text-multilingual-embedding-002",
+      "model_family": "gemini",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "google"
+    },
+    {
+      "id": "textembedding-gecko",
+      "alias": "textembedding-gecko",
+      "provider": "vertex",
+      "provider_key_ids": [
+        "4"
+      ],
+      "upstream_model": "textembedding-gecko",
+      "canonical_model": "textembedding-gecko",
+      "model_family": "gemini",
+      "endpoints": [
+        "embeddings"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "google"
+    },
+    {
+      "id": "voxtral-mini-2602",
+      "alias": "voxtral-mini-2602",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "voxtral-mini-2602",
+      "canonical_model": "voxtral-mini-2602",
+      "model_family": "mistral",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "mistral"
+    },
+    {
+      "id": "voxtral-mini-latest",
+      "alias": "voxtral-mini-latest",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "voxtral-mini-latest",
+      "canonical_model": "voxtral-mini-latest",
+      "model_family": "mistral",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "mistral"
+    },
+    {
+      "id": "voxtral-mini-realtime-2602",
+      "alias": "voxtral-mini-realtime-2602",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "voxtral-mini-realtime-2602",
+      "canonical_model": "voxtral-mini-realtime-2602",
+      "model_family": "mistral",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "mistral"
+    },
+    {
+      "id": "voxtral-mini-realtime-latest",
+      "alias": "voxtral-mini-realtime-latest",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "voxtral-mini-realtime-latest",
+      "canonical_model": "voxtral-mini-realtime-latest",
+      "model_family": "mistral",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "mistral"
+    },
+    {
+      "id": "voxtral-mini-transcribe-realtime-2602",
+      "alias": "voxtral-mini-transcribe-realtime-2602",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "voxtral-mini-transcribe-realtime-2602",
+      "canonical_model": "voxtral-mini-transcribe-realtime-2602",
+      "model_family": "mistral",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "mistral"
+    },
+    {
+      "id": "voxtral-mini-tts-2603",
+      "alias": "voxtral-mini-tts-2603",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "voxtral-mini-tts-2603",
+      "canonical_model": "voxtral-mini-tts-2603",
+      "model_family": "mistral",
+      "endpoints": [
+        "audio/speech"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "mistral"
+    },
+    {
+      "id": "voxtral-mini-tts-latest",
+      "alias": "voxtral-mini-tts-latest",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "voxtral-mini-tts-latest",
+      "canonical_model": "voxtral-mini-tts-latest",
+      "model_family": "mistral",
+      "endpoints": [
+        "audio/speech"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "mistral"
+    },
+    {
+      "id": "voxtral-small-2507",
+      "alias": "voxtral-small-2507",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "voxtral-small-2507",
+      "canonical_model": "voxtral-small-2507",
+      "model_family": "mistral",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "mistral"
+    },
+    {
+      "id": "voxtral-small-latest",
+      "alias": "voxtral-small-latest",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "voxtral-small-latest",
+      "canonical_model": "voxtral-small-latest",
+      "model_family": "mistral",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "mistral"
+    },
+    {
+      "id": "zai-glm-5",
+      "alias": "zai-glm-5",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "zai-glm-5",
+      "canonical_model": "zai-glm-5",
+      "model_family": "mistral",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "zai"
+    },
+    {
+      "id": "zai-glm-5-2",
+      "alias": "zai-glm-5-2",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "zai-glm-5-2",
+      "canonical_model": "zai-glm-5-2",
+      "model_family": "mistral",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "zai"
+    },
+    {
+      "id": "zai-glm-5-3",
+      "alias": "zai-glm-5-3",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "zai-glm-5-3",
+      "canonical_model": "zai-glm-5-3",
+      "model_family": "mistral",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "zai"
+    },
+    {
+      "id": "zai-glm-latest",
+      "alias": "zai-glm-latest",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "zai-glm-latest",
+      "canonical_model": "zai-glm-latest",
+      "model_family": "mistral",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod vk-groups 2026-09-23",
+      "creator": "zai"
+    }
+  ],
+  "groups": [
+    {
+      "id": "alibaba",
+      "name": "alibaba",
+      "model_ids": [
+        "qwen3.6-plus",
+        "qwen3.7-max",
+        "qwen3.7-plus",
+        "qwen3.8-flash",
+        "qwen3.8-max"
+      ]
+    },
+    {
+      "id": "anthropic",
+      "name": "anthropic",
+      "model_ids": [
+        "claude-opus-4-6",
+        "claude-sonnet-4-6"
+      ]
+    },
+    {
+      "id": "audio",
+      "name": "audio",
+      "model_ids": [
+        "voxtral-mini-2602",
+        "voxtral-mini-latest",
+        "voxtral-mini-realtime-2602",
+        "voxtral-mini-realtime-latest",
+        "voxtral-mini-transcribe-realtime-2602",
+        "voxtral-mini-tts-2603",
+        "voxtral-mini-tts-latest",
+        "voxtral-small-2507",
+        "voxtral-small-latest"
+      ]
+    },
+    {
+      "id": "chat",
+      "name": "chat",
+      "model_ids": [
+        "claude-opus-4-6",
+        "claude-sonnet-4-6",
+        "codex-auto-review",
+        "deepseek-v4-pro.deepseek",
+        "deepseek-v4-pro.opencode-go",
+        "deepseek-v4.1-flash.deepseek",
+        "deepseek-v4.1-flash.opencode-go",
+        "gemini-2.5-flash",
+        "gemini-2.5-flash-lite",
+        "gemini-2.5-pro",
+        "gemini-3-flash",
+        "gemini-3.1-flash-lite",
+        "gemini-3.1-pro",
+        "gemini-3.5-flash-lite",
+        "gemini-3.6-flash",
+        "gemini-3.7-flash",
+        "gemini-3.8-flash",
+        "gemini-pro-agent",
+        "glm-5.1",
+        "glm-5.2.mistral",
+        "glm-5.2.opencode-go",
+        "glm-5.3-flash",
+        "glm-5.3.mistral",
+        "glm-5.3.opencode-go",
+        "gpt-5.5",
+        "gpt-5.6-luna.codex",
+        "gpt-5.6-luna.opencode-go",
+        "gpt-5.6-sol",
+        "gpt-5.6-terra",
+        "gpt-6-astra",
+        "gpt-oss-120b-medium",
+        "grok-4.6",
+        "grok-4.7",
+        "hy3",
+        "hy4-preview",
+        "kimi-k2.6",
+        "kimi-k3",
+        "longcat-2.0",
+        "magistral-medium-latest",
+        "magistral-small-latest",
+        "mimo-v2.5",
+        "mimo-v2.5-pro",
+        "mimo-v2.6-flash",
+        "mimo-v2.6-pro",
+        "minimax-m2.5",
+        "minimax-m2.7",
+        "minimax-m3",
+        "ministral-14b-2512",
+        "ministral-14b-latest",
+        "ministral-3b-2512",
+        "ministral-3b-latest",
+        "ministral-8b-2512",
+        "ministral-8b-latest",
+        "mistral-large-2512",
+        "mistral-large-latest",
+        "mistral-medium",
+        "mistral-medium-2604",
+        "mistral-medium-3",
+        "mistral-medium-3-5",
+        "mistral-medium-3.5",
+        "mistral-medium-latest",
+        "mistral-small-2603",
+        "mistral-small-latest",
+        "muse-spark-1.2-contributor",
+        "muse-spark-1.3-contributor",
+        "omen-alpha",
+        "qwen3.6-plus",
+        "qwen3.7-max",
+        "qwen3.7-plus",
+        "qwen3.8-flash",
+        "qwen3.8-max",
+        "zai-glm-5",
+        "zai-glm-5-2",
+        "zai-glm-5-3",
+        "zai-glm-latest"
+      ]
+    },
+    {
+      "id": "code",
+      "name": "code",
+      "model_ids": [
+        "claude-opus-4-6",
+        "codestral-2508",
+        "codestral-latest",
+        "glm-5.3.opencode-go",
+        "gpt-5.5",
+        "kimi-k2.7-code",
+        "kimi-k3",
+        "mistral-code-fim-latest",
+        "mistral-code-latest",
+        "mistral-vibe-cli-fast",
+        "mistral-vibe-cli-latest",
+        "mistral-vibe-cli-with-tools"
+      ]
+    },
+    {
+      "id": "deepseek",
+      "name": "deepseek",
+      "model_ids": [
+        "deepseek-v4-pro.deepseek",
+        "deepseek-v4-pro.opencode-go",
+        "deepseek-v4.1-flash.deepseek",
+        "deepseek-v4.1-flash.opencode-go"
+      ]
+    },
+    {
+      "id": "embedding",
+      "name": "embedding",
+      "model_ids": [
+        "codestral-embed",
+        "codestral-embed-2505",
+        "mistral-embed",
+        "mistral-embed-2312",
+        "multimodalembedding",
+        "text-embedding-005",
+        "text-multilingual-embedding-002",
+        "textembedding-gecko"
+      ]
+    },
+    {
+      "id": "fast",
+      "name": "fast",
+      "model_ids": [
+        "deepseek-v4.1-flash.deepseek",
+        "deepseek-v4.1-flash.opencode-go",
+        "gemini-3.1-flash-lite",
+        "gemini-3.5-flash-lite",
+        "gemini-3.8-flash",
+        "glm-5.3-flash",
+        "mistral-small-latest",
+        "qwen3.8-flash"
+      ]
+    },
+    {
+      "id": "google",
+      "name": "google",
+      "model_ids": [
+        "gemini-2.5-flash",
+        "gemini-2.5-flash-lite",
+        "gemini-2.5-pro",
+        "gemini-3-flash",
+        "gemini-3.1-flash-image",
+        "gemini-3.1-flash-lite",
+        "gemini-3.1-pro",
+        "gemini-3.5-flash-lite",
+        "gemini-3.6-flash",
+        "gemini-3.7-flash",
+        "gemini-3.8-flash",
+        "gemini-pro-agent",
+        "image-segmentation-001",
+        "multimodalembedding",
+        "text-embedding-005",
+        "text-multilingual-embedding-002",
+        "textembedding-gecko"
+      ]
+    },
+    {
+      "id": "image",
+      "name": "image",
+      "model_ids": [
+        "gemini-3.1-flash-image",
+        "gpt-image-1.5",
+        "gpt-image-2",
+        "gpt-image-2.5",
+        "gpt-image-2.5-flare",
+        "gpt-image-2.5-sunburst"
+      ]
+    },
+    {
+      "id": "legacy",
+      "name": "legacy",
+      "model_ids": [
+        "deepseek-flash",
+        "glm-5-2",
+        "zai-glm-5",
+        "zai-glm-5-2",
+        "zai-glm-5-3",
+        "zai-glm-latest"
+      ]
+    },
+    {
+      "id": "meituan",
+      "name": "meituan",
+      "model_ids": [
+        "longcat-2.0"
+      ]
+    },
+    {
+      "id": "meta",
+      "name": "meta",
+      "model_ids": [
+        "muse-spark-1.2-contributor",
+        "muse-spark-1.3-contributor"
+      ]
+    },
+    {
+      "id": "minimax",
+      "name": "minimax",
+      "model_ids": [
+        "minimax-m2.5",
+        "minimax-m2.7",
+        "minimax-m3"
+      ]
+    },
+    {
+      "id": "mistral",
+      "name": "mistral",
+      "model_ids": [
+        "codestral-2508",
+        "codestral-embed",
+        "codestral-embed-2505",
+        "codestral-latest",
+        "labs-leanstral-1-5",
+        "labs-leanstral-1-5-1",
+        "magistral-medium-latest",
+        "magistral-small-latest",
+        "ministral-14b-2512",
+        "ministral-14b-latest",
+        "ministral-3b-2512",
+        "ministral-3b-latest",
+        "ministral-8b-2512",
+        "ministral-8b-latest",
+        "mistral-code-fim-latest",
+        "mistral-code-latest",
+        "mistral-embed",
+        "mistral-embed-2312",
+        "mistral-large-2512",
+        "mistral-large-latest",
+        "mistral-medium",
+        "mistral-medium-2604",
+        "mistral-medium-3",
+        "mistral-medium-3-5",
+        "mistral-medium-3.5",
+        "mistral-medium-latest",
+        "mistral-moderation-2603",
+        "mistral-ocr-2512",
+        "mistral-ocr-3",
+        "mistral-ocr-3-0",
+        "mistral-ocr-4",
+        "mistral-ocr-4-0",
+        "mistral-ocr-4-1",
+        "mistral-ocr-latest",
+        "mistral-small-2603",
+        "mistral-small-latest",
+        "mistral-vibe-cli-fast",
+        "mistral-vibe-cli-latest",
+        "mistral-vibe-cli-with-tools",
+        "voxtral-mini-2602",
+        "voxtral-mini-latest",
+        "voxtral-mini-realtime-2602",
+        "voxtral-mini-realtime-latest",
+        "voxtral-mini-transcribe-realtime-2602",
+        "voxtral-mini-tts-2603",
+        "voxtral-mini-tts-latest",
+        "voxtral-small-2507",
+        "voxtral-small-latest"
+      ]
+    },
+    {
+      "id": "moonshot",
+      "name": "moonshot",
+      "model_ids": [
+        "kimi-k2.6",
+        "kimi-k2.7-code",
+        "kimi-k3"
+      ]
+    },
+    {
+      "id": "ocr",
+      "name": "ocr",
+      "model_ids": [
+        "mistral-ocr-2512",
+        "mistral-ocr-3",
+        "mistral-ocr-3-0",
+        "mistral-ocr-4",
+        "mistral-ocr-4-0",
+        "mistral-ocr-4-1",
+        "mistral-ocr-latest"
+      ]
+    },
+    {
+      "id": "openai",
+      "name": "openai",
+      "model_ids": [
+        "codex-auto-review",
+        "gpt-5.5",
+        "gpt-5.6-luna.codex",
+        "gpt-5.6-luna.opencode-go",
+        "gpt-5.6-sol",
+        "gpt-5.6-terra",
+        "gpt-6-astra",
+        "gpt-image-1.5",
+        "gpt-image-2",
+        "gpt-image-2.5",
+        "gpt-image-2.5-flare",
+        "gpt-image-2.5-sunburst",
+        "gpt-oss-120b-medium"
+      ]
+    },
+    {
+      "id": "reasoning",
+      "name": "reasoning",
+      "model_ids": [
+        "claude-opus-4-6",
+        "gemini-3.1-pro",
+        "glm-5.3.opencode-go",
+        "gpt-5.6-sol",
+        "gpt-5.6-terra",
+        "kimi-k3",
+        "qwen3.7-max",
+        "qwen3.8-max"
+      ]
+    },
+    {
+      "id": "route-claude",
+      "name": "route-claude",
+      "model_ids": [
+        "claude-opus-4-6",
+        "claude-sonnet-4-6"
+      ]
+    },
+    {
+      "id": "route-codex",
+      "name": "route-codex",
+      "model_ids": [
+        "codex-auto-review",
+        "gpt-5.5",
+        "gpt-5.6-luna.codex",
+        "gpt-5.6-sol",
+        "gpt-5.6-terra",
+        "gpt-6-astra",
+        "gpt-image-1.5",
+        "gpt-image-2",
+        "gpt-image-2.5",
+        "gpt-image-2.5-flare",
+        "gpt-image-2.5-sunburst",
+        "gpt-oss-120b-medium"
+      ]
+    },
+    {
+      "id": "route-deepseek",
+      "name": "route-deepseek",
+      "model_ids": [
+        "deepseek-v4-pro.deepseek",
+        "deepseek-v4.1-flash.deepseek"
+      ]
+    },
+    {
+      "id": "route-go",
+      "name": "route-go",
+      "model_ids": [
+        "deepseek-v4-pro.opencode-go",
+        "deepseek-v4.1-flash.opencode-go",
+        "glm-5.1",
+        "glm-5.2.opencode-go",
+        "glm-5.3-flash",
+        "glm-5.3.opencode-go",
+        "gpt-5.6-luna.opencode-go",
+        "grok-4.6",
+        "grok-4.7",
+        "hy3",
+        "hy4-preview",
+        "kimi-k2.6",
+        "kimi-k2.7-code",
+        "kimi-k3",
+        "longcat-2.0",
+        "mimo-v2.5",
+        "mimo-v2.5-pro",
+        "mimo-v2.6-flash",
+        "mimo-v2.6-pro",
+        "minimax-m2.5",
+        "minimax-m2.7",
+        "minimax-m3",
+        "muse-spark-1.2-contributor",
+        "muse-spark-1.3-contributor",
+        "omen-alpha",
+        "qwen3.6-plus",
+        "qwen3.7-max",
+        "qwen3.7-plus",
+        "qwen3.8-flash",
+        "qwen3.8-max"
+      ]
+    },
+    {
+      "id": "route-google",
+      "name": "route-google",
+      "model_ids": [
+        "gemini-3-flash",
+        "gemini-3.1-flash-image",
+        "gemini-3.1-flash-lite",
+        "gemini-3.1-pro",
+        "gemini-3.5-flash-lite",
+        "gemini-3.6-flash",
+        "gemini-3.7-flash",
+        "gemini-3.8-flash",
+        "gemini-pro-agent"
+      ]
+    },
+    {
+      "id": "route-mistral",
+      "name": "route-mistral",
+      "model_ids": [
+        "codestral-2508",
+        "codestral-embed",
+        "codestral-embed-2505",
+        "codestral-latest",
+        "glm-5-2",
+        "labs-leanstral-1-5",
+        "labs-leanstral-1-5-1",
+        "magistral-medium-latest",
+        "magistral-small-latest",
+        "ministral-14b-2512",
+        "ministral-14b-latest",
+        "ministral-3b-2512",
+        "ministral-3b-latest",
+        "ministral-8b-2512",
+        "ministral-8b-latest",
+        "mistral-code-fim-latest",
+        "mistral-code-latest",
+        "mistral-embed",
+        "mistral-embed-2312",
+        "mistral-large-2512",
+        "mistral-large-latest",
+        "mistral-medium",
+        "mistral-medium-2604",
+        "mistral-medium-3",
+        "mistral-medium-3-5",
+        "mistral-medium-3.5",
+        "mistral-medium-latest",
+        "mistral-moderation-2603",
+        "mistral-ocr-2512",
+        "mistral-ocr-3",
+        "mistral-ocr-3-0",
+        "mistral-ocr-4",
+        "mistral-ocr-4-0",
+        "mistral-ocr-4-1",
+        "mistral-ocr-latest",
+        "mistral-small-2603",
+        "mistral-small-latest",
+        "mistral-vibe-cli-fast",
+        "mistral-vibe-cli-latest",
+        "mistral-vibe-cli-with-tools",
+        "voxtral-mini-2602",
+        "voxtral-mini-latest",
+        "voxtral-mini-realtime-2602",
+        "voxtral-mini-realtime-latest",
+        "voxtral-mini-transcribe-realtime-2602",
+        "voxtral-mini-tts-2603",
+        "voxtral-mini-tts-latest",
+        "voxtral-small-2507",
+        "voxtral-small-latest",
+        "zai-glm-5",
+        "zai-glm-5-2",
+        "zai-glm-5-3",
+        "zai-glm-latest"
+      ]
+    },
+    {
+      "id": "route-vertex",
+      "name": "route-vertex",
+      "model_ids": [
+        "gemini-2.5-flash",
+        "gemini-2.5-flash-lite",
+        "gemini-2.5-pro",
+        "image-segmentation-001",
+        "multimodalembedding",
+        "text-embedding-005",
+        "text-multilingual-embedding-002",
+        "textembedding-gecko"
+      ]
+    },
+    {
+      "id": "tencent",
+      "name": "tencent",
+      "model_ids": [
+        "hy3",
+        "hy4-preview"
+      ]
+    },
+    {
+      "id": "xai",
+      "name": "xai",
+      "model_ids": [
+        "grok-4.6",
+        "grok-4.7"
+      ]
+    },
+    {
+      "id": "xiaomi",
+      "name": "xiaomi",
+      "model_ids": [
+        "mimo-v2.5",
+        "mimo-v2.5-pro",
+        "mimo-v2.6-flash",
+        "mimo-v2.6-pro"
+      ]
+    },
+    {
+      "id": "zai",
+      "name": "zai",
+      "model_ids": [
+        "glm-5.1",
+        "glm-5.2.mistral",
+        "glm-5.2.opencode-go",
+        "glm-5.3-flash",
+        "glm-5.3.mistral",
+        "glm-5.3.opencode-go",
+        "zai-glm-5",
+        "zai-glm-5-2",
+        "zai-glm-5-3",
+        "zai-glm-latest"
+      ]
+    }
+  ],
+  "policies": [
+    {
+      "virtual_key_id": "e5687dbd-40ea-468e-8aa4-4623a3f1d121",
+      "name": "Elson - Poc",
+      "token_sha256": "36fbe59cfa17f52394357e313a7d1bf168f2e8f49ca4962d8ebb5535e113dc25",
+      "naming": "both",
+      "groups": [
+        "route-mistral",
+        "chat"
+      ],
+      "sources": [
+        "mistral"
+      ],
+      "enabled": true
+    },
+    {
+      "virtual_key_id": "089618d3-eb4b-436a-96d4-1502e338ac05",
+      "name": "Handy MacOS",
+      "token_sha256": "419fe1b3467037408e48c657f12d05b3c10059912d43a9954bf95a9520e9c5eb",
+      "naming": "both",
+      "groups": [
+        "route-mistral",
+        "google"
+      ],
+      "sources": [
+        "mistral",
+        "vertex"
+      ],
+      "enabled": true
+    },
+    {
+      "virtual_key_id": "f507b7b3-a911-4cdb-ae8c-679d1b7290d3",
+      "name": "Hermes",
+      "token_sha256": "596823099390cf35b3a119d85a86b79b68447ef7b3ff1be167f57f43a84ba4b3",
+      "naming": "both",
+      "groups": [
+        "route-mistral",
+        "chat",
+        "legacy"
+      ],
+      "sources": [
+        "deepseek",
+        "mistral",
+        "opencode-go"
+      ],
+      "prefer": {
+        "glm-5.2": "glm-5.2.mistral",
+        "deepseek-v4-pro": "deepseek-v4-pro.opencode-go",
+        "glm-5.3": "glm-5.3.mistral",
+        "deepseek-v4.1-flash": "deepseek-v4.1-flash.opencode-go"
+      },
+      "enabled": true
+    },
+    {
+      "virtual_key_id": "dae89086-0ed5-46c4-b8db-c64e9929405d",
+      "name": "Hermes - Pulsar",
+      "token_sha256": "96fd704dbfd2d4c9d62c216a83ec6014a2af7b87358b266e02feea503ffacdb8",
+      "naming": "both",
+      "groups": [
+        "route-mistral",
+        "google",
+        "chat",
+        "legacy"
+      ],
+      "sources": [
+        "deepseek",
+        "mistral",
+        "opencode-go",
+        "vertex"
+      ],
+      "prefer": {
+        "glm-5.2": "glm-5.2.mistral",
+        "deepseek-v4-pro": "deepseek-v4-pro.opencode-go",
+        "glm-5.3": "glm-5.3.mistral",
+        "deepseek-v4.1-flash": "deepseek-v4.1-flash.opencode-go"
+      },
+      "enabled": true
+    },
+    {
+      "virtual_key_id": "015a42da-b5de-4c9e-9b4d-40eb93341e1c",
+      "name": "Open-Design Nova - Docker",
+      "token_sha256": "512087056f5364f87bee810dd2d45e3367c66ae6a0ffdcb768973400e76327c2",
+      "naming": "both",
+      "groups": [
+        "route-mistral",
+        "google"
+      ],
+      "sources": [
+        "mistral",
+        "vertex"
+      ],
+      "enabled": true
+    },
+    {
+      "virtual_key_id": "a746db90-0e17-4fa4-a0c5-71c1be6fa630",
+      "name": "Opencode",
+      "token_sha256": "f424fee7344863fdebe05c0b587d3849db7fdd72f237060dc9a20fef06e0b5e2",
+      "naming": "both",
+      "groups": [
+        "chat",
+        "code"
+      ],
+      "sources": [
+        "Claude",
+        "Codex",
+        "Google",
+        "deepseek",
+        "mistral",
+        "opencode-go",
+        "vertex"
+      ],
+      "prefer": {
+        "glm-5.2": "glm-5.2.mistral",
+        "gpt-5.6-luna": "gpt-5.6-luna.codex",
+        "deepseek-v4-pro": "deepseek-v4-pro.opencode-go",
+        "glm-5.3": "glm-5.3.mistral",
+        "deepseek-v4.1-flash": "deepseek-v4.1-flash.opencode-go"
+      },
+      "enabled": true
+    },
+    {
+      "virtual_key_id": "19115018-71dd-40da-8cc2-86f93a85b3b1",
+      "name": "cpa",
+      "token_sha256": "e6b87a9769dd6e6be1a7da430c53c2b225101a67e1e70d607fa08f4c80ac060d",
+      "naming": "both",
+      "groups": [
+        "chat",
+        "image"
+      ],
+      "sources": [
+        "Claude",
+        "Codex",
+        "Google"
+      ],
+      "enabled": true
+    },
+    {
+      "virtual_key_id": "76054c58-cce2-4c26-be78-ac863084bd06",
+      "name": "hindsight",
+      "token_sha256": "0cd699040fdefdc41c8e984e8414951a0bb36ad632b54a4448e0ae3a810d93ef",
+      "naming": "both",
+      "groups": [
+        "chat"
+      ],
+      "sources": [
+        "Claude",
+        "Codex",
+        "Google"
+      ],
+      "enabled": true
+    },
+    {
+      "virtual_key_id": "f794ab00-7a19-4025-a32c-c0bd293b89c6",
+      "name": "lib.alibaba",
+      "token_sha256": "57a2118e7a410fb62a4488d063f26479c33af57bd12fb08a690079253405d8c7",
+      "naming": "both",
+      "groups": [
+        "chat"
+      ],
+      "sources": [
+        "opencode-go"
+      ],
+      "enabled": true
+    },
+    {
+      "virtual_key_id": "92736b0f-ab44-4dee-a3b0-9902816450c4",
+      "name": "lib.anthropic",
+      "token_sha256": "74c5dfc6666a7a33dd34268ed1e6039cf05b3bef58d0826921490dd7d0233c82",
+      "naming": "both",
+      "groups": [
+        "chat"
+      ],
+      "sources": [
+        "Claude"
+      ],
+      "enabled": true
+    },
+    {
+      "virtual_key_id": "4632ba53-fd92-4ccd-980b-3f21770841f4",
+      "name": "lib.audio",
+      "token_sha256": "2cacabda1acf7a3058ca327702fe517514f683fce38e0184fbc200a88b14c245",
+      "naming": "both",
+      "groups": [
+        "route-mistral"
+      ],
+      "sources": [
+        "mistral"
+      ],
+      "enabled": true
+    },
+    {
+      "virtual_key_id": "1054bc6f-55bc-4c68-b16c-439749cac1a7",
+      "name": "lib.chat",
+      "token_sha256": "fae61269b87e065b4692cb8ff0fbe9460a59ce1d424df0419c3f44a655b89c5c",
+      "naming": "both",
+      "groups": [
+        "chat"
+      ],
+      "sources": [
+        "Claude",
+        "Codex",
+        "Google",
+        "deepseek",
+        "mistral",
+        "opencode-go",
+        "vertex"
+      ],
+      "prefer": {
+        "deepseek-v4-pro": "deepseek-v4-pro.opencode-go",
+        "glm-5.2": "glm-5.2.mistral",
+        "gpt-5.6-luna": "gpt-5.6-luna.codex",
+        "deepseek-v4.1-flash": "deepseek-v4.1-flash.opencode-go",
+        "glm-5.3": "glm-5.3.mistral"
+      },
+      "enabled": true
+    },
+    {
+      "virtual_key_id": "e648e178-e422-4675-b480-c833a4578381",
+      "name": "lib.code",
+      "token_sha256": "b6273eb8f9666ae2fdb0b0f0710a6129661530a829b8c0c8cdb5d4852cc9b134",
+      "naming": "both",
+      "groups": [
+        "code"
+      ],
+      "sources": [
+        "Claude",
+        "Codex",
+        "mistral",
+        "opencode-go"
+      ],
+      "enabled": true
+    },
+    {
+      "virtual_key_id": "efa381e3-8982-447b-8e9c-2499c4ff1a1f",
+      "name": "lib.deepseek",
+      "token_sha256": "021fa3fdf8f127c6ce101341f5c8a484ea60953bbf3aae575c9f12d6dfc37716",
+      "naming": "both",
+      "groups": [
+        "chat"
+      ],
+      "sources": [
+        "deepseek",
+        "opencode-go"
+      ],
+      "prefer": {
+        "deepseek-v4-pro": "deepseek-v4-pro.opencode-go",
+        "deepseek-v4.1-flash": "deepseek-v4.1-flash.opencode-go"
+      },
+      "enabled": true
+    },
+    {
+      "virtual_key_id": "acc64069-7e9e-424d-afb8-2d08d6e7440e",
+      "name": "lib.embedding",
+      "token_sha256": "b93d925d65c6c5bf449171cf830c93ecd9d92375394bb3e6c755347324613f23",
+      "naming": "both",
+      "groups": [
+        "embedding"
+      ],
+      "sources": [
+        "mistral",
+        "vertex"
+      ],
+      "enabled": true
+    },
+    {
+      "virtual_key_id": "2413b465-dc82-426b-bc46-c30ccce8c759",
+      "name": "lib.fast",
+      "token_sha256": "b2ea3bb3ddae52b9a1877f30424a3125ae5080867a35845635d76dc76b5fe4e0",
+      "naming": "both",
+      "groups": [
+        "chat"
+      ],
+      "sources": [
+        "Google",
+        "deepseek",
+        "mistral",
+        "opencode-go"
+      ],
+      "prefer": {
+        "deepseek-v4-pro": "deepseek-v4-pro.opencode-go",
+        "glm-5.2": "glm-5.2.mistral",
+        "deepseek-v4.1-flash": "deepseek-v4.1-flash.opencode-go",
+        "glm-5.3": "glm-5.3.mistral"
+      },
+      "enabled": true
+    },
+    {
+      "virtual_key_id": "cdcf1e19-489b-4ba5-837c-52349dad8b64",
+      "name": "lib.google",
+      "token_sha256": "d93e84ee760a5482312438cd1d3a1c976a28026c70c54707541c667d83e05b10",
+      "naming": "both",
+      "groups": [
+        "google"
+      ],
+      "sources": [
+        "Google",
+        "vertex"
+      ],
+      "enabled": true
+    },
+    {
+      "virtual_key_id": "f1ef3986-c858-471f-93b3-6e9eb2c47d6d",
+      "name": "lib.image",
+      "token_sha256": "a13f480d271bcaac370dba0418d7846bf4a095d7a20ad7690d228ab4c40d6611",
+      "naming": "both",
+      "groups": [
+        "image"
+      ],
+      "sources": [
+        "Codex",
+        "Google"
+      ],
+      "enabled": true
+    },
+    {
+      "virtual_key_id": "80d58cae-cc92-473a-b699-f4a415d89caf",
+      "name": "lib.meituan",
+      "token_sha256": "fb783e636e54cecb724f59fd177370b441f8c61a02a180e4083e6234d09c441f",
+      "naming": "both",
+      "groups": [
+        "chat"
+      ],
+      "sources": [
+        "opencode-go"
+      ],
+      "enabled": true
+    },
+    {
+      "virtual_key_id": "cd51da26-0e81-4041-8128-e00f53a4369b",
+      "name": "lib.meta",
+      "token_sha256": "a5a5247ab6aedcaab085ce3a45632c1708f9402592624ed054e2b8b91b1b8b69",
+      "naming": "both",
+      "groups": [
+        "chat"
+      ],
+      "sources": [
+        "opencode-go"
+      ],
+      "enabled": true
+    },
+    {
+      "virtual_key_id": "f9e366c1-07d3-43b2-a45f-7ca9877b417f",
+      "name": "lib.minimax",
+      "token_sha256": "3da07cabd48812aa2c76e0592de22e92964826283f71f995e27bac2de8f749ba",
+      "naming": "both",
+      "groups": [
+        "chat"
+      ],
+      "sources": [
+        "opencode-go"
+      ],
+      "enabled": true
+    },
+    {
+      "virtual_key_id": "50a030e5-55af-4e54-99b8-3225323c5980",
+      "name": "lib.mistral",
+      "token_sha256": "1b3b2156a8d2ba0490f1c682a61e5cfbc61ccfa6a6359c04a9e726f1852332f5",
+      "naming": "both",
+      "groups": [
+        "route-mistral"
+      ],
+      "sources": [
+        "mistral"
+      ],
+      "enabled": true
+    },
+    {
+      "virtual_key_id": "9c7c48e7-ad0f-4c0e-a4ac-1e380951a822",
+      "name": "lib.moonshot",
+      "token_sha256": "f949d720b85d23483254569e3430baf0eb44de6a8cb43285eab6ba5f4720fcc3",
+      "naming": "both",
+      "groups": [
+        "route-go"
+      ],
+      "sources": [
+        "opencode-go"
+      ],
+      "enabled": true
+    },
+    {
+      "virtual_key_id": "2b7cdd6f-37e3-41b0-ada1-93333598211b",
+      "name": "lib.ocr",
+      "token_sha256": "d3e72b3794d2d3392c7fd69083dec43aceb4e5dfde0a28653387f413ae5b4d7c",
+      "naming": "both",
+      "groups": [
+        "route-mistral"
+      ],
+      "sources": [
+        "mistral"
+      ],
+      "enabled": true
+    },
+    {
+      "virtual_key_id": "a7584801-9c07-42a3-81a2-ba12aa71f7cd",
+      "name": "lib.openai",
+      "token_sha256": "ec0f1fdcf581009c6296b5f9e78cb3e12b76dabb51bca871e2d0ad2f731f38f0",
+      "naming": "both",
+      "groups": [
+        "openai"
+      ],
+      "sources": [
+        "Codex",
+        "opencode-go"
+      ],
+      "prefer": {
+        "gpt-5.6-luna": "gpt-5.6-luna.codex"
+      },
+      "enabled": true
+    },
+    {
+      "virtual_key_id": "eedd3e8a-c124-4c0a-9ade-57ddb03e4fc2",
+      "name": "lib.reasoning",
+      "token_sha256": "ddfbcdb68ac4b42160fbf35816518402a1ec0b6750abc783cc6e0e69965529d0",
+      "naming": "both",
+      "groups": [
+        "chat"
+      ],
+      "sources": [
+        "Claude",
+        "Codex",
+        "Google",
+        "opencode-go"
+      ],
+      "prefer": {
+        "gpt-5.6-luna": "gpt-5.6-luna.codex"
+      },
+      "enabled": true
+    },
+    {
+      "virtual_key_id": "d5f49874-d5cb-4585-8459-5763b02dc8d3",
+      "name": "lib.route-claude",
+      "token_sha256": "b22a632715a128cfbe49e2002b5c12193a71438e430283d9ad58500ab334040a",
+      "naming": "both",
+      "groups": [
+        "chat"
+      ],
+      "sources": [
+        "Claude"
+      ],
+      "enabled": true
+    },
+    {
+      "virtual_key_id": "fb190531-b2e6-4f71-8702-aac3dd533ea7",
+      "name": "lib.route-codex",
+      "token_sha256": "44b2cdec170dc033584b0b8ad221fc900d933d6570ea20fb180f754ebfef1909",
+      "naming": "both",
+      "groups": [
+        "openai"
+      ],
+      "sources": [
+        "Codex"
+      ],
+      "enabled": true
+    },
+    {
+      "virtual_key_id": "005e058a-a5d6-4773-b236-096e650b66d5",
+      "name": "lib.route-deepseek",
+      "token_sha256": "0a22a719b9ced9d4eadd09e919f0f414fcb54b3930c6eda91ece4e04c815a462",
+      "naming": "both",
+      "groups": [
+        "chat"
+      ],
+      "sources": [
+        "deepseek"
+      ],
+      "enabled": true
+    },
+    {
+      "virtual_key_id": "f02d9cd7-13f6-4672-a7e5-9c4af2b20ded",
+      "name": "lib.route-go",
+      "token_sha256": "4afc68b059a6088304075e2f3acb3f7341c512a6889d63f5012e843c555bb127",
+      "naming": "both",
+      "groups": [
+        "route-go"
+      ],
+      "sources": [
+        "opencode-go"
+      ],
+      "enabled": true
+    },
+    {
+      "virtual_key_id": "36e5b885-3bb9-40e7-b526-88fee3d472ea",
+      "name": "lib.route-google",
+      "token_sha256": "24ad9564f051985f942e54f26ba511cd5824892a927af429d7205595406b0c15",
+      "naming": "both",
+      "groups": [
+        "google"
+      ],
+      "sources": [
+        "Google"
+      ],
+      "enabled": true
+    },
+    {
+      "virtual_key_id": "a299acc7-c348-43fa-866d-92118c87bc7f",
+      "name": "lib.route-mistral",
+      "token_sha256": "4e9ecca653b2b2a459560b7b81c19c183bafa5c8081574a98d6bafc05bc90efc",
+      "naming": "both",
+      "groups": [
+        "route-mistral"
+      ],
+      "sources": [
+        "mistral"
+      ],
+      "enabled": true
+    },
+    {
+      "virtual_key_id": "514b2c81-c50e-452d-aca3-8f999ae3de11",
+      "name": "lib.route-vertex",
+      "token_sha256": "676c2115041d743879cf2f5f5932a1100dd668d14194d1771b28f8d5a90e192b",
+      "naming": "both",
+      "groups": [
+        "google"
+      ],
+      "sources": [
+        "vertex"
+      ],
+      "enabled": true
+    },
+    {
+      "virtual_key_id": "6fc2e834-1a95-424a-b9d6-4c344cd47536",
+      "name": "lib.tencent",
+      "token_sha256": "41346a27a8492ae75ba4ba3979418f62379760748db6fa35c97871c8f80f147b",
+      "naming": "both",
+      "groups": [
+        "chat"
+      ],
+      "sources": [
+        "opencode-go"
+      ],
+      "enabled": true
+    },
+    {
+      "virtual_key_id": "2edbe256-0f99-4522-ba68-623308435385",
+      "name": "lib.xai",
+      "token_sha256": "371c38fcbf4a4721eac0c6660726c46aba3906738244b967ea8b7a50f2f1d55f",
+      "naming": "both",
+      "groups": [
+        "chat"
+      ],
+      "sources": [
+        "opencode-go"
+      ],
+      "enabled": true
+    },
+    {
+      "virtual_key_id": "ceabec6f-93e8-4278-8fb0-a1797b9ab052",
+      "name": "lib.xiaomi",
+      "token_sha256": "c84a7c6c6d6dbf5ccfbbe7fa29e7c8d65cd6c693ba0e69542e068aa4e74faaa2",
+      "naming": "both",
+      "groups": [
+        "chat"
+      ],
+      "sources": [
+        "opencode-go"
+      ],
+      "enabled": true
+    },
+    {
+      "virtual_key_id": "743d00da-0cb6-4f68-9a1d-c4e35c52f3a3",
+      "name": "lib.zai",
+      "token_sha256": "e7035dd240632c29d5ee56aa4cf8a28b719febb763d9a6063bccdf5617aa5870",
+      "naming": "both",
+      "groups": [
+        "chat"
+      ],
+      "sources": [
+        "mistral",
+        "opencode-go"
+      ],
+      "prefer": {
+        "glm-5.2": "glm-5.2.mistral",
+        "glm-5.3": "glm-5.3.mistral"
+      },
+      "enabled": true
+    },
+    {
+      "virtual_key_id": "743a15e6-df39-468f-b9d2-4c8885d7fac3",
+      "name": "opencode-omo",
+      "token_sha256": "6882e80af9cf2c37459c1d0bb5d3535672c92aabedb9834f5f3d57161a98dc51",
+      "naming": "both",
+      "groups": [
+        "chat",
+        "code"
+      ],
+      "sources": [
+        "Claude",
+        "Codex",
+        "Google",
+        "deepseek",
+        "mistral",
+        "opencode-go",
+        "vertex"
+      ],
+      "prefer": {
+        "glm-5.2": "glm-5.2.mistral",
+        "gpt-5.6-luna": "gpt-5.6-luna.codex",
+        "deepseek-v4-pro": "deepseek-v4-pro.opencode-go",
+        "glm-5.3": "glm-5.3.mistral",
+        "deepseek-v4.1-flash": "deepseek-v4.1-flash.opencode-go"
+      },
+      "enabled": true
+    }
+  ]
+}

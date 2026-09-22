@@ -97,6 +97,11 @@ type Snapshot struct {
 }
 
 var slug = regexp.MustCompile(`^[a-z0-9][a-z0-9._-]{0,127}$`)
+// Provider names are Bifrost-native identifiers (e.g. "Google", "Codex"): they are
+// admin-controlled (never request-controlled) and are written verbatim into the
+// rewritten "model" field as "Provider/alias", which must match Bifrost's native
+// provider/model routing form. Control characters and spaces stay rejected.
+var slugProvider = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$`)
 var nativeFamilies = map[string]bool{"anthropic": true, "openai": true, "mistral": true, "cohere": true, "gemini": true, "gemma": true, "llama": true, "imagen": true, "veo": true, "nova": true, "titan": true}
 var endpoints = map[string]bool{"chat/completions": true, "responses": true, "completions": true, "embeddings": true, "images/generations": true, "audio/speech": true}
 
@@ -257,8 +262,8 @@ func Compile(c Config) (*Snapshot, error) {
 	models := map[string]Model{}
 	nativeNames := map[string]string{}
 	for _, m := range c.Models {
-		if !slug.MatchString(m.ID) || !slug.MatchString(m.Alias) || !slug.MatchString(m.Provider) {
-			return nil, fmt.Errorf("model %q: id, alias and provider must be lowercase safe identifiers", m.ID)
+		if !slug.MatchString(m.ID) || !slug.MatchString(m.Alias) || !slugProvider.MatchString(m.Provider) {
+			return nil, fmt.Errorf("model %q: id and alias must be lowercase safe identifiers, provider a safe identifier", m.ID)
 		}
 		if _, ok := models[m.ID]; ok {
 			return nil, fmt.Errorf("duplicate model id %s", m.ID)

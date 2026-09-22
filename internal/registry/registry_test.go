@@ -531,3 +531,38 @@ func FuzzStrictJSONDoesNotPanic(f *testing.F) {
 		_ = StrictJSON(b, &dst, false)
 	})
 }
+
+// Provider names keep their Bifrost-native case ("Google", "Codex"): they are
+// admin-controlled and must survive verbatim into the rewritten model field.
+func TestCompileNativeCaseProvider(t *testing.T) {
+	c := Config{SchemaVersion: 1, DefaultNaming: "both",
+		Models: []Model{{ID: "gpt-5.6-sol", Alias: "gpt-5.6-sol", Provider: "Codex",
+			ProviderKeyIDs: []string{"17"}, UpstreamModel: "gpt-5.6-sol",
+			Endpoints: []string{"chat/completions"}, Enabled: true, Verified: true, Evidence: "unit test"}},
+		Groups: []Group{{ID: "code", ModelIDs: []string{"gpt-5.6-sol"}}},
+		Policies: []Policy{{VirtualKeyID: "vk-1", Name: "t", TokenSHA256: strings.Repeat("a", 64),
+			Groups: []string{"code"}, Enabled: true}}}
+	s, err := Compile(c)
+	if err != nil {
+		t.Fatalf("native-case provider rejected: %v", err)
+	}
+	v, _ := s.View("vk-1")
+	var found *Route
+	for i := range v.Routes {
+		if v.Routes[i].ExposedID == "Codex/gpt-5.6-sol" {
+			found = &v.Routes[i]
+		}
+	}
+	if found == nil || found.NativeID() != "Codex/gpt-5.6-sol" {
+		t.Fatalf("native provider/model route missing or altered: %+v", v.Routes)
+	}
+	bare := false
+	for _, r := range v.Routes {
+		if r.ExposedID == "gpt-5.6-sol" {
+			bare = true
+		}
+	}
+	if !bare {
+		t.Fatal("bare alias route missing")
+	}
+}
