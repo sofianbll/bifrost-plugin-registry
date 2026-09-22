@@ -1,0 +1,16 @@
+{
+  "plugins": [
+    {
+      "name": "bifrost-registry",
+      "enabled": true,
+      "path": "/app/plugins/bifrost-registry.so",
+      "placement": "pre_builtin",
+      "order": 0,
+      "config": {
+        "registry_path": "/app/registry/registry.json",
+        "admin_listen": "127.0.0.1:8099",
+        "admin_token_env": "REGISTRY_ADMIN_TOKEN"
+      }
+    }
+  ]
+}

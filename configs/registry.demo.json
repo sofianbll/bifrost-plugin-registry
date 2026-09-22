@@ -1,0 +1,167 @@
+{
+  "schema_version": 1,
+  "default_naming": "provider/model",
+  "models": [
+    {
+      "id": "codex-reasoning",
+      "alias": "reasoning",
+      "provider": "demo-codex",
+      "provider_key_ids": [
+        "DEMO-demo-codex-key-id"
+      ],
+      "upstream_model": "DEMO-upstream-codex",
+      "creator": "OpenAI",
+      "family": "GPT",
+      "capabilities": [
+        "text",
+        "tools",
+        "reasoning"
+      ],
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "FIXTURE DE DÉMONSTRATION UNIQUEMENT. Aucun accès amont ou support endpoint vérifié. Ne pas utiliser en production."
+    },
+    {
+      "id": "ag-reasoning",
+      "alias": "reasoning",
+      "provider": "demo-antigravity",
+      "provider_key_ids": [
+        "DEMO-demo-antigravity-key-id"
+      ],
+      "upstream_model": "DEMO-upstream-claude",
+      "creator": "Anthropic",
+      "family": "Claude",
+      "capabilities": [
+        "text",
+        "tools",
+        "reasoning"
+      ],
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "FIXTURE DE DÉMONSTRATION UNIQUEMENT. Aucun accès amont ou support endpoint vérifié. Ne pas utiliser en production."
+    },
+    {
+      "id": "ag-fast",
+      "alias": "fast",
+      "provider": "demo-antigravity",
+      "provider_key_ids": [
+        "DEMO-demo-antigravity-key-id"
+      ],
+      "upstream_model": "DEMO-upstream-gemini",
+      "creator": "Google",
+      "family": "Gemini",
+      "capabilities": [
+        "text",
+        "vision",
+        "tools"
+      ],
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "FIXTURE DE DÉMONSTRATION UNIQUEMENT. Aucun accès amont ou support endpoint vérifié. Ne pas utiliser en production."
+    },
+    {
+      "id": "mistral-text",
+      "alias": "mistral-text",
+      "provider": "demo-mistral",
+      "provider_key_ids": [
+        "DEMO-demo-mistral-key-id"
+      ],
+      "upstream_model": "DEMO-upstream-mistral",
+      "creator": "Mistral",
+      "family": "Mistral",
+      "capabilities": [
+        "text",
+        "tools"
+      ],
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "FIXTURE DE DÉMONSTRATION UNIQUEMENT. Aucun accès amont ou support endpoint vérifié. Ne pas utiliser en production."
+    },
+    {
+      "id": "copilot-code",
+      "alias": "code",
+      "provider": "demo-copilot",
+      "provider_key_ids": [
+        "DEMO-demo-copilot-key-id"
+      ],
+      "upstream_model": "DEMO-upstream-copilot",
+      "creator": "OpenAI",
+      "family": "GPT",
+      "capabilities": [
+        "text",
+        "tools"
+      ],
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "FIXTURE DE DÉMONSTRATION UNIQUEMENT. Aucun accès amont ou support endpoint vérifié. Ne pas utiliser en production."
+    }
+  ],
+  "groups": [
+    {
+      "id": "all-demo",
+      "name": "Tous les modèles de démonstration",
+      "model_ids": [
+        "codex-reasoning",
+        "ag-reasoning",
+        "ag-fast",
+        "mistral-text",
+        "copilot-code"
+      ]
+    },
+    {
+      "id": "reasoning-demo",
+      "name": "Raisonnement",
+      "model_ids": [],
+      "filter": {
+        "capabilities": [
+          "reasoning"
+        ]
+      }
+    }
+  ],
+  "policies": [
+    {
+      "virtual_key_id": "DEMO-vk-dev",
+      "name": "Développement · DÉMO",
+      "token_sha256": "1d58ec8c6378cb9f0402e5f967d5163f5bdaf7567b8be3e5fe92af6ce10427d5",
+      "naming": "both",
+      "groups": [
+        "all-demo"
+      ],
+      "prefer": {
+        "reasoning": "codex-reasoning"
+      },
+      "enabled": true
+    },
+    {
+      "virtual_key_id": "DEMO-vk-think",
+      "name": "Raisonnement · DÉMO",
+      "token_sha256": "6c3913a8091880df5f4b7199c10d0812236d99a420a90ff52017f2d55519516b",
+      "naming": "provider/model",
+      "groups": [
+        "reasoning-demo"
+      ],
+      "enabled": true
+    }
+  ]
+}

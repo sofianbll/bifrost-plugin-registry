@@ -1,0 +1,6 @@
+fuzz: elapsed: 0s, gathering baseline coverage: 0/5 completed
+fuzz: elapsed: 0s, gathering baseline coverage: 5/5 completed, now fuzzing with 2 workers
+fuzz: elapsed: 3s, execs: 75014 (25004/sec), new interesting: 118 (total: 123)
+fuzz: elapsed: 3s, execs: 75014 (0/sec), new interesting: 118 (total: 123)
+PASS
+ok  	bifrost-registry/internal/registry	3.017s

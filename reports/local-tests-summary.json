@@ -1,0 +1,9 @@
+{
+  "passed_leaf_tests_and_fuzz_seeds": 156,
+  "failed_tests": [],
+  "race_detector": true,
+  "native_adapter_included": false,
+  "native_build": "not_run_by_this_script",
+  "live_bifrost_tests": "not_run_by_this_script",
+  "coverage_summary": "total:\t\t\t\t\t\t\t(statements)\t87.8%"
+}

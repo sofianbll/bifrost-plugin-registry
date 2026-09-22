@@ -1,0 +1,24 @@
+{
+  "passed": 10,
+  "checks": [
+    "invalid_admin_token_rejected",
+    "login_and_catalogue",
+    "search_and_filters",
+    "edit_validate_atomic_save",
+    "groups_and_key_preview",
+    "native_plan_preview",
+    "default_naming_save",
+    "themes_and_responsive_layout",
+    "no_external_requests_no_js_errors",
+    "logout_clears_workspace"
+  ],
+  "data": "synthetic demo only",
+  "native_bifrost_tested": false,
+  "mode": "offline_dom_with_actual_local_http_bridge",
+  "not_tested": [
+    "browser_network_CSP_enforcement",
+    "WebCrypto_in_secure_context",
+    "download_permission",
+    "browser_storage"
+  ]
+}

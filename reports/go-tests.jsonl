@@ -1,0 +1,700 @@
+{"Time":"2026-09-20T16:34:59.485349233Z","Action":"start","Package":"bifrost-registry/cmd/registry"}
+{"Time":"2026-09-20T16:34:59.494843975Z","Action":"run","Package":"bifrost-registry/cmd/registry","Test":"TestEmitRefusesOverwrite"}
+{"Time":"2026-09-20T16:34:59.494887711Z","Action":"output","Package":"bifrost-registry/cmd/registry","Test":"TestEmitRefusesOverwrite","Output":"=== RUN   TestEmitRefusesOverwrite\n"}
+{"Time":"2026-09-20T16:34:59.495390748Z","Action":"output","Package":"bifrost-registry/cmd/registry","Test":"TestEmitRefusesOverwrite","Output":"--- PASS: TestEmitRefusesOverwrite (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.495402907Z","Action":"pass","Package":"bifrost-registry/cmd/registry","Test":"TestEmitRefusesOverwrite","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.495419882Z","Action":"run","Package":"bifrost-registry/cmd/registry","Test":"TestCLIValidationAndPlan"}
+{"Time":"2026-09-20T16:34:59.495423448Z","Action":"output","Package":"bifrost-registry/cmd/registry","Test":"TestCLIValidationAndPlan","Output":"=== RUN   TestCLIValidationAndPlan\n"}
+{"Time":"2026-09-20T16:34:59.496209882Z","Action":"output","Package":"bifrost-registry/cmd/registry","Test":"TestCLIValidationAndPlan","Output":"Valid registry · revision 3aa98e0776ea891ae32f407842ff75526413048dd5b3213990ba91f7c48a01a5\n"}
+{"Time":"2026-09-20T16:34:59.497239814Z","Action":"output","Package":"bifrost-registry/cmd/registry","Test":"TestCLIValidationAndPlan","Output":"--- PASS: TestCLIValidationAndPlan (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.497251752Z","Action":"pass","Package":"bifrost-registry/cmd/registry","Test":"TestCLIValidationAndPlan","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.497257741Z","Action":"output","Package":"bifrost-registry/cmd/registry","Output":"PASS\n"}
+{"Time":"2026-09-20T16:34:59.49813386Z","Action":"output","Package":"bifrost-registry/cmd/registry","Output":"coverage: 37.2% of statements\n"}
+{"Time":"2026-09-20T16:34:59.579098028Z","Action":"start","Package":"bifrost-registry/internal/admin"}
+{"Time":"2026-09-20T16:34:59.588074465Z","Action":"run","Package":"bifrost-registry/internal/admin","Test":"TestAdminAuthentication"}
+{"Time":"2026-09-20T16:34:59.58811093Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestAdminAuthentication","Output":"=== RUN   TestAdminAuthentication\n"}
+{"Time":"2026-09-20T16:34:59.58861518Z","Action":"run","Package":"bifrost-registry/internal/admin","Test":"TestAdminAuthentication/wrong"}
+{"Time":"2026-09-20T16:34:59.588618605Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestAdminAuthentication/wrong","Output":"=== RUN   TestAdminAuthentication/wrong\n"}
+{"Time":"2026-09-20T16:34:59.588776884Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestAdminAuthentication/wrong","Output":"--- PASS: TestAdminAuthentication/wrong (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.588792838Z","Action":"pass","Package":"bifrost-registry/internal/admin","Test":"TestAdminAuthentication/wrong","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.588810624Z","Action":"run","Package":"bifrost-registry/internal/admin","Test":"TestAdminAuthentication/query_token"}
+{"Time":"2026-09-20T16:34:59.588812487Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestAdminAuthentication/query_token","Output":"=== RUN   TestAdminAuthentication/query_token\n"}
+{"Time":"2026-09-20T16:34:59.58896713Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestAdminAuthentication/query_token","Output":"--- PASS: TestAdminAuthentication/query_token (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.588983275Z","Action":"pass","Package":"bifrost-registry/internal/admin","Test":"TestAdminAuthentication/query_token","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.588990726Z","Action":"run","Package":"bifrost-registry/internal/admin","Test":"TestAdminAuthentication/basic"}
+{"Time":"2026-09-20T16:34:59.588994021Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestAdminAuthentication/basic","Output":"=== RUN   TestAdminAuthentication/basic\n"}
+{"Time":"2026-09-20T16:34:59.589107422Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestAdminAuthentication/basic","Output":"--- PASS: TestAdminAuthentication/basic (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.589125469Z","Action":"pass","Package":"bifrost-registry/internal/admin","Test":"TestAdminAuthentication/basic","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.589133911Z","Action":"run","Package":"bifrost-registry/internal/admin","Test":"TestAdminAuthentication/missing"}
+{"Time":"2026-09-20T16:34:59.589137547Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestAdminAuthentication/missing","Output":"=== RUN   TestAdminAuthentication/missing\n"}
+{"Time":"2026-09-20T16:34:59.589260783Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestAdminAuthentication/missing","Output":"--- PASS: TestAdminAuthentication/missing (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.589270487Z","Action":"pass","Package":"bifrost-registry/internal/admin","Test":"TestAdminAuthentication/missing","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.589445741Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestAdminAuthentication","Output":"--- PASS: TestAdminAuthentication (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.589490028Z","Action":"pass","Package":"bifrost-registry/internal/admin","Test":"TestAdminAuthentication","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.58952464Z","Action":"run","Package":"bifrost-registry/internal/admin","Test":"TestAdminOriginAndHost"}
+{"Time":"2026-09-20T16:34:59.589528666Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestAdminOriginAndHost","Output":"=== RUN   TestAdminOriginAndHost\n"}
+{"Time":"2026-09-20T16:34:59.589782308Z","Action":"run","Package":"bifrost-registry/internal/admin","Test":"TestAdminOriginAndHost/evil.invalid:8099"}
+{"Time":"2026-09-20T16:34:59.589790971Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestAdminOriginAndHost/evil.invalid:8099","Output":"=== RUN   TestAdminOriginAndHost/evil.invalid:8099\n"}
+{"Time":"2026-09-20T16:34:59.589885073Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestAdminOriginAndHost/evil.invalid:8099","Output":"--- PASS: TestAdminOriginAndHost/evil.invalid:8099 (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.589912314Z","Action":"pass","Package":"bifrost-registry/internal/admin","Test":"TestAdminOriginAndHost/evil.invalid:8099","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.58993603Z","Action":"run","Package":"bifrost-registry/internal/admin","Test":"TestAdminOriginAndHost/localhost.evil.invalid"}
+{"Time":"2026-09-20T16:34:59.589939425Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestAdminOriginAndHost/localhost.evil.invalid","Output":"=== RUN   TestAdminOriginAndHost/localhost.evil.invalid\n"}
+{"Time":"2026-09-20T16:34:59.590103041Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestAdminOriginAndHost/localhost.evil.invalid","Output":"--- PASS: TestAdminOriginAndHost/localhost.evil.invalid (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.590111564Z","Action":"pass","Package":"bifrost-registry/internal/admin","Test":"TestAdminOriginAndHost/localhost.evil.invalid","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.590116291Z","Action":"run","Package":"bifrost-registry/internal/admin","Test":"TestAdminOriginAndHost/127.0.0.1.evil.invalid"}
+{"Time":"2026-09-20T16:34:59.590119456Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestAdminOriginAndHost/127.0.0.1.evil.invalid","Output":"=== RUN   TestAdminOriginAndHost/127.0.0.1.evil.invalid\n"}
+{"Time":"2026-09-20T16:34:59.590232697Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestAdminOriginAndHost/127.0.0.1.evil.invalid","Output":"--- PASS: TestAdminOriginAndHost/127.0.0.1.evil.invalid (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.590257063Z","Action":"pass","Package":"bifrost-registry/internal/admin","Test":"TestAdminOriginAndHost/127.0.0.1.evil.invalid","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.590286688Z","Action":"run","Package":"bifrost-registry/internal/admin","Test":"TestAdminOriginAndHost/http://evil.invalid"}
+{"Time":"2026-09-20T16:34:59.590295061Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestAdminOriginAndHost/http://evil.invalid","Output":"=== RUN   TestAdminOriginAndHost/http://evil.invalid\n"}
+{"Time":"2026-09-20T16:34:59.590403634Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestAdminOriginAndHost/http://evil.invalid","Output":"--- PASS: TestAdminOriginAndHost/http://evil.invalid (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.590429213Z","Action":"pass","Package":"bifrost-registry/internal/admin","Test":"TestAdminOriginAndHost/http://evil.invalid","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.590451597Z","Action":"run","Package":"bifrost-registry/internal/admin","Test":"TestAdminOriginAndHost/http://localhost:1234"}
+{"Time":"2026-09-20T16:34:59.590454871Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestAdminOriginAndHost/http://localhost:1234","Output":"=== RUN   TestAdminOriginAndHost/http://localhost:1234\n"}
+{"Time":"2026-09-20T16:34:59.590555904Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestAdminOriginAndHost/http://localhost:1234","Output":"--- PASS: TestAdminOriginAndHost/http://localhost:1234 (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.590578918Z","Action":"pass","Package":"bifrost-registry/internal/admin","Test":"TestAdminOriginAndHost/http://localhost:1234","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.59059992Z","Action":"run","Package":"bifrost-registry/internal/admin","Test":"TestAdminOriginAndHost/null"}
+{"Time":"2026-09-20T16:34:59.590602965Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestAdminOriginAndHost/null","Output":"=== RUN   TestAdminOriginAndHost/null\n"}
+{"Time":"2026-09-20T16:34:59.590727662Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestAdminOriginAndHost/null","Output":"--- PASS: TestAdminOriginAndHost/null (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.590751989Z","Action":"pass","Package":"bifrost-registry/internal/admin","Test":"TestAdminOriginAndHost/null","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.590776466Z","Action":"run","Package":"bifrost-registry/internal/admin","Test":"TestAdminOriginAndHost/https://user@localhost:8099"}
+{"Time":"2026-09-20T16:34:59.590782906Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestAdminOriginAndHost/https://user@localhost:8099","Output":"=== RUN   TestAdminOriginAndHost/https://user@localhost:8099\n"}
+{"Time":"2026-09-20T16:34:59.590894263Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestAdminOriginAndHost/https://user@localhost:8099","Output":"--- PASS: TestAdminOriginAndHost/https://user@localhost:8099 (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.590919301Z","Action":"pass","Package":"bifrost-registry/internal/admin","Test":"TestAdminOriginAndHost/https://user@localhost:8099","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.591076348Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestAdminOriginAndHost","Output":"--- PASS: TestAdminOriginAndHost (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.591117349Z","Action":"pass","Package":"bifrost-registry/internal/admin","Test":"TestAdminOriginAndHost","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.591151791Z","Action":"run","Package":"bifrost-registry/internal/admin","Test":"TestStaticAssets"}
+{"Time":"2026-09-20T16:34:59.591155677Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestStaticAssets","Output":"=== RUN   TestStaticAssets\n"}
+{"Time":"2026-09-20T16:34:59.591281006Z","Action":"run","Package":"bifrost-registry/internal/admin","Test":"TestStaticAssets//"}
+{"Time":"2026-09-20T16:34:59.591286935Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestStaticAssets//","Output":"=== RUN   TestStaticAssets//\n"}
+{"Time":"2026-09-20T16:34:59.591418744Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestStaticAssets//","Output":"--- PASS: TestStaticAssets// (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.591463841Z","Action":"pass","Package":"bifrost-registry/internal/admin","Test":"TestStaticAssets//","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.59146928Z","Action":"run","Package":"bifrost-registry/internal/admin","Test":"TestStaticAssets//model-registry"}
+{"Time":"2026-09-20T16:34:59.591472404Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestStaticAssets//model-registry","Output":"=== RUN   TestStaticAssets//model-registry\n"}
+{"Time":"2026-09-20T16:34:59.591597242Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestStaticAssets//model-registry","Output":"--- PASS: TestStaticAssets//model-registry (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.591627087Z","Action":"pass","Package":"bifrost-registry/internal/admin","Test":"TestStaticAssets//model-registry","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.591691595Z","Action":"run","Package":"bifrost-registry/internal/admin","Test":"TestStaticAssets//app.js"}
+{"Time":"2026-09-20T16:34:59.591696572Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestStaticAssets//app.js","Output":"=== RUN   TestStaticAssets//app.js\n"}
+{"Time":"2026-09-20T16:34:59.592008442Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestStaticAssets//app.js","Output":"--- PASS: TestStaticAssets//app.js (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.592021221Z","Action":"pass","Package":"bifrost-registry/internal/admin","Test":"TestStaticAssets//app.js","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.59204682Z","Action":"run","Package":"bifrost-registry/internal/admin","Test":"TestStaticAssets//app.css"}
+{"Time":"2026-09-20T16:34:59.592050635Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestStaticAssets//app.css","Output":"=== RUN   TestStaticAssets//app.css\n"}
+{"Time":"2026-09-20T16:34:59.592249805Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestStaticAssets//app.css","Output":"--- PASS: TestStaticAssets//app.css (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.59225936Z","Action":"pass","Package":"bifrost-registry/internal/admin","Test":"TestStaticAssets//app.css","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.592462265Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestStaticAssets","Output":"--- PASS: TestStaticAssets (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.592473643Z","Action":"pass","Package":"bifrost-registry/internal/admin","Test":"TestStaticAssets","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.592498139Z","Action":"run","Package":"bifrost-registry/internal/admin","Test":"TestSaveRevisionAndValidation"}
+{"Time":"2026-09-20T16:34:59.592501525Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestSaveRevisionAndValidation","Output":"=== RUN   TestSaveRevisionAndValidation\n"}
+{"Time":"2026-09-20T16:34:59.592774045Z","Action":"run","Package":"bifrost-registry/internal/admin","Test":"TestSaveRevisionAndValidation/precondition_required"}
+{"Time":"2026-09-20T16:34:59.592783279Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestSaveRevisionAndValidation/precondition_required","Output":"=== RUN   TestSaveRevisionAndValidation/precondition_required\n"}
+{"Time":"2026-09-20T16:34:59.592885713Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestSaveRevisionAndValidation/precondition_required","Output":"--- PASS: TestSaveRevisionAndValidation/precondition_required (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.592913385Z","Action":"pass","Package":"bifrost-registry/internal/admin","Test":"TestSaveRevisionAndValidation/precondition_required","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.592937732Z","Action":"run","Package":"bifrost-registry/internal/admin","Test":"TestSaveRevisionAndValidation/bad_content_type"}
+{"Time":"2026-09-20T16:34:59.592941177Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestSaveRevisionAndValidation/bad_content_type","Output":"=== RUN   TestSaveRevisionAndValidation/bad_content_type\n"}
+{"Time":"2026-09-20T16:34:59.593094588Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestSaveRevisionAndValidation/bad_content_type","Output":"--- PASS: TestSaveRevisionAndValidation/bad_content_type (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.593108289Z","Action":"pass","Package":"bifrost-registry/internal/admin","Test":"TestSaveRevisionAndValidation/bad_content_type","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.593120387Z","Action":"run","Package":"bifrost-registry/internal/admin","Test":"TestSaveRevisionAndValidation/invalid_config"}
+{"Time":"2026-09-20T16:34:59.593123351Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestSaveRevisionAndValidation/invalid_config","Output":"=== RUN   TestSaveRevisionAndValidation/invalid_config\n"}
+{"Time":"2026-09-20T16:34:59.593345266Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestSaveRevisionAndValidation/invalid_config","Output":"--- PASS: TestSaveRevisionAndValidation/invalid_config (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.593373318Z","Action":"pass","Package":"bifrost-registry/internal/admin","Test":"TestSaveRevisionAndValidation/invalid_config","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.593405857Z","Action":"run","Package":"bifrost-registry/internal/admin","Test":"TestSaveRevisionAndValidation/valid_update"}
+{"Time":"2026-09-20T16:34:59.593409322Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestSaveRevisionAndValidation/valid_update","Output":"=== RUN   TestSaveRevisionAndValidation/valid_update\n"}
+{"Time":"2026-09-20T16:34:59.593852089Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestSaveRevisionAndValidation/valid_update","Output":"--- PASS: TestSaveRevisionAndValidation/valid_update (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.593863146Z","Action":"pass","Package":"bifrost-registry/internal/admin","Test":"TestSaveRevisionAndValidation/valid_update","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.593897327Z","Action":"run","Package":"bifrost-registry/internal/admin","Test":"TestSaveRevisionAndValidation/stale_revision"}
+{"Time":"2026-09-20T16:34:59.593901533Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestSaveRevisionAndValidation/stale_revision","Output":"=== RUN   TestSaveRevisionAndValidation/stale_revision\n"}
+{"Time":"2026-09-20T16:34:59.59415846Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestSaveRevisionAndValidation/stale_revision","Output":"--- PASS: TestSaveRevisionAndValidation/stale_revision (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.594168636Z","Action":"pass","Package":"bifrost-registry/internal/admin","Test":"TestSaveRevisionAndValidation/stale_revision","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.594201355Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestSaveRevisionAndValidation","Output":"--- PASS: TestSaveRevisionAndValidation (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.594230469Z","Action":"pass","Package":"bifrost-registry/internal/admin","Test":"TestSaveRevisionAndValidation","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.594250199Z","Action":"run","Package":"bifrost-registry/internal/admin","Test":"TestValidatePlanPreview"}
+{"Time":"2026-09-20T16:34:59.594253854Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestValidatePlanPreview","Output":"=== RUN   TestValidatePlanPreview\n"}
+{"Time":"2026-09-20T16:34:59.59443697Z","Action":"run","Package":"bifrost-registry/internal/admin","Test":"TestValidatePlanPreview//api/validate"}
+{"Time":"2026-09-20T16:34:59.594445002Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestValidatePlanPreview//api/validate","Output":"=== RUN   TestValidatePlanPreview//api/validate\n"}
+{"Time":"2026-09-20T16:34:59.594825776Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestValidatePlanPreview//api/validate","Output":"--- PASS: TestValidatePlanPreview//api/validate (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.594836462Z","Action":"pass","Package":"bifrost-registry/internal/admin","Test":"TestValidatePlanPreview//api/validate","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.594847538Z","Action":"run","Package":"bifrost-registry/internal/admin","Test":"TestValidatePlanPreview//api/plan"}
+{"Time":"2026-09-20T16:34:59.594851885Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestValidatePlanPreview//api/plan","Output":"=== RUN   TestValidatePlanPreview//api/plan\n"}
+{"Time":"2026-09-20T16:34:59.595334762Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestValidatePlanPreview//api/plan","Output":"--- PASS: TestValidatePlanPreview//api/plan (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.595349464Z","Action":"pass","Package":"bifrost-registry/internal/admin","Test":"TestValidatePlanPreview//api/plan","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.595354312Z","Action":"run","Package":"bifrost-registry/internal/admin","Test":"TestValidatePlanPreview/missing_key"}
+{"Time":"2026-09-20T16:34:59.595357366Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestValidatePlanPreview/missing_key","Output":"=== RUN   TestValidatePlanPreview/missing_key\n"}
+{"Time":"2026-09-20T16:34:59.595680974Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestValidatePlanPreview/missing_key","Output":"--- PASS: TestValidatePlanPreview/missing_key (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.595691059Z","Action":"pass","Package":"bifrost-registry/internal/admin","Test":"TestValidatePlanPreview/missing_key","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.595695406Z","Action":"run","Package":"bifrost-registry/internal/admin","Test":"TestValidatePlanPreview/bad_config"}
+{"Time":"2026-09-20T16:34:59.595699632Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestValidatePlanPreview/bad_config","Output":"=== RUN   TestValidatePlanPreview/bad_config\n"}
+{"Time":"2026-09-20T16:34:59.595926634Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestValidatePlanPreview/bad_config","Output":"--- PASS: TestValidatePlanPreview/bad_config (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.595939273Z","Action":"pass","Package":"bifrost-registry/internal/admin","Test":"TestValidatePlanPreview/bad_config","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.595947435Z","Action":"run","Package":"bifrost-registry/internal/admin","Test":"TestValidatePlanPreview/unknown_wrapper"}
+{"Time":"2026-09-20T16:34:59.59595051Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestValidatePlanPreview/unknown_wrapper","Output":"=== RUN   TestValidatePlanPreview/unknown_wrapper\n"}
+{"Time":"2026-09-20T16:34:59.596227207Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestValidatePlanPreview/unknown_wrapper","Output":"--- PASS: TestValidatePlanPreview/unknown_wrapper (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.596237592Z","Action":"pass","Package":"bifrost-registry/internal/admin","Test":"TestValidatePlanPreview/unknown_wrapper","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.596242289Z","Action":"run","Package":"bifrost-registry/internal/admin","Test":"TestValidatePlanPreview/duplicate_wrapper"}
+{"Time":"2026-09-20T16:34:59.596245064Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestValidatePlanPreview/duplicate_wrapper","Output":"=== RUN   TestValidatePlanPreview/duplicate_wrapper\n"}
+{"Time":"2026-09-20T16:34:59.596329601Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestValidatePlanPreview/duplicate_wrapper","Output":"--- PASS: TestValidatePlanPreview/duplicate_wrapper (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.596336742Z","Action":"pass","Package":"bifrost-registry/internal/admin","Test":"TestValidatePlanPreview/duplicate_wrapper","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.596374909Z","Action":"run","Package":"bifrost-registry/internal/admin","Test":"TestValidatePlanPreview/duplicate_config"}
+{"Time":"2026-09-20T16:34:59.596379276Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestValidatePlanPreview/duplicate_config","Output":"=== RUN   TestValidatePlanPreview/duplicate_config\n"}
+{"Time":"2026-09-20T16:34:59.596536703Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestValidatePlanPreview/duplicate_config","Output":"--- PASS: TestValidatePlanPreview/duplicate_config (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.596550474Z","Action":"pass","Package":"bifrost-registry/internal/admin","Test":"TestValidatePlanPreview/duplicate_config","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.596767521Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestValidatePlanPreview","Output":"--- PASS: TestValidatePlanPreview (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.596777305Z","Action":"pass","Package":"bifrost-registry/internal/admin","Test":"TestValidatePlanPreview","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.596782463Z","Action":"run","Package":"bifrost-registry/internal/admin","Test":"TestAdminLimitsAndMethods"}
+{"Time":"2026-09-20T16:34:59.596785768Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestAdminLimitsAndMethods","Output":"=== RUN   TestAdminLimitsAndMethods\n"}
+{"Time":"2026-09-20T16:34:59.634581393Z","Action":"run","Package":"bifrost-registry/internal/admin","Test":"TestAdminLimitsAndMethods//api/status"}
+{"Time":"2026-09-20T16:34:59.634623907Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestAdminLimitsAndMethods//api/status","Output":"=== RUN   TestAdminLimitsAndMethods//api/status\n"}
+{"Time":"2026-09-20T16:34:59.634764549Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestAdminLimitsAndMethods//api/status","Output":"--- PASS: TestAdminLimitsAndMethods//api/status (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.634769346Z","Action":"pass","Package":"bifrost-registry/internal/admin","Test":"TestAdminLimitsAndMethods//api/status","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.634786502Z","Action":"run","Package":"bifrost-registry/internal/admin","Test":"TestAdminLimitsAndMethods//api/validate"}
+{"Time":"2026-09-20T16:34:59.634790909Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestAdminLimitsAndMethods//api/validate","Output":"=== RUN   TestAdminLimitsAndMethods//api/validate\n"}
+{"Time":"2026-09-20T16:34:59.634890589Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestAdminLimitsAndMethods//api/validate","Output":"--- PASS: TestAdminLimitsAndMethods//api/validate (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.63491114Z","Action":"pass","Package":"bifrost-registry/internal/admin","Test":"TestAdminLimitsAndMethods//api/validate","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.634914635Z","Action":"run","Package":"bifrost-registry/internal/admin","Test":"TestAdminLimitsAndMethods//api/plan"}
+{"Time":"2026-09-20T16:34:59.634916598Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestAdminLimitsAndMethods//api/plan","Output":"=== RUN   TestAdminLimitsAndMethods//api/plan\n"}
+{"Time":"2026-09-20T16:34:59.63507074Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestAdminLimitsAndMethods//api/plan","Output":"--- PASS: TestAdminLimitsAndMethods//api/plan (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.635086785Z","Action":"pass","Package":"bifrost-registry/internal/admin","Test":"TestAdminLimitsAndMethods//api/plan","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.635104291Z","Action":"run","Package":"bifrost-registry/internal/admin","Test":"TestAdminLimitsAndMethods//api/preview"}
+{"Time":"2026-09-20T16:34:59.635106384Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestAdminLimitsAndMethods//api/preview","Output":"=== RUN   TestAdminLimitsAndMethods//api/preview\n"}
+{"Time":"2026-09-20T16:34:59.635205654Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestAdminLimitsAndMethods//api/preview","Output":"--- PASS: TestAdminLimitsAndMethods//api/preview (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.635209259Z","Action":"pass","Package":"bifrost-registry/internal/admin","Test":"TestAdminLimitsAndMethods//api/preview","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.635227947Z","Action":"run","Package":"bifrost-registry/internal/admin","Test":"TestAdminLimitsAndMethods//api/config"}
+{"Time":"2026-09-20T16:34:59.635238113Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestAdminLimitsAndMethods//api/config","Output":"=== RUN   TestAdminLimitsAndMethods//api/config\n"}
+{"Time":"2026-09-20T16:34:59.635303681Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestAdminLimitsAndMethods//api/config","Output":"--- PASS: TestAdminLimitsAndMethods//api/config (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.635320206Z","Action":"pass","Package":"bifrost-registry/internal/admin","Test":"TestAdminLimitsAndMethods//api/config","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.635394769Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestAdminLimitsAndMethods","Output":"--- PASS: TestAdminLimitsAndMethods (0.04s)\n"}
+{"Time":"2026-09-20T16:34:59.635421369Z","Action":"pass","Package":"bifrost-registry/internal/admin","Test":"TestAdminLimitsAndMethods","Elapsed":0.04}
+{"Time":"2026-09-20T16:34:59.635437203Z","Action":"run","Package":"bifrost-registry/internal/admin","Test":"TestRealHTTPServer"}
+{"Time":"2026-09-20T16:34:59.635440257Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestRealHTTPServer","Output":"=== RUN   TestRealHTTPServer\n"}
+{"Time":"2026-09-20T16:34:59.640582393Z","Action":"output","Package":"bifrost-registry/internal/admin","Test":"TestRealHTTPServer","Output":"--- PASS: TestRealHTTPServer (0.01s)\n"}
+{"Time":"2026-09-20T16:34:59.640606419Z","Action":"pass","Package":"bifrost-registry/internal/admin","Test":"TestRealHTTPServer","Elapsed":0.01}
+{"Time":"2026-09-20T16:34:59.640631397Z","Action":"output","Package":"bifrost-registry/internal/admin","Output":"PASS\n"}
+{"Time":"2026-09-20T16:34:59.642689728Z","Action":"output","Package":"bifrost-registry/internal/admin","Output":"coverage: 95.0% of statements\n"}
+{"Time":"2026-09-20T16:34:59.68408488Z","Action":"start","Package":"bifrost-registry/internal/registry"}
+{"Time":"2026-09-20T16:34:59.693908628Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestNaming"}
+{"Time":"2026-09-20T16:34:59.693926736Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestNaming","Output":"=== RUN   TestNaming\n"}
+{"Time":"2026-09-20T16:34:59.693974488Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestNaming/provider/model_prefer_map[]"}
+{"Time":"2026-09-20T16:34:59.693976571Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestNaming/provider/model_prefer_map[]","Output":"=== RUN   TestNaming/provider/model_prefer_map[]\n"}
+{"Time":"2026-09-20T16:34:59.694417685Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestNaming/provider/model_prefer_map[]","Output":"--- PASS: TestNaming/provider/model_prefer_map[] (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.694447941Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestNaming/provider/model_prefer_map[]","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.694491296Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestNaming/model_prefer_map[smart:b]"}
+{"Time":"2026-09-20T16:34:59.694493479Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestNaming/model_prefer_map[smart:b]","Output":"=== RUN   TestNaming/model_prefer_map[smart:b]\n"}
+{"Time":"2026-09-20T16:34:59.695148196Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestNaming/model_prefer_map[smart:b]","Output":"--- PASS: TestNaming/model_prefer_map[smart:b] (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.695178592Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestNaming/model_prefer_map[smart:b]","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.695218602Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestNaming/both_prefer_map[smart:a]"}
+{"Time":"2026-09-20T16:34:59.695220575Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestNaming/both_prefer_map[smart:a]","Output":"=== RUN   TestNaming/both_prefer_map[smart:a]\n"}
+{"Time":"2026-09-20T16:34:59.69599387Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestNaming/both_prefer_map[smart:a]","Output":"--- PASS: TestNaming/both_prefer_map[smart:a] (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.696004325Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestNaming/both_prefer_map[smart:a]","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.696023825Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestNaming/model_prefer_map[]"}
+{"Time":"2026-09-20T16:34:59.69602757Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestNaming/model_prefer_map[]","Output":"=== RUN   TestNaming/model_prefer_map[]\n"}
+{"Time":"2026-09-20T16:34:59.696615095Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestNaming/model_prefer_map[]","Output":"--- PASS: TestNaming/model_prefer_map[] (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.696633193Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestNaming/model_prefer_map[]","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.696697019Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestNaming/both_prefer_map[]"}
+{"Time":"2026-09-20T16:34:59.696699503Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestNaming/both_prefer_map[]","Output":"=== RUN   TestNaming/both_prefer_map[]\n"}
+{"Time":"2026-09-20T16:34:59.697128709Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestNaming/both_prefer_map[]","Output":"--- PASS: TestNaming/both_prefer_map[] (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.697145845Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestNaming/both_prefer_map[]","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.697168489Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestNaming","Output":"--- PASS: TestNaming (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.69718929Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestNaming","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.697204193Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects"}
+{"Time":"2026-09-20T16:34:59.697206206Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects","Output":"=== RUN   TestConfigRejects\n"}
+{"Time":"2026-09-20T16:34:59.697254248Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/native_alias_duplicate"}
+{"Time":"2026-09-20T16:34:59.697256071Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/native_alias_duplicate","Output":"=== RUN   TestConfigRejects/native_alias_duplicate\n"}
+{"Time":"2026-09-20T16:34:59.697633154Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/native_alias_duplicate","Output":"--- PASS: TestConfigRejects/native_alias_duplicate (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.69765724Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/native_alias_duplicate","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.697661427Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/group_unknown_model"}
+{"Time":"2026-09-20T16:34:59.69766387Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/group_unknown_model","Output":"=== RUN   TestConfigRejects/group_unknown_model\n"}
+{"Time":"2026-09-20T16:34:59.698066096Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/group_unknown_model","Output":"--- PASS: TestConfigRejects/group_unknown_model (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.698071284Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/group_unknown_model","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.698111965Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/empty_group"}
+{"Time":"2026-09-20T16:34:59.698133287Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/empty_group","Output":"=== RUN   TestConfigRejects/empty_group\n"}
+{"Time":"2026-09-20T16:34:59.698447861Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/empty_group","Output":"--- PASS: TestConfigRejects/empty_group (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.698451557Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/empty_group","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.698476124Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/duplicate_vk_id"}
+{"Time":"2026-09-20T16:34:59.698477977Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/duplicate_vk_id","Output":"=== RUN   TestConfigRejects/duplicate_vk_id\n"}
+{"Time":"2026-09-20T16:34:59.698920453Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/duplicate_vk_id","Output":"--- PASS: TestConfigRejects/duplicate_vk_id (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.698924089Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/duplicate_vk_id","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.698926142Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/unknown_preference"}
+{"Time":"2026-09-20T16:34:59.698927644Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/unknown_preference","Output":"=== RUN   TestConfigRejects/unknown_preference\n"}
+{"Time":"2026-09-20T16:34:59.699273815Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/unknown_preference","Output":"--- PASS: TestConfigRejects/unknown_preference (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.699279534Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/unknown_preference","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.699314827Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/model_id_duplicate"}
+{"Time":"2026-09-20T16:34:59.69931672Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/model_id_duplicate","Output":"=== RUN   TestConfigRejects/model_id_duplicate\n"}
+{"Time":"2026-09-20T16:34:59.699614819Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/model_id_duplicate","Output":"--- PASS: TestConfigRejects/model_id_duplicate (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.699658284Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/model_id_duplicate","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.699660858Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/no_provider_keys"}
+{"Time":"2026-09-20T16:34:59.699667538Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/no_provider_keys","Output":"=== RUN   TestConfigRejects/no_provider_keys\n"}
+{"Time":"2026-09-20T16:34:59.70000045Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/no_provider_keys","Output":"--- PASS: TestConfigRejects/no_provider_keys (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.700006579Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/no_provider_keys","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.700029343Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/empty_filter"}
+{"Time":"2026-09-20T16:34:59.700031026Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/empty_filter","Output":"=== RUN   TestConfigRejects/empty_filter\n"}
+{"Time":"2026-09-20T16:34:59.700394273Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/empty_filter","Output":"--- PASS: TestConfigRejects/empty_filter (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.700403207Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/empty_filter","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.70043891Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/duplicate_selector"}
+{"Time":"2026-09-20T16:34:59.700440853Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/duplicate_selector","Output":"=== RUN   TestConfigRejects/duplicate_selector\n"}
+{"Time":"2026-09-20T16:34:59.700825783Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/duplicate_selector","Output":"--- PASS: TestConfigRejects/duplicate_selector (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.700831161Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/duplicate_selector","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.700853455Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/bad_preference"}
+{"Time":"2026-09-20T16:34:59.700854947Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/bad_preference","Output":"=== RUN   TestConfigRejects/bad_preference\n"}
+{"Time":"2026-09-20T16:34:59.701209847Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/bad_preference","Output":"--- PASS: TestConfigRejects/bad_preference (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.701217528Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/bad_preference","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.701221214Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/schema"}
+{"Time":"2026-09-20T16:34:59.701225871Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/schema","Output":"=== RUN   TestConfigRejects/schema\n"}
+{"Time":"2026-09-20T16:34:59.70153051Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/schema","Output":"--- PASS: TestConfigRejects/schema (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.701534736Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/schema","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.701566745Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/alias_slash"}
+{"Time":"2026-09-20T16:34:59.701568818Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/alias_slash","Output":"=== RUN   TestConfigRejects/alias_slash\n"}
+{"Time":"2026-09-20T16:34:59.701896912Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/alias_slash","Output":"--- PASS: TestConfigRejects/alias_slash (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.701900437Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/alias_slash","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.701937503Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/empty_upstream"}
+{"Time":"2026-09-20T16:34:59.701939546Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/empty_upstream","Output":"=== RUN   TestConfigRejects/empty_upstream\n"}
+{"Time":"2026-09-20T16:34:59.702218947Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/empty_upstream","Output":"--- PASS: TestConfigRejects/empty_upstream (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.702246769Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/empty_upstream","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.702260129Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/duplicate_endpoints"}
+{"Time":"2026-09-20T16:34:59.702261982Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/duplicate_endpoints","Output":"=== RUN   TestConfigRejects/duplicate_endpoints\n"}
+{"Time":"2026-09-20T16:34:59.702553952Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/duplicate_endpoints","Output":"--- PASS: TestConfigRejects/duplicate_endpoints (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.702580071Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/duplicate_endpoints","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.702582885Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/unknown_group"}
+{"Time":"2026-09-20T16:34:59.702585049Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/unknown_group","Output":"=== RUN   TestConfigRejects/unknown_group\n"}
+{"Time":"2026-09-20T16:34:59.702946603Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/unknown_group","Output":"--- PASS: TestConfigRejects/unknown_group (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.702970219Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/unknown_group","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.702973764Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/uppercase_alias"}
+{"Time":"2026-09-20T16:34:59.702975276Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/uppercase_alias","Output":"=== RUN   TestConfigRejects/uppercase_alias\n"}
+{"Time":"2026-09-20T16:34:59.70327638Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/uppercase_alias","Output":"--- PASS: TestConfigRejects/uppercase_alias (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.703280036Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/uppercase_alias","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.703286155Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/unsupported_family"}
+{"Time":"2026-09-20T16:34:59.703287937Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/unsupported_family","Output":"=== RUN   TestConfigRejects/unsupported_family\n"}
+{"Time":"2026-09-20T16:34:59.70358151Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/unsupported_family","Output":"--- PASS: TestConfigRejects/unsupported_family (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.703583773Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/unsupported_family","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.703609652Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/duplicate_provider_keys"}
+{"Time":"2026-09-20T16:34:59.703612256Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/duplicate_provider_keys","Output":"=== RUN   TestConfigRejects/duplicate_provider_keys\n"}
+{"Time":"2026-09-20T16:34:59.703995794Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/duplicate_provider_keys","Output":"--- PASS: TestConfigRejects/duplicate_provider_keys (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.704000972Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/duplicate_provider_keys","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.704005679Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/duplicate_group"}
+{"Time":"2026-09-20T16:34:59.704007371Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/duplicate_group","Output":"=== RUN   TestConfigRejects/duplicate_group\n"}
+{"Time":"2026-09-20T16:34:59.704357118Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/duplicate_group","Output":"--- PASS: TestConfigRejects/duplicate_group (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.704359472Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/duplicate_group","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.704385951Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/invalid_fingerprint"}
+{"Time":"2026-09-20T16:34:59.704390709Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/invalid_fingerprint","Output":"=== RUN   TestConfigRejects/invalid_fingerprint\n"}
+{"Time":"2026-09-20T16:34:59.704745703Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/invalid_fingerprint","Output":"--- PASS: TestConfigRejects/invalid_fingerprint (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.704749269Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/invalid_fingerprint","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.704751532Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/control_upstream"}
+{"Time":"2026-09-20T16:34:59.704753064Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/control_upstream","Output":"=== RUN   TestConfigRejects/control_upstream\n"}
+{"Time":"2026-09-20T16:34:59.705051895Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/control_upstream","Output":"--- PASS: TestConfigRejects/control_upstream (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.705054108Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/control_upstream","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.705087048Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/unknown_exclusion"}
+{"Time":"2026-09-20T16:34:59.70508885Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/unknown_exclusion","Output":"=== RUN   TestConfigRejects/unknown_exclusion\n"}
+{"Time":"2026-09-20T16:34:59.70540083Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/unknown_exclusion","Output":"--- PASS: TestConfigRejects/unknown_exclusion (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.705403494Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/unknown_exclusion","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.705428852Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/unsupported_endpoint"}
+{"Time":"2026-09-20T16:34:59.705430495Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/unsupported_endpoint","Output":"=== RUN   TestConfigRejects/unsupported_endpoint\n"}
+{"Time":"2026-09-20T16:34:59.70573931Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/unsupported_endpoint","Output":"--- PASS: TestConfigRejects/unsupported_endpoint (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.705741894Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/unsupported_endpoint","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.70575933Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/uppercase_fingerprint"}
+{"Time":"2026-09-20T16:34:59.705761123Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/uppercase_fingerprint","Output":"=== RUN   TestConfigRejects/uppercase_fingerprint\n"}
+{"Time":"2026-09-20T16:34:59.706122037Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/uppercase_fingerprint","Output":"--- PASS: TestConfigRejects/uppercase_fingerprint (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.706125442Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/uppercase_fingerprint","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.706141846Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/duplicate_fingerprint"}
+{"Time":"2026-09-20T16:34:59.706143529Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/duplicate_fingerprint","Output":"=== RUN   TestConfigRejects/duplicate_fingerprint\n"}
+{"Time":"2026-09-20T16:34:59.706513717Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/duplicate_fingerprint","Output":"--- PASS: TestConfigRejects/duplicate_fingerprint (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.706516341Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/duplicate_fingerprint","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.706530912Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/naming"}
+{"Time":"2026-09-20T16:34:59.706532795Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/naming","Output":"=== RUN   TestConfigRejects/naming\n"}
+{"Time":"2026-09-20T16:34:59.706838135Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/naming","Output":"--- PASS: TestConfigRejects/naming (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.70684134Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/naming","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.706862492Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/whitespace_upstream"}
+{"Time":"2026-09-20T16:34:59.706864825Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/whitespace_upstream","Output":"=== RUN   TestConfigRejects/whitespace_upstream\n"}
+{"Time":"2026-09-20T16:34:59.707163846Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/whitespace_upstream","Output":"--- PASS: TestConfigRejects/whitespace_upstream (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.70716687Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/whitespace_upstream","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.707196305Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/empty_endpoints"}
+{"Time":"2026-09-20T16:34:59.707198438Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/empty_endpoints","Output":"=== RUN   TestConfigRejects/empty_endpoints\n"}
+{"Time":"2026-09-20T16:34:59.707492962Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/empty_endpoints","Output":"--- PASS: TestConfigRejects/empty_endpoints (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.707495005Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/empty_endpoints","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.707524199Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/no_evidence"}
+{"Time":"2026-09-20T16:34:59.707526031Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/no_evidence","Output":"=== RUN   TestConfigRejects/no_evidence\n"}
+{"Time":"2026-09-20T16:34:59.70786381Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/no_evidence","Output":"--- PASS: TestConfigRejects/no_evidence (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.707869339Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects/no_evidence","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.707894176Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects","Output":"--- PASS: TestConfigRejects (0.01s)\n"}
+{"Time":"2026-09-20T16:34:59.708000957Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestConfigRejects","Elapsed":0.01}
+{"Time":"2026-09-20T16:34:59.708004272Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestStrictJSON"}
+{"Time":"2026-09-20T16:34:59.708006225Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestStrictJSON","Output":"=== RUN   TestStrictJSON\n"}
+{"Time":"2026-09-20T16:34:59.708059625Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestStrictJSON/trailing_scalar"}
+{"Time":"2026-09-20T16:34:59.708062229Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestStrictJSON/trailing_scalar","Output":"=== RUN   TestStrictJSON/trailing_scalar\n"}
+{"Time":"2026-09-20T16:34:59.708133727Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestStrictJSON/trailing_scalar","Output":"--- PASS: TestStrictJSON/trailing_scalar (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.708149471Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestStrictJSON/trailing_scalar","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.708168009Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestStrictJSON/truncated"}
+{"Time":"2026-09-20T16:34:59.708169771Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestStrictJSON/truncated","Output":"=== RUN   TestStrictJSON/truncated\n"}
+{"Time":"2026-09-20T16:34:59.708225485Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestStrictJSON/truncated","Output":"--- PASS: TestStrictJSON/truncated (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.708239626Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestStrictJSON/truncated","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.708253417Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestStrictJSON/unknown_field"}
+{"Time":"2026-09-20T16:34:59.70825507Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestStrictJSON/unknown_field","Output":"=== RUN   TestStrictJSON/unknown_field\n"}
+{"Time":"2026-09-20T16:34:59.70834132Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestStrictJSON/unknown_field","Output":"--- PASS: TestStrictJSON/unknown_field (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.70835506Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestStrictJSON/unknown_field","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.708369833Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestStrictJSON/deep"}
+{"Time":"2026-09-20T16:34:59.708371635Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestStrictJSON/deep","Output":"=== RUN   TestStrictJSON/deep\n"}
+{"Time":"2026-09-20T16:34:59.708584846Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestStrictJSON/deep","Output":"--- PASS: TestStrictJSON/deep (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.708588552Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestStrictJSON/deep","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.708604807Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestStrictJSON/duplicate"}
+{"Time":"2026-09-20T16:34:59.70860683Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestStrictJSON/duplicate","Output":"=== RUN   TestStrictJSON/duplicate\n"}
+{"Time":"2026-09-20T16:34:59.708685168Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestStrictJSON/duplicate","Output":"--- PASS: TestStrictJSON/duplicate (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.708732239Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestStrictJSON/duplicate","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.7087462Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestStrictJSON/nested_duplicate"}
+{"Time":"2026-09-20T16:34:59.708748082Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestStrictJSON/nested_duplicate","Output":"=== RUN   TestStrictJSON/nested_duplicate\n"}
+{"Time":"2026-09-20T16:34:59.708813311Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestStrictJSON/nested_duplicate","Output":"--- PASS: TestStrictJSON/nested_duplicate (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.708830887Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestStrictJSON/nested_duplicate","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.708844648Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestStrictJSON/escaped_duplicate"}
+{"Time":"2026-09-20T16:34:59.708846391Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestStrictJSON/escaped_duplicate","Output":"=== RUN   TestStrictJSON/escaped_duplicate\n"}
+{"Time":"2026-09-20T16:34:59.708902465Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestStrictJSON/escaped_duplicate","Output":"--- PASS: TestStrictJSON/escaped_duplicate (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.708916116Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestStrictJSON/escaped_duplicate","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.708929135Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestStrictJSON/trailing"}
+{"Time":"2026-09-20T16:34:59.70893227Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestStrictJSON/trailing","Output":"=== RUN   TestStrictJSON/trailing\n"}
+{"Time":"2026-09-20T16:34:59.708973182Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestStrictJSON/trailing","Output":"--- PASS: TestStrictJSON/trailing (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.708995095Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestStrictJSON/trailing","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.709057859Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestStrictJSON","Output":"--- PASS: TestStrictJSON (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.709074925Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestStrictJSON","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.709092391Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestParse"}
+{"Time":"2026-09-20T16:34:59.709094154Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestParse","Output":"=== RUN   TestParse\n"}
+{"Time":"2026-09-20T16:34:59.718794246Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestParse","Output":"--- PASS: TestParse (0.01s)\n"}
+{"Time":"2026-09-20T16:34:59.718808267Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestParse","Elapsed":0.01}
+{"Time":"2026-09-20T16:34:59.718816209Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestSelectors"}
+{"Time":"2026-09-20T16:34:59.718818763Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestSelectors","Output":"=== RUN   TestSelectors\n"}
+{"Time":"2026-09-20T16:34:59.718918654Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestSelectors/empty_policy_denies"}
+{"Time":"2026-09-20T16:34:59.718921257Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestSelectors/empty_policy_denies","Output":"=== RUN   TestSelectors/empty_policy_denies\n"}
+{"Time":"2026-09-20T16:34:59.719534101Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestSelectors/empty_policy_denies","Output":"--- PASS: TestSelectors/empty_policy_denies (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.71954009Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestSelectors/empty_policy_denies","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.71956703Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestSelectors/disabled_key"}
+{"Time":"2026-09-20T16:34:59.719569224Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestSelectors/disabled_key","Output":"=== RUN   TestSelectors/disabled_key\n"}
+{"Time":"2026-09-20T16:34:59.72078152Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestSelectors/disabled_key","Output":"--- PASS: TestSelectors/disabled_key (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.720793157Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestSelectors/disabled_key","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.720818055Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestSelectors/unverified_hidden"}
+{"Time":"2026-09-20T16:34:59.720820649Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestSelectors/unverified_hidden","Output":"=== RUN   TestSelectors/unverified_hidden\n"}
+{"Time":"2026-09-20T16:34:59.721440572Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestSelectors/unverified_hidden","Output":"--- PASS: TestSelectors/unverified_hidden (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.721470337Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestSelectors/unverified_hidden","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.721500923Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestSelectors/disabled_hidden"}
+{"Time":"2026-09-20T16:34:59.721502696Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestSelectors/disabled_hidden","Output":"=== RUN   TestSelectors/disabled_hidden\n"}
+{"Time":"2026-09-20T16:34:59.722159405Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestSelectors/disabled_hidden","Output":"--- PASS: TestSelectors/disabled_hidden (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.722177743Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestSelectors/disabled_hidden","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.722195199Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestSelectors/source_limit"}
+{"Time":"2026-09-20T16:34:59.722197082Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestSelectors/source_limit","Output":"=== RUN   TestSelectors/source_limit\n"}
+{"Time":"2026-09-20T16:34:59.722827131Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestSelectors/source_limit","Output":"--- PASS: TestSelectors/source_limit (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.72283319Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestSelectors/source_limit","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.722836756Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestSelectors/filters_and_all_capabilities"}
+{"Time":"2026-09-20T16:34:59.722838548Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestSelectors/filters_and_all_capabilities","Output":"=== RUN   TestSelectors/filters_and_all_capabilities\n"}
+{"Time":"2026-09-20T16:34:59.723456609Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestSelectors/filters_and_all_capabilities","Output":"--- PASS: TestSelectors/filters_and_all_capabilities (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.723461937Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestSelectors/filters_and_all_capabilities","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.723492674Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestSelectors/family_filter"}
+{"Time":"2026-09-20T16:34:59.723495037Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestSelectors/family_filter","Output":"=== RUN   TestSelectors/family_filter\n"}
+{"Time":"2026-09-20T16:34:59.724258026Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestSelectors/family_filter","Output":"--- PASS: TestSelectors/family_filter (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.724263885Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestSelectors/family_filter","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.724295954Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestSelectors/union_then_exclude"}
+{"Time":"2026-09-20T16:34:59.72429989Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestSelectors/union_then_exclude","Output":"=== RUN   TestSelectors/union_then_exclude\n"}
+{"Time":"2026-09-20T16:34:59.724869257Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestSelectors/union_then_exclude","Output":"--- PASS: TestSelectors/union_then_exclude (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.724873293Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestSelectors/union_then_exclude","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.724912362Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestSelectors","Output":"--- PASS: TestSelectors (0.01s)\n"}
+{"Time":"2026-09-20T16:34:59.724919303Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestSelectors","Elapsed":0.01}
+{"Time":"2026-09-20T16:34:59.724939112Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestSnapshotIsolationAndDeterminism"}
+{"Time":"2026-09-20T16:34:59.724942538Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestSnapshotIsolationAndDeterminism","Output":"=== RUN   TestSnapshotIsolationAndDeterminism\n"}
+{"Time":"2026-09-20T16:34:59.743894266Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestSnapshotIsolationAndDeterminism","Output":"--- PASS: TestSnapshotIsolationAndDeterminism (0.02s)\n"}
+{"Time":"2026-09-20T16:34:59.743915198Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestSnapshotIsolationAndDeterminism","Elapsed":0.02}
+{"Time":"2026-09-20T16:34:59.743920396Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestCredential"}
+{"Time":"2026-09-20T16:34:59.743922589Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestCredential","Output":"=== RUN   TestCredential\n"}
+{"Time":"2026-09-20T16:34:59.743972434Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestCredential/lower"}
+{"Time":"2026-09-20T16:34:59.743974487Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestCredential/lower","Output":"=== RUN   TestCredential/lower\n"}
+{"Time":"2026-09-20T16:34:59.744050702Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestCredential/lower","Output":"--- PASS: TestCredential/lower (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.744055239Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestCredential/lower","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.744060797Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestCredential/header"}
+{"Time":"2026-09-20T16:34:59.744063211Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestCredential/header","Output":"=== RUN   TestCredential/header\n"}
+{"Time":"2026-09-20T16:34:59.744110852Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestCredential/header","Output":"--- PASS: TestCredential/header (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.74412941Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestCredential/header","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.744160287Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestCredential/matching"}
+{"Time":"2026-09-20T16:34:59.74416229Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestCredential/matching","Output":"=== RUN   TestCredential/matching\n"}
+{"Time":"2026-09-20T16:34:59.744210262Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestCredential/matching","Output":"--- PASS: TestCredential/matching (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.744226597Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestCredential/matching","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.744242Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestCredential/bearer"}
+{"Time":"2026-09-20T16:34:59.744244133Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestCredential/bearer","Output":"=== RUN   TestCredential/bearer\n"}
+{"Time":"2026-09-20T16:34:59.744296332Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestCredential/bearer","Output":"--- PASS: TestCredential/bearer (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.744312536Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestCredential/bearer","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.744344745Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestCredential/newline"}
+{"Time":"2026-09-20T16:34:59.744346628Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestCredential/newline","Output":"=== RUN   TestCredential/newline\n"}
+{"Time":"2026-09-20T16:34:59.744496293Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestCredential/newline","Output":"--- PASS: TestCredential/newline (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.744499438Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestCredential/newline","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.744502382Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestCredential/too_short"}
+{"Time":"2026-09-20T16:34:59.744504055Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestCredential/too_short","Output":"=== RUN   TestCredential/too_short\n"}
+{"Time":"2026-09-20T16:34:59.744543815Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestCredential/too_short","Output":"--- PASS: TestCredential/too_short (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.744561742Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestCredential/too_short","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.744576915Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestCredential/missing"}
+{"Time":"2026-09-20T16:34:59.744578677Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestCredential/missing","Output":"=== RUN   TestCredential/missing\n"}
+{"Time":"2026-09-20T16:34:59.744612398Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestCredential/missing","Output":"--- PASS: TestCredential/missing (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.74462687Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestCredential/missing","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.744641963Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestCredential/provider_key"}
+{"Time":"2026-09-20T16:34:59.74466031Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestCredential/provider_key","Output":"=== RUN   TestCredential/provider_key\n"}
+{"Time":"2026-09-20T16:34:59.744725488Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestCredential/provider_key","Output":"--- PASS: TestCredential/provider_key (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.744741603Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestCredential/provider_key","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.744745689Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestCredential/basic"}
+{"Time":"2026-09-20T16:34:59.744747572Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestCredential/basic","Output":"=== RUN   TestCredential/basic\n"}
+{"Time":"2026-09-20T16:34:59.744795083Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestCredential/basic","Output":"--- PASS: TestCredential/basic (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.744810627Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestCredential/basic","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.744834142Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestCredential/conflict"}
+{"Time":"2026-09-20T16:34:59.744836616Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestCredential/conflict","Output":"=== RUN   TestCredential/conflict\n"}
+{"Time":"2026-09-20T16:34:59.744910147Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestCredential/conflict","Output":"--- PASS: TestCredential/conflict (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.744926061Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestCredential/conflict","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.744930487Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestCredential/case_duplicates"}
+{"Time":"2026-09-20T16:34:59.74493231Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestCredential/case_duplicates","Output":"=== RUN   TestCredential/case_duplicates\n"}
+{"Time":"2026-09-20T16:34:59.744966662Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestCredential/case_duplicates","Output":"--- PASS: TestCredential/case_duplicates (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.744981264Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestCredential/case_duplicates","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.74498549Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestCredential/comma"}
+{"Time":"2026-09-20T16:34:59.744987433Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestCredential/comma","Output":"=== RUN   TestCredential/comma\n"}
+{"Time":"2026-09-20T16:34:59.745037689Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestCredential/comma","Output":"--- PASS: TestCredential/comma (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.745039642Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestCredential/comma","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.745058941Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestCredential","Output":"--- PASS: TestCredential (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.745073573Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestCredential","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.745086102Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections"}
+{"Time":"2026-09-20T16:34:59.745087724Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections","Output":"=== RUN   TestRequestRejections\n"}
+{"Time":"2026-09-20T16:34:59.745528834Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/wrong_method"}
+{"Time":"2026-09-20T16:34:59.745538248Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/wrong_method","Output":"=== RUN   TestRequestRejections/wrong_method\n"}
+{"Time":"2026-09-20T16:34:59.745636275Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/wrong_method","Output":"--- PASS: TestRequestRejections/wrong_method (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.745640342Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/wrong_method","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.745660051Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/wrong_path"}
+{"Time":"2026-09-20T16:34:59.745661704Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/wrong_path","Output":"=== RUN   TestRequestRejections/wrong_path\n"}
+{"Time":"2026-09-20T16:34:59.745724538Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/wrong_path","Output":"--- PASS: TestRequestRejections/wrong_path (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.745742666Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/wrong_path","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.745762125Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/unknown_key"}
+{"Time":"2026-09-20T16:34:59.745764579Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/unknown_key","Output":"=== RUN   TestRequestRejections/unknown_key\n"}
+{"Time":"2026-09-20T16:34:59.745838751Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/unknown_key","Output":"--- PASS: TestRequestRejections/unknown_key (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.745869246Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/unknown_key","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.745942076Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/missing_key"}
+{"Time":"2026-09-20T16:34:59.745943919Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/missing_key","Output":"=== RUN   TestRequestRejections/missing_key\n"}
+{"Time":"2026-09-20T16:34:59.746021676Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/missing_key","Output":"--- PASS: TestRequestRejections/missing_key (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.74603755Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/missing_key","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.746052743Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/hidden_model"}
+{"Time":"2026-09-20T16:34:59.746054666Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/hidden_model","Output":"=== RUN   TestRequestRejections/hidden_model\n"}
+{"Time":"2026-09-20T16:34:59.746234206Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/hidden_model","Output":"--- PASS: TestRequestRejections/hidden_model (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.746237762Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/hidden_model","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.746254337Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/bare_hidden"}
+{"Time":"2026-09-20T16:34:59.746255919Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/bare_hidden","Output":"=== RUN   TestRequestRejections/bare_hidden\n"}
+{"Time":"2026-09-20T16:34:59.746372725Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/bare_hidden","Output":"--- PASS: TestRequestRejections/bare_hidden (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.74637638Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/bare_hidden","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.746392775Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/null_body"}
+{"Time":"2026-09-20T16:34:59.746395279Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/null_body","Output":"=== RUN   TestRequestRejections/null_body\n"}
+{"Time":"2026-09-20T16:34:59.746501729Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/null_body","Output":"--- PASS: TestRequestRejections/null_body (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.746504383Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/null_body","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.746531424Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/array_body"}
+{"Time":"2026-09-20T16:34:59.746533046Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/array_body","Output":"=== RUN   TestRequestRejections/array_body\n"}
+{"Time":"2026-09-20T16:34:59.746746198Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/array_body","Output":"--- PASS: TestRequestRejections/array_body (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.746748531Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/array_body","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.746751395Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/missing_model"}
+{"Time":"2026-09-20T16:34:59.746752818Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/missing_model","Output":"=== RUN   TestRequestRejections/missing_model\n"}
+{"Time":"2026-09-20T16:34:59.746857686Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/missing_model","Output":"--- PASS: TestRequestRejections/missing_model (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.746874361Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/missing_model","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.746880981Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/numeric_model"}
+{"Time":"2026-09-20T16:34:59.746882523Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/numeric_model","Output":"=== RUN   TestRequestRejections/numeric_model\n"}
+{"Time":"2026-09-20T16:34:59.747003475Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/numeric_model","Output":"--- PASS: TestRequestRejections/numeric_model (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.747005408Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/numeric_model","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.747032719Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/duplicate_model"}
+{"Time":"2026-09-20T16:34:59.747034432Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/duplicate_model","Output":"=== RUN   TestRequestRejections/duplicate_model\n"}
+{"Time":"2026-09-20T16:34:59.747129946Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/duplicate_model","Output":"--- PASS: TestRequestRejections/duplicate_model (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.74714629Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/duplicate_model","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.747161824Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/duplicate_nested"}
+{"Time":"2026-09-20T16:34:59.747163576Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/duplicate_nested","Output":"=== RUN   TestRequestRejections/duplicate_nested\n"}
+{"Time":"2026-09-20T16:34:59.747274343Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/duplicate_nested","Output":"--- PASS: TestRequestRejections/duplicate_nested (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.747277939Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/duplicate_nested","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.747297538Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/multipart"}
+{"Time":"2026-09-20T16:34:59.747299551Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/multipart","Output":"=== RUN   TestRequestRejections/multipart\n"}
+{"Time":"2026-09-20T16:34:59.747382716Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/multipart","Output":"--- PASS: TestRequestRejections/multipart (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.74739824Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/multipart","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.747422967Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/header_case_duplicate"}
+{"Time":"2026-09-20T16:34:59.74742481Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/header_case_duplicate","Output":"=== RUN   TestRequestRejections/header_case_duplicate\n"}
+{"Time":"2026-09-20T16:34:59.747501576Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/header_case_duplicate","Output":"--- PASS: TestRequestRejections/header_case_duplicate (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.747516718Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/header_case_duplicate","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.747532482Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/direct_key"}
+{"Time":"2026-09-20T16:34:59.747535256Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/direct_key","Output":"=== RUN   TestRequestRejections/direct_key\n"}
+{"Time":"2026-09-20T16:34:59.747633685Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/direct_key","Output":"--- PASS: TestRequestRejections/direct_key (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.747678302Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/direct_key","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.747680585Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/api_key_header"}
+{"Time":"2026-09-20T16:34:59.747682138Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/api_key_header","Output":"=== RUN   TestRequestRejections/api_key_header\n"}
+{"Time":"2026-09-20T16:34:59.74779632Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/api_key_header","Output":"--- PASS: TestRequestRejections/api_key_header (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.747800646Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/api_key_header","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.74780344Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/api_key_id"}
+{"Time":"2026-09-20T16:34:59.747805153Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/api_key_id","Output":"=== RUN   TestRequestRejections/api_key_id\n"}
+{"Time":"2026-09-20T16:34:59.747887106Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/api_key_id","Output":"--- PASS: TestRequestRejections/api_key_id (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.747900416Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/api_key_id","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.747924843Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/raw_provider"}
+{"Time":"2026-09-20T16:34:59.747926456Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/raw_provider","Output":"=== RUN   TestRequestRejections/raw_provider\n"}
+{"Time":"2026-09-20T16:34:59.748052125Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/raw_provider","Output":"--- PASS: TestRequestRejections/raw_provider (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.748054118Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/raw_provider","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.748070823Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/raw_baseurl"}
+{"Time":"2026-09-20T16:34:59.748072706Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/raw_baseurl","Output":"=== RUN   TestRequestRejections/raw_baseurl\n"}
+{"Time":"2026-09-20T16:34:59.748204154Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/raw_baseurl","Output":"--- PASS: TestRequestRejections/raw_baseurl (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.748207008Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/raw_baseurl","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.748222451Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/raw_apikey"}
+{"Time":"2026-09-20T16:34:59.748224314Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/raw_apikey","Output":"=== RUN   TestRequestRejections/raw_apikey\n"}
+{"Time":"2026-09-20T16:34:59.748365066Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/raw_apikey","Output":"--- PASS: TestRequestRejections/raw_apikey (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.748368381Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/raw_apikey","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.748374911Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/fallback_null"}
+{"Time":"2026-09-20T16:34:59.748376363Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/fallback_null","Output":"=== RUN   TestRequestRejections/fallback_null\n"}
+{"Time":"2026-09-20T16:34:59.748515032Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/fallback_null","Output":"--- PASS: TestRequestRejections/fallback_null (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.748517125Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/fallback_null","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.748531026Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/fallback_object"}
+{"Time":"2026-09-20T16:34:59.748532769Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/fallback_object","Output":"=== RUN   TestRequestRejections/fallback_object\n"}
+{"Time":"2026-09-20T16:34:59.748702715Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/fallback_object","Output":"--- PASS: TestRequestRejections/fallback_object (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.74871298Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/fallback_object","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.748729225Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/fallback_hidden"}
+{"Time":"2026-09-20T16:34:59.748730977Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/fallback_hidden","Output":"=== RUN   TestRequestRejections/fallback_hidden\n"}
+{"Time":"2026-09-20T16:34:59.748912741Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/fallback_hidden","Output":"--- PASS: TestRequestRejections/fallback_hidden (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.7489184Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/fallback_hidden","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.748920593Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/fallback_endpoint"}
+{"Time":"2026-09-20T16:34:59.748922496Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/fallback_endpoint","Output":"=== RUN   TestRequestRejections/fallback_endpoint\n"}
+{"Time":"2026-09-20T16:34:59.749059933Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/fallback_endpoint","Output":"--- PASS: TestRequestRejections/fallback_endpoint (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.749062086Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/fallback_endpoint","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.749078902Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/body_too_large"}
+{"Time":"2026-09-20T16:34:59.749080774Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/body_too_large","Output":"=== RUN   TestRequestRejections/body_too_large\n"}
+{"Time":"2026-09-20T16:34:59.76034634Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/body_too_large","Output":"--- PASS: TestRequestRejections/body_too_large (0.01s)\n"}
+{"Time":"2026-09-20T16:34:59.760363015Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections/body_too_large","Elapsed":0.01}
+{"Time":"2026-09-20T16:34:59.760387782Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections","Output":"--- PASS: TestRequestRejections (0.02s)\n"}
+{"Time":"2026-09-20T16:34:59.760391167Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestRequestRejections","Elapsed":0.02}
+{"Time":"2026-09-20T16:34:59.760411748Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestPreparePreservesUnknownPayloads"}
+{"Time":"2026-09-20T16:34:59.760413992Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestPreparePreservesUnknownPayloads","Output":"=== RUN   TestPreparePreservesUnknownPayloads\n"}
+{"Time":"2026-09-20T16:34:59.761331604Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestPreparePreservesUnknownPayloads","Output":"--- PASS: TestPreparePreservesUnknownPayloads (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.761337863Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestPreparePreservesUnknownPayloads","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.761341238Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestFallbacksAndNaming"}
+{"Time":"2026-09-20T16:34:59.761343181Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestFallbacksAndNaming","Output":"=== RUN   TestFallbacksAndNaming\n"}
+{"Time":"2026-09-20T16:34:59.761924277Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestFallbacksAndNaming","Output":"--- PASS: TestFallbacksAndNaming (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.761928463Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestFallbacksAndNaming","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.761933771Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestEndpointPaths"}
+{"Time":"2026-09-20T16:34:59.761935434Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestEndpointPaths","Output":"=== RUN   TestEndpointPaths\n"}
+{"Time":"2026-09-20T16:34:59.762001413Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestEndpointPaths","Output":"--- PASS: TestEndpointPaths (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.762004267Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestEndpointPaths","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.762020862Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestProjectionIntersectionAndPrivacy"}
+{"Time":"2026-09-20T16:34:59.762025429Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestProjectionIntersectionAndPrivacy","Output":"=== RUN   TestProjectionIntersectionAndPrivacy\n"}
+{"Time":"2026-09-20T16:34:59.763135091Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestProjectionIntersectionAndPrivacy","Output":"--- PASS: TestProjectionIntersectionAndPrivacy (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.763139357Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestProjectionIntersectionAndPrivacy","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.763175632Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestProjectionRejects"}
+{"Time":"2026-09-20T16:34:59.763177445Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestProjectionRejects","Output":"=== RUN   TestProjectionRejects\n"}
+{"Time":"2026-09-20T16:34:59.763595284Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestProjectionRejects/null"}
+{"Time":"2026-09-20T16:34:59.763597858Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestProjectionRejects/null","Output":"=== RUN   TestProjectionRejects/null\n"}
+{"Time":"2026-09-20T16:34:59.763690668Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestProjectionRejects/null","Output":"--- PASS: TestProjectionRejects/null (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.763693973Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestProjectionRejects/null","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.763696617Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestProjectionRejects/no_data"}
+{"Time":"2026-09-20T16:34:59.763698439Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestProjectionRejects/no_data","Output":"=== RUN   TestProjectionRejects/no_data\n"}
+{"Time":"2026-09-20T16:34:59.763761945Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestProjectionRejects/no_data","Output":"--- PASS: TestProjectionRejects/no_data (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.763767143Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestProjectionRejects/no_data","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.763782266Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestProjectionRejects/invalid_created"}
+{"Time":"2026-09-20T16:34:59.763783918Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestProjectionRejects/invalid_created","Output":"=== RUN   TestProjectionRejects/invalid_created\n"}
+{"Time":"2026-09-20T16:34:59.763883007Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestProjectionRejects/invalid_created","Output":"--- PASS: TestProjectionRejects/invalid_created (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.763899222Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestProjectionRejects/invalid_created","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.763914695Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestProjectionRejects/null_data"}
+{"Time":"2026-09-20T16:34:59.763916868Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestProjectionRejects/null_data","Output":"=== RUN   TestProjectionRejects/null_data\n"}
+{"Time":"2026-09-20T16:34:59.763988486Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestProjectionRejects/null_data","Output":"--- PASS: TestProjectionRejects/null_data (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.76399099Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestProjectionRejects/null_data","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.763993895Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestProjectionRejects/wrong_data"}
+{"Time":"2026-09-20T16:34:59.763996749Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestProjectionRejects/wrong_data","Output":"=== RUN   TestProjectionRejects/wrong_data\n"}
+{"Time":"2026-09-20T16:34:59.764115287Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestProjectionRejects/wrong_data","Output":"--- PASS: TestProjectionRejects/wrong_data (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.764147085Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestProjectionRejects/wrong_data","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.764160946Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestProjectionRejects/no_id"}
+{"Time":"2026-09-20T16:34:59.76416349Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestProjectionRejects/no_id","Output":"=== RUN   TestProjectionRejects/no_id\n"}
+{"Time":"2026-09-20T16:34:59.764229089Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestProjectionRejects/no_id","Output":"--- PASS: TestProjectionRejects/no_id (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.764253586Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestProjectionRejects/no_id","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.764266535Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestProjectionRejects/bad_id"}
+{"Time":"2026-09-20T16:34:59.764268218Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestProjectionRejects/bad_id","Output":"=== RUN   TestProjectionRejects/bad_id\n"}
+{"Time":"2026-09-20T16:34:59.764341889Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestProjectionRejects/bad_id","Output":"--- PASS: TestProjectionRejects/bad_id (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.764370091Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestProjectionRejects/bad_id","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.764372124Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestProjectionRejects/duplicate_id"}
+{"Time":"2026-09-20T16:34:59.764377152Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestProjectionRejects/duplicate_id","Output":"=== RUN   TestProjectionRejects/duplicate_id\n"}
+{"Time":"2026-09-20T16:34:59.764465305Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestProjectionRejects/duplicate_id","Output":"--- PASS: TestProjectionRejects/duplicate_id (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.764477713Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestProjectionRejects/duplicate_id","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.764493287Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestProjectionRejects/duplicate_key"}
+{"Time":"2026-09-20T16:34:59.76449517Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestProjectionRejects/duplicate_key","Output":"=== RUN   TestProjectionRejects/duplicate_key\n"}
+{"Time":"2026-09-20T16:34:59.764566046Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestProjectionRejects/duplicate_key","Output":"--- PASS: TestProjectionRejects/duplicate_key (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.764568029Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestProjectionRejects/duplicate_key","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.764569982Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestProjectionRejects/invalid_shutdown_metadata"}
+{"Time":"2026-09-20T16:34:59.764571465Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestProjectionRejects/invalid_shutdown_metadata","Output":"=== RUN   TestProjectionRejects/invalid_shutdown_metadata\n"}
+{"Time":"2026-09-20T16:34:59.764739017Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestProjectionRejects/invalid_shutdown_metadata","Output":"--- PASS: TestProjectionRejects/invalid_shutdown_metadata (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.764742783Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestProjectionRejects/invalid_shutdown_metadata","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.764745647Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestProjectionRejects","Output":"--- PASS: TestProjectionRejects (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.764772537Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestProjectionRejects","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.76477442Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestStoreAtomicAndConflicts"}
+{"Time":"2026-09-20T16:34:59.764777074Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestStoreAtomicAndConflicts","Output":"=== RUN   TestStoreAtomicAndConflicts\n"}
+{"Time":"2026-09-20T16:34:59.773833482Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestStoreAtomicAndConflicts","Output":"--- PASS: TestStoreAtomicAndConflicts (0.01s)\n"}
+{"Time":"2026-09-20T16:34:59.773849255Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestStoreAtomicAndConflicts","Elapsed":0.01}
+{"Time":"2026-09-20T16:34:59.773854083Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestConcurrentSnapshots"}
+{"Time":"2026-09-20T16:34:59.773856186Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConcurrentSnapshots","Output":"=== RUN   TestConcurrentSnapshots\n"}
+{"Time":"2026-09-20T16:34:59.850998277Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestConcurrentSnapshots","Output":"--- PASS: TestConcurrentSnapshots (0.08s)\n"}
+{"Time":"2026-09-20T16:34:59.851044517Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestConcurrentSnapshots","Elapsed":0.08}
+{"Time":"2026-09-20T16:34:59.851050105Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestNativePlan"}
+{"Time":"2026-09-20T16:34:59.85105305Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestNativePlan","Output":"=== RUN   TestNativePlan\n"}
+{"Time":"2026-09-20T16:34:59.852678368Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestNativePlan","Output":"--- PASS: TestNativePlan (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.85268652Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestNativePlan","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.852690476Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestMergeAliasesPreservesNativeConfig"}
+{"Time":"2026-09-20T16:34:59.852692329Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestMergeAliasesPreservesNativeConfig","Output":"=== RUN   TestMergeAliasesPreservesNativeConfig\n"}
+{"Time":"2026-09-20T16:34:59.85445886Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestMergeAliasesPreservesNativeConfig","Output":"--- PASS: TestMergeAliasesPreservesNativeConfig (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.854463707Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestMergeAliasesPreservesNativeConfig","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.854500032Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestMergeAliasesRejects"}
+{"Time":"2026-09-20T16:34:59.854502145Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestMergeAliasesRejects","Output":"=== RUN   TestMergeAliasesRejects\n"}
+{"Time":"2026-09-20T16:34:59.854966895Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestMergeAliasesRejects/missing_key"}
+{"Time":"2026-09-20T16:34:59.854969619Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestMergeAliasesRejects/missing_key","Output":"=== RUN   TestMergeAliasesRejects/missing_key\n"}
+{"Time":"2026-09-20T16:34:59.855265435Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestMergeAliasesRejects/missing_key","Output":"--- PASS: TestMergeAliasesRejects/missing_key (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.855280638Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestMergeAliasesRejects/missing_key","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.855297043Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestMergeAliasesRejects/conflicting_alias"}
+{"Time":"2026-09-20T16:34:59.855299026Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestMergeAliasesRejects/conflicting_alias","Output":"=== RUN   TestMergeAliasesRejects/conflicting_alias\n"}
+{"Time":"2026-09-20T16:34:59.855576223Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestMergeAliasesRejects/conflicting_alias","Output":"--- PASS: TestMergeAliasesRejects/conflicting_alias (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.855582473Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestMergeAliasesRejects/conflicting_alias","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.855602493Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestMergeAliasesRejects/invalid_aliases"}
+{"Time":"2026-09-20T16:34:59.855604135Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestMergeAliasesRejects/invalid_aliases","Output":"=== RUN   TestMergeAliasesRejects/invalid_aliases\n"}
+{"Time":"2026-09-20T16:34:59.855910497Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestMergeAliasesRejects/invalid_aliases","Output":"--- PASS: TestMergeAliasesRejects/invalid_aliases (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.855915564Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestMergeAliasesRejects/invalid_aliases","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.855929906Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestMergeAliasesRejects/duplicate_json"}
+{"Time":"2026-09-20T16:34:59.855931799Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestMergeAliasesRejects/duplicate_json","Output":"=== RUN   TestMergeAliasesRejects/duplicate_json\n"}
+{"Time":"2026-09-20T16:34:59.856060923Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestMergeAliasesRejects/duplicate_json","Output":"--- PASS: TestMergeAliasesRejects/duplicate_json (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.856083237Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestMergeAliasesRejects/duplicate_json","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.85609221Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestMergeAliasesRejects/missing_provider"}
+{"Time":"2026-09-20T16:34:59.856094043Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestMergeAliasesRejects/missing_provider","Output":"=== RUN   TestMergeAliasesRejects/missing_provider\n"}
+{"Time":"2026-09-20T16:34:59.856169717Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestMergeAliasesRejects/missing_provider","Output":"--- PASS: TestMergeAliasesRejects/missing_provider (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.856199402Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestMergeAliasesRejects/missing_provider","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.856201515Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestMergeAliasesRejects/wrong_shape"}
+{"Time":"2026-09-20T16:34:59.856203027Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestMergeAliasesRejects/wrong_shape","Output":"=== RUN   TestMergeAliasesRejects/wrong_shape\n"}
+{"Time":"2026-09-20T16:34:59.856276969Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestMergeAliasesRejects/wrong_shape","Output":"--- PASS: TestMergeAliasesRejects/wrong_shape (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.856279162Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestMergeAliasesRejects/wrong_shape","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.856302607Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestMergeAliasesRejects/case_collision"}
+{"Time":"2026-09-20T16:34:59.85630428Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestMergeAliasesRejects/case_collision","Output":"=== RUN   TestMergeAliasesRejects/case_collision\n"}
+{"Time":"2026-09-20T16:34:59.856539504Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestMergeAliasesRejects/case_collision","Output":"--- PASS: TestMergeAliasesRejects/case_collision (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.856563961Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestMergeAliasesRejects/case_collision","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.856585914Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestMergeAliasesRejects/other_key_conflict"}
+{"Time":"2026-09-20T16:34:59.856587787Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestMergeAliasesRejects/other_key_conflict","Output":"=== RUN   TestMergeAliasesRejects/other_key_conflict\n"}
+{"Time":"2026-09-20T16:34:59.856798705Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestMergeAliasesRejects/other_key_conflict","Output":"--- PASS: TestMergeAliasesRejects/other_key_conflict (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.856823883Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestMergeAliasesRejects/other_key_conflict","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.856839987Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"TestMergeAliasesRejects/duplicate_key_id"}
+{"Time":"2026-09-20T16:34:59.8568419Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestMergeAliasesRejects/duplicate_key_id","Output":"=== RUN   TestMergeAliasesRejects/duplicate_key_id\n"}
+{"Time":"2026-09-20T16:34:59.857084245Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestMergeAliasesRejects/duplicate_key_id","Output":"--- PASS: TestMergeAliasesRejects/duplicate_key_id (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.857108321Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestMergeAliasesRejects/duplicate_key_id","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.857131837Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"TestMergeAliasesRejects","Output":"--- PASS: TestMergeAliasesRejects (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.857148742Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"TestMergeAliasesRejects","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.857186509Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"FuzzStrictJSONDoesNotPanic"}
+{"Time":"2026-09-20T16:34:59.857188262Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"FuzzStrictJSONDoesNotPanic","Output":"=== RUN   FuzzStrictJSONDoesNotPanic\n"}
+{"Time":"2026-09-20T16:34:59.857461714Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"FuzzStrictJSONDoesNotPanic/seed#0"}
+{"Time":"2026-09-20T16:34:59.857464017Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"FuzzStrictJSONDoesNotPanic/seed#0","Output":"=== RUN   FuzzStrictJSONDoesNotPanic/seed#0\n"}
+{"Time":"2026-09-20T16:34:59.857563557Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"FuzzStrictJSONDoesNotPanic/seed#0","Output":"--- PASS: FuzzStrictJSONDoesNotPanic/seed#0 (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.85756556Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"FuzzStrictJSONDoesNotPanic/seed#0","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.857577608Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"FuzzStrictJSONDoesNotPanic/seed#1"}
+{"Time":"2026-09-20T16:34:59.857579201Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"FuzzStrictJSONDoesNotPanic/seed#1","Output":"=== RUN   FuzzStrictJSONDoesNotPanic/seed#1\n"}
+{"Time":"2026-09-20T16:34:59.857633783Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"FuzzStrictJSONDoesNotPanic/seed#1","Output":"--- PASS: FuzzStrictJSONDoesNotPanic/seed#1 (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.857706723Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"FuzzStrictJSONDoesNotPanic/seed#1","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.857735386Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"FuzzStrictJSONDoesNotPanic/seed#2"}
+{"Time":"2026-09-20T16:34:59.857737048Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"FuzzStrictJSONDoesNotPanic/seed#2","Output":"=== RUN   FuzzStrictJSONDoesNotPanic/seed#2\n"}
+{"Time":"2026-09-20T16:34:59.857776067Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"FuzzStrictJSONDoesNotPanic/seed#2","Output":"--- PASS: FuzzStrictJSONDoesNotPanic/seed#2 (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.857823529Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"FuzzStrictJSONDoesNotPanic/seed#2","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.857825492Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"FuzzStrictJSONDoesNotPanic/seed#3"}
+{"Time":"2026-09-20T16:34:59.857826914Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"FuzzStrictJSONDoesNotPanic/seed#3","Output":"=== RUN   FuzzStrictJSONDoesNotPanic/seed#3\n"}
+{"Time":"2026-09-20T16:34:59.857861075Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"FuzzStrictJSONDoesNotPanic/seed#3","Output":"--- PASS: FuzzStrictJSONDoesNotPanic/seed#3 (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.857878582Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"FuzzStrictJSONDoesNotPanic/seed#3","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.857894425Z","Action":"run","Package":"bifrost-registry/internal/registry","Test":"FuzzStrictJSONDoesNotPanic/seed#4"}
+{"Time":"2026-09-20T16:34:59.857896048Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"FuzzStrictJSONDoesNotPanic/seed#4","Output":"=== RUN   FuzzStrictJSONDoesNotPanic/seed#4\n"}
+{"Time":"2026-09-20T16:34:59.857945943Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"FuzzStrictJSONDoesNotPanic/seed#4","Output":"--- PASS: FuzzStrictJSONDoesNotPanic/seed#4 (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.857948917Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"FuzzStrictJSONDoesNotPanic/seed#4","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.857973725Z","Action":"output","Package":"bifrost-registry/internal/registry","Test":"FuzzStrictJSONDoesNotPanic","Output":"--- PASS: FuzzStrictJSONDoesNotPanic (0.00s)\n"}
+{"Time":"2026-09-20T16:34:59.857993795Z","Action":"pass","Package":"bifrost-registry/internal/registry","Test":"FuzzStrictJSONDoesNotPanic","Elapsed":0}
+{"Time":"2026-09-20T16:34:59.858017431Z","Action":"output","Package":"bifrost-registry/internal/registry","Output":"PASS\n"}
+{"Time":"2026-09-20T16:34:59.860206088Z","Action":"output","Package":"bifrost-registry/internal/registry","Output":"coverage: 93.3% of statements\n"}
+{"Time":"2026-09-20T16:35:00.499918181Z","Action":"output","Package":"bifrost-registry/cmd/registry","Output":"ok  \tbifrost-registry/cmd/registry\t1.014s\tcoverage: 37.2% of statements\n"}
+{"Time":"2026-09-20T16:35:00.499962308Z","Action":"pass","Package":"bifrost-registry/cmd/registry","Elapsed":1.015}
+{"Time":"2026-09-20T16:35:00.646398275Z","Action":"output","Package":"bifrost-registry/internal/admin","Output":"ok  \tbifrost-registry/internal/admin\t1.067s\tcoverage: 95.0% of statements\n"}
+{"Time":"2026-09-20T16:35:00.646426237Z","Action":"pass","Package":"bifrost-registry/internal/admin","Elapsed":1.067}
+{"Time":"2026-09-20T16:35:00.867038022Z","Action":"output","Package":"bifrost-registry/internal/registry","Output":"ok  \tbifrost-registry/internal/registry\t1.183s\tcoverage: 93.3% of statements\n"}
+{"Time":"2026-09-20T16:35:00.867065694Z","Action":"pass","Package":"bifrost-registry/internal/registry","Elapsed":1.183}

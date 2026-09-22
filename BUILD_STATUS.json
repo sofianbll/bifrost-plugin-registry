@@ -1,0 +1,13 @@
+{
+  "version": "0.1.0",
+  "source_complete_for_documented_v0_1_scope": true,
+  "local_cli_built": true,
+  "local_test_cases": 156,
+  "coverage_percent": 87.8,
+  "native_plugin_compiled": false,
+  "native_plugin_loaded": false,
+  "bifrost_pipeline_verified": false,
+  "native_ui_injected": false,
+  "automatic_native_apply": false,
+  "production_ready": false
+}

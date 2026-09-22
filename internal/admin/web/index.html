@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bifrost · Model Registry</title>
+<link rel="stylesheet" href="/app.css"><script src="/app.js" defer></script>
+</head>
+<body>
+<section id="login" class="login-shell">
+<form id="login-form" class="login-card">
+<div class="brand-mark">B<span>↗</span></div><p class="eyebrow">BIFROST EXTENSION / 0.1</p>
+<h1>Votre catalogue.<br>Vos règles.</h1>
+<p class="muted">Modèles, groupes et visibilité par clé virtuelle. Sans remplacer le routage et la facturation natifs.</p>
+<label for="admin-token">Jeton d’administration local</label>
+<input id="admin-token" type="password" autocomplete="off" required minlength="32" placeholder="Le jeton affiché dans votre terminal">
+<button class="primary" type="submit">Ouvrir le registre <span>→</span></button>
+<p id="login-error" class="error" role="alert"></p>
+<p class="fine">Le jeton reste en mémoire dans cet onglet. Aucun stockage navigateur, aucune requête vers un fournisseur.</p>
+</form>
+</section>
+<div id="workspace" class="workspace" hidden>
+<aside class="sidebar">
+<a class="brand" href="#models"><span class="brand-small">B↗</span><div>Bifrost<span>MODEL REGISTRY</span></div></a>
+<div class="workspace-label"><span class="dot"></span> Contrôle local <small>v0.1</small></div>
+<p class="nav-label">CATALOGUE</p>
+<nav aria-label="Navigation principale">
+<button data-tab="models" class="active"><span>▦</span> Modèles <small id="nav-count">0</small></button>
+<button data-tab="groups"><span>◇</span> Groupes</button>
+<button data-tab="keys"><span>⚿</span> Clés virtuelles</button>
+<p class="nav-label">ADMINISTRATION</p>
+<button data-tab="deploy"><span>↗</span> Déploiement</button>
+<button data-tab="settings"><span>⚙</span> Réglages</button>
+</nav>
+<div class="sidebar-bottom"><div class="native-note"><span>●</span> Inference → Bifrost<p>Ce panneau ne relaie pas vos prompts.</p></div><button id="theme-toggle" class="quiet">◐ Changer le thème</button><button id="logout" class="quiet">Déconnexion</button></div>
+</aside>
+<main>
+<header class="topbar"><div class="breadcrumb">Workspace <span>/</span> Registry <span>/</span> <strong id="crumb">Modèles</strong></div><div class="top-actions"><span id="save-state" class="badge">Enregistré</span><button id="validate" class="secondary">Vérifier</button><button id="save" class="primary" disabled>Enregistrer</button></div></header>
+<div id="notice" class="notice" role="status" hidden></div>
+<div class="content">
+<section class="page-heading"><div><p class="eyebrow" id="kicker">MODEL REGISTRY</p><h1 id="page-title">Un catalogue, plusieurs sources.</h1><p class="muted" id="subtitle">Classez vos modèles. Décidez exactement ce que chaque clé peut voir.</p></div><button id="add" class="primary">+ Ajouter un modèle</button></section>
+<div id="page"></div>
+</div>
+<footer><span>Registry <code id="revision">—</code></span><span>Alias & permissions natives : application manuelle · Aucun test live exécuté par ce panneau</span></footer>
+</main>
+</div>
+<dialog id="editor"><form id="editor-form"><div class="dialog-head"><div><p class="eyebrow" id="editor-kicker">REGISTRY</p><h2 id="editor-title">Modifier</h2></div><button type="button" id="close-editor" class="icon-button" aria-label="Fermer">×</button></div><div id="editor-body"></div><p id="editor-error" class="error" role="alert"></p><div class="dialog-actions"><button type="button" id="cancel-editor" class="secondary">Annuler</button><button type="submit" class="primary">Ajouter au brouillon</button></div></form></dialog>
+<dialog id="output"><div class="dialog-head"><div><p class="eyebrow">APERÇU</p><h2 id="output-title"></h2></div><button id="close-output" class="icon-button" aria-label="Fermer">×</button></div><div id="output-body"></div></dialog>
+<input id="import-file" type="file" accept="application/json,.json" hidden>
+</body></html>
