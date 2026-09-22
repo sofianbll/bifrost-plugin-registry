@@ -6,7 +6,13 @@
   "coverage_percent": 87.8,
   "native_plugin_compiled": true,
   "native_plugin_loaded": true,
-  "bifrost_pipeline_verified": false,
+  "bifrost_pipeline_verified": true,
+  "pipeline_verification": {
+    "date": "2026-09-23",
+    "environment": "staging Pulsar, port 9210 (prod intacte, 9208)",
+    "evidence": "docs/INSTALL.md — plugin status active, panneau admin HTTP 200, garde pre_builtin 401 registry_virtual_key_required sur /v1/chat/completions",
+    "remaining": "tests garde/projection avec providers et VK réels (docs/ACCEPTANCE.md)"
+  },
   "native_ui_injected": false,
   "automatic_native_apply": false,
   "production_ready": false,
