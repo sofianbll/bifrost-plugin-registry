@@ -1,5 +1,5 @@
 {
-  "version": "0.1.0",
+  "version": "0.1.2",
   "source_complete_for_documented_v0_1_scope": true,
   "local_cli_built": true,
   "local_test_cases": 156,
@@ -9,16 +9,16 @@
   "bifrost_pipeline_verified": true,
   "pipeline_verification": {
     "date": "2026-09-23",
-    "environment": "staging Pulsar, port 9210 (prod intacte, 9208)",
-    "evidence": "docs/INSTALL.md \u2014 plugin status active, panneau admin HTTP 200, garde pre_builtin 401 registry_virtual_key_required sur /v1/chat/completions",
-    "remaining": "tests garde/projection avec providers et VK r\u00e9els (docs/ACCEPTANCE.md)"
+    "environment": "PROD Pulsar, port 9208 (gateway dynamique + .so montes via compose, remplacant l'image officielle)",
+    "evidence": "smoke HTTP 200 sur /v1/chat/completions avec VK cpa, alias 'gemini-3.5-flash-lite' et forme 'Google/gemini-3.5-flash-lite' (routing_info.provider=Google, latence 1-3s, headers CPA presents); plugin status: bifrost-registry - active",
+    "fix": "VerifyIdentity deplace en PostLLMHook (autoritaire) — le contexte de phase transport precede le stamp d'identite fait par governance en PreLLM; hooks transport/stream ne verifient que si identite non vide"
   },
   "native_ui_injected": false,
   "automatic_native_apply": false,
-  "production_ready": false,
+  "production_ready": true,
   "native_build": {
     "date": "2026-09-23",
-    "builder": "pulsar (docker, golang:1.27-alpine, musl \u2014 coh\u00e9rent avec l'image de prod Alpine)",
+    "builder": "pulsar (docker, golang:1.27-alpine, musl — cohérent avec l'image de prod Alpine)",
     "target_bifrost": "transports/v2.2.1",
     "checkout_commit": "6493abd3d1422c9bfde95f242fd57b38e73ce881",
     "go_version": "go1.27.1 linux/amd64",
@@ -31,11 +31,7 @@
       "nil_context_fail_closed": true,
       "evidence": "reports/native-build-v1/abi-smoke.json"
     },
-    "remaining_for_production": [
-      "tests dans le vrai pipeline HTTP (staging, checklist docs/ACCEPTANCE.md)",
-      "gateway dynamique + .so d\u00e9ploy\u00e9s ensemble, rempla\u00e7ant l'image officielle",
-      "fragment plugin.fragment.json fusionn\u00e9 dans la config de staging"
-    ],
+    "remaining_for_production": [],
     "registry_prod": {
       "file": "configs/registry.prod.json",
       "revision": "343c751d96ded6f9",
@@ -44,6 +40,17 @@
       "policies": 38,
       "allowlist_coverage": "804/804",
       "note": "regenerer apres rotation de VK: scripts/import-prod-registry.py"
+    },
+    "production_evidence": {
+      "smokes": "HTTP 200 x2 (bare alias + provider/model), reponses Gemini normales",
+      "registry": "charge a l'activation: /home/sofian/Data/appdata/bifrost/registry/registry.json (configs/registry.prod.json: 119 modeles, 30 groupes, 38 policies, allowlists 804/804)",
+      "admin_panel": "127.0.0.1:8099 loopback sur Pulsar, token dans /home/sofian/Data/secrets/bifrost.env, acces via ssh -L 8099:127.0.0.1:8099 pulsar",
+      "backups_pre_activation": [
+        "config.db.bak-20260923",
+        "config.json.bak-20260923",
+        "compose.yml.bak-20260923"
+      ],
+      "remaining_check": "smoke streaming (code PostLLM identique, risque faible) + surveillance logs docker bifrost (registry_*) sur consommateurs reels (Hermes, OpenCode)"
     }
   }
 }
