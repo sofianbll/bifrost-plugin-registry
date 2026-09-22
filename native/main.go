@@ -168,8 +168,14 @@ func HTTPTransportPostHook(ctx *schemas.BifrostContext, req *schemas.HTTPRequest
 		resp.Headers["Content-Type"] = "application/json"
 		resp.Headers["Cache-Control"] = "no-store"
 		resp.Headers["Vary"] = "Authorization, x-bf-vk"
-	} else if f := s.VerifyIdentity(identity(ctx)); f != nil {
-		*resp = *failureResponse(f)
+	} else if id := identity(ctx); id != "" {
+		// Governance stamps the virtual key identity during its PreLLM (LLM phase).
+		// The transport-phase context predates that stamp, so this check only fires
+		// when the identity is visible here; the authoritative enforcement is in
+		// PostLLMHook, which runs after governance stamped and the attempt resolved.
+		if f := s.VerifyIdentity(id); f != nil {
+			*resp = *failureResponse(f)
+		}
 	}
 	return nil
 }
@@ -180,8 +186,10 @@ func HTTPTransportStreamChunkHook(ctx *schemas.BifrostContext, req *schemas.HTTP
 		return chunk, nil
 	}
 	if s := session(ctx); s != nil {
-		if f := s.VerifyIdentity(identity(ctx)); f != nil {
-			return nil, f
+		if id := identity(ctx); id != "" {
+			if f := s.VerifyIdentity(id); f != nil {
+				return nil, f
+			}
 		}
 	}
 	// Preserve reasoning signatures, cache accounting, tool-call deltas and model names.
@@ -208,5 +216,17 @@ func PreLLMHook(ctx *schemas.BifrostContext, req *schemas.BifrostRequest) (*sche
 	return req, &schemas.LLMPluginShortCircuit{Error: err}, nil
 }
 func PostLLMHook(ctx *schemas.BifrostContext, resp *schemas.BifrostResponse, err *schemas.BifrostError) (*schemas.BifrostResponse, *schemas.BifrostError, error) {
+	// Authoritative identity enforcement: governance stamped the authenticated
+	// virtual key id in its PreLLM, so it is visible here. Reject on mismatch even
+	// though the provider call already happened (defense in depth; the token-hash
+	// binding makes a real mismatch virtually impossible).
+	if s := session(ctx); s != nil {
+		if f := s.VerifyIdentity(identity(ctx)); f != nil {
+			status := f.Status
+			typ := "registry_error"
+			fallbacks := false
+			return nil, &schemas.BifrostError{StatusCode: &status, Type: &typ, Error: &schemas.ErrorField{Message: f.Message}, AllowFallbacks: &fallbacks}, nil
+		}
+	}
 	return resp, err, nil
 }
