@@ -1,9 +1,12 @@
-import { copy, delta, exposed, filterModels, fixture, keyImpact, kindFor, members, modelImpact, toggleModel, emptyModelFilters } from "./demo";
+import { catalogModels, copy, delta, exposed, filterModels, fixture, keyImpact, kindFor, members, modelImpact, toggleModel, emptyModelFilters } from "./demo";
 
 const assert = (condition: boolean) => { if (!condition) throw Error("Demo state check failed"); };
 const deepEqual = (a: unknown, b: unknown) => assert(JSON.stringify(a) === JSON.stringify(b));
 
 const state = copy(fixture);
+const discovered = { ...state.models[0], name: "Discovery label", summary: "Unreviewed metadata" };
+deepEqual(catalogModels([state.models[0]], [discovered, state.models[1], state.models[1]]).map(m => m.id), [state.models[0].id, state.models[1].id]);
+assert(catalogModels([state.models[0]], [discovered]).find(m => m.id === discovered.id) === state.models[0]);
 assert(state.campaigns.every(c => state.models.find(m => m.id === c.model)?.accesses.some(a => a.provider === c.provider && a.id === c.accessId)));
 const hermes = state.keys[0];
 const witness = state.keys[1];

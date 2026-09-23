@@ -42,6 +42,10 @@ Le premier [`workspace-smoke.json`](workspace-smoke.json) échoue pendant le raf
 
 Ce contrôle cible les parcours modifiés. Il ne remplace pas la validation UX finale de Sofian sur tous les écrans.
 
+### Correction de visibilité du catalogue — #4
+
+La galerie affichait seulement les modèles enregistrés, laissant les 24 autres derrière « Add model ». Elle présente maintenant l'union dédupliquée des modèles découverts et enregistrés : **25 modèles visibles, 1 enregistré, 24 à configurer**. Les informations éditées de `gpt-6-luna` sont conservées. La recherche de `claude-sonnet-4-6` et son bouton **Review & add** ouvrent la fiche préremplie existante ; aucune configuration n'a été enregistrée pendant ce contrôle. Les états sont présents en cartes et tableau. À 320 px, les 25 cartes restent accessibles et la largeur du document est de 320 px. La taille normale et la vue cartes ont été rétablies. `npm run check`, `npm run build` et le test de fusion/déduplication passent. Seuls les fichiers frontend compilés ont été remplacés sur le pilote local.
+
 ## Limites conservées
 
 - Laboratoire visible comme **Planned** ; aucun harness actif.
