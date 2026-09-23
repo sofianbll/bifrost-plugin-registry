@@ -38,6 +38,15 @@ Cet état décrit le checkout local. La production Pulsar n'a pas été interrog
 - `npm run build` et `npm run check` passent pour cette itération ; 38 empreintes de sources/copies vérifiées contre `PROVENANCE.md`. Le build signale seulement un bundle JavaScript de 565 Ko, non découpé pour ce prototype. Validation utilisateur encore attendue.
 - Aucune modification de l’intégration Go, de la production, des secrets ou de permissions Bifrost. Les résultats du laboratoire restent des fixtures, jamais des preuves de capacité fournisseur.
 
+### Retouches — espacements, sélection et packs clients
+
+- Barres de recherche/actions, cartes de clés/groupes, tableaux et panneaux d’édition espacés depuis leur composition ; composants upstream inchangés. L’aperçu de clé reste à côté du composeur à 1280 px. Les cartes du sélecteur compact utilisent une seule colonne pour conserver leur lisibilité.
+- « Select all » sélectionne les résultats de la vue filtrée ; sa désélection conserve les choix masqués. Le même comportement existe pour les modèles (groupes, clés et laboratoire) et les tests. Compteurs distincts : sélection directe, sélection visible/masquée, puis modèles effectifs, accès, tests et cas du lot. Une vue vide désactive la sélection globale.
+- Quatre packs suggérés ajoutent leurs tests sans supprimer les choix individuels : Hermes Agent, Codex, Claude Code et OpenCode dans sa variante OpenAI compatible. Le catalogue compte désormais 13 scénarios, dont six fixtures Responses/Messages. Mocker et JSONParser sont présentés sous « Bifrost plugins », avec leur rôle explicite.
+- Contrôles navigateur : filtre OpenAI sur une clé (2/3 visibles + 1 masqué), sélection globale (4 au total), puis désélection visible (Sonnet conservé, deux modèles hérités exclus localement). Ajout du pack Codex conservant les tests Hermes, désélection des trois tests Responses filtrés conservant les trois autres, filtre vide désactivant l’action. Lot Codex + Claude Code : 2 modèles, 2 accès, 6 tests, 12 cas ; 6 succès simulés et 6 combinaisons sans correspondance de harness non exécutées. Azure et Bedrock exclus n’apparaissent pas dans le rapport.
+- À 320 px, les onglets du laboratoire passent à la ligne et le récapitulatif reste entièrement lisible. Les packs et les cartes ont été inspectés dans le navigateur. `npm run build` et `npm run check` passent ; seuls les avertissements de taille du bundle demeurent. Les tests couvrent la portée filtrée, les doublons, les packs additifs, les protocoles et les capacités inconnues qui doivent rester testables.
+- Aucun client réel ni harness exécuté : les packs sont des recettes proposées, pas une certification. Les [sources des protocoles clients](docs/design/bifrost-ui-patterns.md#suggested-client-test-packs) et les limites de preuve sont documentées.
+
 ## Base de reprise et prochaine étape
 
 - Point de départ de cette reprise : `main` à `503e775`, comprenant la maquette locale, devant la référence locale `origin/main` à `f05e029`. Le nettoyage et le cadrage sont regroupés sur `codex/prepare-ui-ux`. Consulter `git status` pour l'état courant ; aucun push n'a été effectué pendant cette préparation.

@@ -8,6 +8,7 @@ export type Suite = {
   criterion: string;
   endpoint: string;
   coveredProviders: string[];
+  coverageNote?: string;
 };
 
 // A small, explicit subset of cases in Bifrost's documented Postman/Newman harness.
@@ -20,7 +21,20 @@ export const suites: Suite[] = [
   { id: "json", name: "Structured output (json_schema)", use: "Agents", criterion: "Output parses and matches the requested schema.", endpoint: "/v1/chat/completions", coveredProviders: ["openai", "azure", "anthropic", "bedrock", "google", "gemini", "vertex"] },
   { id: "embedding", name: "Embeddings", use: "Retrieval", criterion: "A numeric embedding vector is returned.", endpoint: "/v1/embeddings", coveredProviders: ["openai", "azure", "bedrock", "google", "gemini", "vertex"] },
   { id: "image", name: "Image generation", use: "Multimodal", criterion: "Generated image content is returned.", endpoint: "/v1/images/generations", coveredProviders: ["openai", "azure", "bedrock", "google", "gemini", "vertex"] },
+  { id: "responses-chat", name: "Responses: basic answer", use: "Client protocols", criterion: "A Responses request returns a final text answer.", endpoint: "/v1/responses", coveredProviders: ["openai"] },
+  { id: "responses-stream", name: "Responses: streaming", use: "Client protocols", criterion: "Responses events stream and finish cleanly.", endpoint: "/v1/responses", coveredProviders: ["openai"] },
+  { id: "responses-tools", name: "Responses: tool call", use: "Client protocols", criterion: "Custom tool name and arguments are emitted.", endpoint: "/v1/responses", coveredProviders: ["openai"], coverageNote: "Harness covers tool-call shape; client dispatch and continuation need a real-client check." },
+  { id: "messages-chat", name: "Messages: basic answer", use: "Client protocols", criterion: "An Anthropic Messages request returns a text answer.", endpoint: "/anthropic/v1/messages", coveredProviders: ["anthropic"] },
+  { id: "messages-stream", name: "Messages: streaming", use: "Client protocols", criterion: "Message events stream and finish cleanly.", endpoint: "/anthropic/v1/messages", coveredProviders: ["anthropic"] },
+  { id: "messages-tools", name: "Messages: tool call", use: "Client protocols", criterion: "A tool_use name and input are emitted.", endpoint: "/anthropic/v1/messages", coveredProviders: ["anthropic"], coverageNote: "Harness covers tool_use shape; client dispatch and continuation need a real-client check." },
 ];
+
+export const packs = [
+  { id: "hermes", name: "Hermes Agent", description: "Custom OpenAI-compatible endpoint. Real Hermes connection and model discovery need separate checks.", suiteIds: ["chat", "stream", "tools"], sourceUrl: "https://github.com/NousResearch/hermes-agent/blob/main/website/docs/integrations/providers.md" },
+  { id: "codex", name: "Codex", description: "Responses API path. A real Codex client connection is not exercised here.", suiteIds: ["responses-chat", "responses-stream", "responses-tools"], sourceUrl: "https://developers.openai.com/codex/config-reference" },
+  { id: "claude", name: "Claude Code", description: "Anthropic Messages path. A real Claude Code connection is not exercised here.", suiteIds: ["messages-chat", "messages-stream", "messages-tools"], sourceUrl: "https://code.claude.com/docs/en/llm-gateway" },
+  { id: "opencode", name: "OpenCode", description: "OpenAI-compatible runtime only. Other OpenCode runtimes need their matching protocol checks.", suiteIds: ["chat", "stream", "tools"], sourceUrl: "https://opencode.ai/docs/providers" },
+] as const;
 
 const legacyScenarioIds: Record<string, string> = { "Chat completion": "chat", Streaming: "stream", "Tool round trip": "tools" };
 export const suiteForScenario = (name: string) => suites.find(suite => suite.name === name || suite.id === legacyScenarioIds[name]);
@@ -48,6 +62,8 @@ export function resolveTargets(models: Model[], groups: Group[], selection: LabS
 export function planCells(targets: Target[], chosenSuites: Suite[]): Cell[] {
   return targets.flatMap(target => chosenSuites.map(suite => {
     const model = target.model;
+    const probedCapability = suite.id === "stream" || suite.id.endsWith("-stream") ? "Streaming"
+      : suite.id === "tools" || suite.id.endsWith("-tools") ? "Tools" : "";
     const applicable = suite.id === "embedding" ? model.tasks.includes("Embeddings") && model.outputModalities.includes("Vector")
       : suite.id === "image" ? model.tasks.includes("Image generation") && model.outputModalities.includes("Image")
       : suite.id === "vision" ? model.inputModalities.includes("Image") && model.outputModalities.includes("Text")
@@ -55,6 +71,7 @@ export function planCells(targets: Target[], chosenSuites: Suite[]): Cell[] {
     const reason = !applicable ? "Not applicable to declared task or modality"
       : target.access.status !== "Configured" ? "Access configuration unconfirmed"
       : !suite.coveredProviders.includes(target.access.provider) ? "Provider harness mapping unknown; manual review needed"
+      : probedCapability && model.capabilities[probedCapability] === "Unknown" ? `Provider surface mapped; ${probedCapability.toLowerCase()} capability unknown, eligible to probe`
       : "Provider surface mapped in harness; this model/access unverified";
     return { target, suite, runnable: reason.startsWith("Provider surface"), reason };
   }));

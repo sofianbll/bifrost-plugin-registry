@@ -46,3 +46,16 @@ The source inventory is pinned to [Bifrost commit `6493abd`](https://github.com/
 ## Search interaction reference
 
 [Apple — Design intuitive search experiences, WWDC26](https://developer.apple.com/videos/play/wwdc2026/292/) recommends making the search scope clear through placement and wording, starting broadly before narrowing results, showing contextual filters, and keeping recognizable search/clear controls. Applied here as interaction guidance: a search field belongs beside the collection it filters, filters remain visible when active, and changing the visible results preserves a user's existing selection. The visual system remains Bifrost's.
+
+## Suggested client test packs
+
+Requested by Sofian after reviewing the laboratory. Packs select editable test recipes; they are not certifications or launches of the named clients.
+
+| Client / configured variant | Protocol to exercise | Primary reference |
+| --- | --- | --- |
+| Hermes Agent, custom endpoint | OpenAI Chat Completions: reply, streaming, emitted tool call | [NousResearch provider configuration](https://github.com/NousResearch/hermes-agent/blob/main/website/docs/integrations/providers.md) |
+| Codex | OpenAI Responses: reply, streaming, emitted tool call | [Codex configuration reference](https://developers.openai.com/codex/config-reference) |
+| Claude Code, gateway | Anthropic Messages: reply, streaming, emitted tool use | [Claude Code LLM gateway](https://code.claude.com/docs/en/llm-gateway) |
+| OpenCode, `@ai-sdk/openai-compatible` | OpenAI Chat Completions; other provider packages need their corresponding protocol | [OpenCode providers](https://opencode.ai/docs/providers/) |
+
+These minimal recipes are a product proposal informed by the documented protocols. A real acceptance run must additionally configure the isolated client, check model visibility with its virtual key, execute a tool and submit its result to verify continuation. Harness coverage of a gateway API alone cannot establish client compatibility or that full round trip. The prototype simulates scenario results; it neither executes Postman/Newman nor starts a client. Responses fixtures conservatively map to `openai` and Messages fixtures to `anthropic`; other provider/protocol combinations remain unmapped until checked. Exact Postman item IDs were not inspected, so the prototype does not claim to reproduce specific collection items.
