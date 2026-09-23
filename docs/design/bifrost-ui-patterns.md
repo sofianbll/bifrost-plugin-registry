@@ -47,9 +47,9 @@ The source inventory is pinned to [Bifrost commit `6493abd`](https://github.com/
 
 [Apple — Design intuitive search experiences, WWDC26](https://developer.apple.com/videos/play/wwdc2026/292/) recommends making the search scope clear through placement and wording, starting broadly before narrowing results, showing contextual filters, and keeping recognizable search/clear controls. Applied here as interaction guidance: a search field belongs beside the collection it filters, filters remain visible when active, and changing the visible results preserves a user's existing selection. The visual system remains Bifrost's.
 
-## Suggested client test packs
+## Suggested client test packs — removed from the prototype
 
-Requested by Sofian after reviewing the laboratory. Packs select editable test recipes; they are not certifications or launches of the named clients.
+Historical proposal, removed after Sofian clarified that the laboratory should centre on Bifrost's own test collection. These locally composed recipes were not imported upstream test packs or certifications. Their source references are retained here as research history.
 
 | Client / configured variant | Protocol to exercise | Primary reference |
 | --- | --- | --- |
@@ -59,3 +59,5 @@ Requested by Sofian after reviewing the laboratory. Packs select editable test r
 | OpenCode, `@ai-sdk/openai-compatible` | OpenAI Chat Completions; other provider packages need their corresponding protocol | [OpenCode providers](https://opencode.ai/docs/providers/) |
 
 These minimal recipes are a product proposal informed by the documented protocols. A real acceptance run must additionally configure the isolated client, check model visibility with its virtual key, execute a tool and submit its result to verify continuation. Harness coverage of a gateway API alone cannot establish client compatibility or that full round trip. The prototype simulates scenario results; it neither executes Postman/Newman nor starts a client. Responses fixtures conservatively map to `openai` and Messages fixtures to `anthropic`; other provider/protocol combinations remain unmapped until checked. Exact Postman item IDs were not inspected, so the prototype does not claim to reproduce specific collection items.
+
+The pinned upstream [Makefile](https://github.com/maximhq/bifrost/blob/6493abd3d1422c9bfde95f242fd57b38e73ce881/Makefile) also defines a separate real `run-cli-harness-test` for Claude Code, Codex and OpenCode, with CLI/provider/model/scenario filters. That suite is distinct from the removed local recipes. Integrating either official runner remains future work; the current All tests / Custom selection controls apply only to the 13 illustrative prototype scenarios. The API runner exposes provider, folder and feature filters. The full collection's exact item identities and count have not been verified in this sparse checkout and should not be inferred from the prototype count or the documentation's older summary.

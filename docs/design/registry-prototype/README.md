@@ -1,6 +1,6 @@
 # Bifrost Registry — interactive design prototype
 
-The laboratory offers 13 selectable scenarios and suggested Hermes Agent, Codex, Claude Code and OpenCode packs. Pack selection adds tests; selecting/deselecting all affects only the current filtered results and preserves hidden choices. Direct model picks are counted separately from effective provider/group/creator scopes. Responses and Anthropic Messages cases are protocol fixtures; they do not run the named clients. Sources and acceptance limits are in [the UI references](../bifrost-ui-patterns.md#suggested-client-test-packs).
+The laboratory separates run preparation from report history. Preparation shows one step at a time: tests, models/accesses, then review. All tests selects the 13 illustrative scenarios in this prototype; Custom selection exposes the searchable grid/table and preserves a custom subset when switching modes. These scenarios are not an import of the full official Bifrost collection, and results remain simulated. The former suggested client packs have been removed. Bulk selection affects only filtered results and preserves hidden choices; provider/group/creator scopes, access exclusions, case details, run controls and plugin notes remain available on demand. Sources and acceptance limits are in [the UI references](../bifrost-ui-patterns.md#harness-and-plugin-boundaries).
 
 From this directory, run `npm ci` then `npm run dev -- --port 4173 --strictPort`. Open http://127.0.0.1:4173/. Run `npm run build` and `npm run check` to verify compilation and demo state logic.
 

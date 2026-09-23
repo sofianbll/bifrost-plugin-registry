@@ -1,5 +1,5 @@
 import { fixture, type Model } from "./demo";
-import { emptySelection, limitCells, packs, planCells, resolveTargets, suiteForScenario, suites, updateViewOverride } from "./lab";
+import { emptySelection, limitCells, planCells, resolveTargets, selectedSuiteIds, suiteForScenario, suites, updateViewOverride } from "./lab";
 import { defaultViewOptions } from "./ViewOptions";
 import { selectionCounts, setVisibleSelection } from "./selection";
 
@@ -37,9 +37,10 @@ assert.equal(counts.hiddenSelected, 1);
 assert.equal(setVisibleSelection(["a", "b"], ["a", "c"], true).join(), "a,b,c", "select visible must keep hidden choices");
 assert.equal(setVisibleSelection(["a", "b"], ["a", "c"], false).join(), "b", "deselect visible must keep hidden choices");
 assert.equal(setVisibleSelection(["a"], [], false).join(), "a", "empty visible scope is a no-op");
-assert(packs.every(pack => pack.suiteIds.every(id => suites.some(suite => suite.id === id))), "every pack test must exist in the catalog");
-const codex = packs.find(pack => pack.id === "codex")!;
-assert.equal(setVisibleSelection(["embedding"], [...codex.suiteIds], true).length, 4, "applying a pack must keep manual tests");
+const customSuiteIds = setVisibleSelection(suites.map(suite => suite.id), ["chat", "stream"], false);
+assert.equal(selectedSuiteIds("custom", customSuiteIds).length, suites.length - 2, "custom selection keeps its subset");
+assert.equal(selectedSuiteIds("all", customSuiteIds).length, suites.length, "all mode selects every suite");
+assert.equal(selectedSuiteIds("custom", customSuiteIds).join(), customSuiteIds.join(), "switching back restores custom subset");
 const protocolCells = planCells(resolveTargets(models, [], { ...emptySelection(), modelIds: ["gpt-5", "claude-sonnet-4"] }), suites.filter(suite => ["responses-chat", "messages-chat"].includes(suite.id)));
 assert(protocolCells.some(cell => cell.target.access.provider === "openai" && cell.suite.id === "responses-chat" && cell.runnable));
 assert(protocolCells.some(cell => cell.target.access.provider === "anthropic" && cell.suite.id === "messages-chat" && cell.runnable));

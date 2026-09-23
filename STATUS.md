@@ -49,6 +49,12 @@ Cet état décrit le checkout local. La production Pulsar n'a pas été interrog
 
 - Correctif du logo dans le menu replié : icône compacte avec contraste sombre, bouton de réouverture accessible, logo complet conservé dans le menu ouvert et mobile. Vérification navigateur des états replié/ouvert en clair et sombre à 1280 px, et du menu mobile à 390 px ; build et contrôles du prototype réussis.
 
+### Dernière clarification UX — laboratoire centré sur Bifrost
+
+- Packs clients locaux supprimés. Préparation en trois étapes (tests, modèles/accès, vérification) et historique séparé ; mode Tous/Personnaliser conservant le sous-ensemble personnalisé. Les 13 scénarios restent illustratifs et la collection officielle complète n'est pas importée. Les correspondances fournisseurs sont explicitement présentées comme illustratives.
+- Grille responsive du sélecteur de modèles, raccourcis de sélection et exclusions accessibles avant la grille, options et matrice du lot repliées. Retour en haut lors des changements d'étape. Pied des cartes de rapports corrigé : source à gauche, bouton à droite, espacement et retour à la ligne.
+- Vérifications navigateur : 1 test masqué + 3 tests streaming filtrés conservés en passant de Personnaliser à Tous puis retour (4/13) ; GPT-5 choisi avec Azure exclu, rapport simulé limité à `openai/gpt-5`, puis historique augmenté. Vue mobile à 320 px inspectée en sombre, résumé et compteurs sans débordement. Build et contrôles de logique réussis ; seul l'avertissement existant sur la taille du bundle reste. Aucune exécution réelle de harness ni appel fournisseur.
+
 ## Base de reprise et prochaine étape
 
 - Point de départ de cette reprise : `main` à `503e775`, comprenant la maquette locale, devant la référence locale `origin/main` à `f05e029`. Le nettoyage et le cadrage sont regroupés sur `codex/prepare-ui-ux`. Consulter `git status` pour l'état courant ; aucun push n'a été effectué pendant cette préparation.
