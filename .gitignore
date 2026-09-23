@@ -9,3 +9,6 @@ registry.local.json
 /registry
 /reports/native-build-v1/bifrost-http
 /reports/native-build-v1/native-probe
+
+/docs/design/registry-prototype/node_modules/
+/docs/design/registry-prototype/dist/

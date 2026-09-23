@@ -12,9 +12,9 @@ Catalogue de modèles et groupes réutilisables pour les clés virtuelles Bifros
 | Les capacités actuelles du moteur et du panneau | [Inventaire du code](docs/design/capabilities-inventory.md) |
 | Les API et outils Bifrost à réutiliser | [Recherche d'intégration](docs/design/bifrost-integration-research.md) |
 
-**Prochaine étape : valider l'UI/UX avec Sofian sur un prototype cliquable du parcours Hermes**, puis fixer la spec, les versions et les tickets GitHub. La [maquette existante](docs/design/mockup/index.html) utilise des données fictives ; l'interface actuellement servie se trouve dans `internal/admin/web/`.
+**Prochaine étape : valider l'UI/UX de l'application complète avec Sofian**, puis fixer la spec, les versions et les tickets GitHub. L'interface actuellement servie par le plugin se trouve dans `internal/admin/web/`.
 
-Le [prototype interactif Hermes](docs/design/mockup/hermes-prototype.html) est prêt pour les retours : groupes, ajouts/exclusions, formats et publication simulée. [Ouverture et parcours guidés](docs/design/mockup/README.md).
+Le [prototype React Bifrost](docs/design/registry-prototype/README.md) réutilise les composants upstream pour le dashboard modèles, les groupes, les clés et la qualification. Ses données et appels API sont simulés. Les [anciennes maquettes](docs/design/mockup/README.md) restent consultables comme historique ; la démo Hermes à une page a été rejetée.
 
 Le build natif et des essais sur Pulsar sont consignés dans [BUILD_STATUS.json](BUILD_STATUS.json) et [les rapports de build](reports/native-build-v1/). Ces preuves historiques ne constituent pas une vérification actuelle de la production.
 

@@ -7,8 +7,9 @@ Cet état décrit le checkout local. La production Pulsar n'a pas été interrog
 | Moteur et garde | Implémentés en Go : modèles, groupes, politiques de clés virtuelles, filtrage de `/v1/models` et contrôle des requêtes. Voir `internal/registry/` et `native/main.go`. |
 | Panneau implémenté | UI française servie sur `/model-registry` par `internal/admin/`, avec API de configuration, validation, aperçu et plan. Le plugin peut l'héberger sur son port admin local. |
 | Build natif | Les artefacts et la sonde ABI pour Bifrost `transports/v2.2.1` sont consignés dans `reports/native-build-v1/`. `BUILD_STATUS.json` déclare un chargement et des essais sur Pulsar ; ils ne sont pas revérifiés ici. |
-| Nouvelle UI | `docs/design/mockup/` contient cinq écrans anglais avec des données fictives. Cette maquette n'appelle pas l'API et n'est pas l'UI servie par le plugin. |
-| Prototype Hermes | `docs/design/mockup/hermes-prototype.html` explore en français la sélection, l'héritage et la publication simulée, avec trois parcours guidés. Le contrôle du modèle de sélection passe ; rendu navigateur et validation utilisateur restent à faire. Source isolée sur `codex/prototype-hermes`. |
+| Maquette historique | `docs/design/mockup/` contient cinq écrans anglais avec des données fictives. Cette maquette n'appelle pas l'API et n'est pas l'UI servie par le plugin. |
+| Prototype Hermes historique | `docs/design/mockup/hermes-prototype.html` a été rejeté par Sofian : démo de logique incomplète, rendu trop éloigné de l'application finale. Conservé comme historique. |
+| Prototype React Bifrost | `docs/design/registry-prototype/` utilise les composants UI et ressources upstream à `6493abd3d1422c9bfde95f242fd57b38e73ce881`, avec un shell adapté et un état de démonstration local. Source sur `codex/prototype-bifrost-native`. Validation utilisateur encore attendue. |
 | Intégration à Bifrost | Le gateway personnalisé, le proxy `/bifrost-registry/` et l'adaptation des chemins de l'UI ne sont pas implémentés. Le panneau actuel utilise `/app.js`, `/app.css` et `/api/*` à la racine. |
 | Journal des refus | L'API `/api/events`, les compteurs et le journal de garde n'existent pas. L'écran Denials est seulement maquetté. |
 
@@ -17,11 +18,18 @@ Cet état décrit le checkout local. La production Pulsar n'a pas été interrog
 - Les tests Go du moteur, du CLI et de l'admin passent ici avec `GOCACHE` dans `/private/tmp` et `TestRealHTTPServer` exclu. Ce test ne peut pas ouvrir `[::1]:0` dans le sandbox ; la suite complète n'est donc pas validée dans cet environnement.
 - `reports/local-tests-summary.json` annonce 156 tests et 87,8 % de couverture pour une campagne antérieure aux derniers changements de passthrough. Ces chiffres ne qualifient pas `HEAD`.
 - `README.md` et `docs/BUILD.md` orientent vers les preuves disponibles. `reports/VALIDATION.md`, `docs/SOURCES.md` et `reports/initial-source-SHA256SUMS` conservent explicitement l'état initial. `BUILD_STATUS.json` mélange 129 modèles/32 groupes et une ancienne mention de 119 modèles/30 groupes : la version chargée actuellement en production reste à vérifier.
-- L'ouverture de la maquette locale dans le navigateur intégré a été bloquée par sa politique d'URL. Son état est établi par lecture du code, sans nouvelle validation visuelle dans cet audit.
+- L'ouverture de l'ancienne maquette en `file://` a été bloquée par la politique d'URL. Le nouveau prototype React a été vérifié séparément dans le navigateur intégré sur `http://127.0.0.1:4173/`.
+
+### Prototype React — vérifications du 23 septembre
+
+- `npm run build` et `npm run check` passent depuis `docs/design/registry-prototype/`. Le contrôle de logique couvre notamment les exclusions locales, l'héritage des groupes, les formats de noms et les réponses simulées. Les 31 empreintes des fichiers vendus correspondent à `PROVENANCE.md`.
+- Parcours vérifiés dans le navigateur : création de modèle et de clé, ajout individuel/exclusion dans Hermes, format `both`, propagation d'un groupe vers Hermes et la clé témoin, aperçu distinct de la réponse publiée, échec de relecture conservant l'ancienne réponse avec état non vérifié.
+- Vérification finale : visite en six étapes (retour, fin et fermeture avec Échap), validation persistante des champs modèle, campagne simulée et rapport conservant un identifiant d'accès personnalisé. Galerie et visite contrôlées à 320 px sans débordement horizontal, en thème clair et sombre ; dimensions de navigateur remises à leur valeur normale ensuite.
+- L'état reste en mémoire et se réinitialise au rechargement. Création de clés, publication, relecture et qualification restent simulées : aucun secret utilisable ni appel Bifrost/fournisseur. La validation UX par Sofian et les preuves d'intégration réelle restent à faire.
 
 ## Base de reprise et prochaine étape
 
 - Point de départ de cette reprise : `main` à `503e775`, comprenant la maquette locale, devant la référence locale `origin/main` à `f05e029`. Le nettoyage et le cadrage sont regroupés sur `codex/prepare-ui-ux`. Consulter `git status` pour l'état courant ; aucun push n'a été effectué pendant cette préparation.
 - Les binaires restent locaux et ignorés par Git, dont `reports/native-build-v1/bifrost-http` (143 Mo). Les rapports et empreintes de build restent suivis. Le code, les configurations et l'ancienne maquette sont conservés.
 - La configuration des skills Matt Pocock est dans `AGENTS.md` et `docs/agents/`. GitHub Issues est accessible et les cinq labels choisis sont présents. Aucun ticket d'implémentation n'a été créé pendant cette préparation.
-- Prochaine étape confirmée : prototype UI/UX du parcours Hermes, puis retours de Sofian avant la spec et les tickets. Voir le [cadrage produit](docs/design/product-direction.md) pour les besoins, versions proposées et décisions ouvertes.
+- Prochaine étape confirmée : valider le prototype UI/UX complet, avec composants natifs Bifrost et visite contextuelle, avant la spec et les tickets. Hermes reste le premier client réel de validation. Voir le [cadrage produit](docs/design/product-direction.md).

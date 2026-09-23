@@ -22,6 +22,8 @@ Depuis une galerie lisible, composer visuellement ce qu'une clé virtuelle peut 
 - Définir ensemble versions, critères d'acceptation et dépendances avant l'exécution autonome des tickets validés.
 - Hermes est le premier client réel de validation, avec une configuration et un espace de travail dédiés aux essais. OpenCode, Codex et Claude ne sont pas nécessaires pour valider ce premier parcours.
 - Valider d'abord l'UI et l'UX en manipulant une maquette cliquable, avant de figer la spec, les versions et les tickets d'implémentation. Avancer par parcours courts et retours concrets, adaptés au besoin exprimé par Sofian de voir l'expérience pour la juger.
+- Le prototype doit représenter l'application complète et utiliser les composants réels de Bifrost, avec leur provenance vérifiable. L'ancien mockup reste un repère visuel ; une démo de logique avec du CSS approchant n'est pas une réponse acceptée.
+- Présenter les modèles dans un dashboard avec galerie et fiches. L'aide prend la forme d'une visite contextuelle courte, facultative et relançable, intégrée aux vrais contrôles de l'interface.
 
 ## Écarts déjà établis dans le code
 
@@ -89,8 +91,8 @@ Une preuve de capacité doit identifier le modèle, l'accès fournisseur, l'endp
 
 Recherche ciblée des primitives existantes → prototype UI/UX → retours et validation de l'expérience par Sofian → décisions techniques restantes → spec et versions → tickets complets avec dépendances et critères d'acceptation → exécution dans le périmètre approuvé.
 
-Premier prototype proposé : « Composer le catalogue de ma clé Hermes ». Repartir de la maquette existante et rendre manipulable la sélection de groupes, les cartes modèles, l'ajout individuel, l'exclusion locale et le format des noms. Montrer immédiatement le résultat prévu et sa différence avec un catalogue publié simulé ; toute donnée simulée est explicitement identifiée. Les détails techniques et le JSON restent accessibles à la demande.
+Prototype disponible pour les retours de Sofian dans [`registry-prototype/`](registry-prototype/README.md) : dashboard/galerie des modèles, fiches, groupes partagés, création et gestion des clés, aperçu/publication et espace de qualification. Il utilise les primitives React, styles, polices et ressources du Bifrost de référence ; les adaptations du shell nécessaires au fonctionnement autonome sont documentées. La simulation porte sur les données et les API. Le rendu proposé reste à valider avec Sofian.
 
-La validation se fait une interaction à la fois : comprendre ce que voit Hermes ; distinguer un changement local d'un changement de groupe partagé ; comprendre l'aperçu puis la publication. Explorer ensuite la création de clé, les fiches détaillées et les états d'échec. Le prototype valide la compréhension et l'usage ; la preuve d'intégration via les API Bifrost reste nécessaire dans les tickets. Les choix de présentation se décident en manipulant la maquette, sans nouveau questionnaire technique préalable.
+La démo `mockup/hermes-prototype.html` a été rejetée : périmètre réduit à une page de logique, composants maison et parcours pédagogiques permanents ne permettaient pas de valider le visuel final. La nouvelle visite guidée doit accompagner les contrôles avec progression, retour, passage et relance. Les pages restent utilisables librement. Le prototype valide la compréhension et l'usage ; la preuve d'intégration via les API Bifrost reste nécessaire dans les tickets. La présence d'une page Qualification dans le prototype ne tranche pas son périmètre de version.
 
 Chaque ticket doit livrer un comportement observable et préciser sa preuve. Les détails techniques ordinaires sont résolus par l'agent ; les arbitrages produit, changements de périmètre et contraintes de coût encore ouverts reviennent à Sofian. Les tickets GitHub ne sont pas encore publiés et aucun ne doit être marqué prêt à implémenter tant que ses décisions bloquantes restent ouvertes.

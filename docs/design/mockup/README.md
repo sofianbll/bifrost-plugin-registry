@@ -1,4 +1,6 @@
-# Prototype Hermes — à valider
+# Maquettes historiques
+
+La démo Hermes ci-dessous a été rejetée par Sofian. Elle conserve la logique explorée, mais ne sert plus de référence UI. La nouvelle direction est une application complète utilisant les vrais composants Bifrost ; voir [le cadrage produit](../product-direction.md).
 
 Ouvrir **[hermes-prototype.html](hermes-prototype.html)** dans un navigateur, par double-clic. Un seul fichier autonome ; aucune installation, connexion ou donnée réelle. L'état reste en mémoire et repart de zéro au rechargement.
 

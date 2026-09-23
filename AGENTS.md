@@ -4,6 +4,8 @@
 
 Before planning changes, read `STATUS.md` for the audited implementation state. For UI/UX and product scope, read `docs/design/product-direction.md`; the next step is a prototype reviewed by Sofian before final specs and implementation tickets.
 
+For this project, delegate bounded implementation to GPT-6 Sol and focused audits to GPT-6 Luna, as requested by Sofian. Keep the coordinating agent focused on decisions and integration; avoid Astra subagents for this work.
+
 ## Agent skills
 
 ### Issue tracker
