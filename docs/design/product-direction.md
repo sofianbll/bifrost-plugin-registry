@@ -65,6 +65,27 @@ Exemple : deux clés de test, « Hermes » et « Témoin », héritent du groupe
 
 L'interface explique pour chaque entrée sa provenance, son exclusion ou la restriction qui l'empêche d'être publiée. Avant de publier un changement de groupe, elle montre les clés et les catalogues impactés.
 
+## Décision validée — publication vérifiable
+
+Sofian a validé ce parcours le 23 septembre 2026, en référence à la conversation « Vérifier la publication ». Cette validation porte sur le comportement ci-dessous ; l'intégration réelle reste à réaliser.
+
+1. Calculer l'aperçu du brouillon, puis sauvegarder la configuration lors de **Publish**.
+2. Relire réellement **`GET /v1/models` avec la clé concernée**, par le chemin utilisé par un client.
+3. Comparer les IDs exacts reçus aux IDs attendus pour la révision publiée, sans tenir compte de leur ordre. La V1 compare les IDs ; les comparaisons approfondies de métadonnées sont reportées.
+
+| Résultat | État affiché |
+| --- | --- |
+| Sauvegarde réussie, relecture valide et IDs identiques | **Published · Verified** |
+| Sauvegarde réussie, relecture valide et IDs différents | **Published · Drift detected**, avec modèles manquants et inattendus |
+| Sauvegarde réussie, relecture impossible ou réponse inexploitable | **Published · Not verified**, avec motif et possibilité de réessayer |
+| Sauvegarde échouée, partielle ou conflit de révision | Publication non confirmée ; erreur explicite, brouillon conservé |
+
+Pendant l'opération, afficher la progression de publication puis de vérification. L'aperçu évolutif du brouillon reste distinct de la dernière relecture réelle, identifiée par clé, révision et date. Modifier à nouveau le brouillon ne rend pas celui-ci vérifié ; une nouvelle publication ou un changement de groupe impactant la clé rend l'ancienne preuve périmée. En cas d'échec de relecture, conserver la dernière réponse en la présentant comme ancienne, jamais comme une vérification actuelle.
+
+Une exclusion locale d'un modèle hérité reste un cas normal, conformément aux règles ci-dessus. Les collisions de noms non résolues et références invalides doivent être signalées avant publication. Un écart de catalogue ne suffit pas à identifier sa cause. **Verified** atteste le catalogue observé pour cette clé à cet instant ; les appels d'inférence, le routage et les capacités nécessitent leurs propres essais Hermes.
+
+Le mécanisme d'accès au secret pour la relecture reste à préciser avant l'implémentation. Le laboratoire reste différé.
+
 ## Premier parcours réel : Hermes
 
 Choix confirmé par Sofian. Prévoir un profil/configuration, un espace de travail, des sessions et des clés de test dédiés ; la procédure d'isolation et de découverte des modèles sera vérifiée sur la version Hermes retenue avant exécution. Le choix du client ne fixe pas encore l'environnement Bifrost cible ni le budget d'inférence.
@@ -101,7 +122,7 @@ Une preuve de capacité doit identifier le modèle, l'accès fournisseur, l'endp
 
 1. **Administration native** : création et gestion via API confirmées. Préciser les opérations et champs du premier parcours (rotation, révocation, budgets, limites et routage), la réconciliation des modifications faites dans l'UI Bifrost et le comportement si une sauvegarde native réussit mais celle du registre échoue.
 2. **Identité et routage** : comment relier les accès d'un même modèle sans confondre des variantes ? Quand un client exige une capacité, comment éviter une cible qui ne la prend pas en charge ?
-3. **Aperçu réel** : comment interroger Bifrost pour la clé sans conserver inutilement son secret ? Le registre conserve aujourd'hui une empreinte, pas le jeton. Comment signaler une estimation périmée ou une relecture impossible ?
+3. **Accès à la relecture réelle** : le parcours et ses états sont validés ci-dessus. Reste à préciser comment interroger Bifrost pour la clé sans conserver inutilement son secret ; le registre conserve aujourd'hui une empreinte, pas le jeton.
 4. **Fiches complètes** : quelles sources et quels champs selon texte, image, audio, embeddings ou vidéo ? Quelles valeurs sont déclarées, testées, inconnues ou devenues anciennes ?
 5. **Qualification** : quels premiers scénarios, quels fournisseurs, quels coûts maximaux, et quelles preuves permettent d'attribuer un échec à Bifrost ? Les mocks valident un comportement simulé, pas un accès fournisseur réel.
 6. **Compatibilité** : API Bifrost utilisables, versions soutenues, dépendance du plugin Go, migrations, retour arrière et détection des écarts avant mise à niveau.
