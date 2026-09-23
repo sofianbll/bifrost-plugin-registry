@@ -41,7 +41,7 @@ Source: [Maxim AI Bifrost](https://github.com/maximhq/bifrost) commit [`6493abd3
 | `src/hooks/use-mobile.ts` | `hooks/use-mobile.ts` | `172c7a3a1c68e449c6047b7cb8a0880a30a9e213fab904ea7314e2a55f59de14` | `172c7a3a1c68e449c6047b7cb8a0880a30a9e213fab904ea7314e2a55f59de14` |
 | `src/hooks/useCopyToClipboard.ts` | `hooks/useCopyToClipboard.ts` | `9c1ea441db2052bd65102856861d1e6e7f550bc038cab3f9f9c564544b644ef0` | `9c1ea441db2052bd65102856861d1e6e7f550bc038cab3f9f9c564544b644ef0` |
 | `src/lib/utils.ts` | `lib/utils.ts` | `c5c64a3c0b7ec92ba32f513a7e64e563f11358a64009104205219010f8ec9354` | `c5c64a3c0b7ec92ba32f513a7e64e563f11358a64009104205219010f8ec9354` |
-| `src/globals.css` | `app/globals.css` | `0a49548c5ce68905f88c9c7783eb8791ee86b4a71c124ca4670b4b9bdd2b0d8a` | `5b026925423bbfe1a3566903ea5aca0c521283bddea126b807aebcda1d495dfc` |
+| `src/globals.css` | `app/globals.css` | `0a49548c5ce68905f88c9c7783eb8791ee86b4a71c124ca4670b4b9bdd2b0d8a` | `6aa1875f2d0cb7b50504a83407ff7b97a9ceb60baafe6a9a8b148e67b8b86dbb` |
 | `public/bifrost-icon.webp` | `public/bifrost-icon.webp` | `4324fa7cc3c9a16d5255faae1fb15980aad8b213b5fdd1c67679db2b25228667` | `4324fa7cc3c9a16d5255faae1fb15980aad8b213b5fdd1c67679db2b25228667` |
 | `public/bifrost-logo-dark.webp` | `public/bifrost-logo-dark.webp` | `5f4a2e1562a46baebde57f07ccc4335c3cd966065958e22cffdb3da16b2f2117` | `5f4a2e1562a46baebde57f07ccc4335c3cd966065958e22cffdb3da16b2f2117` |
 | `public/bifrost-logo.webp` | `public/bifrost-logo.webp` | `a81788b15ebb9fca1ca7680162f4c480178779594049c3ef36567df3c610eb33` | `a81788b15ebb9fca1ca7680162f4c480178779594049c3ef36567df3c610eb33` |
@@ -51,10 +51,12 @@ Source: [Maxim AI Bifrost](https://github.com/maximhq/bifrost) commit [`6493abd3
 | `public/static/fonts/GeistMono-Variable.woff2` | `public/static/fonts/GeistMono-Variable.woff2` | `f2be56afe817546285c593cedf06110ef6240d5687257ca864315784b9b359ee` | `f2be56afe817546285c593cedf06110ef6240d5687257ca864315784b9b359ee` |
 | `public/static/fonts/OFL.txt` | `public/static/fonts/OFL.txt` | `1781d2806a07d91c4edf4740b88449fab7d0eadad53f7c351b94cd4d4eb8c00f` | `1781d2806a07d91c4edf4740b88449fab7d0eadad53f7c351b94cd4d4eb8c00f` |
 
-`src/globals.css`: only the Tailwind `@source` paths were replaced to scan this standalone `src/` folder instead of the upstream app and enterprise folders. `src/components/ui/textarea.tsx`: only the unused `AutoSizeTextarea` export and its `react-textarea-autosize` import were removed; the upstream `Textarea` component is byte-for-byte unchanged within that file.
+`src/globals.css`: Tailwind `@source` paths scan this standalone `src/` folder instead of the upstream app and enterprise folders; relative font URLs respect the mounted `/bifrost-registry/` base path. `src/components/ui/textarea.tsx`: only the unused `AutoSizeTextarea` export and its `react-textarea-autosize` import were removed; the upstream `Textarea` component is byte-for-byte unchanged within that file.
 
 `src/lib/constants/icons.tsx` retains the upstream `ProviderIcons` SVG definitions unchanged and removes only the unused routing-engine icon section and `RenderProviderIcon` wrapper. The wrapper depended on `next-themes`; this prototype supplies the current theme with CSS light/dark branches in `src/BrandIcon.tsx`. The four upstream image assets referenced by the retained icon definitions are included above. The Google organization logo comes from upstream SCIM art; Moonshot AI has no matching upstream mark and uses text initials.
 
 The standalone shell composes the original `components/ui/sidebar.tsx` primitive, original buttons/cards/dialogs/sheets/tables, upstream `globals.css`, logos, and Geist fonts. The upstream application `clientLayout.tsx`, `components/sidebar.tsx`, and `components/topbar.tsx` depend on Redux, TanStack Router, RBAC, gateway configuration, and WebSocket state; they were not imported. `src/App.tsx` composes the same shell structure with local hash navigation, fixtures, and a local theme button. The model card combines original `Card`, `Badge`, and `Button` primitives because upstream does not have an individual model card component.
 
 Bifrost source files and assets are under `LICENSE` (Apache 2.0). Geist fonts have the separate license at `public/static/fonts/OFL.txt` (SIL OFL).
+
+The live mount changes font URLs in `globals.css` to Vite-resolved relative assets so they work below `/bifrost-registry/`; upstream colors, component primitives and typography tokens are unchanged.

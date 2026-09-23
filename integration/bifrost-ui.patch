@@ -1,0 +1,310 @@
+diff --git a/transports/bifrost-http/server/server.go b/transports/bifrost-http/server/server.go
+index a8cb585..76d92fa 100644
+--- a/transports/bifrost-http/server/server.go
++++ b/transports/bifrost-http/server/server.go
+@@ -2474,6 +2474,7 @@ func (s *BifrostHTTPServer) RegisterAPIRoutes(ctx context.Context, callbacks Ser
+ 	mcpPerUserHeadersHandler.RegisterRoutes(s.Router, middlewares...)
+ 	mcpSessionsHandler.RegisterRoutes(s.Router, middlewares...)
+ 	configHandler.RegisterRoutes(s.Router, middlewares...)
++	s.mountRegistryUI(middlewares...)
+ 	oauthHandler.RegisterRoutes(s.Router, middlewares...)
+ 	if pluginsHandler != nil {
+ 		pluginsHandler.RegisterRoutes(s.Router, middlewares...)
+diff --git a/ui/components/sidebar.tsx b/ui/components/sidebar.tsx
+index 663008d..84f3809 100644
+--- a/ui/components/sidebar.tsx
++++ b/ui/components/sidebar.tsx
+@@ -12,6 +12,7 @@ import {
+ 	ChevronsLeftRightEllipsis,
+ 	CircuitBoard,
+ 	Construction,
++	Database,
+ 	DatabaseZap,
+ 	Flag,
+ 	FolderGit,
+@@ -391,6 +392,14 @@ const SidebarItemView = ({
+ 										>
+ 											{inner}
+ 										</div>
++									) : subItem.isExternal ? (
++										<a
++											href={subItem.url}
++											data-testid={`sidebar-subitem-link-${subSlug}`}
++											className={`flex h-7 items-center rounded-sm px-2 ${isSubItemActive ? "bg-sidebar-accent" : "hover:bg-sidebar-accent"}`}
++										>
++											{inner}
++										</a>
+ 									) : (
+ 										<Link
+ 											to={href}
+@@ -450,6 +459,16 @@ const SidebarItemView = ({
+ 									>
+ 										{subInner}
+ 									</SidebarMenuSubButton>
++								) : subItem.isExternal ? (
++									<SidebarMenuSubButton asChild className={subItemClassName}>
++										<a
++											href={subItem.url}
++											data-nav-url={subItem.url}
++											data-testid={`sidebar-subitem-link-${subItem.testId ?? slug(subItem.title)}`}
++										>
++											{subInner}
++										</a>
++									</SidebarMenuSubButton>
+ 								) : (
+ 									<SidebarMenuSubButton asChild className={subItemClassName}>
+ 										<Link
+@@ -676,6 +695,14 @@ export default function AppSidebar() {
+ 						description: "Configure models",
+ 						hasAccess: hasModelProvidersAccess,
+ 					},
++					{
++						title: "Model Registry",
++						url: "/bifrost-registry/",
++						icon: Database,
++						description: "Manage model access",
++						hasAccess: hasSettingsAccess,
++						isExternal: true,
++					},
+ 					{
+ 						title: "Budgets & Limits",
+ 						url: "/workspace/model-limits",
+@@ -1572,4 +1599,4 @@ export default function AppSidebar() {
+ 			<PoweredByBifrost />
+ 		</Sidebar>
+ 	);
+-}
+\ No newline at end of file
++}
+diff --git a/transports/bifrost-http/server/registry_ui.go b/transports/bifrost-http/server/registry_ui.go
+new file mode 100644
+index 0000000..1704a87
+--- /dev/null
++++ b/transports/bifrost-http/server/registry_ui.go
+@@ -0,0 +1,123 @@
++package server
++
++import (
++	"net/url"
++	"os"
++	"strings"
++	"time"
++
++	"github.com/maximhq/bifrost/core/schemas"
++	"github.com/maximhq/bifrost/transports/bifrost-http/lib"
++	"github.com/valyala/fasthttp"
++)
++
++const registryUIPrefix = "/bifrost-registry/"
++
++// mountRegistryUI keeps the plugin's admin credential on the server side.
++// It uses the same middleware chain as /api/config, including enterprise hooks.
++func (s *BifrostHTTPServer) mountRegistryUI(middlewares ...schemas.BifrostHTTPMiddleware) {
++	token := os.Getenv("REGISTRY_ADMIN_TOKEN")
++	if token == "" || s.AuthMiddleware == nil {
++		return
++	}
++	client := &fasthttp.HostClient{
++		Addr:         "127.0.0.1:8099",
++		ReadTimeout:  15 * time.Second,
++		WriteTimeout: 15 * time.Second,
++	}
++	handle := lib.ChainMiddlewares(registryUIProxy(client, token), middlewares...)
++	s.Router.GET(registryUIPrefix, handle)
++	s.Router.HEAD(registryUIPrefix, handle)
++	s.Router.POST(registryUIPrefix, handle)
++	s.Router.PUT(registryUIPrefix, handle)
++	s.Router.PATCH(registryUIPrefix, handle)
++	s.Router.DELETE(registryUIPrefix, handle)
++	for _, method := range []string{fasthttp.MethodGet, fasthttp.MethodHead, fasthttp.MethodPost, fasthttp.MethodPut, fasthttp.MethodPatch, fasthttp.MethodDelete} {
++		s.Router.Handle(method, registryUIPrefix+"{filepath:*}", handle)
++	}
++}
++
++func registryUIProxy(client *fasthttp.HostClient, token string) fasthttp.RequestHandler {
++	return func(ctx *fasthttp.RequestCtx) {
++		if bypassed, _ := ctx.UserValue(schemas.BifrostContextKeyAuthBypassed).(bool); bypassed {
++			// Native auth is disabled. Permit only an explicitly enabled local
++			// development UI; the published gateway port must stay loopback-only.
++			host := string(ctx.Host())
++			if os.Getenv("REGISTRY_ALLOW_LOCAL_UI") != "true" || (host != "127.0.0.1:8082" && host != "localhost:8082") {
++				ctx.Error("Authentication required", fasthttp.StatusForbidden)
++				return
++			}
++		}
++		method := string(ctx.Method())
++		switch method {
++		case fasthttp.MethodGet, fasthttp.MethodHead, fasthttp.MethodPost, fasthttp.MethodPut, fasthttp.MethodPatch, fasthttp.MethodDelete:
++		default:
++			ctx.Error("Method not allowed", fasthttp.StatusMethodNotAllowed)
++			return
++		}
++		if len(ctx.Request.Body()) > 4<<20 {
++			ctx.Error("Request too large", fasthttp.StatusRequestEntityTooLarge)
++			return
++		}
++		// A browser must come from this gateway's own origin before its admin
++		// credential is attached. The reverse proxy supplies the public scheme.
++		if site := string(ctx.Request.Header.Peek("Sec-Fetch-Site")); site == "cross-site" || site == "same-site" {
++			ctx.Error("Forbidden", fasthttp.StatusForbidden)
++			return
++		}
++		if origin := string(ctx.Request.Header.Peek("Origin")); origin != "" {
++			parsed, err := url.Parse(origin)
++			scheme := "http"
++			if ctx.IsTLS() || string(ctx.Request.Header.Peek("X-Forwarded-Proto")) == "https" {
++				scheme = "https"
++			}
++			if err != nil || parsed.String() != scheme+"://"+string(ctx.Host()) {
++				ctx.Error("Forbidden", fasthttp.StatusForbidden)
++				return
++			}
++		}
++		path := string(ctx.Path())
++		if !strings.HasPrefix(path, registryUIPrefix) {
++			ctx.Error("Not found", fasthttp.StatusNotFound)
++			return
++		}
++		var request fasthttp.Request
++		var response fasthttp.Response
++		request.SetRequestURI("/" + strings.TrimPrefix(path, registryUIPrefix))
++		request.URI().SetQueryStringBytes(ctx.URI().QueryString())
++		request.URI().SetHost(string(ctx.Host()))
++		request.Header.SetMethod(method)
++		request.Header.SetHost(string(ctx.Host()))
++		request.Header.Set("Authorization", "Bearer "+token)
++		request.Header.Set("Accept", string(ctx.Request.Header.Peek("Accept")))
++		for _, header := range []string{"If-Match", "If-None-Match"} {
++			if value := ctx.Request.Header.Peek(header); len(value) != 0 {
++				request.Header.SetBytesV(header, value)
++			}
++		}
++		if contentType := ctx.Request.Header.ContentType(); len(contentType) != 0 {
++			request.Header.SetContentTypeBytes(contentType)
++		}
++		if origin := ctx.Request.Header.Peek("Origin"); len(origin) != 0 {
++			request.Header.SetBytesV("Origin", origin)
++		}
++		request.SetBody(ctx.Request.Body())
++		if err := client.Do(&request, &response); err != nil {
++			ctx.Error("Registry unavailable", fasthttp.StatusBadGateway)
++			return
++		}
++		if response.StatusCode() >= 300 && response.StatusCode() < 400 {
++			ctx.Error("Registry redirect rejected", fasthttp.StatusBadGateway)
++			return
++		}
++		ctx.SetStatusCode(response.StatusCode())
++		ctx.SetContentTypeBytes(response.Header.ContentType())
++		for _, header := range []string{"ETag", "Content-Security-Policy", "X-Content-Type-Options", "Referrer-Policy"} {
++			if value := response.Header.Peek(header); len(value) != 0 {
++				ctx.Response.Header.SetBytesV(header, value)
++			}
++		}
++		ctx.Response.Header.Set("Cache-Control", "no-store")
++		ctx.SetBody(response.Body())
++	}
++}
+diff --git a/transports/bifrost-http/server/registry_ui_test.go b/transports/bifrost-http/server/registry_ui_test.go
+new file mode 100644
+index 0000000..65d2145
+--- /dev/null
++++ b/transports/bifrost-http/server/registry_ui_test.go
+@@ -0,0 +1,97 @@
++package server
++
++import (
++	"bufio"
++	"io"
++	"net"
++	"net/http"
++	"testing"
++
++	"github.com/fasthttp/router"
++	"github.com/maximhq/bifrost/core/schemas"
++	"github.com/valyala/fasthttp"
++)
++
++func TestRegistryUIProxy(t *testing.T) {
++	t.Setenv("REGISTRY_ADMIN_TOKEN", "")
++	s := &BifrostHTTPServer{Router: router.New()}
++	s.mountRegistryUI()
++	var missingRequest fasthttp.Request
++	missingRequest.SetRequestURI(registryUIPrefix)
++	var missingCtx fasthttp.RequestCtx
++	missingCtx.Init(&missingRequest, nil, nil)
++	s.Router.Handler(&missingCtx)
++	if missingCtx.Response.StatusCode() != fasthttp.StatusNotFound {
++		t.Fatalf("unset token registered route: %d", missingCtx.Response.StatusCode())
++	}
++
++	seen := make(chan *http.Request, 1)
++	client := &fasthttp.HostClient{Addr: "127.0.0.1:8099", Dial: func(string) (net.Conn, error) {
++		front, back := net.Pipe()
++		go func() {
++			defer back.Close()
++			req, err := http.ReadRequest(bufio.NewReader(back))
++			if err == nil {
++				seen <- req
++				_, _ = io.WriteString(back, "HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Length: 2\r\nContent-Type: text/plain\r\nETag: rev-1\r\nContent-Security-Policy: default-src 'none'\r\nX-Content-Type-Options: nosniff\r\nReferrer-Policy: no-referrer\r\n\r\nok")
++			}
++		}()
++		return front, nil
++	}}
++	var request fasthttp.Request
++	request.SetRequestURI("/bifrost-registry/api/config?draft=1")
++	request.Header.SetMethod(fasthttp.MethodPost)
++	request.Header.SetHost("127.0.0.1:8082")
++	request.Header.Set("Origin", "http://127.0.0.1:8082")
++	request.Header.Set("Authorization", "Bearer browser-secret")
++	request.Header.Set("Cookie", "token=browser-secret")
++	request.Header.Set("If-Match", "rev-0")
++	request.SetBodyString("{}")
++	var ctx fasthttp.RequestCtx
++	ctx.Init(&request, nil, nil)
++	registryUIProxy(client, "server-secret")(&ctx)
++	if ctx.Response.StatusCode() != 200 || string(ctx.Response.Body()) != "ok" {
++		t.Fatalf("proxy response: %d %q", ctx.Response.StatusCode(), ctx.Response.Body())
++	}
++	proxied := <-seen
++	if proxied.URL.RequestURI() != "/api/config?draft=1" || proxied.Host != "127.0.0.1:8082" || proxied.Header.Get("Authorization") != "Bearer server-secret" || proxied.Header.Get("Cookie") != "" || proxied.Header.Get("If-Match") != "rev-0" {
++		t.Fatalf("wrong upstream request: %s %s %q", proxied.URL.RequestURI(), proxied.Host, proxied.Header.Get("Authorization"))
++	}
++	for header, want := range map[string]string{"ETag": "rev-1", "Content-Security-Policy": "default-src 'none'", "X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer"} {
++		if got := string(ctx.Response.Header.Peek(header)); got != want {
++			t.Fatalf("%s: got %q, want %q", header, got, want)
++		}
++	}
++	if string(ctx.Response.Body()) == "server-secret" || ctx.Response.Header.Peek("Authorization") != nil {
++		t.Fatal("server token exposed")
++	}
++	request.Header.Set("Origin", "https://other.example")
++	ctx.Init(&request, nil, nil)
++	registryUIProxy(client, "server-secret")(&ctx)
++	if ctx.Response.StatusCode() != fasthttp.StatusForbidden {
++		t.Fatalf("cross origin accepted: %d", ctx.Response.StatusCode())
++	}
++	request.Header.Set("Origin", "http://127.0.0.1:8082")
++	ctx.Init(&request, nil, nil)
++	ctx.SetUserValue(schemas.BifrostContextKeyAuthBypassed, true)
++	registryUIProxy(client, "server-secret")(&ctx)
++	if ctx.Response.StatusCode() != fasthttp.StatusForbidden {
++		t.Fatalf("disabled native auth accepted: %d", ctx.Response.StatusCode())
++	}
++	t.Setenv("REGISTRY_ALLOW_LOCAL_UI", "true")
++	ctx.Init(&request, nil, nil)
++	ctx.SetUserValue(schemas.BifrostContextKeyAuthBypassed, true)
++	registryUIProxy(client, "server-secret")(&ctx)
++	if ctx.Response.StatusCode() != fasthttp.StatusOK {
++		t.Fatalf("explicit local mode rejected: %d", ctx.Response.StatusCode())
++	}
++	<-seen
++	request.Header.SetHost("registry.example:8082")
++	request.Header.Set("Origin", "http://registry.example:8082")
++	ctx.Init(&request, nil, nil)
++	ctx.SetUserValue(schemas.BifrostContextKeyAuthBypassed, true)
++	registryUIProxy(client, "server-secret")(&ctx)
++	if ctx.Response.StatusCode() != fasthttp.StatusForbidden {
++		t.Fatalf("non-local host accepted: %d", ctx.Response.StatusCode())
++	}
++}

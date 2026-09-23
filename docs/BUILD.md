@@ -2,7 +2,7 @@
 
 ## Builds consignés
 
-La cible actuelle **2.2.2** dispose d’un [build et essai HTTP isolé](../reports/native-v2.2.2/README.md) : 42 contrôles passent, dont les listes distinctes par VK et la sauvegarde/relecture d’un groupe. Paire Linux ARM64/musl avec Go 1.27.1 ; ce résultat ne qualifie pas une image de production ou une autre architecture.
+La cible actuelle **2.2.2** dispose d’un [build et essai HTTP isolé](../reports/native-v2.2.2/README.md) : 42 contrôles passent, dont les listes distinctes par VK et la sauvegarde/relecture d’un groupe. Le [pilote local avec UI et pont réel](../reports/native-v2.2.2-live/workspace-live-report.json) passe ensuite 39/39 contrôles, dont deux appels de conversation HTTP 200. Le passage final ajoute le contrôle des preuves périmées : [44/44 vérifications](../reports/native-v2.2.2-live/workspace-final-report.json), sans nouvelle inférence. La paire finale locale est `dist/native-v2.2.2-live-v5/`, Go 1.27.1, Linux ARM64/musl. Ces résultats ne qualifient pas une image de production ou une autre architecture.
 
 Les [rapports natifs](../reports/native-build-v1/) consignent un build contre Bifrost `transports/v2.2.1`, commit `6493abd3d1422c9bfde95f242fd57b38e73ce881`, avec Go 1.27.1 sur Linux amd64. La sonde ABI rapporte un chargement réussi ; les essais de pipeline ultérieurs sont décrits séparément dans [BUILD_STATUS.json](../BUILD_STATUS.json). L'[état audité](../STATUS.md) précise les limites de ces preuves.
 
@@ -50,6 +50,32 @@ Le répertoire de sortie doit être nouveau. Le script :
 6. enregistre l’environnement, les dépendances et les SHA-256.
 
 Le staging est supprimé à la sortie. `go.mod` n’est pas corrigé automatiquement : un checkout incohérent ou des dépendances non résolues provoquent un échec explicite. Les fichiers produits ne doivent être déployés qu’après les tests natifs. La sonde ABI ne remplace pas un essai dans le vrai pipeline HTTP de Bifrost.
+
+## Construire et monter la nouvelle UI locale
+
+Sur le **checkout exact** Bifrost `fdeef8e3f31a3b18a61666ba49247d07bae3600a`, appliquer le patch host/sidebar avant de construire le gateway et son frontend :
+
+```bash
+python3 scripts/patch-bifrost-ui.py /chemin/absolu/bifrost-build
+cd docs/design/registry-prototype
+npm ci
+npm run build
+```
+
+Exécuter `npm` depuis ce dépôt, puis utiliser le `dist/` produit par Vite comme répertoire `ui_dir` du plugin. En conteneur, monter par exemple `/chemin/absolu/registry-prototype/dist:/registry-ui:ro`. Le build utilise le chemin public `/bifrost-registry/`. Construire aussi le frontend Bifrost modifié depuis son checkout, puis reconstruire gateway et plugin **ensemble** avec `scripts/build-with-bifrost.sh` comme ci-dessus ; `dist/native-v2.2.2-live-v5/` est la paire finale du pilote local, pas un artefact livré par Git.
+
+Dans la configuration du plugin, conserver `admin_listen`, `admin_token_env` et `registry_path` et ajouter, avec des chemins/valeurs propres à l'environnement :
+
+```json
+{
+  "bifrost_url": "http://127.0.0.1:8080",
+  "ui_dir": "/registry-ui"
+}
+```
+
+Ces deux champs s'ajoutent aux paramètres existants du fragment `configs/plugin.fragment.json` ; l'extrait n'est pas une configuration complète. `bifrost_url` vise l'API native depuis le runtime du plugin. `ui_dir` contient `index.html` et les assets du build React. Le proxy Bifrost `/bifrost-registry/` joint le panneau sur **`127.0.0.1:8099` depuis le runtime du gateway** : les deux processus doivent partager ce loopback. Définir `REGISTRY_ADMIN_TOKEN` côté serveur uniquement ; le navigateur n'en a pas connaissance. Le proxy reprend l'authentification native de Bifrost et ne crée pas de route dans son API plugin.
+
+Le pilote local sans authentification native utilise explicitement `REGISTRY_ALLOW_LOCAL_UI=true`, seulement avec l'hôte `127.0.0.1:8082` ou `localhost:8082` et un port gateway publié sur le loopback hôte. Ne pas transporter cette exception vers un accès réseau. L'ancien panneau embarqué reste le repli lorsque `ui_dir` est absent.
 
 ## Charger le plugin
 

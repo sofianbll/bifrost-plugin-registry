@@ -26,6 +26,9 @@ type configuration struct {
 	AdminListen       string   `json:"admin_listen,omitempty"`
 	AdminTokenEnv     string   `json:"admin_token_env,omitempty"`
 	AdminAllowedHosts []string `json:"admin_allowed_hosts,omitempty"`
+	BifrostURL        string   `json:"bifrost_url,omitempty"`
+	BifrostAuthEnv    string   `json:"bifrost_auth_env,omitempty"`
+	UIDir             string   `json:"ui_dir,omitempty"`
 }
 type instance struct {
 	store  *registry.Store
@@ -75,6 +78,16 @@ func Init(config any) error {
 		handler, e := admin.New(store, os.Getenv(env), cfg.AdminAllowedHosts)
 		if e != nil {
 			return e
+		}
+		if cfg.BifrostURL != "" {
+			if e = handler.ConnectBifrost(cfg.BifrostURL, os.Getenv(cfg.BifrostAuthEnv)); e != nil {
+				return e
+			}
+		}
+		if cfg.UIDir != "" {
+			if e = handler.UseUIDirectory(cfg.UIDir); e != nil {
+				return e
+			}
 		}
 		listener, e := net.Listen("tcp", cfg.AdminListen)
 		if e != nil {

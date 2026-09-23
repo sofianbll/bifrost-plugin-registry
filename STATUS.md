@@ -1,6 +1,16 @@
-# État du projet — 23 septembre 2026
+# État du projet — 24 septembre 2026
 
-Cet état décrit le checkout local. La production Pulsar n'a pas été interrogée pendant cet audit. Les rapports et `BUILD_STATUS.json` attestent de vérifications passées, pas de l'état live actuel.
+Cet état décrit le checkout et le pilote **local** Bifrost 2.2.2 sur `http://127.0.0.1:8082/bifrost-registry/`. La production Pulsar n'a pas été modifiée ni revérifiée. Les sections datées du 23 septembre ci-dessous retracent les étapes du prototype ; leurs mentions de simulation et de travail restant ne décrivent pas toutes l'état actuel.
+
+## État actuel du pilote local
+
+- Le fournisseur natif **CLI PROXY** conserve ses 25 modèles découverts, son activation et sa clé existante. Le Registry lit les accès natifs ; il n'a pas remplacé la configuration provider ni ajouté de répartition automatique entre sources.
+- L'UI React est servie dans Bifrost sous `/bifrost-registry/`, avec entrée dans la sidebar. Un proxy Bifrost vers le panneau Registry sur `127.0.0.1:8099` garde `REGISTRY_ADMIN_TOKEN` côté serveur et reprend la chaîne d'authentification native. Le patch d'intégration est épinglé au commit Bifrost `fdeef8e3f31a3b18a61666ba49247d07bae3600a` ; il n'ajoute pas de route à l'API plugin Bifrost. L'exception `REGISTRY_ALLOW_LOCAL_UI=true` a servi uniquement au runtime local sans authentification native, avec hôte `127.0.0.1:8082` ou `localhost:8082` et port publié sur `127.0.0.1`.
+- Le pont réel fournit `GET/PUT /api/workspace` avec `If-Match`, la création de clés virtuelles natives et la relecture indépendante de `/v1/models` avec la clé. Il sauvegarde les groupes, ajouts/exclusions locales et formats de noms, puis distingue catalogue vérifié, écart et relecture impossible. Les clés natives existantes restent non gérées tant qu'elles ne sont pas explicitement associées ; les secrets ne figurent pas dans le workspace.
+- Le [rapport local](reports/native-v2.2.2-live/workspace-live-report.json) compte **39/39 contrôles réussis** : héritage, exclusions, formats, renommage, désactivation/réactivation, confidentialité, origine croisée et nettoyage. Deux appels `chat/completions` réels ont renvoyé HTTP 200 avec `choices`, pour `gpt-6-luna` et `CLI PROXY/gpt-6-luna`. Le premier [smoke échoué](reports/native-v2.2.2-live/workspace-smoke.json) est conservé : la liste des clés provider utilisait un identifiant numérique tandis que la liaison attendait `key_id` UUID ; le pont a été corrigé puis retesté.
+- Le dernier passage sur la paire finale compte **44/44 contrôles réussis**, sans nouvelle inférence : voir [workspace-final-report.json](reports/native-v2.2.2-live/workspace-final-report.json). Une modification de configuration brute invalide aussi les preuves anciennes ; une nouvelle relecture les rétablit. Les tests et [contrôles visuels ciblés](reports/native-v2.2.2-live/VALIDATION.md) sont consignés.
+- Le build final local `dist/native-v2.2.2-live-v5/` contient gateway et plugin recompilés ensemble avec Go 1.27.1 pour Linux ARM64/musl ; la sonde ABI et les empreintes passent. La base native provider existante est conservée, avec sauvegarde privée ignorée par Git. L'UI a été inspectée pour import de modèle, sauvegarde après rechargement, groupes et état « Verified » après vraie relecture ; l'en-tête des clés a été corrigé puis contrôlé à 320 px sans débordement horizontal. Le lien natif Models → Model Registry ouvre bien l'UI après redémarrage. Ces parcours ciblés ne constituent pas une revue exhaustive de tous les écrans.
+- Le laboratoire est **visible, mais Planned** : aucune campagne active. Les préférences d'affichage restent locales au navigateur, sans synchronisation de configuration plugin. Les métadonnées inconnues restent inconnues ; Chat/Vision concernent la garde chat/Responses, et Image/Embedding leur type de requête respectif. Les alias courts ambigus entre sources restent bloqués ; les clés sans politique Registry échouent encore en 403. Le cas de clés natives sans provider autorisé, le vrai parcours dans le client Hermes et la production restent à valider.
 
 | Partie | État vérifié dans ce dépôt |
 | --- | --- |
@@ -9,11 +19,11 @@ Cet état décrit le checkout local. La production Pulsar n'a pas été interrog
 | Build natif | Bifrost `transports/v2.2.2` et plugin reconstruits ensemble pour Linux ARM64/musl : sonde ABI et 42 contrôles HTTP du catalogue par VK réussis, voir `reports/native-v2.2.2/`. L’ancien build 2.2.1 et les déclarations Pulsar de `BUILD_STATUS.json` restent historiques ; la production n’est pas revérifiée ici. |
 | Maquette historique | `docs/design/mockup/` contient cinq écrans anglais avec des données fictives. Cette maquette n'appelle pas l'API et n'est pas l'UI servie par le plugin. |
 | Prototype Hermes historique | `docs/design/mockup/hermes-prototype.html` a été rejeté par Sofian : démo de logique incomplète, rendu trop éloigné de l'application finale. Conservé comme historique. |
-| Prototype React Bifrost | `docs/design/registry-prototype/` utilise les composants UI et ressources upstream à `6493abd3d1422c9bfde95f242fd57b38e73ce881`, avec un shell adapté et un état de démonstration local. Source sur `codex/prototype-bifrost-native`. Validation utilisateur encore attendue. |
-| Intégration de la nouvelle UI à Bifrost | Le proxy `/bifrost-registry/` et l’adaptation des chemins de l’UI ne sont pas implémentés. Le panneau actuel utilise `/app.js`, `/app.css` et `/api/*` à la racine ; le prototype React n’est pas branché. |
+| UI React Bifrost | `docs/design/registry-prototype/` conserve les composants upstream épinglés ; le build est désormais monté sous `/bifrost-registry/` dans le pilote local. Validation UX finale par Sofian toujours attendue. |
+| Intégration de la nouvelle UI à Bifrost | Patch host/sidebar épinglé à 2.2.2, proxy vers le panneau Registry et pont workspace réels dans le pilote local. L'ancien panneau embarqué reste disponible sans `ui_dir`. |
 | Journal des refus | L'API `/api/events`, les compteurs et le journal de garde n'existent pas. L'écran Denials est seulement maquetté. |
 
-## Vérifications et limites
+## Historique des vérifications (jusqu'au 23 septembre)
 
 - La suite Go complète du moteur, du CLI et de l’admin passe avec `go test -race -count=1 ./...`, `GOCACHE` dans `/private/tmp` et autorisation des sockets locaux, y compris `TestRealHTTPServer`. L’adaptateur natif sous build tag est vérifié séparément par la sonde et le test HTTP 2.2.2.
 - `reports/local-tests-summary.json` annonce 156 tests et 87,8 % de couverture pour une campagne antérieure aux derniers changements de passthrough. Ces chiffres ne qualifient pas `HEAD`.
@@ -55,7 +65,7 @@ Cet état décrit le checkout local. La production Pulsar n'a pas été interrog
 - Grille responsive du sélecteur de modèles, raccourcis de sélection et exclusions accessibles avant la grille, options et matrice du lot repliées. Retour en haut lors des changements d'étape. Pied des cartes de rapports corrigé : source à gauche, bouton à droite, espacement et retour à la ligne.
 - Vérifications navigateur : 1 test masqué + 3 tests streaming filtrés conservés en passant de Personnaliser à Tous puis retour (4/13) ; GPT-5 choisi avec Azure exclu, rapport simulé limité à `openai/gpt-5`, puis historique augmenté. Vue mobile à 320 px inspectée en sombre, résumé et compteurs sans débordement. Build et contrôles de logique réussis ; seul l'avertissement existant sur la taille du bundle reste. Aucune exécution réelle de harness ni appel fournisseur.
 
-### État actuel — collection officielle et lecteur Newman
+### Itération du 23 septembre — collection officielle et lecteur Newman
 
 Cette itération remplace les scénarios/packs illustratifs du laboratoire décrits dans les étapes historiques ci-dessus.
 
@@ -66,7 +76,7 @@ Cette itération remplace les scénarios/packs illustratifs du laboratoire décr
 - Contrôles navigateur : catalogue et détails à 320 px, suivi à 768 et 1280 px, thèmes clair/sombre, absence de débordement horizontal sur ces parcours. Sélection filtrée OpenAI conservant Azure hors filtre, désélection filtrée conservant cet accès, prompt source exact, erreur 503 et assertion associée, import du rapport réel, pause/reprise/arrêt, historique conservé après navigation. Les 38 empreintes des composants/ressources vendus restent inchangées.
 - `npm run check` couvre le catalogue, le parseur, la sélection filtrée, les préférences et le moteur de démonstration ; `npm run build` vérifie TypeScript et Vite. Validation UX de Sofian toujours attendue. Aucun push ni changement de production.
 
-## Base de reprise et prochaine étape
+## Décisions et jalons consignés le 23 septembre
 
 ### Préparation de la spec V1
 
@@ -81,11 +91,11 @@ Cette itération remplace les scénarios/packs illustratifs du laboratoire décr
 - Un vrai essai a trouvé un défaut : l’identité Governance du contexte enfant n’atteignait pas le post-hook HTTP. Le correctif transmet uniquement le résultat validé, dans une session atomique propre à la requête de modèles ; tout désaccord reste bloquant. Inférence et streaming inchangés.
 - **42 contrôles passent** : baseline native identique pour trois VK, listes Registry distinctes pour deux clés, formats `model`, `provider/model`, `both`, intersection des droits natifs, lecture alternée, modification d’un groupe via l’API Registry et révisions, refus des clés absentes/inconnues/non configurées et de l’identité incohérente. `/v1/models` et `/openai/v1/models` vérifiés.
 - Conteneur sans réseau externe, fournisseur loopback contrôlé, aucune inférence. Configurations, clés, SQLite, logs et conteneur de test supprimés. Rapports avant/après, manifeste, patch exact et commande de reproduction dans [reports/native-v2.2.2](reports/native-v2.2.2/README.md) ; binaires locaux ignorés dans `dist/native-v2.2.2/`.
-- Limites : prototype encore simulé, gestion des VK par API Bifrost et parcours Hermes à brancher. Les VK sans politique Registry sont actuellement refusées ; le cas sans fournisseur natif autorisé reste fail-closed et doit être cadré avant activation globale. Aucune preuve de chargement sur la production de Sofian.
+- Limites à cette date : prototype encore simulé, gestion des VK par API Bifrost et parcours Hermes à brancher. Les VK sans politique Registry étaient refusées ; le cas sans fournisseur natif autorisé restait fail-closed et devait être cadré avant activation globale. Aucune preuve de chargement sur la production de Sofian.
 
-### Priorité actuelle et hiérarchie visuelle
+### Priorité et hiérarchie visuelle définies le 23 septembre
 
-- Décision validée par Sofian : **Publish → sauvegarde → vrai `GET /v1/models` avec la clé → comparaison des IDs de la révision publiée**. États distincts : vérifié, écart détecté, relecture impossible ; aperçu du brouillon et dernière preuve horodatée séparés. Voir [le contrat produit](docs/design/product-direction.md#décision-validée--publication-vérifiable). Il s'agit d'une validation du comportement, pas d'une preuve d'intégration ; le prototype reste simulé.
+- Décision validée par Sofian : **Publish → sauvegarde → vrai `GET /v1/models` avec la clé → comparaison des IDs de la révision publiée**. États distincts : vérifié, écart détecté, relecture impossible ; aperçu du brouillon et dernière preuve horodatée séparés. Voir [le contrat produit](docs/design/product-direction.md#décision-validée--publication-vérifiable). À cette date, il s'agissait d'une validation du comportement ; le prototype était simulé. Le pilote local réel est décrit en tête de ce fichier.
 - Sofian reporte le développement fonctionnel du laboratoire ; sa page reste dans le prototype. La prochaine version fonctionnelle vise catalogue, groupes et clés, validés dans Hermes. Les étapes restantes sont détaillées dans [le cadrage produit](docs/design/product-direction.md#chemin-restant-vers-une-première-version-fonctionnelle).
 - Retouche visuelle par composition des composants existants : canvas distinct des cartes, en-têtes de cartes teintés, titres de page 24/30 px et noms de modèles 16 px, métadonnées secondaires, boutons d'ouverture plus discrets, sélections accentuées avec les couleurs Bifrost. Composeur, aperçu, relecture, réglages et panneaux d'édition suivent cette hiérarchie. L'aperçu de configuration reste dans une section avancée repliée.
 - Diagnostic `refactoring-ui` ciblé : 9/10 (7 critères sur 8 examinés). Hiérarchie, niveaux de gris, espacement, labels/valeurs, échelle, largeur du texte et relief contrôlés ; une vérification exhaustive de tous les contrastes reste à faire. Le texte secondaire directement sur le canvas clair a été renforcé après mesure du couple natif à environ 4,46:1. Cette note ne constitue pas une certification d'accessibilité.

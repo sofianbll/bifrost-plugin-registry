@@ -12,6 +12,8 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -25,6 +27,8 @@ type Server struct {
 	Store        *registry.Store
 	tokenHash    [32]byte
 	allowedHosts map[string]bool
+	live         liveState
+	uiDir        string
 }
 
 func New(store *registry.Store, token string, hosts []string) (*Server, error) {
@@ -37,7 +41,21 @@ func New(store *registry.Store, token string, hosts []string) (*Server, error) {
 			allowed[strings.ToLower(host)] = true
 		}
 	}
-	return &Server{store, sha256.Sum256([]byte(token)), allowed}, nil
+	return &Server{Store: store, tokenHash: sha256.Sum256([]byte(token)), allowedHosts: allowed}, nil
+}
+
+// UseUIDirectory serves the built React UI while keeping the embedded admin as fallback.
+func (s *Server) UseUIDirectory(dir string) error {
+	root, err := filepath.EvalSymlinks(dir)
+	if err != nil {
+		return err
+	}
+	info, err := os.Stat(filepath.Join(root, "index.html"))
+	if err != nil || !info.Mode().IsRegular() {
+		return errors.New("UI directory needs index.html")
+	}
+	s.uiDir = root
+	return nil
 }
 func (s *Server) HTTPServer(addr string) *http.Server {
 	return &http.Server{Addr: addr, Handler: s, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 20 * time.Second, WriteTimeout: 30 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 16 << 10}
@@ -46,7 +64,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("Referrer-Policy", "no-referrer")
 	w.Header().Set("Cache-Control", "no-store")
-	w.Header().Set("Content-Security-Policy", "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'")
+	w.Header().Set("Content-Security-Policy", "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'")
 	host := r.Host
 	if h, _, err := net.SplitHostPort(host); err == nil {
 		host = h
@@ -65,6 +83,10 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if !strings.HasPrefix(r.URL.Path, "/api/") {
 		if r.Method != http.MethodGet && r.Method != http.MethodHead {
 			reply(w, 405, map[string]string{"error": "method not allowed"})
+			return
+		}
+		if s.uiDir != "" {
+			s.serveUI(w, r)
 			return
 		}
 		path := strings.TrimPrefix(r.URL.Path, "/")
@@ -102,6 +124,8 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	switch r.URL.Path {
+	case "/api/workspace", "/api/keys":
+		s.liveHandler(w, r)
 	case "/api/status":
 		if !method(w, r, http.MethodGet) {
 			return
@@ -173,8 +197,44 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		reply(w, 200, map[string]any{"valid": true, "revision": snap.Revision()})
 	default:
+		if strings.HasPrefix(r.URL.Path, "/api/keys/") {
+			s.liveHandler(w, r)
+			return
+		}
 		http.NotFound(w, r)
 	}
+}
+func (s *Server) serveUI(w http.ResponseWriter, r *http.Request) {
+	path := strings.TrimPrefix(r.URL.Path, "/")
+	if path == "" || path == "model-registry" {
+		path = "index.html"
+	}
+	if strings.HasPrefix(path, ".") || strings.Contains(path, "/.") || filepath.IsAbs(path) {
+		http.NotFound(w, r)
+		return
+	}
+	clean := filepath.Clean(path)
+	if clean == ".." || strings.HasPrefix(clean, "../") {
+		http.NotFound(w, r)
+		return
+	}
+	file := filepath.Join(s.uiDir, clean)
+	resolved, err := filepath.EvalSymlinks(file)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	rel, err := filepath.Rel(s.uiDir, resolved)
+	if err != nil || rel == ".." || strings.HasPrefix(rel, "../") {
+		http.NotFound(w, r)
+		return
+	}
+	info, err := os.Stat(resolved)
+	if err != nil || !info.Mode().IsRegular() {
+		http.NotFound(w, r)
+		return
+	}
+	http.ServeFile(w, r, resolved)
 }
 func readJSON(w http.ResponseWriter, r *http.Request) ([]byte, error) {
 	if t := strings.Split(r.Header.Get("Content-Type"), ";")[0]; strings.TrimSpace(t) != "application/json" {

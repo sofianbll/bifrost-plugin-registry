@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "tsc --noEmit && vite build",
-    "check": "node --import tsx src/demo.test.ts && node --import tsx src/lab.test.ts && node --import tsx src/harness.test.ts && node --import tsx src/harness-targets.test.ts"
+    "check": "node --import tsx src/demo.test.ts && node --import tsx src/lab.test.ts && node --import tsx src/harness.test.ts && node --import tsx src/harness-targets.test.ts && node --import tsx src/api.test.ts"
   },
   "dependencies": {
     "@radix-ui/react-checkbox": "1.3.3",
