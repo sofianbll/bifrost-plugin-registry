@@ -19,11 +19,22 @@ async function api(path, method = 'GET', body, match) {
   const headers = {'Authorization': `Bearer ${token}`};
   if (body !== undefined) headers['Content-Type'] = 'application/json';
   if (match) headers['If-Match'] = `"${match}"`;
-  const res = await fetch(`/api/${path}`, {method, headers, body:body === undefined ? undefined : JSON.stringify(body), cache:'no-store', credentials:'omit'});
-  let data;
-  try { data = await res.json(); } catch { throw new Error(`Réponse HTTP ${res.status} non JSON.`); }
-  if (!res.ok) throw new Error(data.error || `Erreur HTTP ${res.status}`);
-  return {data, revision:res.headers.get('ETag')?.replaceAll('"','')};
+  let res;
+  try {
+    res = await fetch(`/api/${path}`, {method, headers, body:body === undefined ? undefined : JSON.stringify(body), cache:'no-store', credentials:'omit'});
+  } catch (netErr) {
+    throw new Error('réseau: ' + (netErr && netErr.message ? netErr.message : String(netErr)));
+  }
+  const raw = await res.text();
+  let data = null;
+  try { data = raw ? JSON.parse(raw) : null; } catch { throw new Error(`HTTP ${res.status}, corps non JSON: ${raw.slice(0, 120)}`); }
+  if (!res.ok) throw new Error((data && data.error) ? `${data.error} (HTTP ${res.status})` : `Erreur HTTP ${res.status}`);
+  return {data, revision: (res.headers.get('ETag') || '').replace(/"/g, '')};
+}
+function errText(err) {
+  const name = err && err.name ? err.name : 'Erreur';
+  const msg = err && err.message ? err.message : String(err);
+  return `${name} : ${msg}`;
 }
 function notice(message, kind = 'success') { const el = $('#notice'); el.textContent = message; el.className = `notice ${kind}`; el.hidden = false; }
 function markDirty() { dirty = true; $('#save').disabled = false; $('#save-state').textContent = 'Brouillon'; $('#save-state').className = 'badge warn'; }
@@ -86,7 +97,7 @@ async function submitEditor(e) {
     const next=clone(config),arr=next[kind],idx=arr.findIndex(x=>x[edit.key]===edit.id); if(idx>=0)arr[idx]=m; else arr.push(m);
     // Validate the WHOLE draft before committing an individual editor change.
     await api('validate','POST',{config:next}); config=next; markDirty(); $('#editor').close(); rerender(); notice('Modification ajoutée au brouillon. Enregistrez pour la publier dans le registre.');
-  } catch(err) { $('#editor-error').textContent=err.message; }
+  } catch(err) { $('#editor-error').textContent=errText(err); }
 }
 async function validate() { await api('validate','POST',{config}); notice('Structure valide : références, collisions et règles contrôlées. Aucun test amont n’a été effectué.'); }
 async function save() { const b=$('#save');b.disabled=true;try{const r=await api('config','PUT',config,revision);revision=r.data.revision;markSaved();notice('Registre enregistré atomiquement. Les alias et permissions natives restent à appliquer dans Bifrost.');}catch(e){b.disabled=!dirty;notice(e.message,'error');} }
@@ -106,13 +117,13 @@ async function act(action,el){
   if(action==='export')return download('registry.json',config);
   if(action==='import'){$('#import-file').click();return;}
 }
-$('#login-form').addEventListener('submit',async e=>{e.preventDefault();token=$('#admin-token').value;$('#login-error').textContent='';try{const r=await api('config');config=r.data;revision=r.revision;$('#admin-token').value='';$('#login').hidden=true;$('#workspace').hidden=false;markSaved();rerender();}catch(err){token='';$('#login-error').textContent=err.message;}});
+$('#login-form').addEventListener('submit',async e=>{e.preventDefault();token=$('#admin-token').value;$('#login-error').textContent='';try{const r=await api('config');config=r.data;revision=r.revision;$('#admin-token').value='';$('#login').hidden=true;$('#workspace').hidden=false;markSaved();rerender();}catch(err){token='';$('#login-error').textContent=errText(err);}});
 $('#logout').onclick=()=>{if(dirty&&!confirm('Déconnecter et abandonner le brouillon ?'))return;token='';config=null;dirty=false;$('#workspace').hidden=true;$('#login').hidden=false;$('#page').replaceChildren();$('#editor-body').replaceChildren();$('#output-body').replaceChildren();$('#notice').hidden=true;};
 $('#theme-toggle').onclick=()=>{document.documentElement.dataset.theme=document.documentElement.dataset.theme==='dark'?'light':'dark';};
 document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>{tab=b.dataset.tab;rerender();}));
 $('#add').onclick=()=>openEditor(tab==='keys'?'policies':tab);
 $('#save').onclick=save;$('#validate').onclick=()=>validate().catch(e=>notice(e.message,'error'));
-$('#page').addEventListener('click',e=>{const b=e.target.closest('[data-action]');if(b)Promise.resolve(act(b.dataset.action,b)).catch(err=>notice(err.message,'error'));});
+$('#page').addEventListener('click',e=>{const b=e.target.closest('[data-action]');if(b)Promise.resolve(act(b.dataset.action,b)).catch(err=>notice(errText(err),'error'));});
 $('#editor-form').addEventListener('submit',submitEditor);
 for(const id of ['close-editor','cancel-editor'])$('#'+id).onclick=()=>$('#editor').close();
 $('#editor').addEventListener('close',()=>{$('#editor-body').replaceChildren();edit=null;});
