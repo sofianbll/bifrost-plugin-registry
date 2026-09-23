@@ -80,6 +80,8 @@ Critères d'acceptation proposés :
 
 ## Versions proposées — à arbitrer ensemble
 
+**Priorité confirmée par Sofian : terminer le catalogue, les groupes et les clés ; mettre le développement fonctionnel du laboratoire de côté.** Sa page reste accessible dans le prototype, avec ses limites de démonstration explicites. L'exécution de campagnes et le branchement à un runner ne bloquent pas la première livraison du parcours Hermes.
+
 | Version candidate | Parcours livré | Preuve de fin |
 | --- | --- | --- |
 | 0.2 — Catalogue et clés | Création et gestion de clés via les API Bifrost, galerie et fiches, groupes, ajouts/exclusions locales, formats des noms, aperçu/diff, publication et relecture réelle. Sources et inconnues des capacités visibles. | Le parcours Hermes ci-dessus fonctionne de l'UI à l'application ; aucun changement local ne touche la clé témoin. Échecs, conflits, états vides et navigation clavier traités. |
@@ -106,6 +108,17 @@ Une preuve de capacité doit identifier le modèle, l'accès fournisseur, l'endp
 7. **Livraison** : numéros et contenu final des versions, langue UI, environnement de validation, périmètre des opérations autonomes et du déploiement.
 
 ## Parcours de cadrage
+
+Dernier retour visuel : mieux différencier fond, cartes, sous-sections et zones d'édition ; renforcer les titres et valeurs, atténuer les métadonnées et actions secondaires. Réutiliser exclusivement la palette, Geist et les composants Bifrost. Garder la même hiérarchie en clair/sombre et sur mobile. L'objectif est une lecture moins fatigante, avec une importance visuelle proportionnelle au rôle de chaque élément.
+
+### Chemin restant vers une première version fonctionnelle
+
+1. Valider cette expérience visuelle et figer le contrat modèle → accès ainsi que les ajouts/exclusions propres à chaque clé. Ces comportements sont simulés dans React ; le moteur Go représente encore un fournisseur/alias par entrée et une politique sans `added`/`excluded`.
+2. Relier l'interface aux API existantes et compléter la gestion native des clés Bifrost : création et opérations retenues, persistance, conflits et réconciliation si une des sauvegardes échoue. La sauvegarde atomique et les révisions du registre existent déjà.
+3. Publier puis relire réellement `/v1/models` avec la clé concernée ; distinguer aperçu, état publié et relecture impossible. Décider comment fournir le secret pour ce contrôle sans le conserver inutilement. Préserver alias et routage natifs ; plusieurs accès visibles ne prouvent pas une répartition automatique.
+4. Vérifier le parcours complet avec Hermes et une clé témoin sur une version Bifrost précise, puis documenter les contrôles de compatibilité, migration et retour arrière. Les anciens rapports de build ne remplacent pas cette validation.
+
+Les étapes deviennent une spec puis des tickets avec dépendances et preuves de fin après validation UX ; ce texte n'autorise pas un déploiement et ne constitue pas encore la spec d'implémentation.
 
 Recherche ciblée des primitives existantes → prototype UI/UX → retours et validation de l'expérience par Sofian → décisions techniques restantes → spec et versions → tickets complets avec dépendances et critères d'acceptation → exécution dans le périmètre approuvé.
 

@@ -68,6 +68,13 @@ Cette itération remplace les scénarios/packs illustratifs du laboratoire décr
 
 ## Base de reprise et prochaine étape
 
+### Priorité actuelle et hiérarchie visuelle
+
+- Sofian reporte le développement fonctionnel du laboratoire ; sa page reste dans le prototype. La prochaine version fonctionnelle vise catalogue, groupes et clés, validés dans Hermes. Les étapes restantes sont détaillées dans [le cadrage produit](docs/design/product-direction.md#chemin-restant-vers-une-première-version-fonctionnelle).
+- Retouche visuelle par composition des composants existants : canvas distinct des cartes, en-têtes de cartes teintés, titres de page 24/30 px et noms de modèles 16 px, métadonnées secondaires, boutons d'ouverture plus discrets, sélections accentuées avec les couleurs Bifrost. Composeur, aperçu, relecture, réglages et panneaux d'édition suivent cette hiérarchie. L'aperçu de configuration reste dans une section avancée repliée.
+- Diagnostic `refactoring-ui` ciblé : 9/10 (7 critères sur 8 examinés). Hiérarchie, niveaux de gris, espacement, labels/valeurs, échelle, largeur du texte et relief contrôlés ; une vérification exhaustive de tous les contrastes reste à faire. Le texte secondaire directement sur le canvas clair a été renforcé après mesure du couple natif à environ 4,46:1. Cette note ne constitue pas une certification d'accessibilité.
+- Parcours vérifiés en clair/sombre : catalogue, groupes/cartes/arbre/panneau à 320 px, clés et composeur à 1280 px, réglages à 768 px. Aucun débordement horizontal sur ces écrans. Une exclusion de modèle modifie encore uniquement le brouillon et son aperçu ; abandonner le brouillon rétablit la sélection. Build et contrôles existants réussis ; 38 empreintes upstream intactes. Audit indépendant du diff : aucun changement de logique métier détecté.
+
 - Point de départ de cette reprise : `main` à `503e775`, comprenant la maquette locale, devant la référence locale `origin/main` à `f05e029`. Le nettoyage et le cadrage sont regroupés sur `codex/prepare-ui-ux`. Consulter `git status` pour l'état courant ; aucun push n'a été effectué pendant cette préparation.
 - Les binaires restent locaux et ignorés par Git, dont `reports/native-build-v1/bifrost-http` (143 Mo). Les rapports et empreintes de build restent suivis. Le code, les configurations et l'ancienne maquette sont conservés.
 - La configuration des skills Matt Pocock est dans `AGENTS.md` et `docs/agents/`. GitHub Issues est accessible et les cinq labels choisis sont présents. Aucun ticket d'implémentation n'a été créé pendant cette préparation.
