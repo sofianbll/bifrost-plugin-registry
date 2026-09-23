@@ -285,8 +285,11 @@ func TestPreparePreservesUnknownPayloads(t *testing.T) {
 	if session.CheckAttempt("alpha", "smart") != nil {
 		t.Fatal("allowed route denied")
 	}
-	if session.CheckAttempt("beta", "smart") == nil {
-		t.Fatal("unrequested fallback allowed")
+	if session.CheckAttempt("beta", "smart") != nil {
+		t.Fatal("policy-exposed route denied (pre-registry governance semantics)")
+	}
+	if session.CheckAttempt("intruder", "smart") == nil {
+		t.Fatal("unexposed provider accepted")
 	}
 	if session.CheckAttempt("alpha", "wire/a-1") == nil {
 		t.Fatal("raw upstream allowed before native alias handling")
@@ -607,6 +610,11 @@ func TestPassthroughAlias(t *testing.T) {
 	}
 	if session.CheckAttempt("intruder", "smart") == nil {
 		t.Fatal("non-target attempt accepted")
+	}
+	// Attempt on any policy-exposed model is accepted (rule left the primary
+	// target to the virtual key's provider selection); unexposed stays denied.
+	if session.CheckAttempt("alpha", "fast") != nil {
+		t.Fatal("policy-exposed attempt denied")
 	}
 	// Passthrough fallbacks keep their bare alias names.
 	r2 := req(`{"model":"rot","fallbacks":["rot","alpha/smart"]}`)

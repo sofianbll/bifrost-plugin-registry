@@ -52,6 +52,15 @@ func (s *Session) CheckAttempt(provider, model string) *Failure {
 		return nil
 	}
 	r, ok := s.allowed[provider+"/"+model]
+	if !ok {
+		// Routing rules may land the request on any model the policy exposes
+		// (e.g. an alias whose rule leaves the primary target to the virtual
+		// key's provider selection). Attempts must stay within the policy's
+		// exposed routes — the same surface governance enforced pre-registry.
+		if nr, exists := s.view.native[provider+"/"+model]; exists {
+			r, ok = nr, true
+		}
+	}
 	if !ok || !Has(r.Endpoints, s.endpoint) {
 		return fail(403, "registry_route_denied", "The selected provider/model is outside this request's registry routes")
 	}
