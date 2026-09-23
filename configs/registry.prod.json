@@ -138,6 +138,24 @@
       "creator": "openai"
     },
     {
+      "id": "deepseek-flash",
+      "alias": "deepseek-flash",
+      "provider": "deepseek",
+      "provider_key_ids": [
+        "7"
+      ],
+      "upstream_model": "deepseek-flash",
+      "canonical_model": "deepseek-flash",
+      "model_family": "",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "import prod transition 2026-09-23"
+    },
+    {
       "id": "deepseek-v4-pro.deepseek",
       "alias": "deepseek-v4-pro",
       "provider": "deepseek",
@@ -2745,6 +2763,13 @@
       ]
     },
     {
+      "id": "legacy",
+      "name": "legacy",
+      "model_ids": [
+        "deepseek-flash"
+      ]
+    },
+    {
       "id": "meituan",
       "name": "meituan",
       "model_ids": [
@@ -3115,7 +3140,8 @@
       "naming": "both",
       "groups": [
         "route-mistral",
-        "chat"
+        "chat",
+        "legacy"
       ],
       "sources": [
         "deepseek",
@@ -3123,10 +3149,10 @@
         "opencode-go"
       ],
       "prefer": {
-        "deepseek-v4.1-flash": "deepseek-v4.1-flash.opencode-go",
         "glm-5.2": "glm-5.2.mistral",
+        "glm-5.3": "glm-5.3.mistral",
         "deepseek-v4-pro": "deepseek-v4-pro.opencode-go",
-        "glm-5.3": "glm-5.3.mistral"
+        "deepseek-v4.1-flash": "deepseek-v4.1-flash.opencode-go"
       },
       "enabled": true
     },
@@ -3138,7 +3164,8 @@
       "groups": [
         "route-mistral",
         "google",
-        "chat"
+        "chat",
+        "legacy"
       ],
       "sources": [
         "deepseek",
@@ -3147,10 +3174,10 @@
         "vertex"
       ],
       "prefer": {
-        "deepseek-v4.1-flash": "deepseek-v4.1-flash.opencode-go",
         "glm-5.2": "glm-5.2.mistral",
+        "glm-5.3": "glm-5.3.mistral",
         "deepseek-v4-pro": "deepseek-v4-pro.opencode-go",
-        "glm-5.3": "glm-5.3.mistral"
+        "deepseek-v4.1-flash": "deepseek-v4.1-flash.opencode-go"
       },
       "enabled": true
     },
@@ -3188,11 +3215,11 @@
         "vertex"
       ],
       "prefer": {
-        "deepseek-v4.1-flash": "deepseek-v4.1-flash.opencode-go",
         "glm-5.2": "glm-5.2.mistral",
+        "glm-5.3": "glm-5.3.mistral",
         "deepseek-v4-pro": "deepseek-v4-pro.opencode-go",
-        "gpt-5.6-luna": "gpt-5.6-luna.codex",
-        "glm-5.3": "glm-5.3.mistral"
+        "deepseek-v4.1-flash": "deepseek-v4.1-flash.opencode-go",
+        "gpt-5.6-luna": "gpt-5.6-luna.codex"
       },
       "enabled": true
     },
@@ -3285,11 +3312,11 @@
         "vertex"
       ],
       "prefer": {
-        "glm-5.2": "glm-5.2.mistral",
         "deepseek-v4-pro": "deepseek-v4-pro.opencode-go",
-        "gpt-5.6-luna": "gpt-5.6-luna.codex",
         "deepseek-v4.1-flash": "deepseek-v4.1-flash.opencode-go",
-        "glm-5.3": "glm-5.3.mistral"
+        "glm-5.2": "glm-5.2.mistral",
+        "glm-5.3": "glm-5.3.mistral",
+        "gpt-5.6-luna": "gpt-5.6-luna.codex"
       },
       "enabled": true
     },
@@ -3356,9 +3383,9 @@
         "opencode-go"
       ],
       "prefer": {
-        "glm-5.2": "glm-5.2.mistral",
         "deepseek-v4-pro": "deepseek-v4-pro.opencode-go",
         "deepseek-v4.1-flash": "deepseek-v4.1-flash.opencode-go",
+        "glm-5.2": "glm-5.2.mistral",
         "glm-5.3": "glm-5.3.mistral"
       },
       "enabled": true
@@ -3673,11 +3700,11 @@
         "vertex"
       ],
       "prefer": {
-        "deepseek-v4.1-flash": "deepseek-v4.1-flash.opencode-go",
         "glm-5.2": "glm-5.2.mistral",
+        "glm-5.3": "glm-5.3.mistral",
         "deepseek-v4-pro": "deepseek-v4-pro.opencode-go",
-        "gpt-5.6-luna": "gpt-5.6-luna.codex",
-        "glm-5.3": "glm-5.3.mistral"
+        "deepseek-v4.1-flash": "deepseek-v4.1-flash.opencode-go",
+        "gpt-5.6-luna": "gpt-5.6-luna.codex"
       },
       "enabled": true
     }
