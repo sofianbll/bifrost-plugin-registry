@@ -1,0 +1,350 @@
+<!-- ============================================================
+     GROUPS — fragment for <section id="screen-groups">
+     Mock data only (registry: 129 models). Sheet JS is prefixed
+     brGroupsSheet / brGroupsData to avoid collisions with the shell.
+     ============================================================ -->
+<p class="mb-4 text-xs text-muted-foreground">Groups bundle models through filters and exclusions. Members are resolved by the registry.</p>
+
+<!-- Toolbar -->
+<div class="mb-4 flex flex-wrap items-center gap-3">
+  <div class="relative max-w-sm flex-1">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+    <input id="br-groups-search" type="text" placeholder="Search groups…" class="h-9 w-full rounded-sm border border-input bg-transparent pr-3 pl-9 text-sm outline-none focus-visible:border-primary" />
+  </div>
+  <button id="br-groups-new" class="btn btn-primary btn-sm ml-auto">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+    New Group
+  </button>
+</div>
+
+<!-- Groups table -->
+<div class="tbl-container -mx-4 overflow-hidden rounded-sm border border-border md:mx-0">
+  <table class="tbl" id="br-groups-tbl">
+    <thead>
+      <tr><th>Group</th><th>Definition</th><th>Members</th><th>Used by</th></tr>
+    </thead>
+    <tbody>
+      <tr class="cursor-pointer" data-group="cheap-fast">
+        <td>
+          <p class="font-medium">cheap-fast</p>
+          <p class="text-xs text-muted-foreground">Budget picks for bulk jobs</p>
+        </td>
+        <td><code class="font-mono text-xs text-muted-foreground">providers:anthropic,openai · *sonnet* · !*beta*</code></td>
+        <td><button class="br-groups-open font-mono text-xs text-primary hover:underline">14 models</button></td>
+        <td><span class="badge badge-neutral font-mono text-xs font-normal">hermes</span> <span class="badge badge-neutral font-mono text-xs font-normal">cpa</span></td>
+      </tr>
+      <tr class="cursor-pointer" data-group="frontier">
+        <td>
+          <p class="font-medium">frontier</p>
+          <p class="text-xs text-muted-foreground">Top benchmark models for quality-critical work</p>
+        </td>
+        <td><code class="font-mono text-xs text-muted-foreground">providers:anthropic,openai,google · *opus*,*gpt-5*,*gemini-2.5-pro*</code></td>
+        <td><button class="br-groups-open font-mono text-xs text-primary hover:underline">6 models</button></td>
+        <td><span class="badge badge-neutral font-mono text-xs font-normal">kimi-work</span></td>
+      </tr>
+      <tr class="cursor-pointer" data-group="vision">
+        <td>
+          <p class="font-medium">vision</p>
+          <p class="text-xs text-muted-foreground">Image-capable models</p>
+        </td>
+        <td><code class="font-mono text-xs text-muted-foreground">capabilities:vision · !*experimental*</code></td>
+        <td><button class="br-groups-open font-mono text-xs text-primary hover:underline">11 models</button></td>
+        <td><span class="badge badge-neutral font-mono text-xs font-normal">hermes</span> <span class="badge badge-neutral font-mono text-xs font-normal">hindsight</span></td>
+      </tr>
+      <tr class="cursor-pointer" data-group="long-context">
+        <td>
+          <p class="font-medium">long-context</p>
+          <p class="text-xs text-muted-foreground">200k+ context windows</p>
+        </td>
+        <td><code class="font-mono text-xs text-muted-foreground">providers:anthropic,google,mistral · *200k*,*1m*</code></td>
+        <td><button class="br-groups-open font-mono text-xs text-primary hover:underline">9 models</button></td>
+        <td><span class="badge badge-neutral font-mono text-xs font-normal">kimi-work</span></td>
+      </tr>
+      <tr class="cursor-pointer" data-group="open-weights">
+        <td>
+          <p class="font-medium">open-weights</p>
+          <p class="text-xs text-muted-foreground">Self-hostable open-weight models</p>
+        </td>
+        <td><code class="font-mono text-xs text-muted-foreground">providers:meta,deepseek,mistral · !*vision*</code></td>
+        <td><button class="br-groups-open font-mono text-xs text-primary hover:underline">12 models</button></td>
+        <td><span class="badge badge-neutral font-mono text-xs font-normal">cpa</span></td>
+      </tr>
+      <tr class="cursor-pointer" data-group="embeddings">
+        <td>
+          <p class="font-medium">embeddings</p>
+          <p class="text-xs text-muted-foreground">Text embedding models</p>
+        </td>
+        <td><code class="font-mono text-xs text-muted-foreground">capabilities:embeddings</code></td>
+        <td><button class="br-groups-open font-mono text-xs text-primary hover:underline">8 models</button></td>
+        <td><span class="badge badge-neutral font-mono text-xs font-normal">hindsight</span></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+<p class="mt-2 text-xs text-muted-foreground">6 of 32 groups</p>
+
+<!-- ============================================================
+     Empty state (normalized pattern §3.15) — swap the table for
+     this block when there are no groups:
+
+     <div class="empty-state">
+       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="h-[5.5rem] w-[5.5rem] text-muted-foreground"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></svg>
+       <h2 class="text-xl font-medium text-muted-foreground">Groups bundle models into reusable sets</h2>
+       <p class="max-w-[600px] text-sm text-muted-foreground">Create groups from filters and exclusions, then bind them to virtual keys. Members resolve automatically when the registry changes.</p>
+       <div class="mt-6 flex gap-2">
+         <button class="btn btn-outline btn-sm">Read more ↗</button>
+         <button class="btn btn-primary btn-sm">New Group</button>
+       </div>
+     </div>
+     ============================================================ -->
+
+<!-- ==================== Group detail sheet (§3.9) ==================== -->
+<div id="br-groups-overlay" class="sheet-overlay hidden"></div>
+<aside id="br-groups-sheet" class="sheet" role="dialog" aria-modal="true" aria-label="Group details">
+  <div class="flex items-start justify-between gap-4 border-b border-border p-6 pb-4">
+    <div class="flex min-w-0 items-center gap-2">
+      <h2 id="br-groups-name" class="truncate text-lg leading-none font-semibold">cheap-fast</h2>
+      <span id="br-groups-count" class="badge badge-accent font-mono text-xs font-normal">14 models</span>
+    </div>
+    <button id="br-groups-close" class="btn btn-ghost !size-7 !px-0" aria-label="Close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+    </button>
+  </div>
+
+  <div class="custom-scrollbar flex-1 overflow-y-auto p-6">
+    <!-- Definition -->
+    <section class="mb-6">
+      <h3 class="mb-2 text-xs font-medium text-muted-foreground">Definition</h3>
+      <div id="br-groups-def" class="flex flex-col gap-2 rounded-sm border border-border p-3"></div>
+    </section>
+
+    <!-- Resolved members — materialized by the registry (the key feature) -->
+    <section class="mb-6">
+      <div class="mb-2 flex items-baseline justify-between gap-2">
+        <h3 class="text-xs font-medium text-muted-foreground">Resolved members</h3>
+        <span id="br-groups-member-count" class="font-mono text-[10px] text-muted-foreground"></span>
+      </div>
+      <div class="tbl-container overflow-hidden rounded-sm border border-border">
+        <div class="custom-scrollbar max-h-[280px] overflow-y-auto">
+          <table class="tbl">
+            <thead>
+              <tr><th>Model</th><th>Provider</th></tr>
+            </thead>
+            <tbody id="br-groups-members"></tbody>
+          </table>
+        </div>
+      </div>
+      <p class="mt-2 text-xs text-muted-foreground">Computed from filters — updates when the registry changes.</p>
+    </section>
+
+    <!-- Used by -->
+    <section>
+      <h3 class="mb-2 text-xs font-medium text-muted-foreground">Used by</h3>
+      <div id="br-groups-usedby" class="flex flex-wrap gap-1.5"></div>
+    </section>
+  </div>
+
+  <div class="flex justify-end gap-2 border-t border-border p-4">
+    <button id="br-groups-cancel" class="btn btn-outline">Cancel</button>
+    <!-- Mockup: no edit-definition mode, Save is inert -->
+    <button id="br-groups-save" class="btn btn-primary">Save changes</button>
+  </div>
+</aside>
+
+<script>
+  /* ===== Groups — mock data (registry: 129 models) ===== */
+  const brGroupsData = {
+    'cheap-fast': {
+      name: 'cheap-fast',
+      def: {
+        providers: ['anthropic', 'openai'],
+        match: ['*sonnet*'],
+        exclude: ['!*beta*'],
+      },
+      usedBy: ['hermes', 'cpa'],
+      members: [
+        'anthropic/claude-sonnet-4.6',
+        'anthropic/claude-sonnet-4.5',
+        'anthropic/claude-haiku-4.5',
+        'anthropic/claude-3-7-sonnet-20250224',
+        'anthropic/claude-3-5-sonnet-20241022',
+        'anthropic/claude-3-5-haiku-20241022',
+        'openai/gpt-4.1-mini',
+        'openai/gpt-4.1-nano',
+        'openai/gpt-4o-mini',
+        'openai/gpt-4o-mini-2024-07-18',
+        'openai/gpt-5-mini',
+        'openai/gpt-5-nano',
+        'openai/o4-mini',
+        'openai/gpt-4o-2024-08-06',
+      ],
+    },
+    'frontier': {
+      name: 'frontier',
+      def: {
+        providers: ['anthropic', 'openai', 'google'],
+        match: ['*opus*', '*gpt-5*', '*gemini-2.5-pro*'],
+        exclude: [],
+      },
+      usedBy: ['kimi-work'],
+      members: [
+        'anthropic/claude-opus-4.6',
+        'anthropic/claude-opus-4.5',
+        'openai/gpt-5.2',
+        'openai/gpt-5.1',
+        'openai/gpt-5',
+        'google/gemini-2.5-pro',
+      ],
+    },
+    'vision': {
+      name: 'vision',
+      def: {
+        providers: [],
+        match: ['capabilities:vision'],
+        exclude: ['!*experimental*'],
+      },
+      usedBy: ['hermes', 'hindsight'],
+      members: [
+        'anthropic/claude-sonnet-4.6',
+        'anthropic/claude-opus-4.6',
+        'openai/gpt-4.1',
+        'openai/gpt-4o',
+        'google/gemini-2.5-pro-vision',
+        'google/gemini-2.0-flash',
+        'meta/llama-4-scout',
+        'meta/llama-4-maverick',
+        'mistral/pixtral-large',
+        'qwen/qwen2.5-vl-72b',
+        'amazon/nova-pro',
+      ],
+    },
+    'long-context': {
+      name: 'long-context',
+      def: {
+        providers: ['anthropic', 'google', 'mistral'],
+        match: ['*200k*', '*1m*'],
+        exclude: [],
+      },
+      usedBy: ['kimi-work'],
+      members: [
+        'anthropic/claude-sonnet-4.6',
+        'anthropic/claude-opus-4.6',
+        'google/gemini-2.5-pro-1m',
+        'google/gemini-2.5-flash-1m',
+        'google/gemini-1.5-pro-2m',
+        'mistral/mistral-large-2411-128k',
+        'mistral/codestral-2501',
+        'anthropic/claude-3-7-sonnet-20250224',
+        'google/gemini-2.0-flash-thinking',
+      ],
+    },
+    'open-weights': {
+      name: 'open-weights',
+      def: {
+        providers: ['meta', 'deepseek', 'mistral'],
+        match: [],
+        exclude: ['!*vision*'],
+      },
+      usedBy: ['cpa'],
+      members: [
+        'meta/llama-4-scout',
+        'meta/llama-4-maverick',
+        'meta/llama-3.3-70b',
+        'meta/llama-3.2-3b',
+        'deepseek/deepseek-v3.2',
+        'deepseek/deepseek-r1',
+        'mistral/mistral-large-2411',
+        'mistral/mistral-small-2503',
+        'mistral/ministral-8b',
+        'mistral/codestral-2501',
+        'deepseek/deepseek-coder-v2',
+        'meta/llama-3.1-8b',
+      ],
+    },
+    'embeddings': {
+      name: 'embeddings',
+      def: {
+        providers: [],
+        match: ['capabilities:embeddings'],
+        exclude: [],
+      },
+      usedBy: ['hindsight'],
+      members: [
+        'openai/text-embedding-3-large',
+        'openai/text-embedding-3-small',
+        'openai/text-embedding-ada-002',
+        'cohere/embed-v4',
+        'cohere/embed-v3',
+        'google/gemini-embedding-001',
+        'mistral/mistral-embed',
+        'voyage/voyage-3-large',
+      ],
+    },
+  };
+
+  /* ===== Sheet open/close (brGroupsSheet) ===== */
+  const brGroupsSheet = document.getElementById('br-groups-sheet');
+  const brGroupsOverlay = document.getElementById('br-groups-overlay');
+  const brGroupsDef = document.getElementById('br-groups-def');
+  const brGroupsMembers = document.getElementById('br-groups-members');
+  const brGroupsUsedBy = document.getElementById('br-groups-usedby');
+
+  function brGroupsDefRow(label, badges) {
+    if (!badges.length) return '';
+    const chips = badges
+      .map((b) => `<span class="badge ${b.startsWith('!') ? 'badge-danger' : 'badge-neutral'} font-mono text-xs font-normal">${b}</span>`)
+      .join(' ');
+    return `<div class="flex items-center gap-2"><span class="w-20 shrink-0 text-xs text-muted-foreground">${label}</span><div class="flex flex-wrap gap-1.5">${chips}</div></div>`;
+  }
+
+  function brGroupsOpen(id) {
+    const g = brGroupsData[id];
+    if (!g) return;
+    document.getElementById('br-groups-name').textContent = g.name;
+    document.getElementById('br-groups-count').textContent = `${g.members.length} models`;
+    document.getElementById('br-groups-member-count').textContent = `${g.members.length} of 129`;
+
+    brGroupsDef.innerHTML =
+      brGroupsDefRow('Providers', g.def.providers) +
+      brGroupsDefRow('Match', g.def.match) +
+      brGroupsDefRow('Exclude', g.def.exclude);
+
+    brGroupsMembers.innerHTML = g.members
+      .map((m) => {
+        const [provider, model] = m.split('/');
+        return `<tr><td><code class="font-mono text-xs">${m}</code></td><td class="text-xs text-muted-foreground">${provider}</td></tr>`;
+      })
+      .join('');
+
+    brGroupsUsedBy.innerHTML = g.usedBy
+      .map((vk) => `<span class="badge badge-neutral font-mono text-xs font-normal">${vk}</span>`)
+      .join('');
+
+    brGroupsSheet.classList.add('open');
+    brGroupsOverlay.classList.remove('hidden');
+  }
+
+  function brGroupsClose() {
+    brGroupsSheet.classList.remove('open');
+    brGroupsOverlay.classList.add('hidden');
+  }
+
+  document.getElementById('br-groups-tbl').addEventListener('click', (e) => {
+    const row = e.target.closest('tr[data-group]');
+    if (row) brGroupsOpen(row.dataset.group);
+  });
+  document.getElementById('br-groups-close').addEventListener('click', brGroupsClose);
+  document.getElementById('br-groups-cancel').addEventListener('click', brGroupsClose);
+  brGroupsOverlay.addEventListener('click', brGroupsClose);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') brGroupsClose(); });
+  /* Save is inert in the mockup (no edit-definition mode) */
+  document.getElementById('br-groups-save').addEventListener('click', brGroupsClose);
+
+  /* ===== Toolbar search — filters mocked rows by name/definition ===== */
+  document.getElementById('br-groups-search').addEventListener('input', (e) => {
+    const q = e.target.value.toLowerCase();
+    document.querySelectorAll('#br-groups-tbl tbody tr').forEach((tr) => {
+      tr.hidden = q !== '' && !tr.textContent.toLowerCase().includes(q);
+    });
+  });
+</script>

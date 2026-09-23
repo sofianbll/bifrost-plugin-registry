@@ -1,0 +1,1725 @@
+<!doctype html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bifrost Registry</title>
+
+  <!-- Geist + Geist Mono (Google Fonts CDN) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind (CDN, no build) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Geist', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
+            mono: ['Geist Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Liberation Mono', 'monospace'],
+          },
+          /* Bifrost type scale — non-standard sizes are deliberate (design system §1.5) */
+          fontSize: {
+            xs: ['0.75rem', '1rem'],
+            sm: ['0.825rem', '1.25rem'],
+            base: ['0.95rem', '1.5rem'],
+            lg: ['1.125rem', '1.75rem'],
+            xl: ['1.25rem', '1.75rem'],
+            '2xl': ['1.5rem', '2rem'],
+          },
+          /* Token colors resolve through CSS custom properties so the whole
+             palette swaps with the .dark class (see <style> below). */
+          colors: {
+            background: 'var(--background)',
+            foreground: 'var(--foreground)',
+            card: 'var(--card)',
+            muted: 'var(--muted)',
+            'muted-foreground': 'var(--muted-foreground)',
+            primary: 'var(--primary)',
+            'primary-foreground': 'var(--primary-foreground)',
+            secondary: 'var(--secondary)',
+            'secondary-foreground': 'var(--secondary-foreground)',
+            destructive: 'var(--destructive)',
+            'sidebar-accent': 'var(--sidebar-accent)',
+            border: 'var(--border)',
+            input: 'var(--input)',
+            ring: 'var(--ring)',
+          },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    /* ============================================================
+       Design tokens — exact values from docs/design/bifrost-ui-design-system.md
+       (§1.1 light, §1.2 dark, §1.3 charts, §1.4 sidebar)
+       ============================================================ */
+    :root {
+      --background: #f4f4f5;
+      --foreground: oklch(0.141 0.005 285.823);
+      --card: oklch(1 0 0);
+      --muted: oklch(0.967 0.001 286.375);
+      --muted-foreground: oklch(0.552 0.016 285.938);
+      --primary: oklch(0.5081 0.1049 165.61); /* teal — the only brand accent (light) */
+      --primary-foreground: oklch(0.985 0 0);
+      --secondary: oklch(0.967 0.001 286.375);
+      --secondary-foreground: oklch(0.21 0.006 285.885);
+      --accent: oklch(0.967 0.001 286.375);
+      --accent-foreground: oklch(0.21 0.006 285.885);
+      --destructive: oklch(0.577 0.245 27.325);
+      --destructive-foreground: oklch(0.985 0 0);
+      --border: oklch(0.92 0.004 286.32);
+      --input: oklch(0.92 0.004 286.32);
+      --ring: oklch(0.705 0.015 286.067);
+      --sidebar-accent: oklch(0.94 0.001 286.375);
+
+      --chart-success: oklch(0.63 0.11 182);
+      --chart-error: oklch(0.6 0.16 27);
+      --chart-warning: oklch(0.74 0.13 62);
+      --chart-neutral: oklch(0.8 0.012 200);
+      --chart-success-ink: oklch(0.45 0.1 182);
+      --chart-error-ink: oklch(0.48 0.16 27);
+      --chart-warning-ink: oklch(0.5 0.12 62);
+      --chart-neutral-ink: oklch(0.45 0.02 220);
+    }
+
+    .dark {
+      --background: color-mix(in oklch, oklch(0.141 0.005 285.823) 20%, transparent);
+      --foreground: oklch(0.985 0 0);
+      --card: oklch(0.21 0.006 285.885);
+      --muted: oklch(0.274 0.006 286.033);
+      --muted-foreground: oklch(0.705 0.015 286.067);
+      --primary: oklch(0.92 0.004 286.32); /* inverted: dark primary is off-white */
+      --primary-foreground: oklch(0.21 0.006 285.885);
+      --secondary: oklch(0.274 0.006 286.033);
+      --secondary-foreground: oklch(0.985 0 0);
+      --accent: oklch(0.274 0.006 286.033);
+      --accent-foreground: oklch(0.985 0 0);
+      --destructive: oklch(0.704 0.191 22.216);
+      --destructive-foreground: oklch(0.985 0 0);
+      --border: oklch(1 0 0 / 10%);
+      --input: oklch(1 0 0 / 15%);
+      --ring: oklch(0.552 0.016 285.938);
+      --sidebar-accent: oklch(0.274 0.006 286.033);
+
+      --chart-success: oklch(0.72 0.115 182);
+      --chart-error: oklch(0.68 0.155 27);
+      --chart-warning: oklch(0.8 0.125 62);
+      --chart-neutral: oklch(0.55 0.015 220);
+      --chart-success-ink: oklch(0.84 0.1 182);
+      --chart-error-ink: oklch(0.82 0.12 27);
+      --chart-warning-ink: oklch(0.86 0.11 62);
+      --chart-neutral-ink: oklch(0.72 0.03 220);
+    }
+
+    html { color-scheme: light; }
+    html.dark { color-scheme: dark; }
+    body {
+      background-color: var(--background);
+      color: var(--foreground);
+    }
+    /* Dark background is a 20% veil over a near-black base (§1.2) */
+    html.dark body { background-color: color-mix(in oklch, oklch(0.141 0.005 285.823) 20%, oklch(0.16 0.01 285)); }
+
+    input::placeholder { color: color-mix(in oklch, var(--muted-foreground) 70%, transparent); }
+    .text-faint { color: color-mix(in oklch, var(--muted-foreground) 70%, transparent); }
+
+    /* ============ custom-scrollbar (design system §1.10) ============ */
+    .custom-scrollbar { scrollbar-width: thin; scrollbar-color: transparent transparent; }
+    .custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgb(228 228 231); border-radius: 4px; opacity: 0; }
+    .custom-scrollbar:hover { scrollbar-color: rgb(82 82 91) transparent; }
+    .custom-scrollbar:hover::-webkit-scrollbar-thumb { background-color: rgb(82 82 91); }
+    .dark .custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgb(63 63 70); }
+    .dark .custom-scrollbar:hover::-webkit-scrollbar-thumb { background-color: rgb(113 113 122); }
+
+    /* ================= .btn (design system §3.1) ================= */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+      height: 30px; padding: 0.25rem 0.5rem; /* h-7.5, default size */
+      border-radius: 4px; border: 1px solid transparent;
+      font-size: 0.825rem; font-weight: 500; line-height: 1.25rem; white-space: nowrap;
+      cursor: pointer; user-select: none;
+      transition: background-color 0.15s, color 0.15s, border-color 0.15s, transform 0.1s;
+    }
+    .btn:active { transform: scale(0.99); }
+    .btn:focus-visible { outline: none; box-shadow: 0 0 0 1px var(--ring); }
+    .btn:disabled { pointer-events: none; opacity: 0.5; }
+    .btn svg { width: 16px; height: 16px; flex-shrink: 0; pointer-events: none; }
+    .btn-sm { height: 32px; gap: 0.375rem; padding: 0 0.75rem; }
+    .btn-sm svg { width: 14px; height: 14px; }
+    .btn-primary { background-color: var(--primary); color: var(--primary-foreground); }
+    .btn-primary:hover { background-color: color-mix(in oklch, var(--primary) 90%, transparent); }
+    .btn-outline { background-color: transparent; border-color: var(--border); color: var(--foreground); }
+    .btn-outline:hover { background-color: var(--accent); color: var(--accent-foreground); }
+    .btn-ghost { background-color: transparent; color: var(--foreground); }
+    .btn-ghost:hover { background-color: var(--accent); color: var(--accent-foreground); }
+    .btn-danger { background-color: var(--destructive); color: var(--destructive-foreground); font-weight: 400; }
+    .btn-danger:hover { background-color: color-mix(in oklch, var(--destructive) 90%, transparent); }
+
+    /* ================= .badge (design system §3.2) ================= */
+    .badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: fit-content; white-space: nowrap;
+      border-radius: 4px; border: 1px solid transparent;
+      padding: 2px 8px; font-size: 0.75rem; line-height: 1rem; font-weight: 500;
+    }
+    .badge svg { width: 12px; height: 12px; }
+    .badge-success { background-color: color-mix(in oklch, var(--chart-success) 14%, transparent); border-color: color-mix(in oklch, var(--chart-success) 45%, transparent); color: var(--chart-success-ink); }
+    .badge-warn { background-color: color-mix(in oklch, var(--chart-warning) 16%, transparent); border-color: color-mix(in oklch, var(--chart-warning) 45%, transparent); color: var(--chart-warning-ink); }
+    .badge-danger { background-color: color-mix(in oklch, var(--chart-error) 12%, transparent); border-color: color-mix(in oklch, var(--chart-error) 45%, transparent); color: var(--chart-error-ink); }
+    .badge-neutral { background-color: color-mix(in oklch, var(--chart-neutral) 14%, transparent); border-color: color-mix(in oklch, var(--chart-neutral) 45%, transparent); color: var(--chart-neutral-ink); }
+    .badge-accent { background-color: color-mix(in oklch, var(--primary) 10%, transparent); border-color: color-mix(in oklch, var(--primary) 50%, transparent); color: var(--primary); }
+    .dark .badge-accent { color: var(--foreground); }
+
+    /* ================= .tbl (design system §3.3) ================= */
+    .tbl-container { position: relative; width: 100%; overflow-x: auto; }
+    .tbl { width: 100%; border-collapse: collapse; caption-side: bottom; font-size: 0.825rem; line-height: 1.25rem; }
+    .tbl thead th {
+      position: sticky; top: 0; z-index: 20;
+      height: 40px; padding: 0 16px; text-align: left; vertical-align: middle;
+      font-weight: 500; white-space: nowrap;
+      color: var(--foreground); background-color: var(--muted);
+    }
+    .tbl tbody tr { border-bottom: 1px solid var(--border); transition: background-color 0.15s; }
+    .tbl tbody tr:hover { background-color: color-mix(in oklch, var(--muted) 50%, transparent); }
+    .dark .tbl tbody tr:hover { background-color: color-mix(in oklch, var(--muted) 75%, transparent); }
+    .tbl tbody td { padding: 8px 16px; vertical-align: middle; white-space: nowrap; }
+
+    /* ================= .stat-card ================= */
+    .stat-card {
+      display: flex; flex-direction: column; gap: 4px;
+      border-radius: 4px; border: 1px solid var(--border);
+      background-color: var(--card); padding: 16px;
+      box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    }
+
+    /* ================= .empty-state (design system §3.15) ================= */
+    .empty-state {
+      display: flex; min-height: 60vh; flex-direction: column;
+      align-items: center; justify-content: center; gap: 16px;
+      padding: 64px 16px; text-align: center;
+    }
+
+    /* ================= .sheet (design system §3.9) ================= */
+    .sheet-overlay { position: fixed; inset: 0; z-index: 40; background-color: rgb(0 0 0 / 0.5); }
+    .sheet {
+      position: fixed; inset-block: 0; right: 0; z-index: 50;
+      display: flex; width: 100%; max-width: 32rem; flex-direction: column;
+      background-color: var(--card); color: var(--foreground);
+      border-left: 1px solid var(--border);
+      box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+      transform: translateX(100%); transition: transform 0.2s ease;
+    }
+    .sheet.open { transform: translateX(0); }
+
+    /* ============ sidebar nav item (design system §2.2) ============ */
+    .nav-item {
+      display: flex; align-items: center; gap: 0.5rem;
+      height: 30px; width: 100%; padding: 0 12px;
+      border-radius: 4px; border: 1px solid transparent;
+      font-size: 0.825rem; line-height: 1.25rem; text-align: left;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+    .nav-item:not(.active) { color: oklch(0.554 0.026 264); }
+    .nav-item:not(.active):hover { background-color: var(--sidebar-accent); color: var(--accent-foreground); }
+    .nav-item.active {
+      background-color: var(--sidebar-accent);
+      border-color: color-mix(in oklch, var(--primary) 20%, transparent);
+      color: var(--primary); font-weight: 500;
+    }
+    .nav-item.active svg { color: var(--primary); }
+    .dark .nav-item:not(.active) { color: oklch(0.704 0.015 286); }
+
+    /* env label band (design system §2.2) */
+    .env-band {
+      border-radius: 4px; background-color: color-mix(in oklch, oklch(0.85 0.17 90) 20%, transparent);
+      padding: 4px 8px; text-align: center;
+      font-family: 'Geist Mono', ui-monospace, monospace;
+      font-size: 10px; font-weight: 600; letter-spacing: 0.1em;
+      color: oklch(0.47 0.12 75);
+    }
+    .dark .env-band { color: oklch(0.85 0.13 90); }
+
+    /* info icon next to topbar title (§2.3) */
+    .info-dot { color: var(--muted-foreground); cursor: help; }
+    .info-dot:hover { color: var(--foreground); }
+
+    kbd > span {
+      border: 1px solid var(--border); background-color: var(--muted);
+      border-radius: 4px; padding: 0 4px;
+      font-family: 'Geist Mono', ui-monospace, monospace; font-size: 10px;
+      box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    }
+  </style>
+</head>
+
+<body class="flex h-dvh w-full overflow-hidden font-sans text-sm antialiased">
+
+  <!-- ==================== SIDEBAR — 240px, transparent (§2.2) ==================== -->
+  <aside class="flex w-[240px] shrink-0 flex-col gap-4 bg-transparent px-3 pt-3 pb-2">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+      <a href="#" class="flex h-[22px] items-center gap-2" aria-label="Bifrost Registry">
+        <span class="flex size-[22px] items-center justify-center rounded-sm bg-primary text-primary-foreground">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-3.5"><path d="M17 3.34a10 10 0 1 1-14.995 8.984L2 12l.005-.324A10 10 0 0 1 17 3.34"/><path d="m9 17 3-3 3 3 3-3"/><path d="M12 11v6"/></svg>
+        </span>
+        <span class="truncate text-sm font-semibold">Bifrost Registry</span>
+      </a>
+      <button class="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground" title="Collapse sidebar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="m16 15-3-3 3-3"/></svg>
+      </button>
+    </div>
+
+    <!-- Search -->
+    <div class="relative">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <input type="text" placeholder="Search…" class="h-8 w-full rounded-sm border border-input bg-transparent pr-14 pl-8 text-sm outline-none focus-visible:border-primary" />
+      <kbd class="absolute top-1/2 right-2 flex -translate-y-1/2 items-center gap-0.5 text-muted-foreground"><span>⌘</span><span>K</span></kbd>
+    </div>
+
+    <!-- Env label -->
+    <div class="env-band">LOCAL</div>
+
+    <!-- Nav -->
+    <nav class="flex flex-col gap-0.5" aria-label="Registry">
+      <button class="nav-item active" data-screen="screen-overview" data-title="Overview">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+        <span class="truncate">Overview</span>
+      </button>
+      <button class="nav-item" data-screen="screen-keys" data-title="Virtual Keys">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"/><circle cx="16.5" cy="7.5" r=".5" fill="currentColor"/></svg>
+        <span class="truncate">Virtual Keys</span>
+      </button>
+      <button class="nav-item" data-screen="screen-models" data-title="Models">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.97 12.92A2 2 0 0 0 2 14.63v3.24a2 2 0 0 0 .97 1.71l3 1.8a2 2 0 0 0 2.06 0L12 19v-5.5l-5-3-4.03 2.42Z"/><path d="m7 16.5-4.74-2.85"/><path d="m7 16.5 5-3"/><path d="M7 16.5v5.17"/><path d="M12 13.5V19l3.97 2.38a2 2 0 0 0 2.06 0l3-1.8a2 2 0 0 0 .97-1.71v-3.24a2 2 0 0 0-.97-1.71L17 10.5l-5 3Z"/><path d="m17 16.5-5-3"/><path d="m17 16.5 4.74-2.85"/><path d="M17 16.5v5.17"/><path d="M7.97 4.42A2 2 0 0 0 7 6.13v4.37l5 3 5-3V6.13a2 2 0 0 0-.97-1.71l-3-1.8a2 2 0 0 0-2.06 0l-3 1.8Z"/><path d="M12 8 7.26 5.15"/><path d="m12 8 4.74-2.85"/><path d="M12 13.5V8"/></svg>
+        <span class="truncate">Models</span>
+      </button>
+      <button class="nav-item" data-screen="screen-groups" data-title="Groups">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></svg>
+        <span class="truncate">Groups</span>
+      </button>
+      <button class="nav-item" data-screen="screen-denials" data-title="Denials">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+        <span class="truncate">Denials</span>
+      </button>
+    </nav>
+
+    <!-- Footer -->
+    <div class="mt-auto space-y-2">
+      <p class="px-1 font-mono text-[10px] text-muted-foreground">bifrost-registry v0.1.0</p>
+      <p class="text-faint px-1 text-[10px] leading-3">Mock data — no live API calls.</p>
+    </div>
+  </aside>
+
+  <!-- ==================== COLUMN : topbar + content card (§2.1) ==================== -->
+  <div class="flex h-dvh w-full min-w-0 flex-col">
+    <!-- Topbar — 52px, no background (§2.3) -->
+    <header class="flex h-[52px] w-full shrink-0 items-center gap-2 px-3 pt-1">
+      <h1 id="screen-title" class="hidden truncate text-base font-semibold md:block">Overview</h1>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="info-dot size-5"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+      <div class="ml-auto flex items-center gap-2">
+        <span class="badge badge-neutral font-mono text-[10px] tracking-widest">ENV · LOCAL</span>
+        <button id="theme-toggle" class="btn btn-ghost btn-sm !px-2" title="Toggle theme">
+          <svg id="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+          <svg id="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+        </button>
+        <div class="flex h-8 max-w-[220px] items-center gap-2 rounded-full border border-border bg-card px-2">
+          <span class="flex size-6 items-center justify-center rounded-full bg-muted text-xs font-medium">A</span>
+          <span class="truncate text-sm font-medium">Admin</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-3.5 text-muted-foreground"><path d="m6 9 6 6 6-6"/></svg>
+        </div>
+      </div>
+    </header>
+
+    <!-- Big content card (§2.1) -->
+    <div class="custom-scrollbar min-h-0 flex-1 overflow-auto border border-gray-200 bg-white md:mr-3 md:mb-3 md:rounded-md md:px-10 dark:border-zinc-800 dark:bg-card">
+      <main class="mx-auto flex min-h-0 w-full max-w-[1200px] flex-col md:p-4">
+
+        <!-- ==================== OVERVIEW (M1 — filled) ==================== -->
+        <section id="screen-overview" aria-label="Overview">
+          <p class="mb-4 text-xs text-muted-foreground">Registry health, revision drift, and guardrail denials at a glance.</p>
+
+          <!-- Health banner -->
+          <div class="mb-4 flex flex-wrap items-center gap-3 rounded-md border p-4" style="border-color: color-mix(in oklch, var(--chart-success) 35%, transparent); background-color: color-mix(in oklch, var(--chart-success) 7%, transparent);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-5" style="color: var(--chart-success-ink);"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+            <div class="min-w-0">
+              <p class="text-sm font-medium">Registry healthy — no drift</p>
+              <p class="text-xs text-muted-foreground">Served revision matches disk revision.</p>
+            </div>
+            <code class="ml-2 hidden cursor-default rounded-sm border border-border bg-card px-2 py-1 font-mono text-xs text-muted-foreground sm:block">a3f91c…e7b2</code>
+            <button id="open-revision-sheet" class="btn btn-outline btn-sm ml-auto">Revision details</button>
+          </div>
+
+          <!-- Stat cards -->
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div class="stat-card">
+              <p class="text-xs font-medium text-muted-foreground">Models</p>
+              <p class="text-2xl font-semibold">129</p>
+              <p class="text-xs text-muted-foreground">Catalog entries across providers</p>
+            </div>
+            <div class="stat-card">
+              <p class="text-xs font-medium text-muted-foreground">Groups</p>
+              <p class="text-2xl font-semibold">32</p>
+              <p class="text-xs text-muted-foreground">With filters and exclusions</p>
+            </div>
+            <div class="stat-card">
+              <p class="text-xs font-medium text-muted-foreground">Policies</p>
+              <p class="text-2xl font-semibold">38</p>
+              <p class="text-xs text-muted-foreground">Bound to virtual keys</p>
+            </div>
+          </div>
+
+          <!-- Denials 24h tile with top codes -->
+          <div class="stat-card mt-3 gap-3">
+            <div class="flex flex-wrap items-baseline justify-between gap-2">
+              <p class="text-xs font-medium text-muted-foreground">Denials — 24h</p>
+              <p class="text-2xl font-semibold">15</p>
+            </div>
+            <div class="tbl-container -mx-4 max-h-[180px] overflow-y-auto">
+              <table class="tbl">
+                <thead>
+                  <tr><th>Code</th><th class="!text-right">Count</th></tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code class="font-mono text-xs">registry_model_not_allowed</code></td>
+                    <td class="text-right"><span class="badge badge-danger">11</span></td>
+                  </tr>
+                  <tr>
+                    <td><code class="font-mono text-xs">registry_group_not_allowed</code></td>
+                    <td class="text-right"><span class="badge badge-warn">2</span></td>
+                  </tr>
+                  <tr>
+                    <td><code class="font-mono text-xs">registry_policy_missing</code></td>
+                    <td class="text-right"><span class="badge badge-warn">2</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== VIRTUAL KEYS (M3) ==================== -->
+        <section id="screen-keys" hidden aria-label="Virtual Keys">
+<!-- ==================== VIRTUAL KEYS (M3 — filled) ==================== -->
+<!-- Fragment : contenu intérieur de <section id="screen-keys">. Pas de wrapper ici. -->
+
+<p class="mb-4 text-xs text-muted-foreground">Manage virtual keys, their groups, models, and rate limits.</p>
+
+<!-- Toolbar -->
+<div class="mb-4 flex flex-wrap items-center gap-3">
+  <div class="relative max-w-sm flex-1">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+    <input id="keys-search" type="text" placeholder="Search keys…" class="h-9 w-full rounded-sm border border-input bg-transparent pr-3 pl-9 text-sm outline-none focus-visible:border-primary" />
+  </div>
+  <select id="keys-group-filter" class="h-9 rounded-sm border border-input bg-transparent px-3 text-sm outline-none focus-visible:border-primary" aria-label="Filter by group">
+    <option value="">All groups</option>
+    <option value="cheap-fast">cheap-fast</option>
+    <option value="frontier">frontier</option>
+    <option value="vision">vision</option>
+  </select>
+  <button id="keys-new" class="btn btn-primary btn-sm ml-auto">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+    New Key
+  </button>
+</div>
+
+<!-- Table -->
+<div class="tbl-container max-h-[calc(100dvh-240px)] overflow-y-auto rounded-sm border">
+  <table class="tbl">
+    <thead>
+      <tr>
+        <th>Key</th>
+        <th>Groups</th>
+        <th>Models</th>
+        <th>Sources</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody id="keys-tbody">
+      <tr class="cursor-pointer" data-key="hermes" data-status="active">
+        <td><span class="font-medium">hermes</span></td>
+        <td>
+          <span class="badge badge-neutral">cheap-fast</span>
+          <span class="badge badge-neutral ml-1">frontier</span>
+        </td>
+        <td class="text-muted-foreground">all in groups</td>
+        <td><code class="badge badge-neutral font-mono text-[10px] tracking-wider">bifrost-web</code></td>
+        <td><span class="badge badge-success">active</span></td>
+      </tr>
+      <tr class="cursor-pointer" data-key="hindsight" data-status="active">
+        <td><span class="font-medium">hindsight</span></td>
+        <td>
+          <span class="badge badge-neutral">cheap-fast</span>
+          <span class="badge badge-neutral ml-1">vision</span>
+        </td>
+        <td class="text-muted-foreground">all in groups</td>
+        <td><code class="badge badge-neutral font-mono text-[10px] tracking-wider">bifrost-web</code></td>
+        <td><span class="badge badge-success">active</span></td>
+      </tr>
+      <tr class="cursor-pointer" data-key="cpa" data-status="active">
+        <td><span class="font-medium">cpa</span></td>
+        <td><span class="badge badge-neutral">cheap-fast</span></td>
+        <td class="text-muted-foreground">24 models</td>
+        <td><code class="badge badge-neutral font-mono text-[10px] tracking-wider">cli</code></td>
+        <td><span class="badge badge-success">active</span></td>
+      </tr>
+      <tr class="cursor-pointer" data-key="opencode-omo" data-status="active">
+        <td><span class="font-medium">opencode-omo</span></td>
+        <td><span class="badge badge-neutral">frontier</span></td>
+        <td class="text-muted-foreground">8 models</td>
+        <td><code class="badge badge-neutral font-mono text-[10px] tracking-wider">cli</code></td>
+        <td><span class="badge badge-success">active</span></td>
+      </tr>
+      <tr class="cursor-pointer" data-key="kimi-work" data-status="active">
+        <td><span class="font-medium">kimi-work</span></td>
+        <td>
+          <span class="badge badge-neutral">cheap-fast</span>
+          <span class="badge badge-neutral ml-1">vision</span>
+        </td>
+        <td class="text-muted-foreground">31 models</td>
+        <td><code class="badge badge-neutral font-mono text-[10px] tracking-wider">mcp</code></td>
+        <td><span class="badge badge-success">active</span></td>
+      </tr>
+      <tr class="cursor-pointer" data-key="playground" data-status="active">
+        <td><span class="font-medium">playground</span></td>
+        <td>
+          <span class="badge badge-neutral">cheap-fast</span>
+          <span class="badge badge-neutral ml-1">frontier</span>
+          <span class="badge badge-neutral ml-1">vision</span>
+        </td>
+        <td class="text-muted-foreground">all in groups</td>
+        <td><code class="badge badge-neutral font-mono text-[10px] tracking-wider">bifrost-web</code></td>
+        <td><span class="badge badge-success">active</span></td>
+      </tr>
+      <tr class="cursor-pointer" data-key="ci-runner" data-status="active">
+        <td><span class="font-medium">ci-runner</span></td>
+        <td><span class="badge badge-neutral">cheap-fast</span></td>
+        <td class="text-muted-foreground">24 models</td>
+        <td><code class="badge badge-neutral font-mono text-[10px] tracking-wider">cli</code></td>
+        <td><span class="badge badge-success">active</span></td>
+      </tr>
+      <tr class="cursor-pointer" data-key="docs-bot" data-status="active">
+        <td><span class="font-medium">docs-bot</span></td>
+        <td><span class="badge badge-neutral">cheap-fast</span></td>
+        <td class="text-muted-foreground">12 models</td>
+        <td><code class="badge badge-neutral font-mono text-[10px] tracking-wider">cli</code></td>
+        <td><span class="badge badge-success">active</span></td>
+      </tr>
+      <tr class="cursor-pointer" data-key="eval-harness" data-status="disabled">
+        <td><span class="font-medium">eval-harness</span></td>
+        <td>
+          <span class="badge badge-neutral">frontier</span>
+          <span class="badge badge-neutral ml-1">vision</span>
+        </td>
+        <td class="text-muted-foreground">19 models</td>
+        <td><code class="badge badge-neutral font-mono text-[10px] tracking-wider">cli</code></td>
+        <td><span class="badge badge-neutral">disabled</span></td>
+      </tr>
+      <tr class="cursor-pointer" data-key="legacy-import" data-status="disabled">
+        <td><span class="font-medium">legacy-import</span></td>
+        <td><span class="badge badge-neutral">cheap-fast</span></td>
+        <td class="text-muted-foreground">6 models</td>
+        <td><code class="badge badge-neutral font-mono text-[10px] tracking-wider">bifrost-web</code></td>
+        <td><span class="badge badge-neutral">disabled</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Empty state (uncomment when no key matches search/filter)
+  <div class="empty-state">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="h-[5.5rem] w-[5.5rem] text-muted-foreground"><path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"/><circle cx="16.5" cy="7.5" r=".5" fill="currentColor"/></svg>
+    <h2 class="text-xl font-medium text-muted-foreground">No key matches</h2>
+    <p class="max-w-[600px] text-sm text-muted-foreground">No virtual key matches the current search or group filter.</p>
+  </div>
+  -->
+</div>
+
+<!-- ==================== SHEET — edit virtual key (§3.9, hidden by default) ==================== -->
+<div id="br-keys-overlay" class="sheet-overlay hidden"></div>
+<aside id="br-keys-sheet" class="sheet" role="dialog" aria-modal="true" aria-label="Edit virtual key">
+  <!-- Header -->
+  <div class="flex items-start justify-between gap-4 border-b border-border p-6 pb-4">
+    <div class="flex items-center gap-2">
+      <h2 id="br-keys-sheet-name" class="text-lg leading-none font-semibold font-mono">hermes</h2>
+      <span id="br-keys-sheet-status" class="badge badge-success">active</span>
+    </div>
+    <button id="br-keys-close" class="btn btn-ghost !size-7 !px-0" aria-label="Close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+    </button>
+  </div>
+
+  <!-- Body -->
+  <div class="custom-scrollbar flex-1 space-y-6 overflow-y-auto p-6">
+    <!-- Access -->
+    <section>
+      <h3 class="text-sm font-medium">Access</h3>
+      <p class="mt-1 text-xs text-muted-foreground">Groups, models, and allowed sources.</p>
+
+      <p class="mt-4 mb-2 text-xs font-medium text-muted-foreground">Groups</p>
+      <div class="space-y-2">
+        <label class="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked class="size-4 rounded-[4px] border border-input accent-[var(--primary)]" />
+          <code class="font-mono text-xs">cheap-fast</code>
+          <span class="ml-auto text-xs text-muted-foreground">24 models</span>
+        </label>
+        <label class="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked class="size-4 rounded-[4px] border border-input accent-[var(--primary)]" />
+          <code class="font-mono text-xs">frontier</code>
+          <span class="ml-auto text-xs text-muted-foreground">8 models</span>
+        </label>
+        <label class="flex items-center gap-2 text-sm">
+          <input type="checkbox" class="size-4 rounded-[4px] border border-input accent-[var(--primary)]" />
+          <code class="font-mono text-xs">vision</code>
+          <span class="ml-auto text-xs text-muted-foreground">7 models</span>
+        </label>
+      </div>
+
+      <p class="mt-4 mb-2 text-xs font-medium text-muted-foreground">Sources</p>
+      <div class="space-y-2">
+        <label class="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked class="size-4 rounded-[4px] border border-input accent-[var(--primary)]" />
+          <code class="font-mono text-xs">bifrost-web</code>
+        </label>
+        <label class="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked class="size-4 rounded-[4px] border border-input accent-[var(--primary)]" />
+          <code class="font-mono text-xs">cli</code>
+        </label>
+        <label class="flex items-center gap-2 text-sm">
+          <input type="checkbox" class="size-4 rounded-[4px] border border-input accent-[var(--primary)]" />
+          <code class="font-mono text-xs">mcp</code>
+        </label>
+      </div>
+    </section>
+
+    <!-- Limits -->
+    <section class="border-t border-border pt-6">
+      <h3 class="text-sm font-medium">Limits</h3>
+      <p class="mt-1 text-xs text-muted-foreground">Rate and cost limits. <span class="badge badge-neutral ml-1">coming</span></p>
+      <div class="mt-4 grid grid-cols-3 gap-3">
+        <div>
+          <label class="text-xs font-medium text-muted-foreground" for="br-keys-rpm">RPM</label>
+          <input id="br-keys-rpm" type="number" disabled placeholder="—" class="mt-1 h-9 w-full rounded-sm border border-input bg-transparent px-3 text-sm opacity-50" />
+        </div>
+        <div>
+          <label class="text-xs font-medium text-muted-foreground" for="br-keys-tpm">TPM</label>
+          <input id="br-keys-tpm" type="number" disabled placeholder="—" class="mt-1 h-9 w-full rounded-sm border border-input bg-transparent px-3 text-sm opacity-50" />
+        </div>
+        <div>
+          <label class="text-xs font-medium text-muted-foreground" for="br-keys-cost">Cost / day</label>
+          <input id="br-keys-cost" type="number" disabled placeholder="—" class="mt-1 h-9 w-full rounded-sm border border-input bg-transparent px-3 text-sm opacity-50" />
+        </div>
+      </div>
+    </section>
+
+    <!-- Preview -->
+    <section class="border-t border-border pt-6">
+      <h3 class="text-sm font-medium">Preview</h3>
+      <p class="mt-1 text-xs text-muted-foreground">Resolved configuration for this key.</p>
+      <pre class="custom-scrollbar mt-4 overflow-x-auto rounded-sm border border-border bg-muted/50 p-4 font-mono text-xs leading-relaxed">{
+  "virtual_key_id": "hermes",
+  "token_sha256": "9f2c7a1d…0e2f58",
+  "naming": "model",
+  "groups": ["cheap-fast", "frontier"],
+  "sources": ["bifrost-web", "cli"],
+  "limits": null,
+  "enabled": true
+}</pre>
+    </section>
+  </div>
+
+  <!-- Footer -->
+  <div class="flex justify-end gap-2 border-t border-border p-4">
+    <button id="br-keys-cancel" class="btn btn-ghost">Cancel</button>
+    <button id="br-keys-save" class="btn btn-primary">Save changes</button>
+  </div>
+</aside>
+
+<script>
+  /* ===== Virtual Keys sheet — open/close (namespaced, no collision with shell JS) ===== */
+  (function () {
+    const brKeysSheet = document.getElementById('br-keys-sheet');
+    const brKeysOverlay = document.getElementById('br-keys-overlay');
+    const brKeysName = document.getElementById('br-keys-sheet-name');
+    const brKeysStatus = document.getElementById('br-keys-sheet-status');
+
+    function brKeysOpen(row) {
+      brKeysName.textContent = row.dataset.key;
+      const active = row.dataset.status === 'active';
+      brKeysStatus.textContent = active ? 'active' : 'disabled';
+      brKeysStatus.className = 'badge ' + (active ? 'badge-success' : 'badge-neutral');
+      brKeysSheet.classList.add('open');
+      brKeysOverlay.classList.remove('hidden');
+    }
+
+    function brKeysClose() {
+      brKeysSheet.classList.remove('open');
+      brKeysOverlay.classList.add('hidden');
+    }
+
+    document.getElementById('keys-tbody').addEventListener('click', (e) => {
+      const row = e.target.closest('tr[data-key]');
+      if (row) brKeysOpen(row);
+    });
+    document.getElementById('br-keys-close').addEventListener('click', brKeysClose);
+    document.getElementById('br-keys-cancel').addEventListener('click', brKeysClose);
+    document.getElementById('br-keys-save').addEventListener('click', brKeysClose);
+    brKeysOverlay.addEventListener('click', brKeysClose);
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && brKeysSheet.classList.contains('open')) brKeysClose();
+    });
+  })();
+</script>
+        </section>
+
+        <!-- ==================== MODELS (M3) ==================== -->
+        <section id="screen-models" hidden aria-label="Models">
+<!-- ==================== MODELS — fragment for <section id="screen-models"> ==================== -->
+<!-- Inner content only. Relies on shell classes (.tbl .badge .btn .sheet) and Tailwind config from index.html. -->
+
+<p class="mb-4 text-xs text-muted-foreground">Catalog of 129 models across 5 providers. Click a row to edit.</p>
+
+<!-- Toolbar -->
+<div class="mb-4 flex flex-wrap items-center gap-3">
+  <div class="relative w-64 max-w-full">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+    <input id="brm-search" type="text" placeholder="Search models…" class="h-8 w-full rounded-sm border border-input bg-transparent pr-3 pl-8 text-sm outline-none focus-visible:border-primary" />
+  </div>
+  <select id="brm-filter-provider" class="h-8 rounded-sm border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-primary">
+    <option value="all">All providers</option>
+    <option value="anthropic">anthropic</option>
+    <option value="openai">openai</option>
+    <option value="google">google</option>
+    <option value="deepseek">deepseek</option>
+    <option value="kimi">kimi</option>
+  </select>
+  <select id="brm-filter-group" class="h-8 rounded-sm border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-primary">
+    <option value="all">All groups</option>
+    <option value="cheap-fast">cheap-fast</option>
+    <option value="frontier">frontier</option>
+    <option value="vision">vision</option>
+  </select>
+  <button class="btn btn-primary btn-sm ml-auto">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+    Add Model
+  </button>
+</div>
+
+<!-- Secondary toolbar : view-as-key + id format segment -->
+<div class="mb-3 flex flex-wrap items-center gap-3">
+  <label for="brm-view-key" class="text-xs font-medium text-muted-foreground">View as key:</label>
+  <select id="brm-view-key" class="h-8 rounded-sm border border-input bg-transparent px-2 font-mono text-xs outline-none focus-visible:border-primary">
+    <option value="hermes">hermes</option>
+    <option value="kimi-work">kimi-work</option>
+    <option value="cpa">cpa</option>
+  </select>
+  <div class="mx-1 h-4 w-px bg-border"></div>
+  <span class="text-xs font-medium text-muted-foreground">ID format:</span>
+  <div id="brm-format-seg" class="inline-flex h-9 items-center rounded-lg bg-muted p-[3px]">
+    <button type="button" data-format="provider/model" class="rounded-sm border border-transparent px-2 py-1 font-mono text-xs font-medium transition-all">provider/model</button>
+    <button type="button" data-format="model" class="rounded-sm border border-transparent px-2 py-1 font-mono text-xs font-medium transition-all">model</button>
+    <button type="button" data-format="both" class="rounded-sm border border-transparent px-2 py-1 font-mono text-xs font-medium transition-all">both</button>
+  </div>
+</div>
+
+<!-- Table -->
+<div class="overflow-hidden rounded-sm border border-border">
+  <div class="tbl-container max-h-[420px] overflow-y-auto">
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>Model</th>
+          <th>Group(s)</th>
+          <th>Passthrough</th>
+          <th>Routing</th>
+          <th>Cost</th>
+        </tr>
+      </thead>
+      <tbody id="brm-tbody">
+        <tr class="cursor-pointer" data-model="anthropic/claude-opus-4.6" data-provider="anthropic" data-groups="frontier">
+          <td><code class="font-mono text-xs">anthropic/claude-opus-4.6</code></td>
+          <td><span class="badge badge-neutral font-mono text-[10px]">frontier</span></td>
+          <td><span class="badge badge-neutral">off</span></td>
+          <td class="text-muted-foreground">-</td>
+          <td class="text-muted-foreground">$15/M</td>
+        </tr>
+        <tr class="cursor-pointer" data-model="anthropic/claude-sonnet-4.6" data-provider="anthropic" data-groups="frontier">
+          <td><code class="font-mono text-xs">anthropic/claude-sonnet-4.6</code></td>
+          <td><span class="badge badge-neutral font-mono text-[10px]">frontier</span></td>
+          <td><span class="badge badge-neutral">off</span></td>
+          <td class="text-muted-foreground">-</td>
+          <td class="text-muted-foreground">$3/M</td>
+        </tr>
+        <tr class="cursor-pointer" data-model="anthropic/claude-haiku-4.5" data-provider="anthropic" data-groups="cheap-fast">
+          <td><code class="font-mono text-xs">anthropic/claude-haiku-4.5</code></td>
+          <td><span class="badge badge-neutral font-mono text-[10px]">cheap-fast</span></td>
+          <td><span class="badge badge-neutral">off</span></td>
+          <td class="text-muted-foreground">-</td>
+          <td class="text-muted-foreground">$1/M</td>
+        </tr>
+        <tr class="cursor-pointer" data-model="openai/gpt-5.2" data-provider="openai" data-groups="frontier">
+          <td><code class="font-mono text-xs">openai/gpt-5.2</code></td>
+          <td><span class="badge badge-neutral font-mono text-[10px]">frontier</span></td>
+          <td><span class="badge badge-success">on</span></td>
+          <td><span class="text-muted-foreground">us, eu</span> <span class="badge badge-neutral font-mono text-[10px]">native</span></td>
+          <td class="text-muted-foreground">$8/M</td>
+        </tr>
+        <tr class="cursor-pointer" data-model="openai/gpt-5.2-mini" data-provider="openai" data-groups="cheap-fast">
+          <td><code class="font-mono text-xs">openai/gpt-5.2-mini</code></td>
+          <td><span class="badge badge-neutral font-mono text-[10px]">cheap-fast</span></td>
+          <td><span class="badge badge-neutral">off</span></td>
+          <td class="text-muted-foreground">-</td>
+          <td class="text-muted-foreground">$2/M</td>
+        </tr>
+        <tr class="cursor-pointer" data-model="openai/gpt-5.2-nano" data-provider="openai" data-groups="cheap-fast">
+          <td><code class="font-mono text-xs">openai/gpt-5.2-nano</code></td>
+          <td><span class="badge badge-neutral font-mono text-[10px]">cheap-fast</span></td>
+          <td><span class="badge badge-neutral">off</span></td>
+          <td class="text-muted-foreground">-</td>
+          <td class="text-muted-foreground">$0.40/M</td>
+        </tr>
+        <tr class="cursor-pointer" data-model="google/gemini-3-pro" data-provider="google" data-groups="frontier vision">
+          <td><code class="font-mono text-xs">google/gemini-3-pro</code></td>
+          <td><span class="badge badge-neutral font-mono text-[10px]">frontier</span> <span class="badge badge-neutral font-mono text-[10px]">vision</span></td>
+          <td><span class="badge badge-neutral">off</span></td>
+          <td class="text-muted-foreground">-</td>
+          <td class="text-muted-foreground">$10/M</td>
+        </tr>
+        <tr class="cursor-pointer" data-model="google/gemini-3-flash" data-provider="google" data-groups="cheap-fast vision">
+          <td><code class="font-mono text-xs">google/gemini-3-flash</code></td>
+          <td><span class="badge badge-neutral font-mono text-[10px]">cheap-fast</span> <span class="badge badge-neutral font-mono text-[10px]">vision</span></td>
+          <td><span class="badge badge-neutral">off</span></td>
+          <td class="text-muted-foreground">-</td>
+          <td class="text-muted-foreground">$0.50/M</td>
+        </tr>
+        <tr class="cursor-pointer" data-model="deepseek/deepseek-v4" data-provider="deepseek" data-groups="cheap-fast">
+          <td><code class="font-mono text-xs">deepseek/deepseek-v4</code></td>
+          <td><span class="badge badge-neutral font-mono text-[10px]">cheap-fast</span></td>
+          <td><span class="badge badge-neutral">off</span></td>
+          <td class="text-muted-foreground">-</td>
+          <td class="text-muted-foreground">$1.20/M</td>
+        </tr>
+        <tr class="cursor-pointer" data-model="deepseek/deepseek-r2" data-provider="deepseek" data-groups="frontier">
+          <td><code class="font-mono text-xs">deepseek/deepseek-r2</code></td>
+          <td><span class="badge badge-neutral font-mono text-[10px]">frontier</span></td>
+          <td><span class="badge badge-success">on</span></td>
+          <td><span class="text-muted-foreground">apac</span> <span class="badge badge-neutral font-mono text-[10px]">native</span></td>
+          <td class="text-muted-foreground">$5/M</td>
+        </tr>
+        <tr class="cursor-pointer" data-model="kimi/k2-thinking" data-provider="kimi" data-groups="frontier">
+          <td><code class="font-mono text-xs">kimi/k2-thinking</code></td>
+          <td><span class="badge badge-neutral font-mono text-[10px]">frontier</span></td>
+          <td><span class="badge badge-neutral">off</span></td>
+          <td class="text-muted-foreground">-</td>
+          <td class="text-muted-foreground">$6/M</td>
+        </tr>
+        <tr class="cursor-pointer" data-model="kimi/k2-vision" data-provider="kimi" data-groups="vision">
+          <td><code class="font-mono text-xs">kimi/k2-vision</code></td>
+          <td><span class="badge badge-neutral font-mono text-[10px]">vision</span></td>
+          <td><span class="badge badge-neutral">off</span></td>
+          <td class="text-muted-foreground">-</td>
+          <td class="text-muted-foreground">$4/M</td>
+        </tr>
+        <tr id="brm-empty-row" hidden>
+          <td colspan="5" class="h-24 text-center"><span class="text-sm text-muted-foreground">No matching models found.</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+<div class="mt-2 flex items-center justify-between text-xs text-muted-foreground">
+  <span>1-12 of 129 entries</span>
+  <span>Page 1 of 11</span>
+</div>
+
+<!-- /v1/models preview panel -->
+<div class="mt-4 overflow-hidden rounded-md border border-border bg-card shadow-sm">
+  <div class="flex flex-wrap items-center gap-2 border-b border-border px-4 py-2.5">
+    <span class="badge badge-success font-mono text-[10px] tracking-widest">GET</span>
+    <code class="font-mono text-xs">/v1/models — as <span id="brm-preview-key" class="text-foreground">hermes</span></code>
+    <code id="brm-preview-format" class="badge badge-neutral font-mono text-[10px]">id_format: provider/model</code>
+    <span class="ml-auto text-[10px] text-faint">projected response</span>
+  </div>
+  <div id="brm-preview-body" class="custom-scrollbar max-h-56 overflow-y-auto p-4 font-mono text-xs leading-5"></div>
+  <p class="border-t border-border px-4 py-2 text-xs text-muted-foreground">
+    Showing only models allowed for this key · <span id="brm-preview-count">24</span> of 129
+  </p>
+</div>
+
+<!-- Edit sheet (model) — own overlay/sheet ids, reuses shell .sheet classes -->
+<div id="brm-overlay" class="sheet-overlay hidden"></div>
+<aside id="brm-sheet" class="sheet" role="dialog" aria-modal="true" aria-label="Edit model">
+  <div class="flex items-start justify-between gap-4 border-b border-border p-6 pb-4">
+    <div class="min-w-0">
+      <h2 class="truncate font-mono text-lg leading-none font-semibold"><span id="brm-sheet-model">anthropic/claude-opus-4.6</span></h2>
+      <p class="mt-2 text-sm text-muted-foreground">Registry entry. Changes apply to the served snapshot after save.</p>
+    </div>
+    <button id="brm-sheet-close" class="btn btn-ghost !size-7 !px-0" aria-label="Close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+    </button>
+  </div>
+  <div class="custom-scrollbar flex-1 space-y-6 overflow-y-auto p-6">
+    <!-- Passthrough -->
+    <div class="flex items-start justify-between gap-4">
+      <div>
+        <label class="text-sm font-medium" for="brm-f-passthrough">Passthrough</label>
+        <p class="mt-1 text-xs text-muted-foreground">Resolve via Bifrost CEL routing. Registry never rewrites <code class="font-mono">model</code>.</p>
+      </div>
+      <button id="brm-f-passthrough" type="button" role="switch" aria-checked="false"
+        class="relative h-5 w-9 shrink-0 cursor-pointer rounded-sm border-2 border-transparent bg-input transition-colors">
+        <span class="brm-thumb absolute top-0 left-0 size-4 rounded-sm bg-white shadow-lg transition-transform dark:bg-zinc-900"></span>
+      </button>
+    </div>
+    <!-- Routing targets -->
+    <div>
+      <label class="text-sm font-medium" for="brm-f-routing">Routing targets</label>
+      <p class="mt-1 text-xs text-muted-foreground">Native targets pre-authorized for post-routing checks.</p>
+      <input id="brm-f-routing" type="text" placeholder="us, eu" disabled
+        class="mt-2 h-9 w-full rounded-sm border border-input bg-transparent px-3 py-1 font-mono text-sm outline-none focus-visible:border-primary disabled:opacity-50" />
+    </div>
+    <!-- Prefer -->
+    <div>
+      <label class="text-sm font-medium" for="brm-f-prefer">Prefer</label>
+      <p class="mt-1 text-xs text-muted-foreground">How ambiguous short names are disambiguated.</p>
+      <select id="brm-f-prefer" class="mt-2 h-9 w-full rounded-sm border border-input bg-transparent px-3 py-2 text-sm outline-none focus-visible:border-primary">
+        <option value="native">native</option>
+        <option value="roundrobin">roundrobin</option>
+        <option value="weighted">weighted</option>
+      </select>
+    </div>
+    <!-- Group membership -->
+    <div>
+      <p class="text-sm font-medium">Group membership</p>
+      <p class="mt-1 text-xs text-muted-foreground">Union with any dynamic filter on the group.</p>
+      <div class="mt-3 space-y-2.5">
+        <label class="flex items-center gap-2 text-sm">
+          <input type="checkbox" value="cheap-fast" class="brm-f-group size-4 rounded-[4px] border border-input accent-primary" />
+          <code class="font-mono text-xs">cheap-fast</code>
+        </label>
+        <label class="flex items-center gap-2 text-sm">
+          <input type="checkbox" value="frontier" class="brm-f-group size-4 rounded-[4px] border border-input accent-primary" />
+          <code class="font-mono text-xs">frontier</code>
+        </label>
+        <label class="flex items-center gap-2 text-sm">
+          <input type="checkbox" value="vision" class="brm-f-group size-4 rounded-[4px] border border-input accent-primary" />
+          <code class="font-mono text-xs">vision</code>
+        </label>
+      </div>
+    </div>
+  </div>
+  <div class="flex justify-end gap-2 border-t border-border p-4">
+    <button id="brm-sheet-cancel" class="btn btn-outline">Cancel</button>
+    <button id="brm-sheet-save" class="btn btn-primary">Save</button>
+  </div>
+</aside>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ================= Mock policy data : /v1/models per virtual key =================
+     id_format mirrors the policy field documented in capabilities-inventory:
+     "provider/model" | "model" | "both". Models listed are what THE key may see. */
+  const brModelsKeys = {
+    hermes: {
+      format: 'provider/model',
+      models: [
+        'anthropic/claude-opus-4.6', 'anthropic/claude-sonnet-4.6', 'anthropic/claude-haiku-4.5',
+        'openai/gpt-5.2', 'openai/gpt-5.2-mini', 'openai/gpt-5.2-nano',
+        'google/gemini-3-pro', 'google/gemini-3-flash',
+        'deepseek/deepseek-v4', 'deepseek/deepseek-r2',
+        'kimi/k2-thinking', 'kimi/k2-vision',
+        'anthropic/claude-opus-4.5', 'anthropic/claude-sonnet-4.5',
+        'openai/gpt-5.1', 'openai/gpt-4o',
+        'google/gemini-2.5-pro', 'google/gemini-2.5-flash',
+        'deepseek/deepseek-chat-v3', 'mistral/mistral-large-3',
+        'meta/llama-4-70b', 'xai/grok-4',
+        'amazon/nova-premier', 'cohere/command-r-plus'
+      ]
+    },
+    'kimi-work': {
+      format: 'model',
+      models: [
+        'anthropic/claude-opus-4.6', 'anthropic/claude-sonnet-4.6', 'anthropic/claude-haiku-4.5',
+        'openai/gpt-5.2', 'kimi/k2-thinking', 'kimi/k2-vision',
+        'google/gemini-3-flash', 'deepseek/deepseek-v4'
+      ]
+    },
+    cpa: {
+      format: 'both',
+      models: [
+        'anthropic/claude-opus-4.6', 'anthropic/claude-sonnet-4.6', 'anthropic/claude-haiku-4.5',
+        'openai/gpt-5.2', 'openai/gpt-5.2-mini', 'openai/gpt-5.2-nano',
+        'google/gemini-3-pro', 'google/gemini-3-flash',
+        'deepseek/deepseek-v4', 'deepseek/deepseek-r2',
+        'kimi/k2-thinking', 'kimi/k2-vision'
+      ]
+    }
+  };
+  const brModelsRegistryTotal = 129;
+
+  /* Sheet seed data per model (mock) */
+  const brModelsSeed = {
+    'openai/gpt-5.2':        { passthrough: true,  routing: 'us, eu', prefer: 'native' },
+    'deepseek/deepseek-r2':  { passthrough: true,  routing: 'apac',   prefer: 'native' }
+  };
+
+  let brModelsKey = 'hermes';
+  let brModelsFormatOverride = null; /* null = follow the key policy id_format */
+
+  const brModelsEl = (id) => document.getElementById(id);
+
+  /* ================= Preview : GET /v1/models as <key> ================= */
+  function brModelsRenderPreview() {
+    const key = brModelsKeys[brModelsKey];
+    const fmt = brModelsFormatOverride || key.format;
+    const body = brModelsEl('brm-preview-body');
+    const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+
+    brModelsEl('brm-preview-key').textContent = brModelsKey;
+    brModelsEl('brm-preview-format').textContent = 'id_format: ' + fmt;
+    brModelsEl('brm-preview-count').textContent = key.models.length;
+
+    if (fmt === 'both') {
+      /* both forms, side by side */
+      body.innerHTML =
+        '<div class="grid grid-cols-2 gap-x-6">' +
+        key.models.map((id) => {
+          const short = id.split('/').slice(1).join('/');
+          return '<span class="text-muted-foreground">' + esc(id) + '</span><span>' + esc(short) + '</span>';
+        }).join('') +
+        '</div>';
+    } else {
+      const lines = key.models.map((id) => (fmt === 'model' ? id.split('/').slice(1).join('/') : id));
+      body.innerHTML = lines.map((l) => '<div>' + esc(l) + '</div>').join('');
+    }
+
+    /* segment control state */
+    brModelsEl('brm-format-seg').querySelectorAll('button[data-format]').forEach((b) => {
+      const active = b.dataset.format === fmt;
+      b.classList.toggle('bg-white', active);
+      b.classList.toggle('shadow-sm', active);
+      b.classList.toggle('dark:bg-input/30', active);
+      b.classList.toggle('dark:border-input', active);
+      b.classList.toggle('text-neutral-900', active);
+      b.classList.toggle('text-muted-foreground', !active);
+    });
+  }
+
+  brModelsEl('brm-view-key').addEventListener('change', (e) => {
+    brModelsKey = e.target.value;
+    brModelsFormatOverride = null; /* back to the key's own policy */
+    brModelsRenderPreview();
+  });
+
+  brModelsEl('brm-format-seg').querySelectorAll('button[data-format]').forEach((b) => {
+    b.addEventListener('click', () => {
+      brModelsFormatOverride = b.dataset.format;
+      brModelsRenderPreview();
+    });
+  });
+
+  /* ================= Table filters ================= */
+  function brModelsFilter() {
+    const q = brModelsEl('brm-search').value.trim().toLowerCase();
+    const pv = brModelsEl('brm-filter-provider').value;
+    const gr = brModelsEl('brm-filter-group').value;
+    let visible = 0;
+    brModelsEl('brm-tbody').querySelectorAll('tr[data-model]').forEach((tr) => {
+      const ok = (!q || tr.dataset.model.toLowerCase().includes(q)) &&
+                 (pv === 'all' || tr.dataset.provider === pv) &&
+                 (gr === 'all' || tr.dataset.groups.split(' ').includes(gr));
+      tr.hidden = !ok;
+      if (ok) visible++;
+    });
+    brModelsEl('brm-empty-row').hidden = visible > 0;
+  }
+  ['brm-search', 'brm-filter-provider', 'brm-filter-group'].forEach((id) => {
+    brModelsEl(id).addEventListener('input', brModelsFilter);
+    brModelsEl(id).addEventListener('change', brModelsFilter);
+  });
+
+  /* ================= Edit sheet ================= */
+  const brModelsSheet = brModelsEl('brm-sheet');
+  const brModelsOverlay = brModelsEl('brm-overlay');
+
+  function brModelsSetSwitch(on) {
+    const sw = brModelsEl('brm-f-passthrough');
+    sw.setAttribute('aria-checked', String(on));
+    sw.style.backgroundColor = on ? 'var(--primary)' : '';
+    sw.querySelector('.brm-thumb').style.transform = on ? 'translateX(16px)' : '';
+    brModelsEl('brm-f-routing').disabled = !on;
+  }
+
+  function brModelsOpenSheet(modelId) {
+    const seed = brModelsSeed[modelId] || { passthrough: false, routing: '', prefer: 'native' };
+    brModelsEl('brm-sheet-model').textContent = modelId;
+    brModelsSetSwitch(seed.passthrough);
+    brModelsEl('brm-f-routing').value = seed.routing;
+    brModelsEl('brm-f-prefer').value = seed.prefer;
+    const groups = (document.querySelector('tr[data-model="' + modelId + '"]').dataset.groups || '').split(' ').filter(Boolean);
+    document.querySelectorAll('.brm-f-group').forEach((cb) => { cb.checked = groups.includes(cb.value); });
+    brModelsSheet.classList.add('open');
+    brModelsOverlay.classList.remove('hidden');
+  }
+
+  function brModelsCloseSheet() {
+    brModelsSheet.classList.remove('open');
+    brModelsOverlay.classList.add('hidden');
+  }
+
+  brModelsEl('brm-tbody').addEventListener('click', (e) => {
+    const tr = e.target.closest('tr[data-model]');
+    if (tr) brModelsOpenSheet(tr.dataset.model);
+  });
+  brModelsEl('brm-f-passthrough').addEventListener('click', () => {
+    brModelsSetSwitch(brModelsEl('brm-f-passthrough').getAttribute('aria-checked') !== 'true');
+  });
+  brModelsEl('brm-sheet-close').addEventListener('click', brModelsCloseSheet);
+  brModelsEl('brm-sheet-cancel').addEventListener('click', brModelsCloseSheet);
+  brModelsEl('brm-sheet-save').addEventListener('click', brModelsCloseSheet);
+  brModelsOverlay.addEventListener('click', brModelsCloseSheet);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && brModelsSheet.classList.contains('open')) brModelsCloseSheet();
+  });
+
+  /* init */
+  brModelsRenderPreview();
+})();
+</script>
+        </section>
+
+        <!-- ==================== GROUPS (M3) ==================== -->
+        <section id="screen-groups" hidden aria-label="Groups">
+<!-- ============================================================
+     GROUPS — fragment for <section id="screen-groups">
+     Mock data only (registry: 129 models). Sheet JS is prefixed
+     brGroupsSheet / brGroupsData to avoid collisions with the shell.
+     ============================================================ -->
+<p class="mb-4 text-xs text-muted-foreground">Groups bundle models through filters and exclusions. Members are resolved by the registry.</p>
+
+<!-- Toolbar -->
+<div class="mb-4 flex flex-wrap items-center gap-3">
+  <div class="relative max-w-sm flex-1">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+    <input id="br-groups-search" type="text" placeholder="Search groups…" class="h-9 w-full rounded-sm border border-input bg-transparent pr-3 pl-9 text-sm outline-none focus-visible:border-primary" />
+  </div>
+  <button id="br-groups-new" class="btn btn-primary btn-sm ml-auto">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+    New Group
+  </button>
+</div>
+
+<!-- Groups table -->
+<div class="tbl-container -mx-4 overflow-hidden rounded-sm border border-border md:mx-0">
+  <table class="tbl" id="br-groups-tbl">
+    <thead>
+      <tr><th>Group</th><th>Definition</th><th>Members</th><th>Used by</th></tr>
+    </thead>
+    <tbody>
+      <tr class="cursor-pointer" data-group="cheap-fast">
+        <td>
+          <p class="font-medium">cheap-fast</p>
+          <p class="text-xs text-muted-foreground">Budget picks for bulk jobs</p>
+        </td>
+        <td><code class="font-mono text-xs text-muted-foreground">providers:anthropic,openai · *sonnet* · !*beta*</code></td>
+        <td><button class="br-groups-open font-mono text-xs text-primary hover:underline">14 models</button></td>
+        <td><span class="badge badge-neutral font-mono text-xs font-normal">hermes</span> <span class="badge badge-neutral font-mono text-xs font-normal">cpa</span></td>
+      </tr>
+      <tr class="cursor-pointer" data-group="frontier">
+        <td>
+          <p class="font-medium">frontier</p>
+          <p class="text-xs text-muted-foreground">Top benchmark models for quality-critical work</p>
+        </td>
+        <td><code class="font-mono text-xs text-muted-foreground">providers:anthropic,openai,google · *opus*,*gpt-5*,*gemini-2.5-pro*</code></td>
+        <td><button class="br-groups-open font-mono text-xs text-primary hover:underline">6 models</button></td>
+        <td><span class="badge badge-neutral font-mono text-xs font-normal">kimi-work</span></td>
+      </tr>
+      <tr class="cursor-pointer" data-group="vision">
+        <td>
+          <p class="font-medium">vision</p>
+          <p class="text-xs text-muted-foreground">Image-capable models</p>
+        </td>
+        <td><code class="font-mono text-xs text-muted-foreground">capabilities:vision · !*experimental*</code></td>
+        <td><button class="br-groups-open font-mono text-xs text-primary hover:underline">11 models</button></td>
+        <td><span class="badge badge-neutral font-mono text-xs font-normal">hermes</span> <span class="badge badge-neutral font-mono text-xs font-normal">hindsight</span></td>
+      </tr>
+      <tr class="cursor-pointer" data-group="long-context">
+        <td>
+          <p class="font-medium">long-context</p>
+          <p class="text-xs text-muted-foreground">200k+ context windows</p>
+        </td>
+        <td><code class="font-mono text-xs text-muted-foreground">providers:anthropic,google,mistral · *200k*,*1m*</code></td>
+        <td><button class="br-groups-open font-mono text-xs text-primary hover:underline">9 models</button></td>
+        <td><span class="badge badge-neutral font-mono text-xs font-normal">kimi-work</span></td>
+      </tr>
+      <tr class="cursor-pointer" data-group="open-weights">
+        <td>
+          <p class="font-medium">open-weights</p>
+          <p class="text-xs text-muted-foreground">Self-hostable open-weight models</p>
+        </td>
+        <td><code class="font-mono text-xs text-muted-foreground">providers:meta,deepseek,mistral · !*vision*</code></td>
+        <td><button class="br-groups-open font-mono text-xs text-primary hover:underline">12 models</button></td>
+        <td><span class="badge badge-neutral font-mono text-xs font-normal">cpa</span></td>
+      </tr>
+      <tr class="cursor-pointer" data-group="embeddings">
+        <td>
+          <p class="font-medium">embeddings</p>
+          <p class="text-xs text-muted-foreground">Text embedding models</p>
+        </td>
+        <td><code class="font-mono text-xs text-muted-foreground">capabilities:embeddings</code></td>
+        <td><button class="br-groups-open font-mono text-xs text-primary hover:underline">8 models</button></td>
+        <td><span class="badge badge-neutral font-mono text-xs font-normal">hindsight</span></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+<p class="mt-2 text-xs text-muted-foreground">6 of 32 groups</p>
+
+<!-- ============================================================
+     Empty state (normalized pattern §3.15) — swap the table for
+     this block when there are no groups:
+
+     <div class="empty-state">
+       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="h-[5.5rem] w-[5.5rem] text-muted-foreground"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></svg>
+       <h2 class="text-xl font-medium text-muted-foreground">Groups bundle models into reusable sets</h2>
+       <p class="max-w-[600px] text-sm text-muted-foreground">Create groups from filters and exclusions, then bind them to virtual keys. Members resolve automatically when the registry changes.</p>
+       <div class="mt-6 flex gap-2">
+         <button class="btn btn-outline btn-sm">Read more ↗</button>
+         <button class="btn btn-primary btn-sm">New Group</button>
+       </div>
+     </div>
+     ============================================================ -->
+
+<!-- ==================== Group detail sheet (§3.9) ==================== -->
+<div id="br-groups-overlay" class="sheet-overlay hidden"></div>
+<aside id="br-groups-sheet" class="sheet" role="dialog" aria-modal="true" aria-label="Group details">
+  <div class="flex items-start justify-between gap-4 border-b border-border p-6 pb-4">
+    <div class="flex min-w-0 items-center gap-2">
+      <h2 id="br-groups-name" class="truncate text-lg leading-none font-semibold">cheap-fast</h2>
+      <span id="br-groups-count" class="badge badge-accent font-mono text-xs font-normal">14 models</span>
+    </div>
+    <button id="br-groups-close" class="btn btn-ghost !size-7 !px-0" aria-label="Close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+    </button>
+  </div>
+
+  <div class="custom-scrollbar flex-1 overflow-y-auto p-6">
+    <!-- Definition -->
+    <section class="mb-6">
+      <h3 class="mb-2 text-xs font-medium text-muted-foreground">Definition</h3>
+      <div id="br-groups-def" class="flex flex-col gap-2 rounded-sm border border-border p-3"></div>
+    </section>
+
+    <!-- Resolved members — materialized by the registry (the key feature) -->
+    <section class="mb-6">
+      <div class="mb-2 flex items-baseline justify-between gap-2">
+        <h3 class="text-xs font-medium text-muted-foreground">Resolved members</h3>
+        <span id="br-groups-member-count" class="font-mono text-[10px] text-muted-foreground"></span>
+      </div>
+      <div class="tbl-container overflow-hidden rounded-sm border border-border">
+        <div class="custom-scrollbar max-h-[280px] overflow-y-auto">
+          <table class="tbl">
+            <thead>
+              <tr><th>Model</th><th>Provider</th></tr>
+            </thead>
+            <tbody id="br-groups-members"></tbody>
+          </table>
+        </div>
+      </div>
+      <p class="mt-2 text-xs text-muted-foreground">Computed from filters — updates when the registry changes.</p>
+    </section>
+
+    <!-- Used by -->
+    <section>
+      <h3 class="mb-2 text-xs font-medium text-muted-foreground">Used by</h3>
+      <div id="br-groups-usedby" class="flex flex-wrap gap-1.5"></div>
+    </section>
+  </div>
+
+  <div class="flex justify-end gap-2 border-t border-border p-4">
+    <button id="br-groups-cancel" class="btn btn-outline">Cancel</button>
+    <!-- Mockup: no edit-definition mode, Save is inert -->
+    <button id="br-groups-save" class="btn btn-primary">Save changes</button>
+  </div>
+</aside>
+
+<script>
+  /* ===== Groups — mock data (registry: 129 models) ===== */
+  const brGroupsData = {
+    'cheap-fast': {
+      name: 'cheap-fast',
+      def: {
+        providers: ['anthropic', 'openai'],
+        match: ['*sonnet*'],
+        exclude: ['!*beta*'],
+      },
+      usedBy: ['hermes', 'cpa'],
+      members: [
+        'anthropic/claude-sonnet-4.6',
+        'anthropic/claude-sonnet-4.5',
+        'anthropic/claude-haiku-4.5',
+        'anthropic/claude-3-7-sonnet-20250224',
+        'anthropic/claude-3-5-sonnet-20241022',
+        'anthropic/claude-3-5-haiku-20241022',
+        'openai/gpt-4.1-mini',
+        'openai/gpt-4.1-nano',
+        'openai/gpt-4o-mini',
+        'openai/gpt-4o-mini-2024-07-18',
+        'openai/gpt-5-mini',
+        'openai/gpt-5-nano',
+        'openai/o4-mini',
+        'openai/gpt-4o-2024-08-06',
+      ],
+    },
+    'frontier': {
+      name: 'frontier',
+      def: {
+        providers: ['anthropic', 'openai', 'google'],
+        match: ['*opus*', '*gpt-5*', '*gemini-2.5-pro*'],
+        exclude: [],
+      },
+      usedBy: ['kimi-work'],
+      members: [
+        'anthropic/claude-opus-4.6',
+        'anthropic/claude-opus-4.5',
+        'openai/gpt-5.2',
+        'openai/gpt-5.1',
+        'openai/gpt-5',
+        'google/gemini-2.5-pro',
+      ],
+    },
+    'vision': {
+      name: 'vision',
+      def: {
+        providers: [],
+        match: ['capabilities:vision'],
+        exclude: ['!*experimental*'],
+      },
+      usedBy: ['hermes', 'hindsight'],
+      members: [
+        'anthropic/claude-sonnet-4.6',
+        'anthropic/claude-opus-4.6',
+        'openai/gpt-4.1',
+        'openai/gpt-4o',
+        'google/gemini-2.5-pro-vision',
+        'google/gemini-2.0-flash',
+        'meta/llama-4-scout',
+        'meta/llama-4-maverick',
+        'mistral/pixtral-large',
+        'qwen/qwen2.5-vl-72b',
+        'amazon/nova-pro',
+      ],
+    },
+    'long-context': {
+      name: 'long-context',
+      def: {
+        providers: ['anthropic', 'google', 'mistral'],
+        match: ['*200k*', '*1m*'],
+        exclude: [],
+      },
+      usedBy: ['kimi-work'],
+      members: [
+        'anthropic/claude-sonnet-4.6',
+        'anthropic/claude-opus-4.6',
+        'google/gemini-2.5-pro-1m',
+        'google/gemini-2.5-flash-1m',
+        'google/gemini-1.5-pro-2m',
+        'mistral/mistral-large-2411-128k',
+        'mistral/codestral-2501',
+        'anthropic/claude-3-7-sonnet-20250224',
+        'google/gemini-2.0-flash-thinking',
+      ],
+    },
+    'open-weights': {
+      name: 'open-weights',
+      def: {
+        providers: ['meta', 'deepseek', 'mistral'],
+        match: [],
+        exclude: ['!*vision*'],
+      },
+      usedBy: ['cpa'],
+      members: [
+        'meta/llama-4-scout',
+        'meta/llama-4-maverick',
+        'meta/llama-3.3-70b',
+        'meta/llama-3.2-3b',
+        'deepseek/deepseek-v3.2',
+        'deepseek/deepseek-r1',
+        'mistral/mistral-large-2411',
+        'mistral/mistral-small-2503',
+        'mistral/ministral-8b',
+        'mistral/codestral-2501',
+        'deepseek/deepseek-coder-v2',
+        'meta/llama-3.1-8b',
+      ],
+    },
+    'embeddings': {
+      name: 'embeddings',
+      def: {
+        providers: [],
+        match: ['capabilities:embeddings'],
+        exclude: [],
+      },
+      usedBy: ['hindsight'],
+      members: [
+        'openai/text-embedding-3-large',
+        'openai/text-embedding-3-small',
+        'openai/text-embedding-ada-002',
+        'cohere/embed-v4',
+        'cohere/embed-v3',
+        'google/gemini-embedding-001',
+        'mistral/mistral-embed',
+        'voyage/voyage-3-large',
+      ],
+    },
+  };
+
+  /* ===== Sheet open/close (brGroupsSheet) ===== */
+  const brGroupsSheet = document.getElementById('br-groups-sheet');
+  const brGroupsOverlay = document.getElementById('br-groups-overlay');
+  const brGroupsDef = document.getElementById('br-groups-def');
+  const brGroupsMembers = document.getElementById('br-groups-members');
+  const brGroupsUsedBy = document.getElementById('br-groups-usedby');
+
+  function brGroupsDefRow(label, badges) {
+    if (!badges.length) return '';
+    const chips = badges
+      .map((b) => `<span class="badge ${b.startsWith('!') ? 'badge-danger' : 'badge-neutral'} font-mono text-xs font-normal">${b}</span>`)
+      .join(' ');
+    return `<div class="flex items-center gap-2"><span class="w-20 shrink-0 text-xs text-muted-foreground">${label}</span><div class="flex flex-wrap gap-1.5">${chips}</div></div>`;
+  }
+
+  function brGroupsOpen(id) {
+    const g = brGroupsData[id];
+    if (!g) return;
+    document.getElementById('br-groups-name').textContent = g.name;
+    document.getElementById('br-groups-count').textContent = `${g.members.length} models`;
+    document.getElementById('br-groups-member-count').textContent = `${g.members.length} of 129`;
+
+    brGroupsDef.innerHTML =
+      brGroupsDefRow('Providers', g.def.providers) +
+      brGroupsDefRow('Match', g.def.match) +
+      brGroupsDefRow('Exclude', g.def.exclude);
+
+    brGroupsMembers.innerHTML = g.members
+      .map((m) => {
+        const [provider, model] = m.split('/');
+        return `<tr><td><code class="font-mono text-xs">${m}</code></td><td class="text-xs text-muted-foreground">${provider}</td></tr>`;
+      })
+      .join('');
+
+    brGroupsUsedBy.innerHTML = g.usedBy
+      .map((vk) => `<span class="badge badge-neutral font-mono text-xs font-normal">${vk}</span>`)
+      .join('');
+
+    brGroupsSheet.classList.add('open');
+    brGroupsOverlay.classList.remove('hidden');
+  }
+
+  function brGroupsClose() {
+    brGroupsSheet.classList.remove('open');
+    brGroupsOverlay.classList.add('hidden');
+  }
+
+  document.getElementById('br-groups-tbl').addEventListener('click', (e) => {
+    const row = e.target.closest('tr[data-group]');
+    if (row) brGroupsOpen(row.dataset.group);
+  });
+  document.getElementById('br-groups-close').addEventListener('click', brGroupsClose);
+  document.getElementById('br-groups-cancel').addEventListener('click', brGroupsClose);
+  brGroupsOverlay.addEventListener('click', brGroupsClose);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') brGroupsClose(); });
+  /* Save is inert in the mockup (no edit-definition mode) */
+  document.getElementById('br-groups-save').addEventListener('click', brGroupsClose);
+
+  /* ===== Toolbar search — filters mocked rows by name/definition ===== */
+  document.getElementById('br-groups-search').addEventListener('input', (e) => {
+    const q = e.target.value.toLowerCase();
+    document.querySelectorAll('#br-groups-tbl tbody tr').forEach((tr) => {
+      tr.hidden = q !== '' && !tr.textContent.toLowerCase().includes(q);
+    });
+  });
+</script>
+        </section>
+
+        <!-- ==================== DENIALS (M3) ==================== -->
+        <section id="screen-denials" hidden aria-label="Denials">
+<!-- ==================== DENIALS (M1) ==================== -->
+<p class="mb-4 text-xs text-muted-foreground">Guardrail denials recorded by the registry plugin, most recent first.</p>
+
+<!-- Toolbar — filters + refresh (§4.1 pattern: mb-4 flex flex-wrap items-center gap-3) -->
+<div class="mb-4 flex flex-wrap items-center gap-3">
+  <div class="relative">
+    <select aria-label="Virtual key" class="h-9 w-auto cursor-pointer appearance-none rounded-sm border border-input bg-transparent pr-8 pl-3 text-sm outline-none focus-visible:border-primary">
+      <option value="">All virtual keys</option>
+      <option value="hermes">hermes</option>
+      <option value="hindsight">hindsight</option>
+      <option value="cpa">cpa</option>
+      <option value="opencode-omo">opencode-omo</option>
+    </select>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2 opacity-50"><path d="m6 9 6 6 6-6"/></svg>
+  </div>
+
+  <div class="relative">
+    <select aria-label="Denial code" class="h-9 w-auto cursor-pointer appearance-none rounded-sm border border-input bg-transparent pr-8 pl-3 text-sm outline-none focus-visible:border-primary">
+      <option value="">All codes</option>
+      <option value="registry_model_not_allowed">registry_model_not_allowed</option>
+      <option value="registry_group_not_allowed">registry_group_not_allowed</option>
+      <option value="registry_policy_missing">registry_policy_missing</option>
+    </select>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2 opacity-50"><path d="m6 9 6 6 6-6"/></svg>
+  </div>
+
+  <div class="relative">
+    <select aria-label="Period" class="h-9 w-auto cursor-pointer appearance-none rounded-sm border border-input bg-transparent pr-8 pl-3 text-sm outline-none focus-visible:border-primary">
+      <option value="24h" selected>Last 24h</option>
+      <option value="7d">Last 7 days</option>
+      <option value="30d">Last 30 days</option>
+    </select>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2 opacity-50"><path d="m6 9 6 6 6-6"/></svg>
+  </div>
+
+  <button class="btn btn-ghost btn-sm ml-auto" title="Refresh">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+    Refresh
+  </button>
+</div>
+
+<!-- Denials table (.tbl — design system §3.3) -->
+<div class="tbl-container rounded-sm border">
+  <table class="tbl">
+    <thead>
+      <tr>
+        <th class="w-[110px]">Time</th>
+        <th>Virtual Key</th>
+        <th>Code</th>
+        <th>Requested</th>
+        <th>Detail</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="font-mono text-xs">14:32:07</td>
+        <td><span class="badge badge-neutral">hermes</span></td>
+        <td><span class="badge badge-danger">registry_model_not_allowed</span></td>
+        <td><code class="font-mono text-xs">anthropic/claude-opus-4.6</code></td>
+        <td class="text-muted-foreground">allowed: none — model not in any group for key</td>
+      </tr>
+      <tr>
+        <td class="font-mono text-xs">14:28:51</td>
+        <td><span class="badge badge-neutral">opencode-omo</span></td>
+        <td><span class="badge badge-warn">registry_policy_missing</span></td>
+        <td><code class="font-mono text-xs">openai/gpt-5.2</code></td>
+        <td class="text-muted-foreground">no policy bound to this virtual key</td>
+      </tr>
+      <tr>
+        <td class="font-mono text-xs">14:19:33</td>
+        <td><span class="badge badge-neutral">hindsight</span></td>
+        <td><span class="badge badge-danger">registry_model_not_allowed</span></td>
+        <td><code class="font-mono text-xs">google/gemini-3-pro</code></td>
+        <td class="text-muted-foreground">allowed: 12 models — requested model not exposed</td>
+      </tr>
+      <tr>
+        <td class="font-mono text-xs">14:11:02</td>
+        <td><span class="badge badge-neutral">hermes</span></td>
+        <td><span class="badge badge-warn">registry_group_not_allowed</span></td>
+        <td><code class="font-mono text-xs">group/cheap-fast</code></td>
+        <td class="text-muted-foreground">group not in policy groups for key</td>
+      </tr>
+      <tr>
+        <td class="font-mono text-xs">13:58:44</td>
+        <td><span class="badge badge-neutral">cpa</span></td>
+        <td><span class="badge badge-danger">registry_model_not_allowed</span></td>
+        <td><code class="font-mono text-xs">anthropic/claude-sonnet-4.6</code></td>
+        <td class="text-muted-foreground">allowed: frontier — model not in any group for key</td>
+      </tr>
+      <tr>
+        <td class="font-mono text-xs">13:47:19</td>
+        <td><span class="badge badge-neutral">hermes</span></td>
+        <td><span class="badge badge-danger">registry_model_not_allowed</span></td>
+        <td><code class="font-mono text-xs">anthropic/claude-opus-4.6</code></td>
+        <td class="text-muted-foreground">allowed: cheap-fast, vision — model not in any group for key</td>
+      </tr>
+      <tr>
+        <td class="font-mono text-xs">13:35:08</td>
+        <td><span class="badge badge-neutral">opencode-omo</span></td>
+        <td><span class="badge badge-danger">registry_model_not_allowed</span></td>
+        <td><code class="font-mono text-xs">deepseek/deepseek-v3.2</code></td>
+        <td class="text-muted-foreground">allowed: cheap-fast — model not in any group for key</td>
+      </tr>
+      <tr>
+        <td class="font-mono text-xs">13:22:56</td>
+        <td><span class="badge badge-neutral">hindsight</span></td>
+        <td><span class="badge badge-warn">registry_group_not_allowed</span></td>
+        <td><code class="font-mono text-xs">group/frontier</code></td>
+        <td class="text-muted-foreground">group not in policy groups for key</td>
+      </tr>
+      <tr>
+        <td class="font-mono text-xs">13:14:30</td>
+        <td><span class="badge badge-neutral">cpa</span></td>
+        <td><span class="badge badge-danger">registry_model_not_allowed</span></td>
+        <td><code class="font-mono text-xs">openai/o3</code></td>
+        <td class="text-muted-foreground">allowed: frontier — model not in any group for key</td>
+      </tr>
+      <tr>
+        <td class="font-mono text-xs">12:59:12</td>
+        <td><span class="badge badge-neutral">opencode-omo</span></td>
+        <td><span class="badge badge-warn">registry_policy_missing</span></td>
+        <td><code class="font-mono text-xs">anthropic/claude-haiku-4.5</code></td>
+        <td class="text-muted-foreground">no policy bound to this virtual key</td>
+      </tr>
+      <tr>
+        <td class="font-mono text-xs">12:41:47</td>
+        <td><span class="badge badge-neutral">hermes</span></td>
+        <td><span class="badge badge-danger">registry_model_not_allowed</span></td>
+        <td><code class="font-mono text-xs">google/gemini-3-flash</code></td>
+        <td class="text-muted-foreground">allowed: none — model not in any group for key</td>
+      </tr>
+      <tr>
+        <td class="font-mono text-xs">12:30:05</td>
+        <td><span class="badge badge-neutral">hindsight</span></td>
+        <td><span class="badge badge-warn">registry_group_not_allowed</span></td>
+        <td><code class="font-mono text-xs">group/cheap-fast</code></td>
+        <td class="text-muted-foreground">group not in policy groups for key</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Table footer — count + pagination (§3.16) -->
+  <div class="flex items-center justify-between border-t border-border px-4 py-2 text-xs">
+    <div class="text-muted-foreground">15 denials in the last 24h</div>
+    <div class="flex items-center gap-2">
+      <button class="btn btn-ghost btn-sm !px-2" disabled aria-label="Previous page">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <span class="text-muted-foreground">Page 1 of 2</span>
+      <button class="btn btn-ghost btn-sm !px-2" aria-label="Next page">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- empty: no denials in selected period
+<div class="empty-state">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="h-[5.5rem] w-[5.5rem] text-muted-foreground"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
+  <h2 class="text-xl font-medium text-muted-foreground">No denials</h2>
+  <p class="max-w-[600px] text-sm text-muted-foreground">No guardrail denials recorded for the selected key, code, and period.</p>
+</div>
+-->
+
+<p class="mt-4 text-xs text-muted-foreground">In-memory ring buffer — events are not persisted.</p>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- ==================== SHEET — revision details (§3.9, hidden by default) ==================== -->
+  <div id="sheet-overlay" class="sheet-overlay hidden"></div>
+  <aside id="sheet" class="sheet" role="dialog" aria-modal="true" aria-label="Revision details">
+    <div class="flex items-start justify-between gap-4 border-b border-border p-6 pb-4">
+      <div>
+        <h2 class="text-lg leading-none font-semibold">Revision details</h2>
+        <p class="mt-2 text-sm text-muted-foreground">Snapshot served by the plugin versus the registry file on disk.</p>
+      </div>
+      <button id="close-sheet" class="btn btn-ghost !size-7 !px-0" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+      </button>
+    </div>
+    <div class="custom-scrollbar flex-1 overflow-y-auto p-6">
+      <dl class="space-y-4 text-sm">
+        <div>
+          <dt class="text-xs font-medium text-muted-foreground">Served revision</dt>
+          <dd class="mt-1 break-all font-mono text-xs">9f2c7a1d4b8e63f05a1c9d27b3e48f60a7c15d94e02b86c3f7d19a4b6c0e2f58</dd>
+        </div>
+        <div>
+          <dt class="text-xs font-medium text-muted-foreground">Disk revision</dt>
+          <dd class="mt-1 break-all font-mono text-xs">9f2c7a1d4b8e63f05a1c9d27b3e48f60a7c15d94e02b86c3f7d19a4b6c0e2f58</dd>
+        </div>
+        <div class="flex items-center justify-between gap-2">
+          <dt class="text-xs font-medium text-muted-foreground">Drift</dt>
+          <dd><span class="badge badge-success">No drift</span></dd>
+        </div>
+        <div class="flex items-center justify-between gap-2">
+          <dt class="text-xs font-medium text-muted-foreground">Snapshot loaded at</dt>
+          <dd class="font-mono text-xs">2026-09-23 16:42:07 UTC</dd>
+        </div>
+        <div class="flex items-center justify-between gap-2">
+          <dt class="text-xs font-medium text-muted-foreground">Mode</dt>
+          <dd class="font-mono text-xs">local-control-plane</dd>
+        </div>
+        <div class="flex items-center justify-between gap-2">
+          <dt class="text-xs font-medium text-muted-foreground">Bifrost connected</dt>
+          <dd><span class="badge badge-neutral">false</span></dd>
+        </div>
+        <div class="flex items-center justify-between gap-2">
+          <dt class="text-xs font-medium text-muted-foreground">Native apply</dt>
+          <dd class="font-mono text-xs">manual</dd>
+        </div>
+      </dl>
+    </div>
+    <div class="flex justify-end gap-2 border-t border-border p-4">
+      <button id="close-sheet-footer" class="btn btn-outline">Close</button>
+    </div>
+  </aside>
+
+  <script>
+    /* ===== Screen navigation (vanilla JS, no framework) ===== */
+    const navItems = document.querySelectorAll('.nav-item[data-screen]');
+    const sections = document.querySelectorAll('main > section');
+    const screenTitle = document.getElementById('screen-title');
+
+    navItems.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        navItems.forEach((b) => b.classList.toggle('active', b === btn));
+        sections.forEach((s) => { s.hidden = s.id !== btn.dataset.screen; });
+        screenTitle.textContent = btn.dataset.title;
+      });
+    });
+
+    /* ===== Sheet open/close ===== */
+    const sheet = document.getElementById('sheet');
+    const overlay = document.getElementById('sheet-overlay');
+
+    function openSheet() {
+      sheet.classList.add('open');
+      overlay.classList.remove('hidden');
+    }
+    function closeSheet() {
+      sheet.classList.remove('open');
+      overlay.classList.add('hidden');
+    }
+
+    document.getElementById('open-revision-sheet').addEventListener('click', openSheet);
+    document.getElementById('close-sheet').addEventListener('click', closeSheet);
+    document.getElementById('close-sheet-footer').addEventListener('click', closeSheet);
+    overlay.addEventListener('click', closeSheet);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSheet(); });
+
+    /* ===== Theme toggle ===== */
+    const root = document.documentElement;
+    const iconSun = document.getElementById('icon-sun');
+    const iconMoon = document.getElementById('icon-moon');
+
+    function syncThemeIcons() {
+      const dark = root.classList.contains('dark');
+      iconSun.classList.toggle('hidden', dark);
+      iconMoon.classList.toggle('hidden', !dark);
+    }
+    document.getElementById('theme-toggle').addEventListener('click', () => {
+      root.classList.toggle('dark');
+      syncThemeIcons();
+    });
+    syncThemeIcons();
+  </script>
+</body>
+</html>
