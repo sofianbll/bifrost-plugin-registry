@@ -14,7 +14,7 @@ Catalogue de modèles et groupes réutilisables pour les clés virtuelles Bifros
 
 **Prochaine étape : valider l'UI/UX de l'application complète avec Sofian**, puis fixer la spec, les versions et les tickets GitHub. L'interface actuellement servie par le plugin se trouve dans `internal/admin/web/`.
 
-Le [prototype React Bifrost](docs/design/registry-prototype/README.md) réutilise les composants upstream pour le dashboard modèles, les groupes, les clés et la qualification. Ses données et appels API sont simulés. Les [anciennes maquettes](docs/design/mockup/README.md) restent consultables comme historique ; la démo Hermes à une page a été rejetée.
+Le [prototype React Bifrost](docs/design/registry-prototype/README.md) réutilise les composants upstream pour le catalogue modèles, les groupes, les clés, le laboratoire et les préférences d’affichage. L’[audit UX](docs/design/ux-audit-2026-09-23.md) et les [références UI natives](docs/design/bifrost-ui-patterns.md) décrivent cette itération. Ses données et appels API sont simulés. Les [anciennes maquettes](docs/design/mockup/README.md) restent consultables comme historique ; la démo Hermes à une page a été rejetée.
 
 Le build natif et des essais sur Pulsar sont consignés dans [BUILD_STATUS.json](BUILD_STATUS.json) et [les rapports de build](reports/native-build-v1/). Ces preuves historiques ne constituent pas une vérification actuelle de la production.
 

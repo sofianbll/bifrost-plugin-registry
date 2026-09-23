@@ -1,0 +1,32 @@
+import { fixture, type Model } from "./demo";
+import { emptySelection, limitCells, planCells, resolveTargets, suiteForScenario, suites, updateViewOverride } from "./lab";
+import { defaultViewOptions } from "./ViewOptions";
+
+const assert = (condition: unknown, message = "Assertion failed") => { if (!condition) throw new Error(message); };
+assert.equal = (actual: unknown, expected: unknown, message = "Values differ") => assert(Object.is(actual, expected), `${message}: ${actual} !== ${expected}`);
+
+const models: Model[] = structuredClone(fixture.models);
+models[0].accesses[0].id = "custom:primary/opaque-access";
+const selection = { ...emptySelection(), modelIds: ["gpt-5"], providerIds: ["openai"], groupIds: ["code"], excludedAccessIds: ["custom:primary/opaque-access"] };
+const targets = resolveTargets(models, fixture.groups, selection);
+assert.equal(targets.filter(target => target.model.id === "gpt-5").length, 1, "union must dedupe model scopes and preserve access exclusions");
+assert(!targets.some(target => target.access.id === "custom:primary/opaque-access"), "exclusion must win across all scopes");
+assert(targets.some(target => target.model.id === "text-embedding-3-large"), "provider scope should add models beyond selected groups");
+const imageInput = planCells(resolveTargets(models, [], { ...emptySelection(), modelIds: ["gpt-5"] }), [suites.find(suite => suite.id === "vision")!]);
+assert.equal(imageInput[0].runnable, true, "chat model with image input can be vision-applicable");
+const mixed = planCells(resolveTargets(models, [], { ...emptySelection(), modelIds: ["imagen-4", "text-embedding-3-large"] }), suites.filter(suite => ["image", "embedding", "chat"].includes(suite.id)));
+assert.equal(mixed.filter(cell => cell.runnable).length, 2);
+assert.equal(mixed.filter(cell => !cell.runnable).length, 4);
+assert(mixed.filter(cell => !cell.runnable).every(cell => cell.reason.includes("Not applicable")));
+const capped = limitCells(mixed, 1);
+assert.equal(capped.filter(cell => cell.runnable).length, 1);
+assert(capped.some(cell => cell.reason.includes("case ceiling")));
+assert.equal(suiteForScenario(fixture.campaigns[2].scenario)?.id, "tools", "seeded inconclusive campaign must remain retryable");
+const sizeOverride = updateViewOverride(defaultViewOptions, {}, { ...defaultViewOptions, size: "large" });
+assert.equal(Object.keys(sizeOverride).join(), "size", "local view change must not freeze global fields");
+const changedBase = { ...defaultViewOptions, description: false };
+const view = { ...changedBase, ...sizeOverride };
+assert.equal(view.description, false, "untouched field must follow later global settings");
+const resetSize = updateViewOverride(changedBase, sizeOverride, { ...view, size: changedBase.size });
+assert.equal(Object.keys(resetSize).length, 0, "matching global value clears local override");
+console.log("Laboratory selection, exclusions, applicability, and case ceiling: OK");

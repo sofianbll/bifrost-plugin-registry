@@ -39,6 +39,22 @@ Depuis une galerie lisible, composer visuellement ce qu'une clé virtuelle peut 
 
 Sources locales : `internal/registry/config.go`, `internal/registry/runtime.go`, `internal/admin/server.go`, `internal/admin/web/app.js`.
 
+## Retour UX sur le prototype — 23 septembre
+
+Demandes confirmées après revue du premier prototype React. Le [diagnostic initial](ux-audit-2026-09-23.md) et les [références natives Bifrost](bifrost-ui-patterns.md) accompagnent la révision ; l'expérience révisée reste à valider.
+
+- **Collections** : toujours proposer une vue cartes, avec alternative liste/tableau, taille des cartes et choix des informations secondaires. Conserver des comportements identiques dans les catalogues et les sélecteurs ; les tableaux de comparaison et les réponses JSON gardent leur format approprié.
+- **Identités** : distinguer créateur, famille et fournisseur d'accès. Regrouper visuellement par créateur ou fournisseur, avec des logos reconnaissables et un nom lisible. Le vocabulaire canonique est dans `CONTEXT.md`.
+- **Recherche** : même recherche de modèles et mêmes filtres contextuels dans le catalogue, l'ajout, les groupes, les clés et le laboratoire. Chercher aussi par identifiant d'accès, afficher les filtres actifs et permettre leur retrait individuel. Séparer modalités, usages et capacités.
+- **Ajout** : commencer par un catalogue de modèles découverts et sélectionnables. Garder la saisie manuelle secondaire ; la prise en charge future de modèles personnalisés dans Bifrost ne doit pas encombrer le parcours principal.
+- **Préférences** : choisir les valeurs par défaut et les exceptions par vue, les informations de carte et l'identité représentée par son logo. Prévoir la synchronisation future avec la configuration du plugin. Dans le prototype, les préférences restent locales et l'export éventuel est un contrat proposé, pas un fichier reconnu par le plugin actuel.
+- **Impact des groupes** : montrer quelles clés gagnent ou perdent quels modèles, et quelles exclusions restent préservées. Une vue arborescente permet de parcourir et modifier les sélections sans changer les règles d'héritage.
+- **Laboratoire** : catalogue de scénarios/suites, sélection par plusieurs modèles ou fournisseurs, exclusions explicites, aperçu du lot et résultats détaillés par accès/scénario. S'appuyer sur le harness et les plugins natifs selon leurs capacités réelles ; un contrôle via Mocker conserve son statut simulé.
+
+Le moteur possède déjà `Creator`, `ModelFamily` et des filtres de groupe sur créateurs/familles/capacités ; le premier prototype ne les représentait pas correctement. Il ne possède pas encore de contrat de préférences d'affichage. L'arbre CEL upstream visualise des règles de routage : l'utiliser comme référence ne doit pas faire confondre une sélection de modèles avec une règle CEL.
+
+Améliorations issues de l'audit à essayer dans cette révision : portée de recherche explicite, conservation de la sélection quand les filtres changent, exclusions et cas non applicables visibles avant une campagne, et retour aux préférences par défaut sans perdre les sélections métier. La mémorisation des recherches, les favoris et les campagnes planifiées restent des pistes à arbitrer, pas des fonctionnalités nécessaires à cette validation.
+
 ## Comportement proposé à vérifier par scénarios
 
 La sélection d'une clé est l'union des groupes et ajouts individuels, moins ses exclusions locales. Une exclusion gagne si plusieurs groupes fournissent le même modèle. Les droits et contraintes natives continuent de s'appliquer.

@@ -4,6 +4,13 @@ Source: [Maxim AI Bifrost](https://github.com/maximhq/bifrost) commit [`6493abd3
 
 | Prototype file | Upstream `ui/` file | Upstream SHA-256 | Copy SHA-256 |
 | --- | --- | --- | --- |
+| `src/components/ui/treeView.tsx` | `components/ui/treeView.tsx` | `f64401350ea62c078557451c7a9ede04dfc0bd952977478dc8c859410d227d04` | `f64401350ea62c078557451c7a9ede04dfc0bd952977478dc8c859410d227d04` |
+| `src/lib/constants/icons.tsx` | `lib/constants/icons.tsx` | `85b357ed9b33510b045b00c9a7729c0759c608c0642dfe8e9509e6fa88ff95b5` | `2787644dc39dc95ba9cd66eba0e0526ea6ff0486e6bbbf5654478a7ab3ceec60` |
+| `public/images/azure.webp` | `public/images/azure.webp` | `84e6bc995f23953bbae1b7168e783febe016fdf8ca08533101e595c4474c62c7` | `84e6bc995f23953bbae1b7168e783febe016fdf8ca08533101e595c4474c62c7` |
+| `public/images/databricks.svg` | `public/images/databricks.svg` | `91f536ec57cfc059779de5081ef1b9613876b9b4f65efa6f0b8cd66edd32f3d7` | `91f536ec57cfc059779de5081ef1b9613876b9b4f65efa6f0b8cd66edd32f3d7` |
+| `public/images/nebius.webp` | `public/images/nebius.webp` | `df8eaea29b693c89db7c09db5902573ef34a3967dee9f5d204cea363301641e8` | `df8eaea29b693c89db7c09db5902573ef34a3967dee9f5d204cea363301641e8` |
+| `public/images/sgl.webp` | `public/images/sgl.webp` | `134276749500fd79b785d018925c90dbbe2ed8ddd3b368044569d0dc68b269bd` | `134276749500fd79b785d018925c90dbbe2ed8ddd3b368044569d0dc68b269bd` |
+| `public/images/google.svg` | `public/images/scim/google.svg` | `b68e01a0dd2b0cc6a3bcb9d61419f39a7722dd88517bfbf2904214a6d84aa2f3` | `b68e01a0dd2b0cc6a3bcb9d61419f39a7722dd88517bfbf2904214a6d84aa2f3` |
 | `src/components/ui/alert.tsx` | `components/ui/alert.tsx` | `1356b832cb8374ead60a99cb2120a36dadeb7b5a5401a9fc6b066ec1f5a43a8f` | `1356b832cb8374ead60a99cb2120a36dadeb7b5a5401a9fc6b066ec1f5a43a8f` |
 | `src/components/ui/badge.tsx` | `components/ui/badge.tsx` | `8041cd4d09d4cbc148d6662f421a8b2297fba9fbb676d4b71306bd113e3b7ef9` | `8041cd4d09d4cbc148d6662f421a8b2297fba9fbb676d4b71306bd113e3b7ef9` |
 | `src/components/ui/button.tsx` | `components/ui/button.tsx` | `5a635b8d985921f8c7a3aec9300c7404c09c839e6daab8d044e72d0e11da6006` | `5a635b8d985921f8c7a3aec9300c7404c09c839e6daab8d044e72d0e11da6006` |
@@ -37,6 +44,8 @@ Source: [Maxim AI Bifrost](https://github.com/maximhq/bifrost) commit [`6493abd3
 | `public/static/fonts/OFL.txt` | `public/static/fonts/OFL.txt` | `1781d2806a07d91c4edf4740b88449fab7d0eadad53f7c351b94cd4d4eb8c00f` | `1781d2806a07d91c4edf4740b88449fab7d0eadad53f7c351b94cd4d4eb8c00f` |
 
 `src/globals.css`: only the Tailwind `@source` paths were replaced to scan this standalone `src/` folder instead of the upstream app and enterprise folders. `src/components/ui/textarea.tsx`: only the unused `AutoSizeTextarea` export and its `react-textarea-autosize` import were removed; the upstream `Textarea` component is byte-for-byte unchanged within that file.
+
+`src/lib/constants/icons.tsx` retains the upstream `ProviderIcons` SVG definitions unchanged and removes only the unused routing-engine icon section and `RenderProviderIcon` wrapper. The wrapper depended on `next-themes`; this prototype supplies the current theme with CSS light/dark branches in `src/BrandIcon.tsx`. The four upstream image assets referenced by the retained icon definitions are included above. The Google organization logo comes from upstream SCIM art; Moonshot AI has no matching upstream mark and uses text initials.
 
 The standalone shell composes the original `components/ui/sidebar.tsx` primitive, original buttons/cards/dialogs/sheets/tables, upstream `globals.css`, logos, and Geist fonts. The upstream application `clientLayout.tsx`, `components/sidebar.tsx`, and `components/topbar.tsx` depend on Redux, TanStack Router, RBAC, gateway configuration, and WebSocket state; they were not imported. `src/App.tsx` composes the same shell structure with local hash navigation, fixtures, and a local theme button. The model card combines original `Card`, `Badge`, and `Button` primitives because upstream does not have an individual model card component.
 
