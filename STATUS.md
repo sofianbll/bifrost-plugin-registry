@@ -47,6 +47,8 @@ Cet état décrit le checkout local. La production Pulsar n'a pas été interrog
 - À 320 px, les onglets du laboratoire passent à la ligne et le récapitulatif reste entièrement lisible. Les packs et les cartes ont été inspectés dans le navigateur. `npm run build` et `npm run check` passent ; seuls les avertissements de taille du bundle demeurent. Les tests couvrent la portée filtrée, les doublons, les packs additifs, les protocoles et les capacités inconnues qui doivent rester testables.
 - Aucun client réel ni harness exécuté : les packs sont des recettes proposées, pas une certification. Les [sources des protocoles clients](docs/design/bifrost-ui-patterns.md#suggested-client-test-packs) et les limites de preuve sont documentées.
 
+- Correctif du logo dans le menu replié : icône compacte avec contraste sombre, bouton de réouverture accessible, logo complet conservé dans le menu ouvert et mobile. Vérification navigateur des états replié/ouvert en clair et sombre à 1280 px, et du menu mobile à 390 px ; build et contrôles du prototype réussis.
+
 ## Base de reprise et prochaine étape
 
 - Point de départ de cette reprise : `main` à `503e775`, comprenant la maquette locale, devant la référence locale `origin/main` à `f05e029`. Le nettoyage et le cadrage sont regroupés sur `codex/prepare-ui-ux`. Consulter `git status` pour l'état courant ; aucun push n'a été effectué pendant cette préparation.
