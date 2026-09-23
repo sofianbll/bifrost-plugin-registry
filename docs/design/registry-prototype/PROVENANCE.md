@@ -1,5 +1,13 @@
 # Upstream provenance
 
+## Provider harness catalog and recorded demo
+
+`public/harness-catalog.json` is derived from `tests/e2e/api/collections/provider-harness.json` at commit `6493abd3d1422c9bfde95f242fd57b38e73ce881`. Source SHA-256: `3330c41792b3ec93dd70c50f12c6547803a57ee76869b639bff70a096ad719b0`. The importer retains 3,530 request entries across 114 top-level folders, exact paths/bodies and inherited named assertions; credential-shaped values are redacted. This is a browsing projection, not an executable replacement for the Postman collection. Dynamic assertion names are marked; conditional assertions are not proof of execution.
+
+`public/harness-demo-report.json` was generated using upstream's pinned Newman version 6.2.1, three original official requests (native chat, native Responses, native streaming chat), and original collection-level scripts. `scripts/record-harness-demo.mjs` reproduces it against an isolated loopback stub. HTTP payloads are synthetic, including a deliberate 503 on Responses. Newman report fields and lifecycle event timestamps are captured output. No gateway or provider capability was measured; the stub is not the Bifrost Mocker plugin. No authentication was used. UI playback timing is illustrative.
+
+## UI components
+
 Source: [Maxim AI Bifrost](https://github.com/maximhq/bifrost) commit [`6493abd3d1422c9bfde95f242fd57b38e73ce881`](https://github.com/maximhq/bifrost/tree/6493abd3d1422c9bfde95f242fd57b38e73ce881/ui). The table records SHA-256 of the upstream source and the vendored copy. Identical hashes mean byte-identical files.
 
 | Prototype file | Upstream `ui/` file | Upstream SHA-256 | Copy SHA-256 |

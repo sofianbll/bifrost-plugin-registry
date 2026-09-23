@@ -15,6 +15,16 @@ export type ViewOptions = {
   evidence: boolean;
 };
 export const defaultViewOptions: ViewOptions = { layout: "grid", size: "medium", logo: "creator", description: true, metadata: true, providers: true, evidence: true };
+export function updateViewOverride(base: ViewOptions, previous: Partial<ViewOptions>, next: ViewOptions): Partial<ViewOptions> {
+  const current = { ...base, ...previous };
+  const override = { ...previous };
+  for (const key of Object.keys(next) as (keyof ViewOptions)[]) {
+    if (next[key] === current[key]) continue;
+    if (next[key] === base[key]) delete override[key];
+    else Object.assign(override, { [key]: next[key] });
+  }
+  return override;
+}
 export function ViewControls({ value, onChange, onReset, scope, fields = ["description", "metadata", "providers", "evidence"] }: { value: ViewOptions; onChange: (next: ViewOptions) => void; onReset?: () => void; scope?: string; fields?: ("description" | "metadata" | "providers" | "evidence")[] }) {
   const [open, setOpen] = useState(false);
   return <div className="flex items-center gap-1" aria-label={`${scope || "List"} view options`}>
