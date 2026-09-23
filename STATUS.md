@@ -8,6 +8,7 @@ Cet état décrit le checkout local. La production Pulsar n'a pas été interrog
 | Panneau implémenté | UI française servie sur `/model-registry` par `internal/admin/`, avec API de configuration, validation, aperçu et plan. Le plugin peut l'héberger sur son port admin local. |
 | Build natif | Les artefacts et la sonde ABI pour Bifrost `transports/v2.2.1` sont consignés dans `reports/native-build-v1/`. `BUILD_STATUS.json` déclare un chargement et des essais sur Pulsar ; ils ne sont pas revérifiés ici. |
 | Nouvelle UI | `docs/design/mockup/` contient cinq écrans anglais avec des données fictives. Cette maquette n'appelle pas l'API et n'est pas l'UI servie par le plugin. |
+| Prototype Hermes | `docs/design/mockup/hermes-prototype.html` explore en français la sélection, l'héritage et la publication simulée, avec trois parcours guidés. Le contrôle du modèle de sélection passe ; rendu navigateur et validation utilisateur restent à faire. Source isolée sur `codex/prototype-hermes`. |
 | Intégration à Bifrost | Le gateway personnalisé, le proxy `/bifrost-registry/` et l'adaptation des chemins de l'UI ne sont pas implémentés. Le panneau actuel utilise `/app.js`, `/app.css` et `/api/*` à la racine. |
 | Journal des refus | L'API `/api/events`, les compteurs et le journal de garde n'existent pas. L'écran Denials est seulement maquetté. |
 

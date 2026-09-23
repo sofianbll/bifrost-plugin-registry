@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Hermes · Prototype Bifrost Registry</title>
+<style>
+/* Prototype d'interaction : comprendre sélection locale, héritage et publication.
+   Tokens inspirés du référentiel Bifrost du dépôt. Aucune dépendance ni requête réseau. */
+:root{color-scheme:light;--bg:#f4f4f5;--card:#fff;--ink:#18181b;--muted:#62626d;--line:#e4e4e7;--soft:#f7f7f8;--accent:#087e63;--tint:#edf8f4;--danger:#b42336;--warning:#8b510a;--warn-bg:#fff8e9;--radius:6px;font:14px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);background:var(--bg)}
+@media(prefers-color-scheme:dark){:root{color-scheme:dark;--bg:#161619;--card:#202024;--ink:#f4f4f5;--muted:#b3b3bd;--line:#39393f;--soft:#28282d;--accent:#80ddbe;--tint:#243c34;--danger:#ff9aa8;--warning:#f1cb88;--warn-bg:#352d20}}
+*{box-sizing:border-box}body{margin:0}button,input,select{font:inherit}button,summary{cursor:pointer}button{border:1px solid var(--line);border-radius:var(--radius);padding:7px 12px;background:var(--card);color:var(--ink);min-height:36px}button:hover:not(:disabled){background:var(--soft)}button:disabled{opacity:.5;cursor:default}button:focus-visible,a:focus-visible,summary:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--accent);outline-offset:3px}button.primary{background:var(--accent);border-color:var(--accent);color:var(--card);font-weight:600}button.primary:hover:not(:disabled){filter:brightness(.94);background:var(--accent)}button.quiet{border-color:transparent;background:transparent;color:var(--muted)}button.link{border:0;background:none;padding:0;min-height:28px;text-align:left;color:var(--accent)}button.name{font-weight:600;color:var(--ink);font-size:15px}button[aria-pressed=true]{background:var(--tint);border-color:var(--accent);color:var(--accent)}input[type=checkbox]{width:17px;height:17px;accent-color:var(--accent);flex-shrink:0}select,input[type=search]{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:var(--radius);padding:9px;max-width:100%}h1,h2,h3,p{margin:0}h1{font-size:24px;line-height:1.3;letter-spacing:-.5px;font-weight:600}h2{font-size:15px;font-weight:600}h3{font-size:14px;font-weight:600}small,.small{font-size:12px}.muted{color:var(--muted)}.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.between{justify-content:space-between}.stack{display:grid;gap:14px}.badge{display:inline-flex;align-items:center;border:1px solid var(--line);background:var(--soft);border-radius:4px;padding:2px 7px;font-size:11px;line-height:1.7;font-weight:500}.badge.accent{color:var(--accent);background:var(--tint);border-color:transparent}.eyebrow{text-transform:uppercase;font-size:10px;letter-spacing:1.3px;font-weight:600;color:var(--muted)}code,pre{font:12px/1.7 ui-monospace,SFMono-Regular,Consolas,monospace;overflow-wrap:anywhere}pre{white-space:pre-wrap;margin:8px 0 0;background:var(--soft);padding:12px;border-radius:var(--radius)}hr{border:0;border-top:1px solid var(--line);margin:18px 0}[hidden]{display:none!important}
+.prototype-bar{padding:8px 24px;background:var(--tint);border-bottom:1px solid var(--line);font-size:12px;display:flex;gap:12px;justify-content:space-between;align-items:center;flex-wrap:wrap}.prototype-bar strong{color:var(--accent)}.app{display:grid;grid-template-columns:184px minmax(0,1fr);max-width:1500px;margin:auto;min-height:calc(100vh - 52px)}.sidebar{padding:28px 16px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:30px}.brand{font-size:20px;letter-spacing:-.6px;font-weight:650;padding:0 10px}.brand span{color:var(--accent)}.sidebar nav{display:grid;gap:7px}.sidebar nav button{text-align:left;width:100%;border-color:transparent}.sidebar .foot{margin-top:auto;padding:12px 8px}.content{padding:24px 30px;min-width:0}.breadcrumbs{font-size:12px;color:var(--muted);margin-bottom:20px}.page-head{margin-bottom:22px}.page-head p{margin-top:7px;color:var(--muted)}.layout{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:24px;align-items:start}.panel{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:22px;min-width:0}.section-title{margin-bottom:14px}.section-title p{font-size:12px;color:var(--muted);margin-top:4px}.groups{display:grid;grid-template-columns:1fr 1fr;gap:10px}.group{border:1px solid var(--line);border-radius:var(--radius);padding:13px;min-width:0}.group.selected{border-color:var(--accent);background:var(--tint)}.group label{display:flex;gap:9px;align-items:center;cursor:pointer;font-weight:600}.group .members{color:var(--muted);font-size:12px;margin:9px 0 5px;overflow-wrap:anywhere}.group button{font-size:12px}.models{display:grid;grid-template-columns:1fr 1fr;gap:12px}.model{border:1px solid var(--line);border-radius:var(--radius);padding:15px;display:flex;flex-direction:column;align-items:stretch;gap:13px;min-width:0}.model.included{border-top:3px solid var(--accent);padding-top:13px}.model.excluded{border-style:dashed}.model-top{display:flex;align-items:center;gap:10px}.monogram{width:32px;height:32px;flex-shrink:0;display:grid;place-items:center;background:var(--soft);border:1px solid var(--line);border-radius:6px;font-size:11px;font-weight:650}.model .source{min-height:37px;color:var(--muted);font-size:12px}.model .actions{margin-top:auto;display:flex;align-items:center;gap:8px;justify-content:space-between;flex-wrap:wrap}.model .actions button{font-size:12px}.model.excluded .source{color:var(--danger)}.format{display:flex;align-items:center;justify-content:space-between;gap:15px;flex-wrap:wrap}.format label{display:block;font-weight:600;margin-bottom:4px}.preview{position:sticky;top:20px}.preview-heading{display:flex;gap:12px;align-items:center}.key-icon{border:1px solid var(--line);border-radius:7px;width:36px;height:36px;display:grid;place-items:center;font-size:18px;background:var(--soft)}.count{font-size:27px;font-weight:600;line-height:1.2}.stats{margin:23px 0 14px}.catalogue{list-style:none;padding:0;margin:10px 0 18px}.catalogue li{border-bottom:1px solid var(--line);padding:9px 0;display:flex;justify-content:space-between;gap:8px;align-items:baseline;min-width:0}.catalogue code{min-width:0}.delta{font-size:11px;color:var(--accent);white-space:nowrap}.removed{color:var(--danger)}.empty{padding:18px 0;color:var(--muted);font-size:13px}.preview .primary{width:100%}.preview .status{font-size:12px;margin:13px 0;color:var(--muted)}.preview details{font-size:12px;margin-top:15px}.preview summary{font-weight:500}.notice{padding:10px 12px;border-radius:var(--radius);background:var(--warn-bg);color:var(--warning);font-size:12px;margin:12px 0}.feedback{font-size:12px;color:var(--accent);min-height:20px;margin:15px 0 0}.guide{margin-top:22px;border-top:1px solid var(--line);padding-top:16px}.guide summary{font-size:13px;font-weight:600}.guide .row{margin:14px 0 10px}.guide p{font-size:12px;color:var(--muted)}.guide .step{margin-top:12px}.guide button{font-size:12px}.guide .guide-question{margin-bottom:12px}.settings{margin-top:15px;font-size:12px}.settings label{display:flex;align-items:center;gap:8px;margin-top:12px}.settings p{margin-top:7px}.scope{font-size:12px;color:var(--muted);margin-top:14px}
+dialog{width:min(640px,calc(100vw - 32px));max-height:90vh;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:24px;background:var(--card);color:var(--ink);box-shadow:0 18px 70px #0003}dialog::backdrop{background:#0006}dialog h2{font-size:19px}dialog header{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:18px}dialog .close{font-size:18px}dialog footer{display:flex;justify-content:flex-end;gap:10px;margin-top:22px;flex-wrap:wrap}.dialog-list{display:grid;gap:0;margin:16px 0}.dialog-list label{display:flex;align-items:center;gap:9px;padding:11px 0;border-bottom:1px solid var(--line);cursor:pointer}.impact{display:grid;grid-template-columns:1fr 1fr;gap:12px}.impact article{background:var(--soft);padding:13px;border-radius:6px}.impact ul{padding-left:17px;font-size:12px;margin:8px 0}.capabilities{width:100%;border-collapse:collapse;font-size:12px}.capabilities th,.capabilities td{text-align:left;padding:10px 7px;border-bottom:1px solid var(--line)}.capabilities th{color:var(--muted);font-weight:500}.access{padding:12px 0;border-bottom:1px solid var(--line)}.access code{display:block}.detail-meta{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin:18px 0}.detail-meta dd{margin:4px 0 0}.detail-meta dt{font-size:12px;color:var(--muted)}.mobile-only{display:none}
+@media(min-width:1200px){.content{padding:28px 36px}.layout{grid-template-columns:minmax(0,1fr) 340px}}
+@media(max-width:1060px){.app{grid-template-columns:150px minmax(0,1fr)}.content{padding:22px 20px}.layout{grid-template-columns:minmax(0,1fr) 280px;gap:16px}.panel{padding:17px}.models,.groups{grid-template-columns:1fr}.sidebar{padding:24px 10px}}
+@media(max-width:780px){.app{display:block}.sidebar{padding:14px 20px;border-right:0;border-bottom:1px solid var(--line);flex-direction:row;align-items:center;justify-content:space-between;gap:12px}.brand{padding:0}.sidebar nav{display:flex;gap:5px}.sidebar nav button{font-size:12px;width:auto}.sidebar .eyebrow,.sidebar .foot{display:none}.content{padding:20px}.layout{grid-template-columns:minmax(0,1fr) 280px;gap:14px}.page-head h1{font-size:21px}}
+@media(max-width:640px){.prototype-bar{padding:8px 16px}.content{padding:18px 14px}.layout{display:flex;flex-direction:column}.layout>.panel{width:100%}.preview{position:static}.groups,.models{grid-template-columns:1fr 1fr}.sidebar{padding:12px 14px}.sidebar nav button{padding:7px}.panel{padding:16px}.breadcrumbs{margin-bottom:15px}.mobile-only{display:inline-block}.impact{grid-template-columns:1fr}.detail-meta{grid-template-columns:1fr}}
+@media(max-width:420px){.groups,.models{grid-template-columns:1fr}.sidebar{align-items:flex-start;flex-direction:column}.sidebar nav{flex-wrap:wrap}.brand{font-size:18px}.format select{width:100%}.prototype-bar{gap:4px}.prototype-bar button{padding:4px 8px}}
+@media(pointer:coarse){button,select,summary{min-height:44px}input[type=checkbox]{width:22px;height:22px}}
+</style>
+</head>
+<body>
+<div class="prototype-bar"><span><strong>Prototype interactif</strong> · Données fictives · Aucune API connectée</span><button class="quiet" id="reset">Recommencer</button></div>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">bifrost<span> /</span></div>
+    <nav aria-label="Espace de démonstration">
+      <p class="eyebrow">Registry</p>
+      <button aria-current="page" aria-pressed="true" id="home">Clé Hermes</button>
+      <button id="nav-groups">Groupes partagés</button>
+      <button id="witness">Voir la clé témoin</button>
+    </nav>
+    <p class="foot small muted">Une clé, son catalogue.<br>Les groupes restent partagés.</p>
+  </aside>
+  <main class="content">
+    <p class="breadcrumbs">Clés virtuelles &nbsp; / &nbsp; Hermes &nbsp; / &nbsp; Catalogue</p>
+    <header class="page-head"><div class="row between"><h1>Le catalogue de Hermes</h1><span class="badge">Clé de démonstration</span></div><p>Choisissez les modèles que cette clé peut voir et utiliser.</p></header>
+    <div class="layout">
+      <section class="panel" aria-label="Composer le catalogue">
+        <div class="section-title"><h2>1. Partir de vos groupes</h2><p>Leur contenu évolue pour toutes les clés qui en héritent.</p></div>
+        <div id="groups" class="groups"></div>
+        <hr>
+        <div class="section-title"><h2>2. Ajuster pour Hermes</h2><p>Ces ajouts et exclusions s'appliquent uniquement à cette clé.</p></div>
+        <div id="models" class="models"></div>
+        <p class="scope" id="selection-summary"></p>
+        <hr>
+        <div class="format"><div><label for="naming">3. Choisir les noms exposés</label><p class="small muted">Le même modèle peut avoir plusieurs identifiants.</p></div><select id="naming"><option value="model">Nom court</option><option value="provider/model">Fournisseur / modèle</option><option value="both">Les deux formats</option></select></div>
+        <p class="small muted" id="naming-example" style="margin-top:10px"></p>
+        <a class="mobile-only small" href="#preview" style="margin-top:14px;color:var(--accent)">Voir le catalogue prévu ↓</a>
+      </section>
+      <aside class="panel preview" id="preview" aria-label="Aperçu du catalogue">
+        <div class="preview-heading"><span class="key-icon" aria-hidden="true">⌘</span><div><h2>Ce que Hermes recevrait</h2><span class="small muted">Aperçu du brouillon</span></div></div>
+        <div class="stats"><span class="count" id="model-count">2</span> modèles <span class="muted small" id="id-count"></span></div>
+        <div id="draft-list"></div>
+        <div id="difference" class="small"></div>
+        <div class="notice" id="read-warning" role="alert" hidden>La relecture simulée a échoué. Le catalogue actuel reste inconnu ; la dernière lecture affichée peut être ancienne.</div>
+        <p class="status" id="save-status"></p>
+        <button class="primary" id="publish">Publier pour Hermes · démo</button>
+        <button class="quiet" id="discard" style="width:100%;margin-top:6px">Annuler mes modifications</button>
+        <p class="feedback" id="feedback" role="status" aria-live="polite">La clé témoin conserve son propre catalogue.</p>
+        <details id="api-details"><summary>Voir les réponses de /v1/models</summary><p class="small muted" style="margin-top:12px">Aperçu calculé · simulation</p><pre id="draft-json"></pre><p class="small muted" style="margin-top:12px">Dernière lecture · simulation</p><pre id="observed-json"></pre><button id="reread" style="margin-top:10px">Relire · démo</button></details>
+      </aside>
+    </div>
+    <section class="guide" aria-label="Parcours guidés">
+      <details><summary>Essayer un parcours guidé</summary>
+        <p class="guide-question" style="margin-top:12px">Est-ce clair ce qui change pour Hermes et ce qui change pour les autres clés ? Chaque parcours repart d'un état de démonstration connu.</p>
+        <nav class="row" aria-label="Choisir un scénario"><button data-scenario="local" aria-pressed="false">Ma clé uniquement</button><button data-scenario="shared" aria-pressed="false">Un groupe partagé</button><button data-scenario="failure" aria-pressed="false">Une lecture en échec</button></nav>
+        <p id="guide-description">Choisissez un parcours ou explorez librement les contrôles ci-dessus.</p>
+        <div class="step"><button id="guide-next" hidden></button><span class="small muted" id="guide-progress" style="margin-left:10px"></span></div>
+      </details>
+    </section>
+    <details class="settings"><summary>Réglages de la démonstration</summary><label><input id="simulate-failure" type="checkbox">Simuler une API impossible à relire</label><p class="muted">Tout reste dans cette page. Recharger la page réinitialise la démonstration.</p></details>
+  </main>
+</div>
+<dialog id="group-dialog" aria-labelledby="group-title"><header><h2 id="group-title">Modifier le groupe</h2><button class="close" data-close="group-dialog" aria-label="Fermer le groupe">×</button></header><p class="small muted">Vous modifiez une sélection partagée. Vérifiez les clés concernées avant de publier.</p><div id="group-members" class="dialog-list"></div><p id="group-error" class="notice" role="alert" hidden>Choisissez au moins un modèle pour ce groupe.</p><h3>Effet sur les clés publiées</h3><div id="group-impact" class="impact" style="margin-top:12px"></div><p class="small muted" style="margin-top:14px">Les exclusions de chaque clé restent prioritaires. Le brouillon Hermes conserve aussi ses modifications locales.</p><footer><button data-close="group-dialog">Annuler</button><button class="primary" id="publish-group">Publier le groupe · démo</button></footer></dialog>
+<dialog id="model-dialog" aria-labelledby="model-title"><header><h2 id="model-title">Fiche modèle</h2><button class="close" data-close="model-dialog" aria-label="Fermer la fiche">×</button></header><div id="model-details"></div><footer><button data-close="model-dialog">Fermer</button></footer></dialog>
+<dialog id="witness-dialog" aria-labelledby="witness-title"><header><h2 id="witness-title">La clé témoin</h2><button class="close" data-close="witness-dialog" aria-label="Fermer la comparaison">×</button></header><p class="muted small">Cette seconde clé hérite de Code. Elle permet de voir quels changements sont partagés.</p><div id="witness-content" style="margin-top:18px"></div><footer><button data-close="witness-dialog">Revenir à Hermes</button></footer></dialog>
+
+<script id="catalogue-logic">
+// Module pur de démonstration. Les accès et capacités ne décrivent aucun service réel.
+const RegistryDemo = (() => {
+  const models = [
+    {id:'gpt-demo',name:'GPT · démo',initial:'G',kind:'Texte',description:'Un modèle, deux accès pour explorer les formats de noms.',providers:['openai','opencode']},
+    {id:'claude-demo',name:'Claude · démo',initial:'C',kind:'Texte',description:'Un modèle hérité du groupe Code.',providers:['anthropic']},
+    {id:'gemini-demo',name:'Gemini · démo',initial:'Gm',kind:'Texte et image',description:'Un modèle à ajouter individuellement ou via Favoris.',providers:['google']},
+    {id:'kimi-demo',name:'Kimi · démo',initial:'K',kind:'Texte',description:'Un modèle pour explorer une évolution du groupe partagé.',providers:['moonshot']}
+  ];
+  const clone = value => JSON.parse(JSON.stringify(value));
+  const policy = () => ({groups:['code'],added:[],excluded:[],naming:'model'});
+  function selected(key,groups) {
+    const inherited = key.groups.flatMap(id => groups[id].members);
+    return models.filter(m => (inherited.includes(m.id) || key.added.includes(m.id)) && !key.excluded.includes(m.id));
+  }
+  function exposed(key,groups) {
+    return selected(key,groups).flatMap(m => {
+      const prefixed = m.providers.map(p => `${p}/${m.id}`);
+      return key.naming === 'model' ? [m.id] : key.naming === 'provider/model' ? prefixed : [m.id,...prefixed];
+    });
+  }
+  function initial() {
+    const groups = {code:{name:'Code',members:['gpt-demo','claude-demo']},favorites:{name:'Favoris',members:['gpt-demo','gemini-demo']}};
+    const keys = {hermes:policy(),witness:policy()};
+    return {groups,keys,draft:policy(),observed:{hermes:exposed(keys.hermes,groups),witness:exposed(keys.witness,groups)},readAvailable:true,readFailed:false};
+  }
+  function sources(key,groups,id) {return key.groups.filter(g => groups[g].members.includes(id)).map(g => groups[g].name);}
+  function toggleModel(key,groups,id) {
+    const next = clone(key), active = selected(key,groups).some(m => m.id === id);
+    next.added = next.added.filter(x => x !== id);
+    next.excluded = next.excluded.filter(x => x !== id);
+    if (active && sources(key,groups,id).length) next.excluded.push(id);
+    if (!active && !sources(key,groups,id).length) next.added.push(id);
+    return next;
+  }
+  function read(state) {
+    const next = clone(state);
+    next.readFailed = !next.readAvailable;
+    if (next.readAvailable) for (const name of Object.keys(next.keys)) next.observed[name] = exposed(next.keys[name],next.groups);
+    return next;
+  }
+  function publish(state) {const next = clone(state);next.keys.hermes=clone(next.draft);return read(next);}
+  function publishGroup(state,id,members) {if (!members.length) throw new Error('Un groupe doit contenir au moins un modèle.');const next = clone(state);next.groups[id].members=[...members];return read(next);}
+  const diff = (before,after) => ({added:after.filter(x => !before.includes(x)),removed:before.filter(x => !after.includes(x))});
+  const payload = ids => ({object:'list',data:ids.map(id => ({id,object:'model'}))});
+  // ponytail: fixture-only alias resolution; production must use the actual Bifrost routing contract.
+  return {models,clone,selected,exposed,initial,sources,toggleModel,read,publish,publishGroup,diff,payload};
+})();
+</script>
+<script>
+(() => {
+  const D=RegistryDemo, $=id=>document.getElementById(id), esc=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  let state=D.initial(), groupEdit=null, guide=null, step=0;
+  const name=id=>D.models.find(m=>m.id===id).name;
+  const changed=()=>JSON.stringify(state.draft)!==JSON.stringify(state.keys.hermes);
+  const tell=message=>{$('feedback').textContent=message;};
+  function stopGuide(){guide=null;renderGuide();}
+  function render() {
+    $('groups').innerHTML=Object.entries(state.groups).map(([id,g])=>`<div class="group ${state.draft.groups.includes(id)?'selected':''}"><label><input type="checkbox" data-group="${id}" ${state.draft.groups.includes(id)?'checked':''}>${esc(g.name)} <span class="badge">${g.members.length}</span></label><p class="members">${g.members.map(name).map(esc).join(' · ') || 'Groupe vide'}</p><button class="link" data-edit-group="${id}">Modifier le groupe partagé ↗</button></div>`).join('');
+    const selected=D.selected(state.draft,state.groups), ids=D.exposed(state.draft,state.groups), saved=D.exposed(state.keys.hermes,state.groups);
+    $('models').innerHTML=D.models.map(m=>{
+      const active=selected.some(x=>x.id===m.id), excluded=state.draft.excluded.includes(m.id), origin=D.sources(state.draft,state.groups,m.id);
+      const source=excluded?'Exclu uniquement pour Hermes':active?[origin.length?`Hérité de ${origin.join(' + ')}`:'',state.draft.added.includes(m.id)?'Ajout individuel':''].filter(Boolean).join(' · '):'Hors de la sélection';
+      return `<article class="model ${active?'included':excluded?'excluded':''}"><div class="model-top"><span class="monogram" aria-hidden="true">${m.initial}</span><div><button class="link name" data-model="${m.id}" aria-label="Ouvrir la fiche ${esc(m.name)}">${esc(m.name)}</button><p class="small muted">${m.kind} · ${m.providers.length} accès</p></div></div><p class="source">${esc(source)}</p><div class="actions"><span class="badge ${active?'accent':''}">${active?'Inclus':excluded?'Exclu':'Disponible'}</span><button data-toggle-model="${m.id}" aria-label="${active?'Retirer':excluded?'Réinclure':'Ajouter'} ${esc(m.name)} pour Hermes">${active?(origin.length?'Exclure':'Retirer'):excluded?'Réinclure':'Ajouter'}</button></div></article>`;
+    }).join('');
+    $('selection-summary').textContent=`${state.draft.groups.length} groupe(s) · ${state.draft.added.length} ajout(s) individuel(s) · ${state.draft.excluded.length} exclusion(s) locale(s)`;
+    $('naming').value=state.draft.naming;
+    $('naming-example').textContent={model:'Exemple : gpt-demo. Le routage est configuré séparément.', 'provider/model':'Exemples : openai/gpt-demo, opencode/gpt-demo.',both:'Exemples : gpt-demo, openai/gpt-demo, opencode/gpt-demo. Une seule carte modèle.'}[state.draft.naming];
+    $('model-count').textContent=selected.length;$('id-count').textContent=`· ${ids.length} identifiant(s)`;
+    const delta=D.diff(saved,ids);
+    $('draft-list').innerHTML=ids.length?`<ul class="catalogue">${ids.map(id=>`<li><code>${esc(id)}</code>${delta.added.includes(id)?'<span class="delta">+ ajout</span>':''}</li>`).join('')}</ul>`:'<p class="empty">Catalogue vide. Cette clé ne verrait aucun modèle.</p>';
+    $('difference').innerHTML=delta.removed.length?`<p class="removed">Retrait prévu : ${delta.removed.map(esc).join(', ')}</p>`:'';
+    $('save-status').textContent=changed()?'Modifications propres à Hermes. La clé témoin est inchangée.':'Le brouillon correspond à la sélection publiée dans cette démo.';
+    $('publish').disabled=!changed();$('discard').disabled=!changed();
+    $('read-warning').hidden=!state.readFailed;
+    $('draft-json').textContent=JSON.stringify(D.payload(ids),null,2);
+    $('observed-json').textContent=JSON.stringify(D.payload(state.observed.hermes),null,2);
+    $('simulate-failure').checked=!state.readAvailable;
+  }
+  function openGroup(id){groupEdit={id,members:[...state.groups[id].members]};$('group-title').textContent=`Groupe ${state.groups[id].name}`;renderGroup();$('group-dialog').showModal();}
+  function renderGroup(){
+    $('group-members').innerHTML=D.models.map(m=>`<label><input type="checkbox" data-member="${m.id}" ${groupEdit.members.includes(m.id)?'checked':''}>${esc(m.name)} <span class="small muted">${m.kind}</span></label>`).join('');
+    const next=D.clone(state.groups);next[groupEdit.id].members=[...groupEdit.members];
+    $('group-impact').innerHTML=Object.entries(state.keys).filter(([,key])=>key.groups.includes(groupEdit.id)).map(([id,key])=>{
+      const delta=D.diff(D.exposed(key,state.groups),D.exposed(key,next));
+      return `<article><h3>${id==='hermes'?'Hermes':'Clé témoin'}</h3><p class="small muted">${D.selected(key,state.groups).length} → ${D.selected(key,next).length} modèles</p><ul>${D.selected(key,next).map(m=>`<li>${esc(m.name)}</li>`).join('')||'<li>Catalogue vide</li>'}</ul><p class="small">${delta.added.length} ajout(s), ${delta.removed.length} retrait(s)</p>${key.excluded.length?'<p class="small muted">Exclusions locales conservées</p>':''}</article>`;
+    }).join('')||'<p class="small muted">Aucune clé publiée n’hérite de ce groupe.</p>';
+    $('group-error').hidden=groupEdit.members.length>0;
+    $('publish-group').disabled=!groupEdit.members.length||JSON.stringify([...groupEdit.members].sort())===JSON.stringify([...state.groups[groupEdit.id].members].sort());
+  }
+  function openModel(id){
+    const m=D.models.find(x=>x.id===id);$('model-title').textContent=m.name;
+    $('model-details').innerHTML=`<span class="badge">Fiche illustrative</span><p class="muted" style="margin-top:12px">${esc(m.description)}</p><dl class="detail-meta"><div><dt>Type de modèle</dt><dd>${esc(m.kind)}</dd></div><div><dt>Identifiant court</dt><dd><code>${m.id}</code></dd></div><div><dt>Contexte et prix</dt><dd>Non renseignés</dd></div><div><dt>Origine des informations</dt><dd>Données fictives du prototype</dd></div></dl><h3>Accès par fournisseur</h3>${m.providers.map(p=>`<div class="access"><strong>${p}</strong> <span class="badge">Simulé</span><code>${p}/${m.id}</code></div>`).join('')}<p class="small muted" style="margin:12px 0 20px">Le nom court utilise un routage illustratif déjà configuré. Afficher plusieurs accès ne crée pas automatiquement une répartition de charge.</p><h3>Capacités et preuves</h3><table class="capabilities"><thead><tr><th>Capacité</th><th>Documentation</th><th>Sur cet accès</th></tr></thead><tbody>${['Conversation','Streaming','Outils',...(m.kind.includes('image')?['Vision']:[])].map(c=>`<tr><td>${c}</td><td>Non renseignée</td><td>Non testé</td></tr>`).join('')}</tbody></table><p class="small muted" style="margin-top:12px">Aucune capacité réelle n'est certifiée. La fiche complète et son édition seront explorées dans le parcours suivant.</p>`;
+    $('model-dialog').showModal();
+  }
+  function openWitness(){
+    const key=state.keys.witness;
+    $('witness-content').innerHTML=`<p><strong>${D.selected(key,state.groups).length} modèles publiés dans la démo</strong></p><ul class="catalogue">${D.exposed(key,state.groups).map(id=>`<li><code>${id}</code></li>`).join('')}</ul><p class="small muted">Groupes hérités : ${key.groups.map(g=>state.groups[g].name).join(', ')}</p><p class="small muted">Ajouts et exclusions de Hermes : aucun effet sur cette clé.</p>`;
+    $('witness-dialog').showModal();
+  }
+  const publicationMessage=()=>state.readFailed?'Sélection enregistrée dans la démo. Relecture impossible : résultat actuel non vérifié.':'Publication simulée : la relecture correspond au catalogue prévu.';
+  const scenarios={
+    local:{description:'Ajoutez Gemini, excluez Claude, puis publiez. La clé témoin garde GPT et Claude.',steps:[['Ajouter Gemini à Hermes',()=>{state.draft=D.toggleModel(state.draft,state.groups,'gemini-demo');}],['Exclure Claude uniquement pour Hermes',()=>{state.draft=D.toggleModel(state.draft,state.groups,'claude-demo');}],['Publier la sélection · démo',()=>{state=D.publish(state);}],['Comparer avec la clé témoin',openWitness]]},
+    shared:{description:'Hermes exclut déjà Claude. Ajoutez Kimi au groupe Code : les deux clés le recevront et l’exclusion restera locale.',steps:[['Ajouter Kimi au groupe Code',()=>{openGroup('code');groupEdit.members.push('kimi-demo');renderGroup();}],['Publier le groupe · démo',()=>{state=D.publishGroup(state,'code',groupEdit.members);$('group-dialog').close();}],['Comparer les deux clés',openWitness]]},
+    failure:{description:'La sauvegarde peut réussir alors que la relecture échoue. Observez la dernière lecture conservée et le statut non vérifié.',steps:[['Ajouter Gemini au brouillon',()=>{state.draft=D.toggleModel(state.draft,state.groups,'gemini-demo');}],['Simuler une relecture indisponible',()=>{state.readAvailable=false;}],['Publier avec une relecture en échec',()=>{state=D.publish(state);$('api-details').open=true;}],['Rétablir la lecture et vérifier',()=>{state.readAvailable=true;state=D.read(state);}]]}
+  };
+  function renderGuide(){
+    document.querySelectorAll('[data-scenario]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.scenario===guide)));
+    $('guide-description').textContent=guide?scenarios[guide].description:'Exploration libre. Choisissez un parcours pour repartir d’un état connu.';
+    $('guide-next').hidden=!guide||step>=scenarios[guide].steps.length;
+    $('guide-next').textContent=guide&&step<scenarios[guide].steps.length?scenarios[guide].steps[step][0]:'';
+    $('guide-progress').textContent=guide?step>=scenarios[guide].steps.length?'Parcours terminé. Continuez librement.':`Étape ${step+1} / ${scenarios[guide].steps.length}`:'';
+  }
+  $('groups').addEventListener('change',event=>{const id=event.target.dataset.group;if(!id)return;stopGuide();state.draft.groups=event.target.checked?[...state.draft.groups,id]:state.draft.groups.filter(x=>x!==id);render();tell('La sélection de groupes est modifiée dans le brouillon Hermes.');document.querySelector(`[data-group="${id}"]`).focus();});
+  $('groups').addEventListener('click',event=>{const button=event.target.closest('[data-edit-group]');if(button){stopGuide();openGroup(button.dataset.editGroup);}});
+  $('models').addEventListener('click',event=>{const detail=event.target.closest('[data-model]');if(detail){openModel(detail.dataset.model);return;}const button=event.target.closest('[data-toggle-model]');if(button){stopGuide();const id=button.dataset.toggleModel;state.draft=D.toggleModel(state.draft,state.groups,id);render();tell(`${name(id)} : modification uniquement dans le brouillon Hermes.`);document.querySelector(`[data-toggle-model="${id}"]`).focus();}});
+  $('naming').addEventListener('change',event=>{stopGuide();state.draft.naming=event.target.value;render();tell('Format modifié pour Hermes. Le routage reste séparé de ce choix.');});
+  $('publish').addEventListener('click',()=>{stopGuide();state=D.publish(state);render();tell(publicationMessage());});
+  $('discard').addEventListener('click',()=>{stopGuide();state.draft=D.clone(state.keys.hermes);render();tell('Brouillon rétabli sur la dernière sélection publiée dans la démo.');});
+  $('reread').addEventListener('click',()=>{stopGuide();state=D.read(state);render();tell(state.readFailed?'Relecture simulée indisponible. Dernier résultat conservé.':'Catalogue publié relu dans la démo ; le brouillon reste indépendant.');});
+  $('simulate-failure').addEventListener('change',event=>{stopGuide();state.readAvailable=!event.target.checked;tell(state.readAvailable?'Lecture disponible. Utilisez « Relire » pour actualiser le résultat.':'La prochaine relecture simulée échouera.');});
+  $('group-members').addEventListener('change',event=>{const id=event.target.dataset.member;if(!id)return;stopGuide();groupEdit.members=event.target.checked?[...groupEdit.members,id]:groupEdit.members.filter(x=>x!==id);renderGroup();document.querySelector(`[data-member="${id}"]`).focus();});
+  $('publish-group').addEventListener('click',()=>{const followingGuide=guide==='shared'&&step===1;state=D.publishGroup(state,groupEdit.id,groupEdit.members);$('group-dialog').close();render();tell(`Groupe partagé publié dans la démo. ${publicationMessage()}`);if(followingGuide){step++;renderGuide();}else stopGuide();});
+  document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>$(b.dataset.close).close()));
+  $('group-dialog').addEventListener('close',()=>{if(guide==='shared'&&step===1)stopGuide();});
+  $('witness').addEventListener('click',openWitness);$('nav-groups').addEventListener('click',()=>{stopGuide();openGroup('code');});
+  $('home').addEventListener('click',()=>document.querySelector('h1').scrollIntoView());
+  $('reset').addEventListener('click',()=>{state=D.initial();groupEdit=null;stopGuide();render();tell('Démonstration réinitialisée.');});
+  document.querySelectorAll('[data-scenario]').forEach(button=>button.addEventListener('click',()=>{state=D.initial();guide=button.dataset.scenario;step=0;if(guide==='shared'){state.draft=D.toggleModel(state.draft,state.groups,'claude-demo');state=D.publish(state);}render();renderGuide();tell('Parcours prêt. Utilisez le bouton de la première étape.');}));
+  $('guide-next').addEventListener('click',()=>{scenarios[guide].steps[step][1]();step++;render();renderGuide();tell(state.readFailed?publicationMessage():'Étape appliquée. Observez le catalogue et sa provenance.');});
+  render();
+})();
+</script>
+</body>
+</html>
