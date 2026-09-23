@@ -139,7 +139,7 @@ Dernier retour visuel : mieux différencier fond, cartes, sous-sections et zones
 3. Publier puis relire réellement `/v1/models` avec la clé concernée ; distinguer aperçu, état publié et relecture impossible. Décider comment fournir le secret pour ce contrôle sans le conserver inutilement. Préserver alias et routage natifs ; plusieurs accès visibles ne prouvent pas une répartition automatique.
 4. Vérifier le parcours complet avec Hermes et une clé témoin sur une version Bifrost précise, puis documenter les contrôles de compatibilité, migration et retour arrière. Les anciens rapports de build ne remplacent pas cette validation.
 
-Les étapes deviennent une spec puis des tickets avec dépendances et preuves de fin après validation UX ; ce texte n'autorise pas un déploiement et ne constitue pas encore la spec d'implémentation.
+Sofian a autorisé la préparation de la [spec V1 de cadrage](core-v1-spec.md). Le premier jalon doit prouver le filtrage réel de `/v1/models` par deux clés sur une instance Bifrost isolée, avant le branchement complet de l'UI. Les décisions confirmées et les arbitrages restants sont distingués dans la spec ; les tickets avec dépendances et preuves de fin suivent la résolution de leurs bloqueurs. Ce cadrage n'autorise pas un déploiement.
 
 Recherche ciblée des primitives existantes → prototype UI/UX → retours et validation de l'expérience par Sofian → décisions techniques restantes → spec et versions → tickets complets avec dépendances et critères d'acceptation → exécution dans le périmètre approuvé.
 

@@ -68,6 +68,13 @@ Cette itération remplace les scénarios/packs illustratifs du laboratoire décr
 
 ## Base de reprise et prochaine étape
 
+### Préparation de la spec V1
+
+- Sofian a donné son accord pour préparer la spec et demande confirmation du contrôle de `/v1/models` par VK. Le mécanisme existe : politique liée à la clé, confirmation de l'identité par Governance, puis intersection de la réponse native avec les routes autorisées par cette politique. Il ne peut pas exposer un modèle absent de la réponse native.
+- Les tests existants `TestProjectionIntersectionAndPrivacy` et `TestProjectionRejects` passent lors de cette vérification ciblée. Ils prouvent le comportement local, pas le pipeline d'une instance Bifrost active. Les anciens smokes d'inférence ne prouvent pas deux listes `/v1/models` distinctes par VK.
+- Premier jalon requis : obtenir cette preuve sur une instance Bifrost isolée et une version épinglée, avec deux clés et les formats de noms attendus, avant le branchement complet de l'UI. La [spec V1 de cadrage](docs/design/core-v1-spec.md) distingue décisions confirmées et arbitrages ouverts ; ces derniers empêchent encore le statut prêt à implémenter pour l'ensemble.
+- Spec publiée dans [GitHub #1](https://github.com/sofianbll/bifrost-plugin-registry/issues/1) avec `needs-info` ; aucun ticket d'implémentation n'est encore déclaré prêt. Cette étape ne modifie ni le runtime ni la production.
+
 ### Priorité actuelle et hiérarchie visuelle
 
 - Décision validée par Sofian : **Publish → sauvegarde → vrai `GET /v1/models` avec la clé → comparaison des IDs de la révision publiée**. États distincts : vérifié, écart détecté, relecture impossible ; aperçu du brouillon et dernière preuve horodatée séparés. Voir [le contrat produit](docs/design/product-direction.md#décision-validée--publication-vérifiable). Il s'agit d'une validation du comportement, pas d'une preuve d'intégration ; le prototype reste simulé.
@@ -79,4 +86,4 @@ Cette itération remplace les scénarios/packs illustratifs du laboratoire décr
 - Point de départ de cette reprise : `main` à `503e775`, comprenant la maquette locale, devant la référence locale `origin/main` à `f05e029`. Le nettoyage et le cadrage sont regroupés sur `codex/prepare-ui-ux`. Consulter `git status` pour l'état courant ; aucun push n'a été effectué pendant cette préparation.
 - Les binaires restent locaux et ignorés par Git, dont `reports/native-build-v1/bifrost-http` (143 Mo). Les rapports et empreintes de build restent suivis. Le code, les configurations et l'ancienne maquette sont conservés.
 - La configuration des skills Matt Pocock est dans `AGENTS.md` et `docs/agents/`. GitHub Issues est accessible et les cinq labels choisis sont présents. Aucun ticket d'implémentation n'a été créé pendant cette préparation.
-- Prochaine étape confirmée : valider le prototype UI/UX complet, avec composants natifs Bifrost et visite contextuelle, avant la spec et les tickets. Hermes reste le premier client réel de validation. Voir le [cadrage produit](docs/design/product-direction.md).
+- Prochaine étape : obtenir la preuve isolée du filtrage par clé, résoudre les arbitrages de la spec de cadrage et terminer les validations UX avant les tickets d'implémentation. Hermes reste le premier client réel de validation. Voir le [cadrage produit](docs/design/product-direction.md).
