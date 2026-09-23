@@ -1,0 +1,15 @@
+{
+  "bifrost_version": "2.2.2",
+  "bifrost_commit": "fdeef8e3f31a3b18a61666ba49247d07bae3600a",
+  "registry_source_commit": "2fccc0d2c0a512869b91bb10ba36b78d3687a470",
+  "registry_source_diff_sha": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "platform": "linux/arm64",
+  "libc": "musl",
+  "go_version": "go1.27.1",
+  "artifacts": {
+    "bifrost-http": "8a7dc8369780e0275fbc6df7387936aeac0982e40c2e6e286337f559b991e56c",
+    "bifrost-registry.so": "ce9174eb637d60c48a25a80976d3bf7fc038d9673c221300c2e88770e93d8e00"
+  },
+  "ui_index_sha256": "fd1aa799bed32747ad3dbc056c20e7c42500d35863cf039d9356a40324220be9",
+  "abi_probe_passed": true
+}

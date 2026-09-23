@@ -1,0 +1,27 @@
+{
+  "bifrost_version": "2.2.2",
+  "bifrost_commit": "fdeef8e3f31a3b18a61666ba49247d07bae3600a",
+  "registry_source_commit": "2fccc0d2c0a512869b91bb10ba36b78d3687a470",
+  "registry_source_diff_sha": "460f9da74601ce9a0e6836a90e913eac921731982312c3cc482d6b68013e378c",
+  "registry_source_diff_paths": [
+    "native/main.go",
+    "integration/native_probe.go"
+  ],
+  "platform": "linux/arm64",
+  "libc": "musl",
+  "go_version": "go1.27.1",
+  "artifacts": {
+    "bifrost-http": "8a7dc8369780e0275fbc6df7387936aeac0982e40c2e6e286337f559b991e56c",
+    "bifrost-registry.so": "2bd0a662a80067c6dcd64c76362d68b52e68d7ce750f0f11475524119e2dce8e"
+  },
+  "ui_index_sha256": "fd1aa799bed32747ad3dbc056c20e7c42500d35863cf039d9356a40324220be9",
+  "abi_smoke": {
+    "child_identity_handoff": true,
+    "export_signatures": true,
+    "init_cleanup": true,
+    "nil_context_fail_closed": true,
+    "plugin": "bifrost-registry",
+    "plugin_open": true,
+    "real_bifrost_pipeline_tested": false
+  }
+}

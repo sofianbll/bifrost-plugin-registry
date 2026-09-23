@@ -6,16 +6,16 @@ Cet état décrit le checkout local. La production Pulsar n'a pas été interrog
 | --- | --- |
 | Moteur et garde | Implémentés en Go : modèles, groupes, politiques de clés virtuelles, filtrage de `/v1/models` et contrôle des requêtes. Voir `internal/registry/` et `native/main.go`. |
 | Panneau implémenté | UI française servie sur `/model-registry` par `internal/admin/`, avec API de configuration, validation, aperçu et plan. Le plugin peut l'héberger sur son port admin local. |
-| Build natif | Les artefacts et la sonde ABI pour Bifrost `transports/v2.2.1` sont consignés dans `reports/native-build-v1/`. `BUILD_STATUS.json` déclare un chargement et des essais sur Pulsar ; ils ne sont pas revérifiés ici. |
+| Build natif | Bifrost `transports/v2.2.2` et plugin reconstruits ensemble pour Linux ARM64/musl : sonde ABI et 42 contrôles HTTP du catalogue par VK réussis, voir `reports/native-v2.2.2/`. L’ancien build 2.2.1 et les déclarations Pulsar de `BUILD_STATUS.json` restent historiques ; la production n’est pas revérifiée ici. |
 | Maquette historique | `docs/design/mockup/` contient cinq écrans anglais avec des données fictives. Cette maquette n'appelle pas l'API et n'est pas l'UI servie par le plugin. |
 | Prototype Hermes historique | `docs/design/mockup/hermes-prototype.html` a été rejeté par Sofian : démo de logique incomplète, rendu trop éloigné de l'application finale. Conservé comme historique. |
 | Prototype React Bifrost | `docs/design/registry-prototype/` utilise les composants UI et ressources upstream à `6493abd3d1422c9bfde95f242fd57b38e73ce881`, avec un shell adapté et un état de démonstration local. Source sur `codex/prototype-bifrost-native`. Validation utilisateur encore attendue. |
-| Intégration à Bifrost | Le gateway personnalisé, le proxy `/bifrost-registry/` et l'adaptation des chemins de l'UI ne sont pas implémentés. Le panneau actuel utilise `/app.js`, `/app.css` et `/api/*` à la racine. |
+| Intégration de la nouvelle UI à Bifrost | Le proxy `/bifrost-registry/` et l’adaptation des chemins de l’UI ne sont pas implémentés. Le panneau actuel utilise `/app.js`, `/app.css` et `/api/*` à la racine ; le prototype React n’est pas branché. |
 | Journal des refus | L'API `/api/events`, les compteurs et le journal de garde n'existent pas. L'écran Denials est seulement maquetté. |
 
 ## Vérifications et limites
 
-- Les tests Go du moteur, du CLI et de l'admin passent ici avec `GOCACHE` dans `/private/tmp` et `TestRealHTTPServer` exclu. Ce test ne peut pas ouvrir `[::1]:0` dans le sandbox ; la suite complète n'est donc pas validée dans cet environnement.
+- La suite Go complète du moteur, du CLI et de l’admin passe avec `go test -race -count=1 ./...`, `GOCACHE` dans `/private/tmp` et autorisation des sockets locaux, y compris `TestRealHTTPServer`. L’adaptateur natif sous build tag est vérifié séparément par la sonde et le test HTTP 2.2.2.
 - `reports/local-tests-summary.json` annonce 156 tests et 87,8 % de couverture pour une campagne antérieure aux derniers changements de passthrough. Ces chiffres ne qualifient pas `HEAD`.
 - `README.md` et `docs/BUILD.md` orientent vers les preuves disponibles. `reports/VALIDATION.md`, `docs/SOURCES.md` et `reports/initial-source-SHA256SUMS` conservent explicitement l'état initial. `BUILD_STATUS.json` mélange 129 modèles/32 groupes et une ancienne mention de 119 modèles/30 groupes : la version chargée actuellement en production reste à vérifier.
 - L'ouverture de l'ancienne maquette en `file://` a été bloquée par la politique d'URL. Le nouveau prototype React a été vérifié séparément dans le navigateur intégré sur `http://127.0.0.1:4173/`.
@@ -72,8 +72,16 @@ Cette itération remplace les scénarios/packs illustratifs du laboratoire décr
 
 - Sofian a donné son accord pour préparer la spec et demande confirmation du contrôle de `/v1/models` par VK. Le mécanisme existe : politique liée à la clé, confirmation de l'identité par Governance, puis intersection de la réponse native avec les routes autorisées par cette politique. Il ne peut pas exposer un modèle absent de la réponse native.
 - Les tests existants `TestProjectionIntersectionAndPrivacy` et `TestProjectionRejects` passent lors de cette vérification ciblée. Ils prouvent le comportement local, pas le pipeline d'une instance Bifrost active. Les anciens smokes d'inférence ne prouvent pas deux listes `/v1/models` distinctes par VK.
-- Premier jalon requis : obtenir cette preuve sur une instance Bifrost isolée et une version épinglée, avec deux clés et les formats de noms attendus, avant le branchement complet de l'UI. La [spec V1 de cadrage](docs/design/core-v1-spec.md) distingue décisions confirmées et arbitrages ouverts ; ces derniers empêchent encore le statut prêt à implémenter pour l'ensemble.
-- Spec publiée dans [GitHub #1](https://github.com/sofianbll/bifrost-plugin-registry/issues/1) avec `needs-info` ; aucun ticket d'implémentation n'est encore déclaré prêt. Cette étape ne modifie ni le runtime ni la production.
+- Premier jalon obtenu sur Bifrost 2.2.2 isolé : voir la preuve ci-dessous. La [spec V1 de cadrage](docs/design/core-v1-spec.md) distingue décisions confirmées et arbitrages ouverts ; ces derniers empêchent encore le statut prêt à implémenter pour l’ensemble.
+- Spec publiée dans [GitHub #1](https://github.com/sofianbll/bifrost-plugin-registry/issues/1) avec `needs-info` ; [GitHub #2](https://github.com/sofianbll/bifrost-plugin-registry/issues/2) porte le jalon autonome de filtrage HTTP. Son correctif runtime reste local, sans déploiement.
+
+### Preuve HTTP — Bifrost 2.2.2
+
+- Cible mise à jour à la demande de Sofian : `transports/v2.2.2`, commit `fdeef8e3f31a3b18a61666ba49247d07bae3600a`. Paire gateway/plugin compilée avec Go 1.27.1, Linux ARM64/musl ; vrai frontend upstream construit, sonde ABI réussie.
+- Un vrai essai a trouvé un défaut : l’identité Governance du contexte enfant n’atteignait pas le post-hook HTTP. Le correctif transmet uniquement le résultat validé, dans une session atomique propre à la requête de modèles ; tout désaccord reste bloquant. Inférence et streaming inchangés.
+- **42 contrôles passent** : baseline native identique pour trois VK, listes Registry distinctes pour deux clés, formats `model`, `provider/model`, `both`, intersection des droits natifs, lecture alternée, modification d’un groupe via l’API Registry et révisions, refus des clés absentes/inconnues/non configurées et de l’identité incohérente. `/v1/models` et `/openai/v1/models` vérifiés.
+- Conteneur sans réseau externe, fournisseur loopback contrôlé, aucune inférence. Configurations, clés, SQLite, logs et conteneur de test supprimés. Rapports avant/après, manifeste, patch exact et commande de reproduction dans [reports/native-v2.2.2](reports/native-v2.2.2/README.md) ; binaires locaux ignorés dans `dist/native-v2.2.2/`.
+- Limites : prototype encore simulé, gestion des VK par API Bifrost et parcours Hermes à brancher. Les VK sans politique Registry sont actuellement refusées ; le cas sans fournisseur natif autorisé reste fail-closed et doit être cadré avant activation globale. Aucune preuve de chargement sur la production de Sofian.
 
 ### Priorité actuelle et hiérarchie visuelle
 
@@ -86,4 +94,4 @@ Cette itération remplace les scénarios/packs illustratifs du laboratoire décr
 - Point de départ de cette reprise : `main` à `503e775`, comprenant la maquette locale, devant la référence locale `origin/main` à `f05e029`. Le nettoyage et le cadrage sont regroupés sur `codex/prepare-ui-ux`. Consulter `git status` pour l'état courant ; aucun push n'a été effectué pendant cette préparation.
 - Les binaires restent locaux et ignorés par Git, dont `reports/native-build-v1/bifrost-http` (143 Mo). Les rapports et empreintes de build restent suivis. Le code, les configurations et l'ancienne maquette sont conservés.
 - La configuration des skills Matt Pocock est dans `AGENTS.md` et `docs/agents/`. GitHub Issues est accessible et les cinq labels choisis sont présents. Aucun ticket d'implémentation n'a été créé pendant cette préparation.
-- Prochaine étape : obtenir la preuve isolée du filtrage par clé, résoudre les arbitrages de la spec de cadrage et terminer les validations UX avant les tickets d'implémentation. Hermes reste le premier client réel de validation. Voir le [cadrage produit](docs/design/product-direction.md).
+- Prochaine étape : résoudre les arbitrages de la spec de cadrage et terminer les validations UX avant les tickets suivants. La preuve isolée du filtrage par clé est obtenue sur 2.2.2 ; Hermes reste le premier client réel de validation. Voir le [cadrage produit](docs/design/product-direction.md).

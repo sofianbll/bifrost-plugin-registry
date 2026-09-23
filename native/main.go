@@ -37,6 +37,13 @@ var lifecycle sync.Mutex
 
 const sessionKey schemas.BifrostContextKey = "bifrost-registry.private-session.v1"
 
+type guardedSession struct {
+	*registry.Session
+	// Child provider contexts hold Governance's stamp; this request-local session
+	// carries the verified result back to the transport parent.
+	identityState atomic.Int32 // 0: unknown, 1: confirmed by PostLLM, 2: rejected
+}
+
 func GetName() string { return "bifrost-registry" }
 func Init(config any) error {
 	lifecycle.Lock()
@@ -96,11 +103,11 @@ func failureResponse(f *registry.Failure) *schemas.HTTPResponse {
 func unavailable() *registry.Failure {
 	return &registry.Failure{Status: 503, Code: "registry_not_initialized", Message: "Registry is not initialized"}
 }
-func session(ctx *schemas.BifrostContext) *registry.Session {
+func session(ctx *schemas.BifrostContext) *guardedSession {
 	if ctx == nil {
 		return nil
 	}
-	s, _ := ctx.Value(sessionKey).(*registry.Session)
+	s, _ := ctx.Value(sessionKey).(*guardedSession)
 	return s
 }
 func identity(ctx *schemas.BifrostContext) string {
@@ -110,7 +117,6 @@ func identity(ctx *schemas.BifrostContext) string {
 	id, _ := ctx.Value(schemas.BifrostContextKeyGovernanceVirtualKeyID).(string)
 	return id
 }
-
 func HTTPTransportPreHook(ctx *schemas.BifrostContext, req *schemas.HTTPRequest) (*schemas.HTTPResponse, error) {
 	if req == nil || ctx == nil {
 		return failureResponse(unavailable()), nil
@@ -141,7 +147,7 @@ func HTTPTransportPreHook(ctx *schemas.BifrostContext, req *schemas.HTTPRequest)
 	// must still authenticate it and enforce budgets and native VK permissions.
 	token, _ := registry.Credential(req.Headers)
 	ctx.SetValue(schemas.BifrostContextKeyVirtualKey, token)
-	ctx.SetValue(sessionKey, sess)
+	ctx.SetValue(sessionKey, &guardedSession{Session: sess})
 	return nil, nil
 }
 func HTTPTransportPostHook(ctx *schemas.BifrostContext, req *schemas.HTTPRequest, resp *schemas.HTTPResponse) error {
@@ -153,7 +159,18 @@ func HTTPTransportPostHook(ctx *schemas.BifrostContext, req *schemas.HTTPRequest
 		resp.Headers = map[string]string{}
 	}
 	if s.IsModels() {
-		out, f := s.Project(resp.Body, identity(ctx))
+		id := identity(ctx)
+		if id != "" && s.VerifyIdentity(id) != nil {
+			s.identityState.Store(2)
+		}
+		if s.identityState.Load() == 2 {
+			*resp = *failureResponse(s.VerifyIdentity(""))
+			return nil
+		}
+		if id == "" && s.identityState.Load() == 1 {
+			id = s.PolicyID()
+		}
+		out, f := s.Project(resp.Body, id)
 		if f != nil {
 			bad := failureResponse(f)
 			*resp = *bad
@@ -221,7 +238,18 @@ func PostLLMHook(ctx *schemas.BifrostContext, resp *schemas.BifrostResponse, err
 	// though the provider call already happened (defense in depth; the token-hash
 	// binding makes a real mismatch virtually impossible).
 	if s := session(ctx); s != nil {
-		if f := s.VerifyIdentity(identity(ctx)); f != nil {
+		f := s.VerifyIdentity(identity(ctx))
+		if s.IsModels() {
+			if f == nil {
+				s.identityState.CompareAndSwap(0, 1)
+				if s.identityState.Load() == 2 {
+					f = s.VerifyIdentity("")
+				}
+			} else {
+				s.identityState.Store(2)
+			}
+		}
+		if f != nil {
 			status := f.Status
 			typ := "registry_error"
 			fallbacks := false
