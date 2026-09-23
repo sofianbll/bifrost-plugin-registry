@@ -43,6 +43,12 @@ type Model struct {
 	Verified       bool                       `json:"verified"`
 	Evidence       string                     `json:"evidence,omitempty"`
 	Metadata       map[string]json.RawMessage `json:"metadata,omitempty"`
+	// Passthrough marks routing aliases: Bifrost routing rules (CEL model == "<alias>")
+	// own the alias->upstream resolution, so the guard validates but never rewrites
+	// the request model, and RoutingTargets (native "Provider/model" ids from the rule)
+	// are pre-authorized for post-routing attempt checks.
+	Passthrough    bool     `json:"passthrough,omitempty"`
+	RoutingTargets []string `json:"routing_targets,omitempty"`
 }
 
 type Filter struct {
@@ -72,12 +78,14 @@ type Policy struct {
 }
 
 type Route struct {
-	ExposedID     string   `json:"exposed_id"`
-	RegistryID    string   `json:"registry_id"`
-	Provider      string   `json:"provider"`
-	Alias         string   `json:"alias"`
-	UpstreamModel string   `json:"upstream_model"`
-	Endpoints     []string `json:"endpoints"`
+	ExposedID      string   `json:"exposed_id"`
+	RegistryID     string   `json:"registry_id"`
+	Provider       string   `json:"provider"`
+	Alias          string   `json:"alias"`
+	UpstreamModel  string   `json:"upstream_model"`
+	Endpoints      []string `json:"endpoints"`
+	Passthrough    bool     `json:"passthrough,omitempty"`
+	RoutingTargets []string `json:"routing_targets,omitempty"`
 }
 
 func (r Route) NativeID() string { return r.Provider + "/" + r.Alias }
@@ -296,6 +304,18 @@ func Compile(c Config) (*Snapshot, error) {
 		if m.Verified && strings.TrimSpace(m.Evidence) == "" {
 			return nil, fmt.Errorf("model %s: verified models require evidence", m.ID)
 		}
+		if m.Passthrough {
+			if len(m.RoutingTargets) == 0 || !unique(m.RoutingTargets) {
+				return nil, fmt.Errorf("model %s: passthrough models require unique routing_targets", m.ID)
+			}
+			for _, t := range m.RoutingTargets {
+				prov, rest, ok := strings.Cut(t, "/")
+				if !ok || !slugProvider.MatchString(prov) || rest == "" || len(t) > 512 ||
+					strings.TrimSpace(t) != t || !noControls(t) {
+					return nil, fmt.Errorf("model %s: invalid routing target %q", m.ID, t)
+				}
+			}
+		}
 		n := m.Provider + "/" + m.Alias
 		if old, ok := nativeNames[n]; ok {
 			return nil, fmt.Errorf("native alias collision %s (%s, %s)", n, old, m.ID)
@@ -405,15 +425,22 @@ func Compile(c Config) (*Snapshot, error) {
 		}
 		v := &View{Policy: p, Routes: []Route{}, index: map[string]Route{}, native: map[string]Route{}}
 		add := func(m Model, name string) {
-			r := Route{name, m.ID, m.Provider, m.Alias, m.UpstreamModel, append([]string{}, m.Endpoints...)}
+			r := Route{name, m.ID, m.Provider, m.Alias, m.UpstreamModel, append([]string{}, m.Endpoints...), m.Passthrough, append([]string{}, m.RoutingTargets...)}
 			v.Routes = append(v.Routes, r)
 			v.index[name] = r
-			v.native[r.NativeID()] = r
+			if !m.Passthrough {
+				v.native[r.NativeID()] = r
+			}
 		}
 		if p.Enabled {
 			for alias, ms := range byAlias {
 				if p.Naming == "provider/model" || p.Naming == "both" {
 					for _, m := range ms {
+						if m.Passthrough {
+							// Aliases owned by Bifrost routing rules only exist in bare
+							// form; "Provider/alias" would bypass the rule's CEL match.
+							continue
+						}
 						add(m, m.Provider+"/"+m.Alias)
 					}
 				}

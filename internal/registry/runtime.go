@@ -178,13 +178,18 @@ func (s *Snapshot) Prepare(req *Request) (*Session, *Failure) {
 			return Route{}, fail(400, "registry_endpoint_unverified", "This endpoint has not been enabled for the selected model")
 		}
 		session.allowed[r.NativeID()] = r
+		for _, t := range r.RoutingTargets {
+			session.allowed[t] = r
+		}
 		return r, nil
 	}
 	route, f := resolve(name)
 	if f != nil {
 		return nil, f
 	}
-	body["model"], _ = json.Marshal(route.NativeID())
+	if !route.Passthrough {
+		body["model"], _ = json.Marshal(route.NativeID())
+	}
 	// Reject alternate raw routing fields rather than silently overriding them.
 	for _, field := range []string{"provider", "api_key", "base_url"} {
 		if _, exists := body[field]; exists {
@@ -206,9 +211,15 @@ func (s *Snapshot) Prepare(req *Request) (*Session, *Failure) {
 			if f != nil {
 				return nil, f
 			}
-			if !seen[r.NativeID()] {
-				result = append(result, r.NativeID())
-				seen[r.NativeID()] = true
+			outID := r.NativeID()
+			if r.Passthrough {
+				// Routing aliases keep their bare name so Bifrost routing rules
+				// evaluate them; native rewrite would bypass the CEL match.
+				outID = name
+			}
+			if !seen[outID] {
+				result = append(result, outID)
+				seen[outID] = true
 			}
 		}
 		body["fallbacks"], _ = json.Marshal(result)

@@ -7,6 +7,9 @@ Sources :
   - vks.json        : [{id, name, hash, active}]  (governance_virtual_keys, hash = sha256 du jeton)
   - vkconfigs.json  : [{vk, provider, models}]     (allowed_models par VK/provider, ["*"] = tout)
   - keys.json       : [{key_db_id, name, provider}] (config_keys)
+  - routingrules.json : [{id, name, cel, targets, scope, scope_id}] (routing_rules actives)
+    Les règles CEL `model == "<alias>"` deviennent des modèles passthrough : la garde
+    valide l'alias mais laisse Bifrost routing faire la résolution (targets pré-autorisés).
 
 Sortie : registry JSON sur stdout. Aucun secret ne transite : seuls les SHA-256 des
 jetons VK (déjà stockés ainsi par Bifrost) figurent dans la sortie.
@@ -36,6 +39,8 @@ def family_for(provider, alias):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("vkgroups"); ap.add_argument("vks"); ap.add_argument("vkconfigs"); ap.add_argument("keys")
+    ap.add_argument("routingrules", nargs="?", default=None,
+                    help="routing_rules actives (JSON) ; CEL 'model == \"<alias>\"' -> modèles passthrough")
     ap.add_argument("--extra", action="append", default=[],
                     help="modèles legacy 'provider:model' ajoutés au groupe legacy")
     a = ap.parse_args()
@@ -122,6 +127,59 @@ def main():
             else:
                 allowed.setdefault(vk, set()).add((row["provider"], m))
 
+    # --- alias de routing (règles CEL model == "<alias>") -> modèles passthrough ---
+    # La garde valide l'alias pour la VK ; la résolution upstream reste owned par
+    # Bifrost routing (rotation CPA etc.). Les targets natives sont pré-autorisées
+    # pour le contrôle d'attempt post-routing du plugin.
+    alias_group_by_vk = {}  # vk id -> [model ids]
+    if a.routingrules:
+        cel_alias = re.compile(r'^model == "([a-z0-9][a-z0-9._-]{0,127})"$')
+        for rule in json.load(open(a.routingrules)):
+            m = cel_alias.match((rule.get("cel") or "").strip())
+            targets = rule.get("targets") or []
+            if isinstance(targets, str):
+                try:
+                    targets = json.loads(targets)
+                except json.JSONDecodeError:
+                    targets = []
+            if not m or not targets:
+                print(f"WARN rule {rule.get('name')}: CEL ou targets non supportés, ignorée", file=sys.stderr)
+                continue
+            alias = m.group(1)
+            targets = [t for t in targets if isinstance(t, str) and "/" in t]
+            if alias in models_by_id or not targets:
+                print(f"WARN alias {alias}: collision avec un modèle existant, règle {rule.get('name')} ignorée", file=sys.stderr)
+                continue
+            prov, upstream = targets[0].split("/", 1)
+            mid = alias
+            models_by_id[mid] = {
+                "id": mid, "alias": alias, "provider": prov,
+                "provider_key_ids": sorted(key_ids_by_provider.get(prov, [])) or ["routing-rule"],
+                "upstream_model": upstream, "canonical_model": targets[0],
+                "model_family": family_for(prov, upstream),
+                "endpoints": list(CHAT_ENDPOINTS),
+                "enabled": True, "verified": True,
+                "passthrough": True, "routing_targets": targets,
+                "evidence": f"routing rule {rule.get('name')} ({rule.get('id')})",
+            }
+            scope = rule.get("scope")
+            vids = [rule["scope_id"]] if scope == "virtual_key" else list(vks) if scope == "global" else []
+            if not vids:
+                print(f"WARN rule {rule.get('name')}: scope {scope} non supporté, ignorée", file=sys.stderr)
+                del models_by_id[mid]
+                continue
+            for vid in vids:
+                alias_group_by_vk.setdefault(vid, []).append(mid)
+
+    alias_gid_by_vk = {}
+    for vid, mids in alias_group_by_vk.items():
+        if vid not in vks:
+            print(f"WARN alias groupe: VK {vid} inconnue, ignorée", file=sys.stderr)
+            continue
+        gid = "aliases." + re.sub(r"[^a-z0-9._-]+", "-", vks[vid]["name"].lower()).strip("-")
+        group_model_ids[gid] = sorted(set(mids))
+        alias_gid_by_vk.setdefault(vid, []).append(gid)
+
     # préférences globales pour les alias ambigus (poids vk-groups : go > deepseek, Codex > go)
     PREF_PROVIDER = {"deepseek-v4.1-flash": "opencode-go", "deepseek-v4-pro": "opencode-go",
                      "gpt-5.6-luna": "Codex"}
@@ -153,6 +211,15 @@ def main():
             group_model_ids[gid] = sorted(remaining)
             chosen.append(gid)
         sources = sorted({models_by_id[i]["provider"] for i in target_ids})
+        # Alias de routing : rattacher le groupe et élargir les sources au provider
+        # de l'alias (sinon le filtre d'éligibilité de la policy l'exclurait).
+        for gid in alias_gid_by_vk.get(vid, []):
+            if gid not in chosen:
+                chosen.append(gid)
+            for mid in group_model_ids[gid]:
+                prov = models_by_id[mid]["provider"]
+                if prov not in sources:
+                    sources.append(prov)
         # Prefer par policy : alias éligibles multiples (éligibilité = groupes ∩ sources)
         elig_ids = {i for g in chosen for i in group_model_ids.get(g, [])
                     if not sources or models_by_id[i]["provider"] in sources}

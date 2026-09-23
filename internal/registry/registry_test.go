@@ -566,3 +566,72 @@ func TestCompileNativeCaseProvider(t *testing.T) {
 		t.Fatal("bare alias route missing")
 	}
 }
+
+func passthroughFixture() Config {
+	c := fixture()
+	c.Models = append(c.Models, Model{
+		ID: "alias-rot", Alias: "rot", Provider: "alpha", ProviderKeyIDs: []string{"key-a"},
+		UpstreamModel: "wire/a-1", Endpoints: []string{"chat/completions", "responses"},
+		Enabled: true, Verified: true, Evidence: "routing rule unit fixture",
+		Passthrough: true, RoutingTargets: []string{"alpha/smart", "beta/smart"},
+	})
+	c.Groups[0].ModelIDs = append(c.Groups[0].ModelIDs, "alias-rot")
+	return c
+}
+
+func TestPassthroughAlias(t *testing.T) {
+	c := passthroughFixture()
+	c.Policies[0].Naming = "both"
+	c.Policies[0].Prefer = map[string]string{"smart": "a"}
+	s := mustCompile(t, c)
+	got := names(t, s)
+	for _, r := range got {
+		if r == "alpha/rot" || r == "beta/rot" {
+			t.Fatalf("passthrough alias exposed in provider/model form: %v", got)
+		}
+	}
+	if !reflect.DeepEqual(got, []string{"alpha/fast", "alpha/smart", "beta/smart", "fast", "rot", "smart"}) {
+		t.Fatalf("unexpected exposed routes: %v", got)
+	}
+	// Bare alias request: model must reach Bifrost routing untouched…
+	r := req(`{"model":"rot","messages":[]}`)
+	session := mustPrepare(t, s, r)
+	var b map[string]json.RawMessage
+	json.Unmarshal(r.Body, &b)
+	if string(b["model"]) != `"rot"` {
+		t.Fatalf("passthrough model rewritten: %s", r.Body)
+	}
+	// …but every routing target attempt is pre-authorized, strangers are not.
+	if session.CheckAttempt("alpha", "smart") != nil || session.CheckAttempt("beta", "smart") != nil {
+		t.Fatal("routing target attempt denied")
+	}
+	if session.CheckAttempt("intruder", "smart") == nil {
+		t.Fatal("non-target attempt accepted")
+	}
+	// Passthrough fallbacks keep their bare alias names.
+	r2 := req(`{"model":"rot","fallbacks":["rot","alpha/smart"]}`)
+	mustPrepare(t, s, r2)
+	var b2 map[string]json.RawMessage
+	json.Unmarshal(r2.Body, &b2)
+	if string(b2["fallbacks"]) != `["rot","alpha/smart"]` {
+		t.Fatalf("passthrough fallbacks rewritten: %s", r2.Body)
+	}
+	// The provider/model form must not smuggle an unrewritable route.
+	r3 := req(`{"model":"alpha/rot","messages":[]}`)
+	if _, f := s.Prepare(r3); f == nil || f.Code != "registry_model_hidden" {
+		t.Fatalf("provider/model passthrough form accepted: %+v", f)
+	}
+}
+
+func TestPassthroughValidation(t *testing.T) {
+	c := passthroughFixture()
+	c.Models[3].RoutingTargets = nil
+	if _, e := Compile(c); e == nil || !strings.Contains(e.Error(), "routing_targets") {
+		t.Fatalf("missing routing targets accepted: %v", e)
+	}
+	c = passthroughFixture()
+	c.Models[3].RoutingTargets = []string{"no-provider-separator"}
+	if _, e := Compile(c); e == nil || !strings.Contains(e.Error(), "routing target") {
+		t.Fatalf("malformed routing target accepted: %v", e)
+	}
+}

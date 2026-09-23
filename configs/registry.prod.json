@@ -138,24 +138,6 @@
       "creator": "openai"
     },
     {
-      "id": "deepseek-flash",
-      "alias": "deepseek-flash",
-      "provider": "deepseek",
-      "provider_key_ids": [
-        "7"
-      ],
-      "upstream_model": "deepseek-flash",
-      "canonical_model": "deepseek-flash",
-      "model_family": "",
-      "endpoints": [
-        "chat/completions",
-        "responses"
-      ],
-      "enabled": true,
-      "verified": true,
-      "evidence": "import prod transition 2026-09-23"
-    },
-    {
       "id": "deepseek-v4-pro.deepseek",
       "alias": "deepseek-v4-pro",
       "provider": "deepseek",
@@ -853,6 +835,75 @@
       "verified": true,
       "evidence": "import prod vk-groups 2026-09-23",
       "creator": "xai"
+    },
+    {
+      "id": "hindsight-consolidation",
+      "alias": "hindsight-consolidation",
+      "provider": "Claude",
+      "provider_key_ids": [
+        "16"
+      ],
+      "upstream_model": "claude-sonnet-4-6",
+      "canonical_model": "Claude/claude-sonnet-4-6",
+      "model_family": "anthropic",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "passthrough": true,
+      "routing_targets": [
+        "Claude/claude-sonnet-4-6",
+        "Codex/gpt-oss-120b-medium"
+      ],
+      "evidence": "routing rule hindsight-consolidation (db17f199-2a81-4771-812f-b6b07d66954d)"
+    },
+    {
+      "id": "hindsight-reflect",
+      "alias": "hindsight-reflect",
+      "provider": "Claude",
+      "provider_key_ids": [
+        "16"
+      ],
+      "upstream_model": "claude-sonnet-4-6",
+      "canonical_model": "Claude/claude-sonnet-4-6",
+      "model_family": "anthropic",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "passthrough": true,
+      "routing_targets": [
+        "Claude/claude-sonnet-4-6",
+        "Codex/gpt-oss-120b-medium"
+      ],
+      "evidence": "routing rule hindsight-reflect (7963196d-e87f-4976-a835-eb28655e0f17)"
+    },
+    {
+      "id": "hindsight-retain",
+      "alias": "hindsight-retain",
+      "provider": "Claude",
+      "provider_key_ids": [
+        "16"
+      ],
+      "upstream_model": "claude-sonnet-4-6",
+      "canonical_model": "Claude/claude-sonnet-4-6",
+      "model_family": "anthropic",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "passthrough": true,
+      "routing_targets": [
+        "Claude/claude-sonnet-4-6",
+        "Codex/gpt-oss-120b-medium"
+      ],
+      "evidence": "routing rule hindsight-retain (607ded07-1f98-42cd-a8ac-b80fb40f2b60)"
     },
     {
       "id": "hy3",
@@ -1893,6 +1944,169 @@
       "evidence": "import prod vk-groups 2026-09-23"
     },
     {
+      "id": "omo-deep",
+      "alias": "omo-deep",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "codestral-latest",
+      "canonical_model": "mistral/codestral-latest",
+      "model_family": "mistral",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "passthrough": true,
+      "routing_targets": [
+        "mistral/codestral-latest",
+        "Google/gemini-3.8-flash"
+      ],
+      "evidence": "routing rule omo-deep (1b642813-b628-40ea-aba4-f8e28e671a88)"
+    },
+    {
+      "id": "omo-hephaestus",
+      "alias": "omo-hephaestus",
+      "provider": "opencode-go",
+      "provider_key_ids": [
+        "18"
+      ],
+      "upstream_model": "deepseek-v4.1-flash",
+      "canonical_model": "opencode-go/deepseek-v4.1-flash",
+      "model_family": "",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "passthrough": true,
+      "routing_targets": [
+        "opencode-go/deepseek-v4.1-flash",
+        "Google/gemini-3.8-flash"
+      ],
+      "evidence": "routing rule omo-hephaestus (d95e12f6-de01-40c5-be86-6fa5de5cb645)"
+    },
+    {
+      "id": "omo-oracle",
+      "alias": "omo-oracle",
+      "provider": "opencode-go",
+      "provider_key_ids": [
+        "18"
+      ],
+      "upstream_model": "kimi-k3",
+      "canonical_model": "opencode-go/kimi-k3",
+      "model_family": "",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "passthrough": true,
+      "routing_targets": [
+        "opencode-go/kimi-k3",
+        "Claude/claude-opus-4-6"
+      ],
+      "evidence": "routing rule omo-oracle (3311b2a8-ed3c-406a-81d3-61b0083d2b25)"
+    },
+    {
+      "id": "omo-quick",
+      "alias": "omo-quick",
+      "provider": "opencode-go",
+      "provider_key_ids": [
+        "18"
+      ],
+      "upstream_model": "deepseek-v4.1-flash",
+      "canonical_model": "opencode-go/deepseek-v4.1-flash",
+      "model_family": "",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "passthrough": true,
+      "routing_targets": [
+        "opencode-go/deepseek-v4.1-flash",
+        "mistral/mistral-small-latest"
+      ],
+      "evidence": "routing rule omo-quick (276a33de-f0ef-4769-bdba-826155e082b9)"
+    },
+    {
+      "id": "omo-sisyphus",
+      "alias": "omo-sisyphus",
+      "provider": "mistral",
+      "provider_key_ids": [
+        "2",
+        "3"
+      ],
+      "upstream_model": "zai-glm-5-3",
+      "canonical_model": "mistral/zai-glm-5-3",
+      "model_family": "mistral",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "passthrough": true,
+      "routing_targets": [
+        "mistral/zai-glm-5-3",
+        "Claude/claude-opus-4-6"
+      ],
+      "evidence": "routing rule omo-sisyphus (b2763054-5879-4995-88ea-e4fcaed6f0f6)"
+    },
+    {
+      "id": "omo-utility",
+      "alias": "omo-utility",
+      "provider": "opencode-go",
+      "provider_key_ids": [
+        "18"
+      ],
+      "upstream_model": "deepseek-v4.1-flash",
+      "canonical_model": "opencode-go/deepseek-v4.1-flash",
+      "model_family": "",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "passthrough": true,
+      "routing_targets": [
+        "opencode-go/deepseek-v4.1-flash",
+        "opencode-go/qwen3.7-plus"
+      ],
+      "evidence": "routing rule omo-utility (8eee61c0-6248-4c10-9826-fa6f03425afe)"
+    },
+    {
+      "id": "omo-visual",
+      "alias": "omo-visual",
+      "provider": "Google",
+      "provider_key_ids": [
+        "15"
+      ],
+      "upstream_model": "gemini-3.8-flash",
+      "canonical_model": "Google/gemini-3.8-flash",
+      "model_family": "gemini",
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "passthrough": true,
+      "routing_targets": [
+        "Google/gemini-3.8-flash",
+        "Claude/claude-opus-4-6"
+      ],
+      "evidence": "routing rule omo-visual (335a8981-0edd-44b0-bcf5-ac5d84e74c0d)"
+    },
+    {
       "id": "qwen3.6-plus",
       "alias": "qwen3.6-plus",
       "provider": "opencode-go",
@@ -2303,6 +2517,28 @@
   ],
   "groups": [
     {
+      "id": "aliases.hindsight",
+      "name": "aliases.hindsight",
+      "model_ids": [
+        "hindsight-consolidation",
+        "hindsight-reflect",
+        "hindsight-retain"
+      ]
+    },
+    {
+      "id": "aliases.opencode-omo",
+      "name": "aliases.opencode-omo",
+      "model_ids": [
+        "omo-deep",
+        "omo-hephaestus",
+        "omo-oracle",
+        "omo-quick",
+        "omo-sisyphus",
+        "omo-utility",
+        "omo-visual"
+      ]
+    },
+    {
       "id": "alibaba",
       "name": "alibaba",
       "model_ids": [
@@ -2506,18 +2742,6 @@
         "gpt-image-2.5",
         "gpt-image-2.5-flare",
         "gpt-image-2.5-sunburst"
-      ]
-    },
-    {
-      "id": "legacy",
-      "name": "legacy",
-      "model_ids": [
-        "deepseek-flash",
-        "glm-5-2",
-        "zai-glm-5",
-        "zai-glm-5-2",
-        "zai-glm-5-3",
-        "zai-glm-latest"
       ]
     },
     {
@@ -2891,8 +3115,7 @@
       "naming": "both",
       "groups": [
         "route-mistral",
-        "chat",
-        "legacy"
+        "chat"
       ],
       "sources": [
         "deepseek",
@@ -2900,10 +3123,10 @@
         "opencode-go"
       ],
       "prefer": {
+        "deepseek-v4.1-flash": "deepseek-v4.1-flash.opencode-go",
         "glm-5.2": "glm-5.2.mistral",
         "deepseek-v4-pro": "deepseek-v4-pro.opencode-go",
-        "glm-5.3": "glm-5.3.mistral",
-        "deepseek-v4.1-flash": "deepseek-v4.1-flash.opencode-go"
+        "glm-5.3": "glm-5.3.mistral"
       },
       "enabled": true
     },
@@ -2915,8 +3138,7 @@
       "groups": [
         "route-mistral",
         "google",
-        "chat",
-        "legacy"
+        "chat"
       ],
       "sources": [
         "deepseek",
@@ -2925,10 +3147,10 @@
         "vertex"
       ],
       "prefer": {
+        "deepseek-v4.1-flash": "deepseek-v4.1-flash.opencode-go",
         "glm-5.2": "glm-5.2.mistral",
         "deepseek-v4-pro": "deepseek-v4-pro.opencode-go",
-        "glm-5.3": "glm-5.3.mistral",
-        "deepseek-v4.1-flash": "deepseek-v4.1-flash.opencode-go"
+        "glm-5.3": "glm-5.3.mistral"
       },
       "enabled": true
     },
@@ -2966,11 +3188,11 @@
         "vertex"
       ],
       "prefer": {
+        "deepseek-v4.1-flash": "deepseek-v4.1-flash.opencode-go",
         "glm-5.2": "glm-5.2.mistral",
-        "gpt-5.6-luna": "gpt-5.6-luna.codex",
         "deepseek-v4-pro": "deepseek-v4-pro.opencode-go",
-        "glm-5.3": "glm-5.3.mistral",
-        "deepseek-v4.1-flash": "deepseek-v4.1-flash.opencode-go"
+        "gpt-5.6-luna": "gpt-5.6-luna.codex",
+        "glm-5.3": "glm-5.3.mistral"
       },
       "enabled": true
     },
@@ -2996,7 +3218,8 @@
       "token_sha256": "0cd699040fdefdc41c8e984e8414951a0bb36ad632b54a4448e0ae3a810d93ef",
       "naming": "both",
       "groups": [
-        "chat"
+        "chat",
+        "aliases.hindsight"
       ],
       "sources": [
         "Claude",
@@ -3062,8 +3285,8 @@
         "vertex"
       ],
       "prefer": {
-        "deepseek-v4-pro": "deepseek-v4-pro.opencode-go",
         "glm-5.2": "glm-5.2.mistral",
+        "deepseek-v4-pro": "deepseek-v4-pro.opencode-go",
         "gpt-5.6-luna": "gpt-5.6-luna.codex",
         "deepseek-v4.1-flash": "deepseek-v4.1-flash.opencode-go",
         "glm-5.3": "glm-5.3.mistral"
@@ -3133,8 +3356,8 @@
         "opencode-go"
       ],
       "prefer": {
-        "deepseek-v4-pro": "deepseek-v4-pro.opencode-go",
         "glm-5.2": "glm-5.2.mistral",
+        "deepseek-v4-pro": "deepseek-v4-pro.opencode-go",
         "deepseek-v4.1-flash": "deepseek-v4.1-flash.opencode-go",
         "glm-5.3": "glm-5.3.mistral"
       },
@@ -3437,7 +3660,8 @@
       "naming": "both",
       "groups": [
         "chat",
-        "code"
+        "code",
+        "aliases.opencode-omo"
       ],
       "sources": [
         "Claude",
@@ -3449,11 +3673,11 @@
         "vertex"
       ],
       "prefer": {
+        "deepseek-v4.1-flash": "deepseek-v4.1-flash.opencode-go",
         "glm-5.2": "glm-5.2.mistral",
-        "gpt-5.6-luna": "gpt-5.6-luna.codex",
         "deepseek-v4-pro": "deepseek-v4-pro.opencode-go",
-        "glm-5.3": "glm-5.3.mistral",
-        "deepseek-v4.1-flash": "deepseek-v4.1-flash.opencode-go"
+        "gpt-5.6-luna": "gpt-5.6-luna.codex",
+        "glm-5.3": "glm-5.3.mistral"
       },
       "enabled": true
     }
