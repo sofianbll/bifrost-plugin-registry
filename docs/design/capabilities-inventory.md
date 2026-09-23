@@ -1,6 +1,6 @@
-# Inventaire des capacités — bifrost-registry v0.1.0
+# Inventaire des capacités — audit du 23 septembre 2026
 
-Inventaire factuel établi par lecture du code (commit de travail courant). Toutes les références sont de la forme `fichier:ligne`.
+Inventaire établi par lecture du code à `503e775`, corrigé pendant l'audit du 23 septembre. Les priorités en fin de document sont des pistes ; le [cadrage produit](product-direction.md) porte les besoins et l'ordre de travail retenus. Toutes les références sont de la forme `fichier:ligne`.
 
 Périmètre : moteur (`internal/registry/`), serveur admin (`internal/admin/`), UI web (`internal/admin/web/`), adaptateur natif (`native/main.go`), CLI (`cmd/registry/main.go`), config de prod (`configs/registry.prod.json`).
 
@@ -89,13 +89,13 @@ Tout ce qui suit traverse le code à l'exécution mais n'est ni stocké, ni comp
 | Donnée runtime | Où dans le code | Pourquoi utile dans une UI d'admin |
 |---|---|---|
 | **Routes autorisées par requête** (`Session.allowed`) | `runtime.go:35-36,158,189-192` | Montrer, pour une clé donnée, la surface réellement pré-autorisée (y compris routing_targets) ; aujourd'hui seul le brouillon compilé est visible. |
-| **Révision effectivement servie** (`Session.Revision()`) | `runtime.go:40` (défini mais jamais appelé) | Le plugin charge la config à l'`Init` (`native/main.go:58`) et ne la recharge jamais ; la révision servie peut diverger du fichier et du panneau. L'afficher (idéalement dans chaque réponse de garde, ex. en-tête) permettrait de détecter un registre « périmé ». |
+| **Révision effectivement servie** (`Session.Revision()`) | `runtime.go:40` (défini mais jamais appelé) | L'admin embarqué et la garde partagent le même `Store` (`native/main.go:58-79,133`) : un `PUT /api/config` actualise la révision servie. Une modification externe du fichier n'est pas rechargée ; afficher la révision servie permettrait de détecter cet écart. |
 | **Refus `registry_model_hidden`** | `runtime.go:184` | Modèle demandé mais non exposé par la clé → top des modèles « invisibles » demandés : indique un catalogue mal dimensionné. |
 | **Refus `registry_route_denied`** | `runtime.go:65` | Tentative provider hors routes après routage → révèle des règles CEL Bifrost qui débordent de la politique. |
 | **Refus `registry_identity_mismatch`** | `runtime.go:43` | Jeton lié à une politique mais identité gouvernance différente → alerte de sécurité majeure, invisible aujourd'hui. |
 | **Autres codes d'échec** : `registry_policy_missing` (`runtime.go:150`), `registry_key_override_denied` (`runtime.go:155`), `registry_virtual_key_required` (`runtime.go:146`), `registry_endpoint_unverified` (`runtime.go:187`), `registry_routing_override_denied` (`runtime.go:205`), `registry_invalid_fallbacks` (`runtime.go:211,214`), `registry_unsupported_endpoint`/`registry_method_not_allowed`/`registry_json_required`/`registry_body_too_large` (`runtime.go:135,142,163,171`), `registry_http_required` (`native/main.go:204`) | idem | Un compteur par code par fenêtre temporelle = tableau de bord de santé de la garde ; aucun n'est compté. |
 | **Décisions de garde par requête** (résolution `exposed_id → native_id`, passthrough ou non) | `runtime.go:181-201` | Journal d'audit : qui a demandé quoi, sous quel nom, vers quelle cible. Absent. |
-| **Diff config déployée (mémoire plugin) vs fichier** | le store plugin est figé à l'`Init` (`native/main.go:58`) ; le panneau `serve` autonome relit le fichier à l'ouverture (`store.go:20-32`) | Endpoint « disque vs mémoire » montrant si un redémarrage Bifrost est nécessaire après un PUT. |
+| **Diff config déployée (mémoire plugin) vs fichier** | l'admin embarqué partage le `Store` du plugin (`native/main.go:58-79`) ; le panneau `serve` autonome ouvre son propre store (`cmd/registry/main.go:48`) | Endpoint « disque vs mémoire » montrant les modifications externes non rechargées ou celles faites dans le panneau autonome. |
 | **Santé du store** (fichier lisible, révision parsée du disque) | `store.go:20-31,45-54` (la logique existe pour le PUT) | `/api/status` ne vérifie rien ; un `healthy`/`last_load`/`disk_revision` rassurerait. |
 | **Compteurs d'usage par vue/policy** | aucun — les hooks natifs (`native/main.go:114-231`) ne comptent rien | Volume par clé virtuelle, taux de refus, latence de garde. |
 | **Intersection réelle `/v1/models`** | `runtime.go:275-301` : les routes absentes de la réponse native sont silencieusement sautées (`continue`, `runtime.go:279`) | La UI montre les routes « potentielles » ; les alias sans alias natif Bifrost correspondant disparaissent sans trace. Lister ces écarts = vraie vue « servie ». |
@@ -116,7 +116,7 @@ Tout ce qui suit traverse le code à l'exécution mais n'est ni stocké, ni comp
 
 - **`config.json` vs `registry.json`** : deux fichiers distincts, jamais reliés par le code — `registry.json` (registre, `store.go`) et `config.json` (Bifrost natif, lu seulement par `merge-aliases`). Aucun endpoint ne compare le plan aux permissions réellement configurées dans Bifrost ; le plan est « aveugle ».
 - **Mode `local-control-plane`** : `/api/status` déclare `bifrost_connected: false` et `native_apply: "manual"` en dur (`server.go:109`) — valeurs constantes, pas des mesures. L'UI n'appelle d'ailleurs jamais `/api/status` (cf. §3) : ces champs ne sont visibles que via la doc (`docs/INSTALL.md:59`).
-- **Apply manuel de bout en bout** : même après un `PUT /api/config` réussi, le plugin Bifrost continue de servir l'ancien snapshot jusqu'au redémarrage (chargement unique à l'`Init`, `native/main.go:58`). Rien dans l'UI ne le dit au moment de la sauvegarde (le message dit seulement que les alias natifs restent à appliquer, `app.js:103`).
+- **Application partielle** : un `PUT /api/config` sur l'admin embarqué actualise la garde en direct (`server.go:129`, `store.go:59`, `native/main.go:133`). Les alias et permissions natifs Bifrost restent à appliquer séparément ; une modification du fichier hors du plugin n'est pas rechargée automatiquement. Le panneau `serve` autonome ne partage pas le store du plugin.
 - **Double écrivain possible** : le store vérifie le disque avant d'écrire (`store.go:45-57`), donc un `serve` autonome et le plugin peuvent partager le fichier, mais le plugin ne reprendra jamais les modifications du serveur sans redémarrage (pas de reload, pas de watch).
 - **`Session.Revision()` mort** : méthode définie (`runtime.go:40`) mais aucun appelant — la révision servie n'apparaît dans aucune réponse.
 - **Prod sous-utilise le moteur** : 0 groupe avec `filter`, 0 avec `exclude`, alors que ce sont des capacités de base du schéma (`configs/registry.prod.json` — stats de lecture directe).

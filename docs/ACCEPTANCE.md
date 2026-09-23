@@ -1,4 +1,6 @@
-# Checklist d’acceptation native — non exécutée dans cette livraison
+# Checklist d’acceptation native
+
+Modèle à reprendre pour chaque campagne, en enregistrant version, environnement et preuves. Les cases ci-dessous ne constituent pas un rapport d'exécution ; voir [l'état audité](../STATUS.md) pour les vérifications consignées.
 
 Les tests locaux ne valident pas ces points. Effectuer les essais sur une instance de staging avec des clés et providers de test, avant toute bascule. Les essais d’inférence peuvent consommer quota et budget.
 

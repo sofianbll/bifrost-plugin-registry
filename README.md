@@ -1,6 +1,20 @@
-# Bifrost · Plugin Registry — 0.1.0
+# Bifrost · Plugin Registry
 
-**Implémentation source d’une première version.** Le moteur Go et le panneau local sont construits et testés. L’adaptateur natif `.so` est fourni en source, mais **n’a pas été compilé ni chargé dans Bifrost dans cet environnement**. Ce n’est pas encore une livraison de production ni la réalisation intégrale du plan initial.
+Catalogue de modèles et groupes réutilisables pour les clés virtuelles Bifrost. Le dépôt contient un moteur Go, un plugin natif et un panneau d'administration local.
+
+## Où en est le projet ?
+
+| Pour comprendre… | Lire… |
+| --- | --- |
+| Ce qui fonctionne dans le code et ce qui reste à vérifier | [État audité](STATUS.md) |
+| L'expérience souhaitée, le pilote Hermes et les décisions ouvertes | [Cadrage produit](docs/design/product-direction.md) |
+| Le vocabulaire des groupes, clés et catalogues | [Contexte](CONTEXT.md) |
+| Les capacités actuelles du moteur et du panneau | [Inventaire du code](docs/design/capabilities-inventory.md) |
+| Les API et outils Bifrost à réutiliser | [Recherche d'intégration](docs/design/bifrost-integration-research.md) |
+
+**Prochaine étape : valider l'UI/UX avec Sofian sur un prototype cliquable du parcours Hermes**, puis fixer la spec, les versions et les tickets GitHub. La [maquette existante](docs/design/mockup/index.html) utilise des données fictives ; l'interface actuellement servie se trouve dans `internal/admin/web/`.
+
+Le build natif et des essais sur Pulsar sont consignés dans [BUILD_STATUS.json](BUILD_STATUS.json) et [les rapports de build](reports/native-build-v1/). Ces preuves historiques ne constituent pas une vérification actuelle de la production.
 
 ## Démarrer le panneau maintenant
 
@@ -12,14 +26,14 @@ go run ./cmd/registry serve --config configs/registry.json
 
 Ouvrir `http://127.0.0.1:8099/model-registry`. Copier le jeton d’administration affiché dans le terminal. Le catalogue initial est vide et n’autorise aucun modèle.
 
-Un binaire **d’administration seulement**, Linux amd64, est également fourni :
+Pour construire le CLI d'administration sur la machine courante :
 
 ```bash
-chmod +x dist/registry-linux-amd64
-./dist/registry-linux-amd64 serve --config configs/registry.json
+make build
+./dist/registry serve --config configs/registry.json
 ```
 
-Sur Mac Apple Silicon, utiliser la première commande ou construire `go build -o registry ./cmd/registry`. Le binaire Linux inclus ne s’exécute pas nativement sur macOS.
+Les binaires générés restent locaux et sont ignorés par Git. Un clone neuf contient les sources et les rapports de build.
 
 Pour explorer les écrans avec des données synthétiques, lancer le panneau avec `--config configs/registry.demo.json`. **Tous les providers, modèles amont et identifiants de cette démo sont des fixtures : aucune disponibilité réelle n’est annoncée.** Ne jamais charger cette configuration dans une instance de production.
 
@@ -36,11 +50,11 @@ Pour explorer les écrans avec des données synthétiques, lancer le panneau ave
 | Administration | Interface claire/sombre, recherche, aperçu par clé, import/export, validation serveur, sauvegarde atomique et contrôle de révision. |
 | Déploiement | Plan d’alias natifs et de permissions attendues ; fusion non destructive des alias dans **une copie** de `config.json`. |
 
-Le plugin ne crée pas de proxy d’inférence. Le panneau n’appelle aucun fournisseur. Les alias amont, l’authentification, les budgets, les prix et les réponses restent confiés à Bifrost. La compatibilité réelle de l’adaptateur avec la version installée reste à tester.
+Le plugin ne crée pas de proxy d’inférence. Le panneau n’appelle aucun fournisseur. Les alias amont, l’authentification, les budgets, les prix et les réponses restent confiés à Bifrost. Chaque nouvelle combinaison de versions exige une validation native.
 
 ## Limites à connaître avant installation
 
-**Intégration native non validée.** `go test ./...` n’inclut pas `native/main.go`, protégé par le tag de build `bifrost`. Les tests locaux ne prouvent pas la compatibilité ABI, le comportement de la gouvernance, l’ordre effectif des hooks ou le support des endpoints par vos providers.
+**Validation native distincte.** `go test ./...` n’inclut pas `native/main.go`, protégé par le tag de build `bifrost`. Les tests locaux ne prouvent pas la compatibilité ABI, le comportement de la gouvernance, l’ordre effectif des hooks ou le support des endpoints par vos providers. Utiliser la [checklist native](docs/ACCEPTANCE.md) pour la version et l'environnement ciblés.
 
 **Panneau séparé.** L’interface n’est pas injectée dans la navigation du dashboard Bifrost ou dans sa page Virtual Keys. Elle est servie sur un port local ; le plugin peut l’héberger dans le même processus que Bifrost, ou le CLI peut servir à préparer une configuration hors ligne.
 
@@ -76,9 +90,10 @@ scripts/build-with-bifrost.sh   build commun gateway + .so + sonde ABI
 scripts/test.sh                 tests Go avec détecteur de courses
 integration/native_probe.go    sonde plugin.Open et signatures, à compiler avec Bifrost
 integration/live_smoke.py       tests HTTP sur votre instance, opt-in explicite
-reports/                       résultats réellement obtenus et captures
+docs/design/mockup/            maquette statique, données fictives
+reports/                       rapports datés et captures historiques
 ```
 
-La [référence de configuration](docs/CONFIGURATION.md), la [sécurité](docs/SECURITY.md), les [origines vérifiées](docs/SOURCES.md) et les [résultats des tests](reports/VALIDATION.md) font partie du paquet.
+La [référence de configuration](docs/CONFIGURATION.md) et la [sécurité](docs/SECURITY.md) complètent ce guide. Les [sources initiales](docs/SOURCES.md) et [résultats des tests du 20 septembre](reports/VALIDATION.md) documentent la première livraison.
 
-Projet non officiel, sans affiliation à Maxim/Bifrost. Aucun secret réel ni configuration de votre installation n’a été utilisé.
+Les rôles des configurations vide, démo et homelab sont décrits dans [configs/README.md](configs/README.md). Projet non officiel, sans affiliation à Maxim/Bifrost.

@@ -4,3 +4,8 @@ __pycache__/
 *.so
 .env
 registry.local.json
+
+# Local build outputs; retain build reports and checksums in Git.
+/registry
+/reports/native-build-v1/bifrost-http
+/reports/native-build-v1/native-probe

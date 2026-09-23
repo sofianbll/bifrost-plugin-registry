@@ -1,8 +1,10 @@
 # Build et installation native
 
-## État de cette livraison
+## Build déjà consigné
 
-Le binaire `dist/registry-linux-amd64` est le contrôle local, **pas le plugin**. Aucun `bifrost-registry.so` ni gateway Bifrost recompilé n’est livré. Le script natif n’a pas pu être exécuté ici : la récupération du checkout Bifrost et des dépendances n’était pas disponible ; l’environnement local dispose de Go 1.23.2, alors que la documentation Bifrost consultée indique Go 1.26.1. Ne pas considérer une validation du moteur indépendant comme un build natif réussi.
+Les [rapports natifs](../reports/native-build-v1/) consignent un build contre Bifrost `transports/v2.2.1`, commit `6493abd3d1422c9bfde95f242fd57b38e73ce881`, avec Go 1.27.1 sur Linux amd64. La sonde ABI rapporte un chargement réussi ; les essais de pipeline ultérieurs sont décrits séparément dans [BUILD_STATUS.json](../BUILD_STATUS.json). L'[état audité](../STATUS.md) précise les limites de ces preuves.
+
+Les binaires restent des artefacts locaux, exclus de Git. Le CLI construit par `make build` est le contrôle local ; le build commun ci-dessous produit le gateway, le plugin et leur sonde pour l'environnement cible.
 
 ## Pourquoi reconstruire ensemble
 
@@ -22,7 +24,7 @@ cd bifrost-build
 git rev-parse HEAD
 ```
 
-Le source exact de ce tag n’a pas été récupéré pendant cette livraison ; les signatures ont été examinées dans la documentation publiée et les fichiers `dev` consultables. La sonde de compilation est donc une étape obligatoire.
+Le commit du build consigné figure ci-dessus. Pour tout nouveau build, enregistrer le commit réellement utilisé et exécuter la sonde ABI.
 
 Construire le vrai frontend à partir de ce checkout, selon son `package.json` et les instructions officielles. La documentation consultée donne `npm ci`, puis `npm run build-enterprise` dans `ui`, et copie le contenu de `ui/out` vers `transports/bifrost-http/ui`. Vérifier ces chemins/scripts dans le tag réellement choisi. Le script Registry s’arrête tant que `transports/bifrost-http/ui/index.html` n’existe pas ; il ne fabrique pas de faux frontend.
 
