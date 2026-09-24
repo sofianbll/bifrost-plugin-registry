@@ -10,6 +10,8 @@ Registry V1 is implemented and published as a release candidate. It uses an unmo
 
 The exact `e25de3d` gateway/plugin pair passes native ABI checks and **133/133 HTTP checks** (42 models, 72 standalone/assistant, 19 adoption) on **Bifrost 2.2.3, Linux ARM64/musl**, using synthetic providers. Browser checks cover selection, mapping, reviewed suggestions, key copy and responsive layout. [Qualification and artifact hashes](reports/bifrost-2.2.3/README.md) · [2.2.3 compatibility review](docs/design/bifrost-2.2.3-compatibility.md). AMD64 2.2.3 and real-provider inference remain unqualified; the existing local pilot and published release are unchanged.
 
+The September 25 audit in [#16](https://github.com/sofianbll/bifrost-plugin-registry/issues/16), also delivered in PR #15, repairs draft protection, provider access setup, catalog pagination/fallback, key selection origins and publication state, mobile editors, clipboard recovery and assistant key-detail lookup. The corrected candidate passes `make check`, **18/18 browser journeys**, and a freshly compiled **133/133 native HTTP qualification** on Bifrost 2.2.3 ARM64/musl. The [audit report](docs/reviews/2026-09-25-ux-audit.md) records the final source snapshot, binary hashes, visual review and synthetic scope; the previous `e25de3d` evidence above remains historical. These corrections are unreleased.
+
 ## Delivered
 
 - Reference catalog and distinct provider accesses; Bifrost/Models.dev sources, provenance, protected corrections and explicit matching.

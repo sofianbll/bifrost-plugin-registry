@@ -1,4 +1,4 @@
-import { applyModelId, modelEditorOptions, omitUnchangedReferenceIds, prefillFromReference } from "./model-editor-data";
+import { applyModelId, changeAccessProvider, modelEditorOptions, omitUnchangedReferenceIds, prefillFromReference } from "./model-editor-data";
 import type { Catalog } from "./catalog-api";
 import type { Model } from "./demo";
 
@@ -19,6 +19,7 @@ const catalogWithNativePath: Catalog = { ...catalog, accesses: [
   { id: "provider/other/path", provider: "provider", model: "other/path", configured: false, fields: {}, overrides: {} },
 ] };
 equal(modelEditorOptions(catalogWithNativePath, []).modelIds, [{ value: "new-model", label: "New Model", detail: "Reference creator/new-model", referenceId: "creator/new-model" }]);
+equal(modelEditorOptions(catalogWithNativePath, []).providers, [{ value: "provider" }]);
 const next = prefillFromReference(draft, reference);
 equal(next.name, "New Model");
 equal(next.creator, "Creator");
@@ -31,8 +32,12 @@ equal(next.capabilities.Tools, "Declared");
 const selected = applyModelId(draft, "new-model", { provider: "provider", nativeModel: "native/path", status: "Configured", source: "provider/native/path" });
 equal(selected.accesses[0], { ...draft.accesses[0], provider: "provider", id: "provider/new-model", nativeModel: "native/path", status: "Configured" });
 equal(applyModelId(selected, "new-alias").accesses[0].id, "provider/new-alias");
-equal(applyModelId({ ...selected, accesses: [{ ...selected.accesses[0], id: "provider/custom" }] }, "new-alias").accesses[0].id, "provider/custom");
+equal(changeAccessProvider(selected.accesses[0], "new-model", "custom-provider"), { ...selected.accesses[0], provider: "custom-provider", id: "custom-provider/new-model" });
+equal(applyModelId({ ...selected, accesses: [{ ...selected.accesses[0], id: "provider/custom" }] }, "new-alias").accesses[0].id, "provider/new-alias");
 equal(applyModelId({ ...selected, accesses: [{ ...selected.accesses[0], nativeModel: "manual/native" }] }, "new-alias").accesses[0].nativeModel, "manual/native");
+const twoAccesses = { ...selected, accesses: [selected.accesses[0], { ...selected.accesses[0], provider: "second", id: "second/new-model", nativeModel: "other/native", referenceId: "ref/exact" }] };
+equal(applyModelId(twoAccesses, "new-alias").accesses.map(access => [access.id, access.nativeModel, access.referenceId]), [["provider/new-alias", "native/path", undefined], ["second/new-alias", "other/native", "ref/exact"]]);
+equal(modelEditorOptions(catalog, [twoAccesses]).providers, [{ value: "provider" }, { value: "second" }]);
 const existing: Model = { ...draft, id: "alias", accesses: [{ provider: "p", id: "p/alias", nativeModel: "native", route: "Direct provider", status: "Configured", referenceId: "ref/automatic" }] };
 equal(omitUnchangedReferenceIds(existing, [existing]).accesses[0].referenceId, undefined);
 equal(omitUnchangedReferenceIds({ ...existing, accesses: [{ ...existing.accesses[0], referenceId: "ref/changed" }] }, [existing]).accesses[0].referenceId, "ref/changed");

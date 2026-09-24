@@ -27,23 +27,28 @@ export function modelEditorOptions(catalog: Catalog | null, workspace: Model[]) 
     ...accesses.map(access => stringField(access, field)),
     ...workspace.map(model => model[workspaceField]),
   ].filter(value => value && value !== "Unknown").map(value => ({ value })));
-  return { modelIds, creators: values("creator", "creator"), families: values("family", "family") };
+  const providers = unique([
+    ...accesses.filter(access => access.configured).map(access => access.provider),
+    ...workspace.flatMap(model => model.accesses.map(access => access.provider)),
+  ].filter(Boolean).map(value => ({ value })));
+  return { modelIds, creators: values("creator", "creator"), families: values("family", "family"), providers };
 }
 
 export type AccessCandidate = Pick<Access, "provider" | "nativeModel" | "status"> & { source: string };
 
+export function changeAccessProvider(access: Access, modelId: string, provider: string): Access {
+  return { ...access, provider, id: provider && modelId ? `${provider}/${modelId}` : "" };
+}
+
 export function applyModelId(draft: Model, id: string, candidate?: AccessCandidate): Model {
   const accesses = draft.accesses.map(access => {
-    const aliasFollowsModel = !access.id || access.id === `${access.provider}/${draft.id}`;
     const empty = !access.provider && !access.id && !access.nativeModel;
     if (empty && candidate && candidate.provider && candidate.nativeModel) return {
-      ...access,
-      provider: candidate.provider,
-      id: `${candidate.provider}/${id}`,
+      ...changeAccessProvider(access, id, candidate.provider),
       nativeModel: candidate.nativeModel,
       status: candidate.status,
     };
-    return aliasFollowsModel && access.provider ? { ...access, id: `${access.provider}/${id}` } : access;
+    return changeAccessProvider(access, id, access.provider);
   });
   return { ...draft, id, accesses };
 }

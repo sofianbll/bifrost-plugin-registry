@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"sort"
 	"strings"
 	"time"
@@ -157,12 +158,13 @@ func (s *Server) assistantOptions(ctx context.Context, keyID string) ([]assistan
 	}
 	models := []assistantModelOption{}
 	options := []assistantKeyOption{}
-	secret := ""
+	selected := false
+	now := time.Now()
 	for _, key := range keys {
-		if key.ID != "" && (key.IsActive == nil || *key.IsActive) && (key.ExpiresAt == nil || key.ExpiresAt.After(time.Now())) {
+		if key.ID != "" && (key.IsActive == nil || *key.IsActive) && (key.ExpiresAt == nil || key.ExpiresAt.After(now)) {
 			options = append(options, assistantKeyOption{key.ID, key.Name})
 			if key.ID == keyID {
-				secret = key.Value
+				selected = true
 			}
 		}
 	}
@@ -170,7 +172,18 @@ func (s *Server) assistantOptions(ctx context.Context, keyID string) ([]assistan
 	if keyID == "" {
 		return models, options, "", nil
 	}
-	if secret == "" {
+	if !selected {
+		return nil, options, "", errAssistantKeyUnavailable
+	}
+	var detail struct {
+		VirtualKey nativeVK `json:"virtual_key"`
+	}
+	if err := s.live.client.call(ctx, http.MethodGet, "/api/governance/virtual-keys/"+url.PathEscape(keyID), nil, &detail); err != nil {
+		return nil, options, "", err
+	}
+	key := detail.VirtualKey
+	secret, err := registry.Credential(map[string]string{"Authorization": "Bearer " + key.Value})
+	if key.ID != keyID || key.IsActive != nil && !*key.IsActive || key.ExpiresAt != nil && !key.ExpiresAt.After(time.Now()) || err != nil || secret != key.Value || strings.ContainsAny(key.Value, "*•…") || strings.Contains(strings.ToLower(key.Value), "<redacted>") {
 		return nil, options, "", errAssistantKeyUnavailable
 	}
 	var body struct {
