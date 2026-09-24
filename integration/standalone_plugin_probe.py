@@ -282,6 +282,11 @@ def main():
                                         'bifrost_auth_env': 'BIFROST_ADMIN_AUTH'}}
             try:
                 start()
+                if args.expected_version != '2.2.2':
+                    version_status, native_version, _ = native('/api/version')
+                    check('native gateway reports expected Bifrost version',
+                          version_status == 200 and native_version == 'v' + args.expected_version,
+                          status=version_status, observed=native_version)
                 check('registry starts absent', not registry_file.exists())
                 status, _, _ = native('/api/plugins', 'POST', plugin_config)
                 check('plugin installed from URL', status == 201, status=status)
@@ -438,6 +443,12 @@ def main():
                 model = copy.deepcopy(ws['discovery'][0])
                 model.update(tasks=['Chat'], inputModalities=['Text'], outputModalities=['Text'], kind='Chat')
                 ws['data']['models'].append(model)
+                if args.assistant_fixture:
+                    blank_model = copy.deepcopy(next(m for m in ws['discovery'] if m['id'] != model['id']))
+                    blank_model.update(kind='Chat', creator='Fixture Creator', family='Fixture Series',
+                                       tasks=[], inputModalities=[], outputModalities=[], capabilities={})
+                    blank_model['accesses'][0]['referenceId'] = reference_id
+                    ws['data']['models'].append(blank_model)
                 ws['data']['groups'].append({'id': 'persisted-proof', 'name': 'Persisted proof',
                                              'description': 'Standalone URL integration',
                                              'members': [model['id']]})
@@ -452,6 +463,15 @@ def main():
                       and any(m['id'] == model['id'] for m in fresh.get('data', {}).get('models', []))
                       and any(g['id'] == 'persisted-proof' for g in fresh.get('data', {}).get('groups', [])),
                       status=status)
+                if args.assistant_fixture:
+                    saved_models = fresh['data']['models']
+                    saved_blank = next(m for m in saved_models if m['id'] == blank_model['id'])
+                    check('workspace Save keeps empty taxonomy arrays and capabilities object',
+                          all(isinstance(m.get(field), list) for m in saved_models
+                              for field in ('tasks', 'inputModalities', 'outputModalities'))
+                          and all(isinstance(m.get('capabilities'), dict) for m in saved_models)
+                          and saved_blank['tasks'] == saved_blank['inputModalities'] == saved_blank['outputModalities'] == []
+                          and saved_blank['accesses'][0].get('referenceId') == reference_id)
                 status, created, _ = admin('/api/keys', 'POST', {'name': 'Isolated proof key', 'client': 'Fixture'})
                 check('native virtual key created', status == 201 and isinstance(created, dict)
                       and 'workspace' in created and bool(created.get('created', {}).get('secret')), status=status)

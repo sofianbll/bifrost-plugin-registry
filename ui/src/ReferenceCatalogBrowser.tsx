@@ -16,7 +16,7 @@ const value = (unknown: unknown) => typeof unknown === "string" && unknown.trim(
 const price = (unknown: unknown) => typeof unknown === "number" ? `$${unknown}/M` : "Unknown";
 const unique = (items: string[]) => [...new Set(items)].sort((a, b) => a.localeCompare(b));
 
-export default function ReferenceCatalogBrowser({ models, registeredIds, preferences, onOpen, onMetadata, onUnauthorized }: { models: Model[]; registeredIds: ReadonlySet<string>; preferences: ViewOptions; onOpen: (model: Model) => void; onMetadata: (target: "reference" | "access", id: string) => void; onUnauthorized: () => void }) {
+export default function ReferenceCatalogBrowser({ revision, models, registeredIds, preferences, onOpen, onMetadata, onUnauthorized }: { revision: string; models: Model[]; registeredIds: ReadonlySet<string>; preferences: ViewOptions; onOpen: (model: Model) => void; onMetadata: (target: "reference" | "access", id: string) => void; onUnauthorized: () => void }) {
   const [catalog, setCatalog] = useState<Catalog | null>(null);
   const [error, setError] = useState("");
   const load = async () => {
@@ -26,7 +26,7 @@ export default function ReferenceCatalogBrowser({ models, registeredIds, prefere
       setError(cause instanceof Error ? cause.message : "Reference catalogue unavailable.");
     }
   };
-  useEffect(() => { void load(); }, []);
+  useEffect(() => { void load(); }, [revision]);
 
   const render = (filtered: Model[], view: ViewOptions, groupBy: string, filters: ModelFilters) => {
     if (!catalog) return <div role="status" className="rounded-sm border p-5 text-sm text-muted-foreground">{error ? <>Reference grouping unavailable: {error}. <Button variant="outline" size="sm" onClick={() => void load()}>Retry</Button></> : "Loading reference mappings…"}</div>;

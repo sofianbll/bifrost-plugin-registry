@@ -21,6 +21,12 @@ esac
 if ! [[ -f "$BF/transports/bifrost-http/ui/index.html" ]]; then
  fail "Real Bifrost UI assets missing. Build the UI from this SAME checkout and copy its output to transports/bifrost-http/ui (see docs/BUILD.md). No placeholder UI is generated."
 fi
+TAG_VERSION=$(git -C "$BF" describe --tags --exact-match HEAD 2>/dev/null || true)
+TAG_VERSION=${TAG_VERSION#transports/}
+[[ -z $TAG_VERSION || -z ${BIFROST_VERSION:-} || $BIFROST_VERSION == "$TAG_VERSION" ]] || fail "BIFROST_VERSION does not match the checkout tag"
+BIFROST_VERSION=${BIFROST_VERSION:-$TAG_VERSION}
+[[ $BIFROST_VERSION =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail "Set BIFROST_VERSION=vX.Y.Z matching verified source, or use an exact tagged checkout"
+GATEWAY_LDFLAGS="-w -s -X main.Version=$BIFROST_VERSION"
 OUT=${2:-"$ROOT/dist/native"}
 [[ ! -e "$OUT" ]] || fail "Output directory already exists; choose a new directory (nothing is overwritten)"
 mkdir -p "$OUT"
@@ -70,10 +76,11 @@ go test "${FLAGS[@]}" ./registry-plugin
  printf 'Go: '; go version
  printf 'Toolchain env: '; go env GOVERSION GOOS GOARCH CGO_ENABLED GOWORK
  printf 'Build flags: '; printf '%s ' "${FLAGS[@]}"; printf '\n'
+ printf 'Bifrost version: %s\n' "$BIFROST_VERSION"
  printf '\nResolved dependencies:\n'; go list -m all
 } > "$OUT/build-environment.txt"
 printf 'Building native Bifrost and registry plugin from the same module…\n'
-go build "${FLAGS[@]}" -ldflags='-w -s' -o "$OUT/bifrost-http" ./bifrost-http
+go build "${FLAGS[@]}" -ldflags="$GATEWAY_LDFLAGS" -o "$OUT/bifrost-http" ./bifrost-http
 go build "${FLAGS[@]}" -ldflags='-w -s' -buildmode=plugin -o "$OUT/bifrost-registry.so" ./registry-plugin
 go build "${FLAGS[@]}" -ldflags='-w -s' -buildmode=plugin -o "$OUT/legacy-hook-proof.so" ./registry-plugin/legacy-proof
 go build "${FLAGS[@]}" -ldflags='-w -s' -o "$OUT/native-probe" ./registry-plugin/abi-probe

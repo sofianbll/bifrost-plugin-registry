@@ -68,7 +68,7 @@ func catalogModelFields(m *modelDTO, fields map[string]registry.CatalogValue) {
 		}
 	}
 	modalities := func(key string) []string {
-		var values []string
+		values := []string{}
 		_ = json.Unmarshal(fields[key].Value, &values)
 		for i, v := range values {
 			if v != "" {

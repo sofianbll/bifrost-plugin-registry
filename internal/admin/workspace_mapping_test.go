@@ -108,6 +108,9 @@ func TestWorkspaceModelSaveMapsReferenceInSameRevision(t *testing.T) {
 		t.Fatalf("custom model was matched without selection: %+v", got)
 	}
 	ws = read()
+	if saved := ws.Data.Models[0]; saved.Tasks == nil || saved.InputModalities == nil || saved.OutputModalities == nil || saved.Capabilities == nil {
+		t.Fatalf("workspace returned null model lists after catalog enrichment: %+v", saved)
+	}
 	if ws.Data.Models[0].Accesses[0].ReferenceID != nil {
 		t.Fatal("unmapped access reported a reference")
 	}

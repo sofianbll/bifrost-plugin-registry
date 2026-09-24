@@ -410,11 +410,11 @@ func (s *Server) workspace(ctx context.Context) (workspace, error) {
 		if raw := m.Metadata["ui"]; len(raw) > 0 {
 			_ = json.Unmarshal(raw, &ui)
 		}
-		ui = sanitizeLiveModel(ui)
 		if ui.ID == "" {
 			ui = modelDTO{ID: m.Alias, Creator: m.Creator, Family: m.Family, Context: "Unknown", Kind: "Chat"}
 		}
 		catalogModelFields(&ui, catalogFieldsForAccess(config.Catalog, m.Provider, m.UpstreamModel))
+		ui = sanitizeLiveModel(ui)
 		if ui.Name == "" {
 			ui.Name = m.Alias
 		}
@@ -716,6 +716,18 @@ func cleanUnknown(v string) string {
 	return v
 }
 func sanitizeLiveModel(m modelDTO) modelDTO {
+	if m.Tasks == nil {
+		m.Tasks = []string{}
+	}
+	if m.InputModalities == nil {
+		m.InputModalities = []string{}
+	}
+	if m.OutputModalities == nil {
+		m.OutputModalities = []string{}
+	}
+	if m.Capabilities == nil {
+		m.Capabilities = map[string]string{}
+	}
 	for name, status := range m.Capabilities {
 		if status == "Observed in simulated campaign" {
 			m.Capabilities[name] = "Unknown"

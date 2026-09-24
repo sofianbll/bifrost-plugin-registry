@@ -14,6 +14,7 @@ export function SearchableSelect({ label, value, options, onChange, placeholder,
 }) {
   const id = useId();
   const list = useRef<HTMLDivElement>(null);
+  const input = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
   const query = value === "Unknown" ? "" : value.trim().toLocaleLowerCase();
@@ -29,13 +30,13 @@ export function SearchableSelect({ label, value, options, onChange, placeholder,
   };
   return <Popover open={open && count > 0 && !disabled} onOpenChange={setOpen} modal={false}>
     <label htmlFor={id} className="mb-2 block text-sm font-medium">{label}</label>
-    <PopoverAnchor asChild><Input id={id} role="combobox" aria-autocomplete="list" aria-expanded={open && count > 0} aria-controls={`${id}-options`} aria-activedescendant={open && active >= 0 && active < count ? `${id}-option-${active}` : undefined} autoComplete="off" spellCheck={false} disabled={disabled} placeholder={placeholder} value={value} onFocus={event => { if (value === "Unknown") event.currentTarget.select(); setOpen(true); setActive(-1); }} onChange={event => { onChange(event.target.value); setActive(-1); setOpen(true); }} onKeyDown={event => {
+    <PopoverAnchor asChild><Input ref={input} id={id} role="combobox" aria-autocomplete="list" aria-expanded={open && count > 0} aria-controls={`${id}-options`} aria-activedescendant={open && active >= 0 && active < count ? `${id}-option-${active}` : undefined} autoComplete="off" spellCheck={false} disabled={disabled} placeholder={placeholder} value={value} onFocus={event => { if (value === "Unknown") event.currentTarget.select(); setOpen(true); setActive(-1); }} onChange={event => { onChange(event.target.value); setActive(-1); setOpen(true); }} onKeyDown={event => {
       if (event.key === "Escape") { event.preventDefault(); setOpen(false); return; }
       if (event.key === "ArrowDown" && count) { event.preventDefault(); setOpen(true); setActive(index => index < count - 1 ? index + 1 : 0); }
       if (event.key === "ArrowUp" && count) { event.preventDefault(); setOpen(true); setActive(index => index < 0 ? count - 1 : (index - 1 + count) % count); }
       if (event.key === "Enter" && open && active >= 0 && active < count) { event.preventDefault(); choose(active); }
     }} /></PopoverAnchor>
-    <PopoverContent ref={list} id={`${id}-options`} role="listbox" aria-label={`${label} suggestions`} align="start" sideOffset={4} collisionPadding={8} onOpenAutoFocus={event => event.preventDefault()} onCloseAutoFocus={event => event.preventDefault()} className="max-h-52 w-(--radix-popover-trigger-width) min-w-48 max-w-[calc(100vw-2rem)] overflow-y-auto p-1">
+    <PopoverContent ref={list} id={`${id}-options`} role="listbox" aria-label={`${label} suggestions`} align="start" sideOffset={4} collisionPadding={8} onOpenAutoFocus={event => event.preventDefault()} onCloseAutoFocus={event => event.preventDefault()} onInteractOutside={event => { if (event.detail.originalEvent.target === input.current) event.preventDefault(); }} className="max-h-52 w-(--radix-popover-trigger-width) min-w-48 max-w-[calc(100vw-2rem)] overflow-y-auto p-1">
       {matches.map((option, index) => <button key={`${option.value}/${option.referenceId || option.accessId || ""}`} id={`${id}-option-${index}`} role="option" aria-selected={active === index} type="button" className={`block w-full rounded-sm px-3 py-2 text-left text-sm hover:bg-accent focus:bg-accent ${active === index ? "bg-accent" : ""}`} onMouseEnter={() => setActive(index)} onMouseDown={event => event.preventDefault()} onClick={() => choose(index)}><span className="block break-all font-medium">{option.label || option.value}</span>{option.label && option.label !== option.value && <span className="block break-all font-mono text-xs text-muted-foreground">{option.value}</span>}{option.detail && <span className="block break-words text-xs text-muted-foreground">{option.detail}</span>}</button>)}
       {custom && <button id={`${id}-option-${matches.length}`} role="option" aria-selected={active === matches.length} type="button" className={`block w-full rounded-sm px-3 py-2 text-left text-sm hover:bg-accent ${active === matches.length ? "bg-accent" : ""}`} onMouseDown={event => event.preventDefault()} onClick={() => choose(matches.length)}>Use custom value: {value.trim()}</button>}
     </PopoverContent>
