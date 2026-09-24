@@ -29,7 +29,7 @@ export default function ReferenceCatalogBrowser({ revision, models, registeredId
   useEffect(() => { void load(); }, [revision]);
 
   const render = (filtered: Model[], view: ViewOptions, groupBy: string, filters: ModelFilters) => {
-    if (!catalog) return <div role="status" className="rounded-sm border p-5 text-sm text-muted-foreground">{error ? <>Reference grouping unavailable: {error}. <Button variant="outline" size="sm" onClick={() => void load()}>Retry</Button></> : "Loading reference mappings…"}</div>;
+    if (!catalog || error) return <div role="status" className="rounded-sm border p-5 text-sm text-muted-foreground">{error ? <>Reference grouping unavailable: {error}. <Button variant="outline" size="sm" onClick={() => void load()}>Retry</Button></> : "Loading reference mappings…"}</div>;
     const groups = filterReferenceGroups(filtered, catalog, filters);
     const shown = groups.slice(0, 60);
     const sections = new Map<string, ReferenceGroup[]>();

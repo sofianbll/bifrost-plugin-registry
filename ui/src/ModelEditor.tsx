@@ -89,7 +89,7 @@ export default function ModelEditor({ draft, onChange, creating, workspace, erro
   const invalidReference = draft.accesses.some(access => !!access.referenceId && (catalog ? !catalog.references.some(reference => reference.id === access.referenceId) : !original?.accesses.some(row => row.provider === access.provider && row.nativeModel === access.nativeModel && row.referenceId === access.referenceId)));
   const capabilityRows = [...new Set([...capabilityNames, ...Object.keys(draft.capabilities)])];
 
-  return <SheetContent inert={busy} className="min-h-0 p-4 sm:p-6">
+  return <SheetContent inert={busy} className="min-h-0 max-w-[calc(100vw-1rem)] p-4 sm:p-6">
     <SheetHeader className="shrink-0 border-b bg-muted/40 pb-4"><SheetTitle className="text-xl">{creating ? "Add model" : draft.name}</SheetTitle><SheetDescription className="sr-only">Edit the model details, provider accesses, and capabilities.</SheetDescription></SheetHeader>
     <div className="custom-scrollbar min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain pr-2 pb-4">
       {actionSlot}
