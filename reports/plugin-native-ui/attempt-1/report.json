@@ -1,0 +1,16 @@
+{
+  "scope": "local candidate only; synthetic provider; no inference",
+  "started_at_utc": "2026-09-24T13:45:50.099173+00:00",
+  "official_release_verified": false,
+  "checks": [],
+  "network_interfaces": [
+    "lo"
+  ],
+  "artifacts": {
+    "gateway": "705ed489882e7bcfac4ca9bd1b4dbdc879a5549338c7322f159901c5035dc2e0",
+    "plugin": "37eb9e20b925b3a37266be807b0b09ba87d213d655ec5fdcd51ecedbd84f23ce"
+  },
+  "passed": false,
+  "error": "RuntimeError: gateway exited before readiness",
+  "gateway_stopped": true
+}

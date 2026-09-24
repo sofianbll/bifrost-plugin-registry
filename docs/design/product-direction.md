@@ -1,6 +1,16 @@
-# Cadrage du produit — brouillon du 23 septembre 2026
+# Cadrage du produit — décisions et historique
 
-Source : besoins explicités par Sofian dans cette session. Ce document prépare la spec et les versions ; les propositions ci-dessous ne sont pas encore un plan d'exécution approuvé. [État du code](../../STATUS.md) · [Vocabulaire](../../CONTEXT.md) · [Recherche Bifrost sourcée](bifrost-integration-research.md).
+Source : besoins explicités par Sofian dans cette session. [État du code](../../STATUS.md) · [Vocabulaire](../../CONTEXT.md) · [Recherche Bifrost sourcée](bifrost-integration-research.md).
+
+## Cadrage actif — 24 septembre 2026
+
+La [spec V1](core-v1-spec.md) fait référence pour le périmètre courant, les comportements attendus, les preuves de livraison et les décisions encore ouvertes. Sofian a validé sa préparation : catalogue central alimenté par Bifrost, Models.dev et les données utiles de sa première V1 ; finition des parcours catalogue, groupes et clés ; installation visée par URL de plugin sur Bifrost standard. L'assistance IA de correspondance reste optionnelle et ultérieure ; le laboratoire demeure différé.
+
+L'installation demandée n'est pas encore obtenue : le pilote local utilise un gateway modifié, une UI React séparée et un plugin compilé avec un hôte compatible. La [recherche et preuve isolée](../../reports/stock-v2.2.2-plugin-install/README.md) confirme que l'image officielle 2.2.2 ARM64 télécharge le `.so` mais refuse son chargement dynamique, et que l'extension UI requiert une évolution de l'hôte. **Sofian maintient la livraison par URL du plugin seul : les dépendances côté Bifrost doivent être résolues avant la sortie.** La version officielle compatible reste à déterminer ; les preuves locales ne suffisent pas à lever ce prérequis. La mise à jour du cadrage n'autorise pas un déploiement en production.
+
+## Historique du cadrage et des retours du 23 septembre
+
+Les sections suivantes conservent le raisonnement et les propositions antérieurs. Leurs tableaux d'écarts et étapes à réaliser décrivent cet état historique : consulter la spec active et `STATUS.md` pour distinguer l'implémentation locale actuelle des travaux restants.
 
 ## Résultat recherché
 

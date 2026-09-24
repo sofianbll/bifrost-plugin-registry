@@ -151,6 +151,15 @@ func (s *Server) ConnectBifrost(baseURL, authorization string) error {
 	s.live.proofs = map[string]publication{}
 	return nil
 }
+
+// ConnectNative uses Bifrost's authenticated in-process API dispatcher.
+func (s *Server) ConnectNative(transport http.RoundTripper) {
+	s.live.Lock()
+	defer s.live.Unlock()
+	u, _ := url.Parse("http://bifrost.internal")
+	s.live.client = &liveClient{base: u, http: &http.Client{Timeout: 12 * time.Second, Transport: transport, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}}
+	s.live.proofs = map[string]publication{}
+}
 func (c *liveClient) call(ctx context.Context, method, path string, body any, out any) error {
 	var rd io.Reader
 	if body != nil {

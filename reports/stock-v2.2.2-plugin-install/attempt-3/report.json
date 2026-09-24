@@ -1,0 +1,22 @@
+{
+  "started_at_utc": "2026-09-24T12:46:33.521855+00:00",
+  "network_interfaces": [
+    "lo"
+  ],
+  "asset_sha256": "f96515e159a986fb745502f77e73dea1591bae6590c6b01c69284ce22ff151ce",
+  "asset_gets": 1,
+  "asset_bytes_served": 19931256,
+  "before": {
+    "status": 200,
+    "body": "{\"count\": 0, \"plugins\": []}"
+  },
+  "post": {
+    "status": 500,
+    "body": "{\"is_bifrost_error\": false, \"status_code\": 500, \"error\": {\"message\": \"Plugin created in database but failed to load: failed to load custom plugin: plugin.Open(\\\"/tmp/bifrost-plugin-1522310853.so\\\"): Dynamic loading not supported\"}, \"extra_fields\": {\"routing_info\": {}}}"
+  },
+  "after": {
+    "status": 404,
+    "body": "{\"is_bifrost_error\": false, \"status_code\": 404, \"error\": {\"message\": \"Plugin not found\"}, \"extra_fields\": {\"routing_info\": {}}}"
+  },
+  "download_observed": true
+}

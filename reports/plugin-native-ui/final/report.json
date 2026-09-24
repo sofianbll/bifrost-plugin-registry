@@ -1,0 +1,215 @@
+{
+  "scope": "local candidate only; synthetic provider; no inference",
+  "started_at_utc": "2026-09-24T14:27:25.990706+00:00",
+  "official_release_verified": false,
+  "checks": [
+    {
+      "name": "plugin URL install with empty plugin config",
+      "pass": true,
+      "status": 201
+    },
+    {
+      "name": "native contribution listing",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "embedded UI served",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "embedded UI references built assets",
+      "pass": true
+    },
+    {
+      "name": "embedded static asset",
+      "pass": true,
+      "path": "/plugins/bifrost-registry/assets/index-BGYJis-m.js",
+      "status": 200
+    },
+    {
+      "name": "embedded static asset",
+      "pass": true,
+      "path": "/plugins/bifrost-registry/assets/index-CT0BllVq.css",
+      "status": 200
+    },
+    {
+      "name": "native auth protects plugin surface",
+      "pass": true,
+      "path": "/plugins/bifrost-registry/",
+      "status": 401
+    },
+    {
+      "name": "native auth protects plugin surface",
+      "pass": true,
+      "path": "/plugins/bifrost-registry/api/workspace",
+      "status": 401
+    },
+    {
+      "name": "native auth protects plugin surface",
+      "pass": true,
+      "path": "/api/plugin-ui",
+      "status": 401
+    },
+    {
+      "name": "invalid session rejected",
+      "pass": true,
+      "status": 401
+    },
+    {
+      "name": "cross-origin write rejected",
+      "pass": true,
+      "status": 403
+    },
+    {
+      "name": "asset traversal refused",
+      "pass": true,
+      "status": 400
+    },
+    {
+      "name": "native API bridge workspace",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "synthetic provider discovery",
+      "pass": true
+    },
+    {
+      "name": "workspace write via native route",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "workspace write read back",
+      "pass": true
+    },
+    {
+      "name": "native virtual key created through plugin",
+      "pass": true,
+      "status": 201
+    },
+    {
+      "name": "native key policy published",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "independent models readback preserves VK credentials",
+      "pass": true,
+      "state": "verified",
+      "actual": [
+        "openai/upstream-alpha"
+      ]
+    },
+    {
+      "name": "workspace hides virtual key secret",
+      "pass": true
+    },
+    {
+      "name": "disable accepted",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "disabled plugin has no active UI",
+      "pass": true,
+      "status": 404
+    },
+    {
+      "name": "disabled navigation removed",
+      "pass": true
+    },
+    {
+      "name": "reactivation accepted",
+      "pass": true,
+      "status": 200,
+      "error": null
+    },
+    {
+      "name": "reactivated UI restored",
+      "pass": true
+    },
+    {
+      "name": "workspace and plugin survive restart",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "single navigation entry after restart",
+      "pass": true
+    },
+    {
+      "name": "native provider API still available",
+      "pass": true
+    },
+    {
+      "name": "plugin removal accepted",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "removed UI inaccessible",
+      "pass": true
+    },
+    {
+      "name": "removed navigation absent",
+      "pass": true
+    },
+    {
+      "name": "failed install rejected",
+      "pass": true,
+      "status": 500
+    },
+    {
+      "name": "failed install has no UI",
+      "pass": true
+    },
+    {
+      "name": "failed install has no navigation",
+      "pass": true
+    },
+    {
+      "name": "plugin without UI extension loads",
+      "pass": true,
+      "status": 201
+    },
+    {
+      "name": "legacy hook executes without provider",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "legacy plugin has no UI contribution",
+      "pass": true
+    },
+    {
+      "name": "legacy plugin removed",
+      "pass": true
+    },
+    {
+      "name": "reinstall after removal accepted",
+      "pass": true,
+      "status": 201
+    },
+    {
+      "name": "reinstall retains workspace",
+      "pass": true
+    },
+    {
+      "name": "provider never received inference",
+      "pass": true
+    }
+  ],
+  "network_interfaces": [
+    "lo"
+  ],
+  "artifacts": {
+    "gateway": "e249b1a068d49003331301006ddcc31e1bd2ab8016d26c5d88425752363bceed",
+    "plugin": "f300e73ff9939daa7c3ef4c1795484dcb3f756e7e5e4a139c14d9916c6a02e61",
+    "legacy_plugin": "8fcc27478450983e62f728702e377aa61b026a7e7fda587ce1123235f417ab9a"
+  },
+  "passed": true,
+  "gateway_stopped": true
+}

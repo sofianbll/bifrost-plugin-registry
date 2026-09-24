@@ -1,0 +1,209 @@
+{
+  "date_utc": "2026-09-24T13:23:42.806723+00:00",
+  "scope": "paired dynamic Linux ARM64 URL install; no providers or inference",
+  "gateway_sha256": "eab3e220096e2d32cdb6efd1a1a8f081606da3a22dbf23004f7d677525563a97",
+  "plugin_sha256": "f96515e159a986fb745502f77e73dea1591bae6590c6b01c69284ce22ff151ce",
+  "runtime_image": "golang:1.27.1-alpine",
+  "fixture_image": "python:3.13-alpine",
+  "loopback_allowlist": [
+    "127.0.0.1"
+  ],
+  "checks": {
+    "auth_enforced": true,
+    "empty_before": true,
+    "invalid_rejected": true,
+    "incompatible_rejected": true,
+    "no_failed_rows": true,
+    "install_201": true,
+    "active": true,
+    "loaded": true,
+    "restart_active": true,
+    "restart_loaded": true,
+    "url_unchanged": true,
+    "downloaded_twice": true
+  },
+  "install": {
+    "phase": "install",
+    "before": {
+      "list_http": 200,
+      "loaded_http": 200,
+      "saved": [],
+      "loaded": [
+        "compat",
+        "governance",
+        "logging",
+        "model-catalog-resolver",
+        "prompts",
+        "routing",
+        "telemetry"
+      ]
+    },
+    "after": {
+      "list_http": 200,
+      "loaded_http": 200,
+      "saved": [
+        {
+          "name": "delivery-registry",
+          "enabled": true,
+          "status": "active",
+          "path": "http://127.0.0.1:18089/sha256-f96515e159a986fb745502f77e73dea1591bae6590c6b01c69284ce22ff151ce.so"
+        }
+      ],
+      "loaded": [
+        "bifrost-registry",
+        "compat",
+        "governance",
+        "logging",
+        "model-catalog-resolver",
+        "prompts",
+        "routing",
+        "telemetry"
+      ]
+    },
+    "unauthenticated": {
+      "http": 401,
+      "body": {
+        "is_bifrost_error": false,
+        "status_code": 401,
+        "error": {
+          "message": "Unauthorized"
+        },
+        "extra_fields": {
+          "routing_info": {}
+        }
+      }
+    },
+    "invalid_download": {
+      "http": 500,
+      "body": {
+        "is_bifrost_error": false,
+        "status_code": 500,
+        "error": {
+          "message": "Plugin created in database but failed to load: failed to load custom plugin: failed to download plugin: HTTP 404"
+        },
+        "extra_fields": {
+          "routing_info": {}
+        }
+      }
+    },
+    "incompatible": {
+      "http": 500,
+      "body": {
+        "is_bifrost_error": false,
+        "status_code": 500,
+        "error": {
+          "message": "Plugin created in database but failed to load: failed to load custom plugin: plugin.Open(\"/tmp/bifrost-plugin-4263878097.so\"): Error loading shared library /tmp/bifrost-plugin-4263878097.so: Exec format error"
+        },
+        "extra_fields": {
+          "routing_info": {}
+        }
+      }
+    },
+    "install": {
+      "http": 201,
+      "body": {
+        "message": "Plugin created successfully",
+        "plugin": {
+          "name": "delivery-registry",
+          "actualName": "delivery-registry",
+          "enabled": true,
+          "config": {
+            "registry_path": "/app/data/registry.json"
+          },
+          "isCustom": true,
+          "path": "http://127.0.0.1:18089/sha256-f96515e159a986fb745502f77e73dea1591bae6590c6b01c69284ce22ff151ce.so",
+          "placement": "pre_builtin",
+          "order": 0,
+          "status": {
+            "name": "delivery-registry",
+            "status": "active",
+            "logs": [
+              "plugin delivery-registry reloaded successfully"
+            ],
+            "types": [
+              "llm",
+              "mcp",
+              "http"
+            ]
+          }
+        }
+      }
+    },
+    "asset_requests": [
+      {
+        "path": "/incompatible.so",
+        "bytes": 26
+      },
+      {
+        "path": "/sha256-f96515e159a986fb745502f77e73dea1591bae6590c6b01c69284ce22ff151ce.so",
+        "bytes": 19931256
+      }
+    ]
+  },
+  "restart": {
+    "phase": "restart",
+    "before": {
+      "list_http": 200,
+      "loaded_http": 200,
+      "saved": [
+        {
+          "name": "delivery-registry",
+          "enabled": true,
+          "status": "active",
+          "path": "http://127.0.0.1:18089/sha256-f96515e159a986fb745502f77e73dea1591bae6590c6b01c69284ce22ff151ce.so"
+        }
+      ],
+      "loaded": [
+        "bifrost-registry",
+        "compat",
+        "governance",
+        "logging",
+        "model-catalog-resolver",
+        "prompts",
+        "routing",
+        "telemetry"
+      ]
+    },
+    "after": {
+      "list_http": 200,
+      "loaded_http": 200,
+      "saved": [
+        {
+          "name": "delivery-registry",
+          "enabled": true,
+          "status": "active",
+          "path": "http://127.0.0.1:18089/sha256-f96515e159a986fb745502f77e73dea1591bae6590c6b01c69284ce22ff151ce.so"
+        }
+      ],
+      "loaded": [
+        "bifrost-registry",
+        "compat",
+        "governance",
+        "logging",
+        "model-catalog-resolver",
+        "prompts",
+        "routing",
+        "telemetry"
+      ]
+    },
+    "asset_requests": [
+      {
+        "path": "/incompatible.so",
+        "bytes": 26
+      },
+      {
+        "path": "/sha256-f96515e159a986fb745502f77e73dea1591bae6590c6b01c69284ce22ff151ce.so",
+        "bytes": 19931256
+      },
+      {
+        "path": "/sha256-f96515e159a986fb745502f77e73dea1591bae6590c6b01c69284ce22ff151ce.so",
+        "bytes": 19931256
+      }
+    ]
+  },
+  "passed": true,
+  "cleanup": {
+    "gateway": true,
+    "fixture": true
+  }
+}

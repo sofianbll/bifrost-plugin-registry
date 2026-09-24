@@ -1,0 +1,36 @@
+
+added 110 packages, and audited 111 packages in 3s
+
+15 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities
+
+> bifrost-registry-prototype@0.0.0 build
+> tsc --noEmit && vite build
+
+vite v8.0.16 building client environment for production...
+[2Ktransforming...✓ 1765 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                         0.46 kB │ gzip:   0.30 kB
+dist/assets/Geist-Variable-CYc--oWN.woff2              69.68 kB
+dist/assets/GeistMono-Variable-BeWYQAsI.woff2          71.13 kB
+dist/assets/Geist-Italic-Variable-CLbs5ZTV.woff2       73.07 kB
+dist/assets/GeistMono-Italic-Variable-BeQ5skqo.woff2   78.82 kB
+dist/assets/index-CT0BllVq.css                         95.18 kB │ gzip:  16.42 kB
+dist/assets/index-BGYJis-m.js                         537.91 kB │ gzip: 167.30 kB
+
+✓ built in 378ms
+[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+ok  	github.com/maximhq/bifrost/transports/registry-plugin	(cached)
+Building native Bifrost and registry plugin from the same module…
+ABI smoke passed. Real Bifrost request and governance tests are still required.
+
+Built artifacts: /tmp/native-ui-candidate-v3
+ABI smoke passed. No deployment or live inference test was performed.
+Run the gateway and .so together on a matching OS/architecture/libc.

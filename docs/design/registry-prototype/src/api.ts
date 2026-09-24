@@ -7,7 +7,7 @@ export type Workspace = {
   connection: { connected: true; version: string };
 };
 
-const endpoint = (path: string) => `${import.meta.env?.BASE_URL ?? "/bifrost-registry/"}api/${path}`;
+const endpoint = (path: string) => `${import.meta.env?.BASE_URL ?? "./"}api/${path}`;
 
 export class ApiError extends Error {
   constructor(message: string, readonly status: number, readonly phase?: string, readonly revision?: string, readonly publication?: Publication) { super(message); }

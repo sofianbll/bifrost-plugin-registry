@@ -1,0 +1,122 @@
+{
+  "scope": "local candidate only; synthetic provider; no inference",
+  "started_at_utc": "2026-09-24T13:55:56.814948+00:00",
+  "official_release_verified": false,
+  "checks": [
+    {
+      "name": "plugin URL install with empty plugin config",
+      "pass": true,
+      "status": 201
+    },
+    {
+      "name": "native contribution listing",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "embedded UI served",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "embedded UI references built assets",
+      "pass": true
+    },
+    {
+      "name": "embedded static asset",
+      "pass": true,
+      "path": "/plugins/bifrost-registry/assets/index-BGYJis-m.js",
+      "status": 200
+    },
+    {
+      "name": "embedded static asset",
+      "pass": true,
+      "path": "/plugins/bifrost-registry/assets/index-CT0BllVq.css",
+      "status": 200
+    },
+    {
+      "name": "native auth protects plugin surface",
+      "pass": true,
+      "path": "/plugins/bifrost-registry/",
+      "status": 401
+    },
+    {
+      "name": "native auth protects plugin surface",
+      "pass": true,
+      "path": "/plugins/bifrost-registry/api/workspace",
+      "status": 401
+    },
+    {
+      "name": "native auth protects plugin surface",
+      "pass": true,
+      "path": "/api/plugin-ui",
+      "status": 401
+    },
+    {
+      "name": "invalid session rejected",
+      "pass": true,
+      "status": 401
+    },
+    {
+      "name": "cross-origin write rejected",
+      "pass": true,
+      "status": 403
+    },
+    {
+      "name": "asset traversal refused",
+      "pass": true,
+      "status": 400
+    },
+    {
+      "name": "native API bridge workspace",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "synthetic provider discovery",
+      "pass": true
+    },
+    {
+      "name": "workspace write via native route",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "workspace write read back",
+      "pass": true
+    },
+    {
+      "name": "disable accepted",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "disabled plugin has no active UI",
+      "pass": true,
+      "status": 404
+    },
+    {
+      "name": "disabled navigation removed",
+      "pass": true
+    },
+    {
+      "name": "reactivation accepted",
+      "pass": false,
+      "status": 500,
+      "error": {
+        "message": "Plugin updated in database but failed to load: failed to load custom plugin: plugin.Open(\"/tmp/bifrost-plugin-1402259776\"): plugin already loaded"
+      }
+    }
+  ],
+  "network_interfaces": [
+    "lo"
+  ],
+  "artifacts": {
+    "gateway": "63f01875da277bdfe105b32d9be3f14c521de0e8bb84990dbbe37851d19c1f38",
+    "plugin": "f300e73ff9939daa7c3ef4c1795484dcb3f756e7e5e4a139c14d9916c6a02e61",
+    "legacy_plugin": "8fcc27478450983e62f728702e377aa61b026a7e7fda587ce1123235f417ab9a"
+  },
+  "passed": false,
+  "error": "AssertionError: reactivation accepted",
+  "gateway_stopped": true
+}

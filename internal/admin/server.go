@@ -44,6 +44,8 @@ func New(store *registry.Store, token string, hosts []string) (*Server, error) {
 	return &Server{Store: store, tokenHash: sha256.Sum256([]byte(token)), allowedHosts: allowed}, nil
 }
 
+func NewEmbedded(store *registry.Store) *Server { return &Server{Store: store} }
+
 // UseUIDirectory serves the built React UI while keeping the embedded admin as fallback.
 func (s *Server) UseUIDirectory(dir string) error {
 	root, err := filepath.EvalSymlinks(dir)
@@ -60,7 +62,13 @@ func (s *Server) UseUIDirectory(dir string) error {
 func (s *Server) HTTPServer(addr string) *http.Server {
 	return &http.Server{Addr: addr, Handler: s, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 20 * time.Second, WriteTimeout: 30 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 16 << 10}
 }
-func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) { s.serve(w, r, false) }
+
+// ServeEmbeddedHTTP is called only behind Bifrost's native admin authentication.
+// The standalone listener continues to require its own bearer token.
+func (s *Server) ServeEmbeddedHTTP(w http.ResponseWriter, r *http.Request) { s.serve(w, r, true) }
+
+func (s *Server) serve(w http.ResponseWriter, r *http.Request, embedded bool) {
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("Referrer-Policy", "no-referrer")
 	w.Header().Set("Cache-Control", "no-store")
@@ -69,7 +77,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if h, _, err := net.SplitHostPort(host); err == nil {
 		host = h
 	}
-	if !s.allowedHosts[strings.ToLower(host)] {
+	if !embedded && !s.allowedHosts[strings.ToLower(host)] {
 		reply(w, 403, map[string]string{"error": "host not allowed"})
 		return
 	}
@@ -83,6 +91,10 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if !strings.HasPrefix(r.URL.Path, "/api/") {
 		if r.Method != http.MethodGet && r.Method != http.MethodHead {
 			reply(w, 405, map[string]string{"error": "method not allowed"})
+			return
+		}
+		if embedded {
+			http.NotFound(w, r)
 			return
 		}
 		if s.uiDir != "" {
@@ -111,17 +123,19 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	// Explicit Bearer token, no ambient cookies, no CORS, no query-string credentials.
-	auths := r.Header.Values("Authorization")
-	if len(auths) != 1 || !strings.HasPrefix(auths[0], "Bearer ") {
-		w.Header().Set("WWW-Authenticate", "Bearer")
-		reply(w, 401, map[string]string{"error": "admin authentication required"})
-		return
-	}
-	got := sha256.Sum256([]byte(strings.TrimPrefix(auths[0], "Bearer ")))
-	if subtle.ConstantTimeCompare(got[:], s.tokenHash[:]) != 1 {
-		reply(w, 401, map[string]string{"error": "admin authentication required"})
-		return
+	if !embedded {
+		// Explicit Bearer token, no ambient cookies, no CORS, no query-string credentials.
+		auths := r.Header.Values("Authorization")
+		if len(auths) != 1 || !strings.HasPrefix(auths[0], "Bearer ") {
+			w.Header().Set("WWW-Authenticate", "Bearer")
+			reply(w, 401, map[string]string{"error": "admin authentication required"})
+			return
+		}
+		got := sha256.Sum256([]byte(strings.TrimPrefix(auths[0], "Bearer ")))
+		if subtle.ConstantTimeCompare(got[:], s.tokenHash[:]) != 1 {
+			reply(w, 401, map[string]string{"error": "admin authentication required"})
+			return
+		}
 	}
 	switch r.URL.Path {
 	case "/api/workspace", "/api/keys":
@@ -204,6 +218,17 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 	}
 }
+func EmbeddedAssets() (fs.FS, error) {
+	assets, err := fs.Sub(files, "web/react")
+	if err != nil {
+		return nil, err
+	}
+	if _, err = fs.ReadFile(assets, "index.html"); err != nil {
+		return nil, err
+	}
+	return assets, nil
+}
+
 func (s *Server) serveUI(w http.ResponseWriter, r *http.Request) {
 	path := strings.TrimPrefix(r.URL.Path, "/")
 	if path == "" || path == "model-registry" {

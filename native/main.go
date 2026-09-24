@@ -5,12 +5,15 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -19,6 +22,8 @@ import (
 	"bifrost-registry/internal/admin"
 	"bifrost-registry/internal/registry"
 	"github.com/maximhq/bifrost/core/schemas"
+	"github.com/valyala/fasthttp"
+	"github.com/valyala/fasthttp/fasthttpadaptor"
 )
 
 type configuration struct {
@@ -31,7 +36,7 @@ type configuration struct {
 	UIDir             string   `json:"ui_dir,omitempty"`
 }
 type instance struct {
-	store  *registry.Store
+	store  atomic.Pointer[registry.Store]
 	server *http.Server
 }
 
@@ -62,15 +67,19 @@ func Init(config any) error {
 	if e = registry.StrictJSON(data, &cfg, true); e != nil {
 		return e
 	}
-	if cfg.RegistryPath == "" {
-		return errors.New("registry_path is required")
+	inst := &instance{}
+	if cfg.RegistryPath != "" {
+		store, err := registry.OpenStore(cfg.RegistryPath)
+		if err != nil {
+			return err
+		}
+		inst.store.Store(store)
 	}
-	store, e := registry.OpenStore(cfg.RegistryPath)
-	if e != nil {
-		return e
-	}
-	inst := &instance{store: store}
 	if cfg.AdminListen != "" {
+		store := inst.store.Load()
+		if store == nil {
+			return errors.New("registry_path is required for standalone admin listener")
+		}
 		env := cfg.AdminTokenEnv
 		if env == "" {
 			env = "REGISTRY_ADMIN_TOKEN"
@@ -110,6 +119,108 @@ func Cleanup() error {
 	defer cancel()
 	return old.server.Shutdown(ctx)
 }
+
+type nativeRequestKey struct{}
+
+type nativeTransport struct {
+	call func(*fasthttp.RequestCtx, *fasthttp.Request, *fasthttp.Response)
+}
+
+func (t nativeTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+	parent, ok := r.Context().Value(nativeRequestKey{}).(*fasthttp.RequestCtx)
+	if !ok {
+		return nil, errors.New("native request context is missing")
+	}
+	var child fasthttp.Request
+	child.Header.SetMethod(r.Method)
+	child.Header.SetHost(string(parent.Host()))
+	child.SetRequestURI(r.URL.RequestURI())
+	for key, values := range r.Header {
+		for _, value := range values {
+			child.Header.Add(key, value)
+		}
+	}
+	if r.Body != nil {
+		body, err := io.ReadAll(io.LimitReader(r.Body, (8<<20)+1))
+		if err != nil || len(body) > 8<<20 {
+			return nil, errors.New("native request body is too large")
+		}
+		child.SetBody(body)
+	}
+	var result fasthttp.Response
+	t.call(parent, &child, &result)
+	headers := http.Header{}
+	result.Header.VisitAll(func(key, value []byte) { headers.Add(string(key), string(value)) })
+	body := append([]byte(nil), result.Body()...)
+	return &http.Response{StatusCode: result.StatusCode(), Header: headers, Body: io.NopCloser(bytes.NewReader(body)), ContentLength: int64(len(body)), Request: r}, nil
+}
+
+func defaultStore(dir string) (*registry.Store, error) {
+	if dir == "" {
+		return nil, errors.New("Bifrost app directory is unavailable")
+	}
+	path := filepath.Join(dir, "registry", "registry.json")
+	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
+		return nil, err
+	}
+	seed, err := registry.Compile(registry.Config{SchemaVersion: 1, DefaultNaming: "provider/model", Models: []registry.Model{}, Groups: []registry.Group{}, Policies: []registry.Policy{}})
+	if err != nil {
+		return nil, err
+	}
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
+	if err == nil {
+		_, err = f.Write(append(seed.JSON(), '\n'))
+		closeErr := f.Close()
+		if err == nil {
+			err = closeErr
+		}
+		if err != nil {
+			_ = os.Remove(path)
+			return nil, err
+		}
+	} else if !os.IsExist(err) {
+		return nil, err
+	}
+	return registry.OpenStore(path)
+}
+
+func GetAdminUI(host schemas.PluginAdminUIHost) (schemas.PluginAdminUI, error) {
+	lifecycle.Lock()
+	defer lifecycle.Unlock()
+	inst := current.Load()
+	if inst == nil {
+		return schemas.PluginAdminUI{}, errors.New("registry is not initialized")
+	}
+	assets, err := admin.EmbeddedAssets()
+	if err != nil {
+		return schemas.PluginAdminUI{}, err
+	}
+	if host.CallNative == nil {
+		return schemas.PluginAdminUI{}, errors.New("native Bifrost API is unavailable")
+	}
+	store := inst.store.Load()
+	if store == nil {
+		store, err = defaultStore(host.DataDir)
+		if err != nil {
+			return schemas.PluginAdminUI{}, err
+		}
+		inst.store.Store(store)
+	}
+	panel := admin.NewEmbedded(store)
+	panel.ConnectNative(nativeTransport{call: host.CallNative})
+	api := func(ctx *fasthttp.RequestCtx) {
+		fasthttpadaptor.NewFastHTTPHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			index := strings.Index(r.URL.Path, "/api/")
+			if index < 0 {
+				http.NotFound(w, r)
+				return
+			}
+			r.URL.Path = r.URL.Path[index:]
+			panel.ServeEmbeddedHTTP(w, r.WithContext(context.WithValue(r.Context(), nativeRequestKey{}, ctx)))
+		}))(ctx)
+	}
+	return schemas.PluginAdminUI{Title: "Model Registry", Assets: assets, API: api}, nil
+}
 func failureResponse(f *registry.Failure) *schemas.HTTPResponse {
 	return &schemas.HTTPResponse{StatusCode: f.Status, Headers: map[string]string{"Content-Type": "application/json", "Cache-Control": "no-store"}, Body: f.JSON()}
 }
@@ -143,7 +254,11 @@ func HTTPTransportPreHook(ctx *schemas.BifrostContext, req *schemas.HTTPRequest)
 		return failureResponse(unavailable()), nil
 	}
 	input := &registry.Request{Method: req.Method, Path: req.Path, Headers: req.Headers, Body: req.Body}
-	sess, f := inst.store.Load().Prepare(input)
+	store := inst.store.Load()
+	if store == nil {
+		return failureResponse(unavailable()), nil
+	}
+	sess, f := store.Load().Prepare(input)
 	if f != nil {
 		return failureResponse(f), nil
 	}

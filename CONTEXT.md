@@ -4,6 +4,22 @@ Catalogue de modèles et sélections réutilisables pour construire la liste de 
 
 ## Language
 
+**Catalogue central** :
+Référence commune des fiches modèles, de leurs accès et des métadonnées retenues après rapprochement des sources. Les vues, l'API et les exports consultent ce même catalogue ; les droits et secrets des clés restent gérés par Bifrost.
+_Avoid_ : catalogue publié, liste des modèles autorisés
+
+**Modèle de référence** :
+Identité d'un modèle et de sa variante, indépendante du service qui le propose. Sa présence dans le catalogue ne signifie pas qu'un accès est configuré ou autorisé.
+
+**Accès modèle** :
+Entrée permettant d'appeler un modèle par un fournisseur d'accès avec son identifiant exact. Ses limites, prix et capacités peuvent différer de ceux d'un autre accès au même modèle.
+
+**Correspondance de modèle** :
+Association explicite entre un accès et un modèle de référence. Une ressemblance de nom peut proposer une correspondance ; elle ne suffit pas à établir l'identité.
+
+**Correction de métadonnée** :
+Valeur choisie par l'administrateur pour un champ de la fiche ou d'un accès, conservée lors des synchronisations jusqu'au retour demandé à la valeur automatique. Elle ne modifie pas les droits natifs et ne constitue pas une preuve de capacité.
+
 **Créateur** :
 Organisation qui conçoit le modèle, par exemple Anthropic pour Claude. Elle peut aussi proposer un accès fournisseur à ce modèle.
 _Avoid_ : fournisseur, famille

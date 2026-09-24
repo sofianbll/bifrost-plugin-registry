@@ -118,6 +118,25 @@ func TestStaticAssets(t *testing.T) {
 		t.Fatal("static write accepted")
 	}
 }
+func TestEmbeddedAdminUsesHostAuthenticationBoundary(t *testing.T) {
+	s := setup(t)
+	request := func(method, origin string) *httptest.ResponseRecorder {
+		r := httptest.NewRequest(method, "https://bifrost.example/bifrost-registry/api/config", nil)
+		r.URL.Path = "/api/config" // The Bifrost host strips the plugin prefix.
+		if origin != "" {
+			r.Header.Set("Origin", origin)
+		}
+		w := httptest.NewRecorder()
+		s.ServeEmbeddedHTTP(w, r)
+		return w
+	}
+	if w := request("GET", ""); w.Code != 200 || w.Header().Get("ETag") == "" {
+		t.Fatalf("native-authenticated read: %d", w.Code)
+	}
+	if w := request("PUT", "https://evil.example"); w.Code != 403 {
+		t.Fatalf("cross-origin write: %d", w.Code)
+	}
+}
 func TestSaveRevisionAndValidation(t *testing.T) {
 	s := setup(t)
 	initial := s.Store.Load().Revision()

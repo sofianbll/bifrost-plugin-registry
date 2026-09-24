@@ -3,7 +3,7 @@ import react from "@vitejs/plugin-react";
 import tailwind from "@tailwindcss/vite";
 
 export default defineConfig({
-  base: "/bifrost-registry/",
+  base: "./",
   plugins: [react(), tailwind()],
   resolve: { alias: { "@": new URL("./src", import.meta.url).pathname } },
 });
