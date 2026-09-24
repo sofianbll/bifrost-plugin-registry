@@ -1,5 +1,7 @@
 # Livraison V1 RC — v0.2.0-rc.1
 
+[English](INSTALL.md) · Français
+
 La [prérelease `v0.2.0-rc.1`](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.2.0-rc.1) distribue les fichiers ci-dessous. Vérifier leurs empreintes avec le fichier `SHA256SUMS` joint à la release. L'image contient Bifrost **compilé avec liaison dynamique** pour charger les plugins Go. Le `.so` Registry est un artefact séparé et n'est pas dans l'image. La production et l'ancien pilote sur `8082` n'ont pas été modifiés.
 
 ## Télécharger la paire correspondant à l'hôte

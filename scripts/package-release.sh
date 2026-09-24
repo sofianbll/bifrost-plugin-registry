@@ -14,6 +14,7 @@ OUT=$3
 command -v docker >/dev/null || fail "Docker is required"
 command -v python3 >/dev/null || fail "Python 3 is required"
 command -v sha256sum >/dev/null || fail "sha256sum is required"
+[[ -d $ROOT/ui/node_modules ]] || fail "UI dependencies are required for license notices; run npm --prefix ui ci"
 
 PAIR=${PAIR_DIR:-"$ROOT/dist/standalone-v1"}
 REPORT=${PROOF_DIR:-"$ROOT/reports/plugin-standalone"}
@@ -68,6 +69,98 @@ cp "$SOURCE/transports/docker-entrypoint.sh" "$OUT/image-context/docker-entrypoi
 cp "$LICENSE_SOURCE/LICENSE" "$OUT/image-context/licenses/BIFROST-LICENSE"
 cp "$LICENSE_SOURCE/THIRD_PARTY_NOTICES.md" "$OUT/image-context/licenses/BIFROST-THIRD_PARTY_NOTICES.md"
 cp "$ROOT/LICENSE" "$OUT/plugin/LICENSE"
+python3 - "$ROOT" "$OUT/plugin" <<'PY'
+import json
+import pathlib
+import re
+import shutil
+import sys
+from urllib.parse import quote
+
+root, plugin = map(pathlib.Path, sys.argv[1:])
+ui = root / "ui"
+lock = json.loads((ui / "package-lock.json").read_text())
+packages = lock["packages"]
+licenses = plugin / "licenses"
+licenses.mkdir()
+shutil.copyfile(ui / "LICENSE", licenses / "BIFROST-UI-APACHE-2.0.txt")
+shutil.copyfile(ui / "PROVENANCE.md", licenses / "BIFROST-UI-PROVENANCE.md")
+shutil.copyfile(ui / "public/static/fonts/OFL.txt", licenses / "GEIST-OFL-1.1.txt")
+
+# The dependency closure covers code bundled by Vite; Tailwind also contributes generated CSS.
+pending = [f"node_modules/{name}" for name in packages[""]["dependencies"]]
+pending.append("node_modules/tailwindcss")
+selected = set()
+while pending:
+    key = pending.pop()
+    if key in selected:
+        continue
+    if key not in packages:
+        raise SystemExit(f"missing lockfile package: {key}")
+    selected.add(key)
+    entry = packages[key]
+    for name in entry.get("dependencies", {}):
+        parent = key
+        while True:
+            nested = f"{parent}/node_modules/{name}"
+            if nested in packages:
+                pending.append(nested)
+                break
+            if "/node_modules/" not in parent:
+                pending.append(f"node_modules/{name}")
+                break
+            parent = parent.rsplit("/node_modules/", 1)[0]
+    for name in entry.get("optionalDependencies", {}):
+        candidate = f"node_modules/{name}"
+        if (ui / candidate).is_dir():
+            pending.append(candidate)
+
+mit = (root / "LICENSE").read_text()
+(licenses / "MIT-TERMS.txt").write_text("MIT License\n\n" + mit.split("\n\n", 2)[2])
+lines = [
+    "# Bifrost Registry plugin third-party notices",
+    "",
+    "The plugin embeds the compiled Registry UI. Its own code is under the [Registry MIT license](LICENSE).",
+    "Vendored Bifrost UI code and assets are under the [Apache 2.0 license](licenses/BIFROST-UI-APACHE-2.0.txt); [source provenance](licenses/BIFROST-UI-PROVENANCE.md) identifies the copied files.",
+    "The bundled Geist fonts are under the [SIL Open Font License 1.1](licenses/GEIST-OFL-1.1.txt).",
+    "",
+    "## npm packages",
+    "",
+    "This inventory conservatively includes the runtime dependency closure from `ui/package-lock.json` and Tailwind CSS, which generates bundled styles. It is supplementary attribution, not a claim that every listed package's code appears in the final bundle.",
+    "",
+    "| Package | Version | Declared license | Distributed license text |",
+    "| --- | --- | --- | --- |",
+]
+for key in sorted(selected):
+    name = key.rsplit("node_modules/", 1)[1]
+    if not re.fullmatch(r"(?:@[-\w.]+/)?[-\w.]+", name):
+        raise SystemExit(f"unsafe package name: {name}")
+    source = ui / key
+    if not source.is_dir() or source.is_symlink():
+        raise SystemExit(f"missing installed package: {key}; run npm --prefix ui ci")
+    info = json.loads((source / "package.json").read_text())
+    version = packages[key]["version"]
+    if info["version"] != version:
+        raise SystemExit(f"installed version differs from lockfile: {key}")
+    license_id = packages[key].get("license") or info.get("license")
+    if not isinstance(license_id, str):
+        raise SystemExit(f"missing declared license: {key}")
+    destination = licenses / "npm" / name / version
+    destination.mkdir(parents=True)
+    files = sorted(p for p in source.iterdir() if p.is_file() and re.match(r"^(?:licen[sc]e|copying|notice)(?:[.-]|$)|^copyright", p.name, re.I))
+    links = []
+    for file in files:
+        if file.is_symlink():
+            raise SystemExit(f"linked license input: {file}")
+        shutil.copyfile(file, destination / file.name)
+        links.append(f"[{file.name}]({quote((destination / file.name).relative_to(plugin).as_posix())})")
+    if not links:
+        if license_id != "MIT":
+            raise SystemExit(f"no full license text for {key}: {license_id}")
+        links = ["[MIT terms](licenses/MIT-TERMS.txt) (package tarball has no license file)"]
+    lines.append(f"| `{name}` | `{version}` | `{license_id}` | {', '.join(links)} |")
+(plugin / "THIRD_PARTY_NOTICES.md").write_text("\n".join(lines) + "\n")
+PY
 cp "$PAIR/bifrost-registry.so" "$OUT/plugin/bifrost-registry-${RELEASE_ID}-linux-${ARCH}.so"
 cp "$PAIR/SHA256SUMS" "$PAIR/build-environment.txt" "$PAIR/gateway-build-info.txt" \
   "$PAIR/plugin-build-info.txt" "$REPORT/source-verification.json" "$OUT/provenance/"

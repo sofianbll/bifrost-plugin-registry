@@ -31,7 +31,7 @@ mkdir "$STAGE"
 trap 'rm -rf -- "$STAGE"' EXIT
 MODULE=$(awk '$1 == "module" {print $2; exit}' "$BF/transports/go.mod")
 [[ -n "$MODULE" ]] || fail "Cannot read transports module path"
-REG_UI="$ROOT/docs/design/registry-prototype"
+REG_UI="$ROOT/ui"
 npm --prefix "$REG_UI" ci
 npm --prefix "$REG_UI" run build
 [[ -f "$REG_UI/dist/index.html" ]] || fail "Registry UI build did not produce dist/index.html"

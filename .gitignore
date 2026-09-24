@@ -3,6 +3,9 @@ __pycache__/
 *.pyc
 *.so
 .env
+.env.*
+!.env.example
+.DS_Store
 registry.local.json
 /configs/registry.prod.json
 
@@ -12,5 +15,5 @@ registry.local.json
 /reports/native-build-v1/native-probe
 /reports/**/browser-auth.json
 
-/docs/design/registry-prototype/node_modules/
-/docs/design/registry-prototype/dist/
+/ui/node_modules/
+/ui/dist/

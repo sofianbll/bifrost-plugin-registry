@@ -50,4 +50,4 @@ docker run --pull never --rm --network none --cap-drop ALL --security-opt no-new
 
 ## Portée
 
-Cette preuve qualifie la paire locale ARM64 indiquée, avec une URL HTTP de fixture. Elle ne livre pas une URL publique, une image Docker publiée, une autre architecture ni une mise à jour entre deux versions du plugin. L'image officielle précompilée 2.2.2 ARM64 testée précédemment reste incompatible avec le chargement dynamique. Le pilote utilisateur `127.0.0.1:8082` et la production n'ont pas été remplacés. La [paire intégrée archivée](../../dist/archive/native-ui-2.2.2-2026-09-24/README.md) est conservée.
+Cette preuve qualifie la paire locale ARM64 indiquée, avec une URL HTTP de fixture. Elle ne livre pas une URL publique, une image Docker publiée, une autre architecture ni une mise à jour entre deux versions du plugin. L'image officielle précompilée 2.2.2 ARM64 testée précédemment reste incompatible avec le chargement dynamique. Le pilote utilisateur `127.0.0.1:8082` et la production n'ont pas été remplacés. La paire intégrée archivée est conservée localement dans `dist/archive/native-ui-2.2.2-2026-09-24/`, ignoré par Git.

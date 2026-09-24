@@ -1,6 +1,6 @@
 # Compilation et installation native
 
-La [procédure de livraison V1 RC](RELEASE.md) décrit les deux paires Linux/musl ARM64 et AMD64, l'image Docker Bifrost compilée avec liaison dynamique, le `.so` séparé, l'installation, la mise à jour et le retour arrière. La prérelease publique `v0.2.0-rc.1` et la QA visuelle finale sont en préparation ; les preuves finales du candidat sont dans [`reports/v1-final/`](../reports/v1-final/). Les compilations et pilotes ci-dessous expliquent la provenance et conservent les essais antérieurs.
+La [procédure de livraison V1 RC](RELEASE.md) décrit les deux paires Linux/musl ARM64 et AMD64, l'image Docker Bifrost compilée avec liaison dynamique, le `.so` séparé, l'installation, la mise à jour et le retour arrière. La prérelease publique `v0.2.0-rc.1` est disponible et la revue navigateur finale est consignée ; les preuves finales du candidat sont dans [`reports/v1-final/`](../reports/v1-final/). Les compilations et pilotes ci-dessous expliquent la provenance et conservent les essais antérieurs.
 
 ## Mode standard prioritaire : plugin avec son propre serveur web
 
@@ -28,7 +28,7 @@ La cible actuelle **2.2.2** dispose d’une [compilation et d'un essai HTTP isol
 
 Le candidat avec contrat UI natif `dist/native-plugin-ui-candidate/` a été recompilé sur le même commit avec Go 1.27.1, Linux ARM64/musl. `scripts/build-with-bifrost.sh` a terminé les tests natifs et la sonde ABI. Cette compilation seule ne prouve pas encore le parcours UI complet ni une image officielle.
 
-Les [rapports natifs](../reports/native-build-v1/) consignent une compilation contre Bifrost `transports/v2.2.1`, commit `6493abd3d1422c9bfde95f242fd57b38e73ce881`, avec Go 1.27.1 sur Linux amd64. La sonde ABI rapporte un chargement réussi ; les essais de pipeline ultérieurs sont décrits séparément dans [BUILD_STATUS.json](../BUILD_STATUS.json). L'[état audité](../STATUS.md) précise les limites de ces preuves.
+Les [rapports natifs](../reports/native-build-v1/) consignent une compilation contre Bifrost `transports/v2.2.1`, commit `6493abd3d1422c9bfde95f242fd57b38e73ce881`, avec Go 1.27.1 sur Linux amd64. La sonde ABI rapporte un chargement réussi ; les essais de pipeline ultérieurs sont décrits séparément dans [BUILD_STATUS.json](../reports/native-build-v1/BUILD_STATUS.json). L'[état audité](../STATUS.md) précise les limites de ces preuves.
 
 Les binaires restent des artefacts locaux, exclus de Git. Le CLI compilé par `make build` est le contrôle local ; la commande de build commune ci-dessous produit le gateway, le plugin et leur sonde pour l'environnement cible.
 
@@ -116,12 +116,12 @@ Les instructions suivantes décrivent le pilote local antérieur, avec route fix
 
 ```bash
 python3 scripts/patch-bifrost-ui.py /chemin/absolu/bifrost-build
-cd docs/design/registry-prototype
+cd ui
 npm ci
 npm run build
 ```
 
-Exécuter `npm` depuis ce dépôt, puis utiliser le `dist/` produit par Vite comme répertoire `ui_dir` du plugin. En conteneur, monter par exemple `/chemin/absolu/registry-prototype/dist:/registry-ui:ro`. Cette compilation utilise le chemin public `/bifrost-registry/`. Compiler aussi le frontend Bifrost modifié depuis son checkout, puis recompiler gateway et plugin **ensemble** avec `scripts/build-with-bifrost.sh` comme ci-dessus ; `dist/native-v2.2.2-live-v5/` est la paire finale du pilote local, pas un artefact livré par Git.
+Exécuter `npm` depuis ce dépôt, puis utiliser le `dist/` produit par Vite comme répertoire `ui_dir` du plugin. En conteneur, monter par exemple `/chemin/absolu/ui/dist:/registry-ui:ro`. Cette compilation utilise le chemin public `/bifrost-registry/`. Compiler aussi le frontend Bifrost modifié depuis son checkout, puis recompiler gateway et plugin **ensemble** avec `scripts/build-with-bifrost.sh` comme ci-dessus ; `dist/native-v2.2.2-live-v5/` est la paire finale du pilote local, pas un artefact livré par Git.
 
 Dans la configuration du plugin de ce pilote, ajouter `ui_dir` au fragment standard avec un chemin propre à l'environnement :
 

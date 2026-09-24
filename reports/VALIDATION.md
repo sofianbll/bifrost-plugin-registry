@@ -1,6 +1,6 @@
 # Rapport historique — tests du 20 septembre 2026
 
-> Ce rapport conserve l'état de la première campagne. Pour les builds et essais ultérieurs, consulter [l'état audité](../STATUS.md) et [BUILD_STATUS.json](../BUILD_STATUS.json). Les [empreintes de la livraison initiale](initial-source-SHA256SUMS) utilisent des chemins relatifs à la racine du dépôt et ne décrivent pas le checkout actuel.
+> Ce rapport conserve l'état de la première campagne. Pour les builds et essais ultérieurs, consulter [l'état audité](../STATUS.md) et [BUILD_STATUS.json](native-build-v1/BUILD_STATUS.json). Les [empreintes de la livraison initiale](initial-source-SHA256SUMS) utilisent des chemins relatifs à la racine du dépôt et ne décrivent pas le checkout actuel.
 
 Exécution locale de cette livraison, 20 septembre 2026. Données synthétiques uniquement. Aucun compte utilisateur, provider réel ou gateway Bifrost distant n’a été appelé.
 
