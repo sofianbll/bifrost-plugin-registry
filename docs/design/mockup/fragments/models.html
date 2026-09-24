@@ -1,0 +1,413 @@
+<!-- ==================== MODELS — fragment for <section id="screen-models"> ==================== -->
+<!-- Inner content only. Relies on shell classes (.tbl .badge .btn .sheet) and Tailwind config from index.html. -->
+
+<p class="mb-4 text-xs text-muted-foreground">Catalog of 129 models across 5 providers. Click a row to edit.</p>
+
+<!-- Toolbar -->
+<div class="mb-4 flex flex-wrap items-center gap-3">
+  <div class="relative w-64 max-w-full">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+    <input id="brm-search" type="text" placeholder="Search models…" class="h-8 w-full rounded-sm border border-input bg-transparent pr-3 pl-8 text-sm outline-none focus-visible:border-primary" />
+  </div>
+  <select id="brm-filter-provider" class="h-8 rounded-sm border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-primary">
+    <option value="all">All providers</option>
+    <option value="anthropic">anthropic</option>
+    <option value="openai">openai</option>
+    <option value="google">google</option>
+    <option value="deepseek">deepseek</option>
+    <option value="kimi">kimi</option>
+  </select>
+  <select id="brm-filter-group" class="h-8 rounded-sm border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-primary">
+    <option value="all">All groups</option>
+    <option value="cheap-fast">cheap-fast</option>
+    <option value="frontier">frontier</option>
+    <option value="vision">vision</option>
+  </select>
+  <button class="btn btn-primary btn-sm ml-auto">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+    Add Model
+  </button>
+</div>
+
+<!-- Secondary toolbar : view-as-key + id format segment -->
+<div class="mb-3 flex flex-wrap items-center gap-3">
+  <label for="brm-view-key" class="text-xs font-medium text-muted-foreground">View as key:</label>
+  <select id="brm-view-key" class="h-8 rounded-sm border border-input bg-transparent px-2 font-mono text-xs outline-none focus-visible:border-primary">
+    <option value="hermes">hermes</option>
+    <option value="kimi-work">kimi-work</option>
+    <option value="cpa">cpa</option>
+  </select>
+  <div class="mx-1 h-4 w-px bg-border"></div>
+  <span class="text-xs font-medium text-muted-foreground">ID format:</span>
+  <div id="brm-format-seg" class="inline-flex h-9 items-center rounded-lg bg-muted p-[3px]">
+    <button type="button" data-format="provider/model" class="rounded-sm border border-transparent px-2 py-1 font-mono text-xs font-medium transition-all">provider/model</button>
+    <button type="button" data-format="model" class="rounded-sm border border-transparent px-2 py-1 font-mono text-xs font-medium transition-all">model</button>
+    <button type="button" data-format="both" class="rounded-sm border border-transparent px-2 py-1 font-mono text-xs font-medium transition-all">both</button>
+  </div>
+</div>
+
+<!-- Table -->
+<div class="overflow-hidden rounded-sm border border-border">
+  <div class="tbl-container max-h-[420px] overflow-y-auto">
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>Model</th>
+          <th>Group(s)</th>
+          <th>Passthrough</th>
+          <th>Routing</th>
+          <th>Cost</th>
+        </tr>
+      </thead>
+      <tbody id="brm-tbody">
+        <tr class="cursor-pointer" data-model="anthropic/claude-opus-4.6" data-provider="anthropic" data-groups="frontier">
+          <td><code class="font-mono text-xs">anthropic/claude-opus-4.6</code></td>
+          <td><span class="badge badge-neutral font-mono text-[10px]">frontier</span></td>
+          <td><span class="badge badge-neutral">off</span></td>
+          <td class="text-muted-foreground">-</td>
+          <td class="text-muted-foreground">$15/M</td>
+        </tr>
+        <tr class="cursor-pointer" data-model="anthropic/claude-sonnet-4.6" data-provider="anthropic" data-groups="frontier">
+          <td><code class="font-mono text-xs">anthropic/claude-sonnet-4.6</code></td>
+          <td><span class="badge badge-neutral font-mono text-[10px]">frontier</span></td>
+          <td><span class="badge badge-neutral">off</span></td>
+          <td class="text-muted-foreground">-</td>
+          <td class="text-muted-foreground">$3/M</td>
+        </tr>
+        <tr class="cursor-pointer" data-model="anthropic/claude-haiku-4.5" data-provider="anthropic" data-groups="cheap-fast">
+          <td><code class="font-mono text-xs">anthropic/claude-haiku-4.5</code></td>
+          <td><span class="badge badge-neutral font-mono text-[10px]">cheap-fast</span></td>
+          <td><span class="badge badge-neutral">off</span></td>
+          <td class="text-muted-foreground">-</td>
+          <td class="text-muted-foreground">$1/M</td>
+        </tr>
+        <tr class="cursor-pointer" data-model="openai/gpt-5.2" data-provider="openai" data-groups="frontier">
+          <td><code class="font-mono text-xs">openai/gpt-5.2</code></td>
+          <td><span class="badge badge-neutral font-mono text-[10px]">frontier</span></td>
+          <td><span class="badge badge-success">on</span></td>
+          <td><span class="text-muted-foreground">us, eu</span> <span class="badge badge-neutral font-mono text-[10px]">native</span></td>
+          <td class="text-muted-foreground">$8/M</td>
+        </tr>
+        <tr class="cursor-pointer" data-model="openai/gpt-5.2-mini" data-provider="openai" data-groups="cheap-fast">
+          <td><code class="font-mono text-xs">openai/gpt-5.2-mini</code></td>
+          <td><span class="badge badge-neutral font-mono text-[10px]">cheap-fast</span></td>
+          <td><span class="badge badge-neutral">off</span></td>
+          <td class="text-muted-foreground">-</td>
+          <td class="text-muted-foreground">$2/M</td>
+        </tr>
+        <tr class="cursor-pointer" data-model="openai/gpt-5.2-nano" data-provider="openai" data-groups="cheap-fast">
+          <td><code class="font-mono text-xs">openai/gpt-5.2-nano</code></td>
+          <td><span class="badge badge-neutral font-mono text-[10px]">cheap-fast</span></td>
+          <td><span class="badge badge-neutral">off</span></td>
+          <td class="text-muted-foreground">-</td>
+          <td class="text-muted-foreground">$0.40/M</td>
+        </tr>
+        <tr class="cursor-pointer" data-model="google/gemini-3-pro" data-provider="google" data-groups="frontier vision">
+          <td><code class="font-mono text-xs">google/gemini-3-pro</code></td>
+          <td><span class="badge badge-neutral font-mono text-[10px]">frontier</span> <span class="badge badge-neutral font-mono text-[10px]">vision</span></td>
+          <td><span class="badge badge-neutral">off</span></td>
+          <td class="text-muted-foreground">-</td>
+          <td class="text-muted-foreground">$10/M</td>
+        </tr>
+        <tr class="cursor-pointer" data-model="google/gemini-3-flash" data-provider="google" data-groups="cheap-fast vision">
+          <td><code class="font-mono text-xs">google/gemini-3-flash</code></td>
+          <td><span class="badge badge-neutral font-mono text-[10px]">cheap-fast</span> <span class="badge badge-neutral font-mono text-[10px]">vision</span></td>
+          <td><span class="badge badge-neutral">off</span></td>
+          <td class="text-muted-foreground">-</td>
+          <td class="text-muted-foreground">$0.50/M</td>
+        </tr>
+        <tr class="cursor-pointer" data-model="deepseek/deepseek-v4" data-provider="deepseek" data-groups="cheap-fast">
+          <td><code class="font-mono text-xs">deepseek/deepseek-v4</code></td>
+          <td><span class="badge badge-neutral font-mono text-[10px]">cheap-fast</span></td>
+          <td><span class="badge badge-neutral">off</span></td>
+          <td class="text-muted-foreground">-</td>
+          <td class="text-muted-foreground">$1.20/M</td>
+        </tr>
+        <tr class="cursor-pointer" data-model="deepseek/deepseek-r2" data-provider="deepseek" data-groups="frontier">
+          <td><code class="font-mono text-xs">deepseek/deepseek-r2</code></td>
+          <td><span class="badge badge-neutral font-mono text-[10px]">frontier</span></td>
+          <td><span class="badge badge-success">on</span></td>
+          <td><span class="text-muted-foreground">apac</span> <span class="badge badge-neutral font-mono text-[10px]">native</span></td>
+          <td class="text-muted-foreground">$5/M</td>
+        </tr>
+        <tr class="cursor-pointer" data-model="kimi/k2-thinking" data-provider="kimi" data-groups="frontier">
+          <td><code class="font-mono text-xs">kimi/k2-thinking</code></td>
+          <td><span class="badge badge-neutral font-mono text-[10px]">frontier</span></td>
+          <td><span class="badge badge-neutral">off</span></td>
+          <td class="text-muted-foreground">-</td>
+          <td class="text-muted-foreground">$6/M</td>
+        </tr>
+        <tr class="cursor-pointer" data-model="kimi/k2-vision" data-provider="kimi" data-groups="vision">
+          <td><code class="font-mono text-xs">kimi/k2-vision</code></td>
+          <td><span class="badge badge-neutral font-mono text-[10px]">vision</span></td>
+          <td><span class="badge badge-neutral">off</span></td>
+          <td class="text-muted-foreground">-</td>
+          <td class="text-muted-foreground">$4/M</td>
+        </tr>
+        <tr id="brm-empty-row" hidden>
+          <td colspan="5" class="h-24 text-center"><span class="text-sm text-muted-foreground">No matching models found.</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+<div class="mt-2 flex items-center justify-between text-xs text-muted-foreground">
+  <span>1-12 of 129 entries</span>
+  <span>Page 1 of 11</span>
+</div>
+
+<!-- /v1/models preview panel -->
+<div class="mt-4 overflow-hidden rounded-md border border-border bg-card shadow-sm">
+  <div class="flex flex-wrap items-center gap-2 border-b border-border px-4 py-2.5">
+    <span class="badge badge-success font-mono text-[10px] tracking-widest">GET</span>
+    <code class="font-mono text-xs">/v1/models — as <span id="brm-preview-key" class="text-foreground">hermes</span></code>
+    <code id="brm-preview-format" class="badge badge-neutral font-mono text-[10px]">id_format: provider/model</code>
+    <span class="ml-auto text-[10px] text-faint">projected response</span>
+  </div>
+  <div id="brm-preview-body" class="custom-scrollbar max-h-56 overflow-y-auto p-4 font-mono text-xs leading-5"></div>
+  <p class="border-t border-border px-4 py-2 text-xs text-muted-foreground">
+    Showing only models allowed for this key · <span id="brm-preview-count">24</span> of 129
+  </p>
+</div>
+
+<!-- Edit sheet (model) — own overlay/sheet ids, reuses shell .sheet classes -->
+<div id="brm-overlay" class="sheet-overlay hidden"></div>
+<aside id="brm-sheet" class="sheet" role="dialog" aria-modal="true" aria-label="Edit model">
+  <div class="flex items-start justify-between gap-4 border-b border-border p-6 pb-4">
+    <div class="min-w-0">
+      <h2 class="truncate font-mono text-lg leading-none font-semibold"><span id="brm-sheet-model">anthropic/claude-opus-4.6</span></h2>
+      <p class="mt-2 text-sm text-muted-foreground">Registry entry. Changes apply to the served snapshot after save.</p>
+    </div>
+    <button id="brm-sheet-close" class="btn btn-ghost !size-7 !px-0" aria-label="Close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+    </button>
+  </div>
+  <div class="custom-scrollbar flex-1 space-y-6 overflow-y-auto p-6">
+    <!-- Passthrough -->
+    <div class="flex items-start justify-between gap-4">
+      <div>
+        <label class="text-sm font-medium" for="brm-f-passthrough">Passthrough</label>
+        <p class="mt-1 text-xs text-muted-foreground">Resolve via Bifrost CEL routing. Registry never rewrites <code class="font-mono">model</code>.</p>
+      </div>
+      <button id="brm-f-passthrough" type="button" role="switch" aria-checked="false"
+        class="relative h-5 w-9 shrink-0 cursor-pointer rounded-sm border-2 border-transparent bg-input transition-colors">
+        <span class="brm-thumb absolute top-0 left-0 size-4 rounded-sm bg-white shadow-lg transition-transform dark:bg-zinc-900"></span>
+      </button>
+    </div>
+    <!-- Routing targets -->
+    <div>
+      <label class="text-sm font-medium" for="brm-f-routing">Routing targets</label>
+      <p class="mt-1 text-xs text-muted-foreground">Native targets pre-authorized for post-routing checks.</p>
+      <input id="brm-f-routing" type="text" placeholder="us, eu" disabled
+        class="mt-2 h-9 w-full rounded-sm border border-input bg-transparent px-3 py-1 font-mono text-sm outline-none focus-visible:border-primary disabled:opacity-50" />
+    </div>
+    <!-- Prefer -->
+    <div>
+      <label class="text-sm font-medium" for="brm-f-prefer">Prefer</label>
+      <p class="mt-1 text-xs text-muted-foreground">How ambiguous short names are disambiguated.</p>
+      <select id="brm-f-prefer" class="mt-2 h-9 w-full rounded-sm border border-input bg-transparent px-3 py-2 text-sm outline-none focus-visible:border-primary">
+        <option value="native">native</option>
+        <option value="roundrobin">roundrobin</option>
+        <option value="weighted">weighted</option>
+      </select>
+    </div>
+    <!-- Group membership -->
+    <div>
+      <p class="text-sm font-medium">Group membership</p>
+      <p class="mt-1 text-xs text-muted-foreground">Union with any dynamic filter on the group.</p>
+      <div class="mt-3 space-y-2.5">
+        <label class="flex items-center gap-2 text-sm">
+          <input type="checkbox" value="cheap-fast" class="brm-f-group size-4 rounded-[4px] border border-input accent-primary" />
+          <code class="font-mono text-xs">cheap-fast</code>
+        </label>
+        <label class="flex items-center gap-2 text-sm">
+          <input type="checkbox" value="frontier" class="brm-f-group size-4 rounded-[4px] border border-input accent-primary" />
+          <code class="font-mono text-xs">frontier</code>
+        </label>
+        <label class="flex items-center gap-2 text-sm">
+          <input type="checkbox" value="vision" class="brm-f-group size-4 rounded-[4px] border border-input accent-primary" />
+          <code class="font-mono text-xs">vision</code>
+        </label>
+      </div>
+    </div>
+  </div>
+  <div class="flex justify-end gap-2 border-t border-border p-4">
+    <button id="brm-sheet-cancel" class="btn btn-outline">Cancel</button>
+    <button id="brm-sheet-save" class="btn btn-primary">Save</button>
+  </div>
+</aside>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ================= Mock policy data : /v1/models per virtual key =================
+     id_format mirrors the policy field documented in capabilities-inventory:
+     "provider/model" | "model" | "both". Models listed are what THE key may see. */
+  const brModelsKeys = {
+    hermes: {
+      format: 'provider/model',
+      models: [
+        'anthropic/claude-opus-4.6', 'anthropic/claude-sonnet-4.6', 'anthropic/claude-haiku-4.5',
+        'openai/gpt-5.2', 'openai/gpt-5.2-mini', 'openai/gpt-5.2-nano',
+        'google/gemini-3-pro', 'google/gemini-3-flash',
+        'deepseek/deepseek-v4', 'deepseek/deepseek-r2',
+        'kimi/k2-thinking', 'kimi/k2-vision',
+        'anthropic/claude-opus-4.5', 'anthropic/claude-sonnet-4.5',
+        'openai/gpt-5.1', 'openai/gpt-4o',
+        'google/gemini-2.5-pro', 'google/gemini-2.5-flash',
+        'deepseek/deepseek-chat-v3', 'mistral/mistral-large-3',
+        'meta/llama-4-70b', 'xai/grok-4',
+        'amazon/nova-premier', 'cohere/command-r-plus'
+      ]
+    },
+    'kimi-work': {
+      format: 'model',
+      models: [
+        'anthropic/claude-opus-4.6', 'anthropic/claude-sonnet-4.6', 'anthropic/claude-haiku-4.5',
+        'openai/gpt-5.2', 'kimi/k2-thinking', 'kimi/k2-vision',
+        'google/gemini-3-flash', 'deepseek/deepseek-v4'
+      ]
+    },
+    cpa: {
+      format: 'both',
+      models: [
+        'anthropic/claude-opus-4.6', 'anthropic/claude-sonnet-4.6', 'anthropic/claude-haiku-4.5',
+        'openai/gpt-5.2', 'openai/gpt-5.2-mini', 'openai/gpt-5.2-nano',
+        'google/gemini-3-pro', 'google/gemini-3-flash',
+        'deepseek/deepseek-v4', 'deepseek/deepseek-r2',
+        'kimi/k2-thinking', 'kimi/k2-vision'
+      ]
+    }
+  };
+  const brModelsRegistryTotal = 129;
+
+  /* Sheet seed data per model (mock) */
+  const brModelsSeed = {
+    'openai/gpt-5.2':        { passthrough: true,  routing: 'us, eu', prefer: 'native' },
+    'deepseek/deepseek-r2':  { passthrough: true,  routing: 'apac',   prefer: 'native' }
+  };
+
+  let brModelsKey = 'hermes';
+  let brModelsFormatOverride = null; /* null = follow the key policy id_format */
+
+  const brModelsEl = (id) => document.getElementById(id);
+
+  /* ================= Preview : GET /v1/models as <key> ================= */
+  function brModelsRenderPreview() {
+    const key = brModelsKeys[brModelsKey];
+    const fmt = brModelsFormatOverride || key.format;
+    const body = brModelsEl('brm-preview-body');
+    const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+
+    brModelsEl('brm-preview-key').textContent = brModelsKey;
+    brModelsEl('brm-preview-format').textContent = 'id_format: ' + fmt;
+    brModelsEl('brm-preview-count').textContent = key.models.length;
+
+    if (fmt === 'both') {
+      /* both forms, side by side */
+      body.innerHTML =
+        '<div class="grid grid-cols-2 gap-x-6">' +
+        key.models.map((id) => {
+          const short = id.split('/').slice(1).join('/');
+          return '<span class="text-muted-foreground">' + esc(id) + '</span><span>' + esc(short) + '</span>';
+        }).join('') +
+        '</div>';
+    } else {
+      const lines = key.models.map((id) => (fmt === 'model' ? id.split('/').slice(1).join('/') : id));
+      body.innerHTML = lines.map((l) => '<div>' + esc(l) + '</div>').join('');
+    }
+
+    /* segment control state */
+    brModelsEl('brm-format-seg').querySelectorAll('button[data-format]').forEach((b) => {
+      const active = b.dataset.format === fmt;
+      b.classList.toggle('bg-white', active);
+      b.classList.toggle('shadow-sm', active);
+      b.classList.toggle('dark:bg-input/30', active);
+      b.classList.toggle('dark:border-input', active);
+      b.classList.toggle('text-neutral-900', active);
+      b.classList.toggle('text-muted-foreground', !active);
+    });
+  }
+
+  brModelsEl('brm-view-key').addEventListener('change', (e) => {
+    brModelsKey = e.target.value;
+    brModelsFormatOverride = null; /* back to the key's own policy */
+    brModelsRenderPreview();
+  });
+
+  brModelsEl('brm-format-seg').querySelectorAll('button[data-format]').forEach((b) => {
+    b.addEventListener('click', () => {
+      brModelsFormatOverride = b.dataset.format;
+      brModelsRenderPreview();
+    });
+  });
+
+  /* ================= Table filters ================= */
+  function brModelsFilter() {
+    const q = brModelsEl('brm-search').value.trim().toLowerCase();
+    const pv = brModelsEl('brm-filter-provider').value;
+    const gr = brModelsEl('brm-filter-group').value;
+    let visible = 0;
+    brModelsEl('brm-tbody').querySelectorAll('tr[data-model]').forEach((tr) => {
+      const ok = (!q || tr.dataset.model.toLowerCase().includes(q)) &&
+                 (pv === 'all' || tr.dataset.provider === pv) &&
+                 (gr === 'all' || tr.dataset.groups.split(' ').includes(gr));
+      tr.hidden = !ok;
+      if (ok) visible++;
+    });
+    brModelsEl('brm-empty-row').hidden = visible > 0;
+  }
+  ['brm-search', 'brm-filter-provider', 'brm-filter-group'].forEach((id) => {
+    brModelsEl(id).addEventListener('input', brModelsFilter);
+    brModelsEl(id).addEventListener('change', brModelsFilter);
+  });
+
+  /* ================= Edit sheet ================= */
+  const brModelsSheet = brModelsEl('brm-sheet');
+  const brModelsOverlay = brModelsEl('brm-overlay');
+
+  function brModelsSetSwitch(on) {
+    const sw = brModelsEl('brm-f-passthrough');
+    sw.setAttribute('aria-checked', String(on));
+    sw.style.backgroundColor = on ? 'var(--primary)' : '';
+    sw.querySelector('.brm-thumb').style.transform = on ? 'translateX(16px)' : '';
+    brModelsEl('brm-f-routing').disabled = !on;
+  }
+
+  function brModelsOpenSheet(modelId) {
+    const seed = brModelsSeed[modelId] || { passthrough: false, routing: '', prefer: 'native' };
+    brModelsEl('brm-sheet-model').textContent = modelId;
+    brModelsSetSwitch(seed.passthrough);
+    brModelsEl('brm-f-routing').value = seed.routing;
+    brModelsEl('brm-f-prefer').value = seed.prefer;
+    const groups = (document.querySelector('tr[data-model="' + modelId + '"]').dataset.groups || '').split(' ').filter(Boolean);
+    document.querySelectorAll('.brm-f-group').forEach((cb) => { cb.checked = groups.includes(cb.value); });
+    brModelsSheet.classList.add('open');
+    brModelsOverlay.classList.remove('hidden');
+  }
+
+  function brModelsCloseSheet() {
+    brModelsSheet.classList.remove('open');
+    brModelsOverlay.classList.add('hidden');
+  }
+
+  brModelsEl('brm-tbody').addEventListener('click', (e) => {
+    const tr = e.target.closest('tr[data-model]');
+    if (tr) brModelsOpenSheet(tr.dataset.model);
+  });
+  brModelsEl('brm-f-passthrough').addEventListener('click', () => {
+    brModelsSetSwitch(brModelsEl('brm-f-passthrough').getAttribute('aria-checked') !== 'true');
+  });
+  brModelsEl('brm-sheet-close').addEventListener('click', brModelsCloseSheet);
+  brModelsEl('brm-sheet-cancel').addEventListener('click', brModelsCloseSheet);
+  brModelsEl('brm-sheet-save').addEventListener('click', brModelsCloseSheet);
+  brModelsOverlay.addEventListener('click', brModelsCloseSheet);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && brModelsSheet.classList.contains('open')) brModelsCloseSheet();
+  });
+
+  /* init */
+  brModelsRenderPreview();
+})();
+</script>

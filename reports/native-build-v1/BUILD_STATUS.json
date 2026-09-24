@@ -23,7 +23,7 @@
     "target_bifrost": "transports/v2.2.1",
     "checkout_commit": "6493abd3d1422c9bfde95f242fd57b38e73ce881",
     "go_version": "go1.27.1 linux/amd64",
-    "artifacts": "/home/sofian/build/out/native-v1 (sur Pulsar)",
+    "artifacts": "<server-home>/build/out/native-v1 (sur Pulsar)",
     "artifacts_sha256": "reports/native-build-v1/SHA256SUMS",
     "abi_probe": {
       "plugin_open": true,
@@ -44,8 +44,8 @@
     },
     "production_evidence": {
       "smokes": "HTTP 200: gemini-3.8-flash (direct), hindsight-retain (alias), CPA gemini-3.5-flash-lite x2 formes (v0.1.2)",
-      "registry": "charge a l'activation: /home/sofian/Data/appdata/bifrost/registry/registry.json (configs/registry.prod.json: 119 modeles, 30 groupes, 38 policies, allowlists 804/804)",
-      "admin_panel": "127.0.0.1:8099 loopback sur Pulsar, token dans /home/sofian/Data/secrets/bifrost.env, acces via ssh -L 8099:127.0.0.1:8099 pulsar",
+      "registry": "charge a l'activation: <server-home>/Data/appdata/bifrost/registry/registry.json (configs/registry.prod.json: 119 modeles, 30 groupes, 38 policies, allowlists 804/804)",
+      "admin_panel": "127.0.0.1:8099 loopback sur Pulsar, token dans <server-home>/Data/secrets/bifrost.env, acces via ssh -L 8099:127.0.0.1:8099 pulsar",
       "backups_pre_activation": [
         "config.db.bak-20260923",
         "config.json.bak-20260923",

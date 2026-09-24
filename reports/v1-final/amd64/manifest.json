@@ -1,0 +1,10 @@
+{
+  "artifacts": {
+    "bifrost-http": "6d968057736bcc06bfccd239917ab886c9dbcb00343f349d1678f638c15750c7",
+    "bifrost-registry.so": "a9837aa58be7aea2548f126d738b54e88a29f363b9db44ca2e80bd873b554228"
+  },
+  "bifrost_commit": "fdeef8e3f31a3b18a61666ba49247d07bae3600a",
+  "bifrost_version": "2.2.2",
+  "go": "go1.27.1",
+  "platform": "linux/amd64 musl"
+}

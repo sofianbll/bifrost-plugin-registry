@@ -1,5 +1,7 @@
 # Origines et niveau de vérification
 
+> Recherche initiale conservée comme historique. Pour l'état actuel, lire [STATUS.md](../STATUS.md) ; pour le prochain parcours produit, lire la [recherche d'intégration du 23 septembre](design/bifrost-integration-research.md).
+
 Date de préparation : 20 septembre 2026. Sources primaires seulement pour le contrat Bifrost. La documentation web consultée peut évoluer ; elle ne remplace pas les sources du checkout compilé.
 
 | Décision / contrat | Origine | Niveau de vérification |

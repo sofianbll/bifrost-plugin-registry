@@ -103,6 +103,8 @@ func TestConfigRejects(t *testing.T) {
 		"no_evidence": func(c *Config) { c.Models[0].Evidence = " " }, "group_unknown_model": func(c *Config) { c.Groups[0].ModelIDs = []string{"missing"} }, "empty_group": func(c *Config) { c.Groups[0].ModelIDs = nil },
 		"empty_filter": func(c *Config) { c.Groups[0].Filter = &Filter{} }, "duplicate_group": func(c *Config) { c.Groups = append(c.Groups, c.Groups[0]) }, "unknown_exclusion": func(c *Config) { c.Groups[0].Exclude = []string{"unknown"} },
 		"unknown_group": func(c *Config) { c.Policies[0].Groups = []string{"unknown"} }, "duplicate_selector": func(c *Config) { c.Policies[0].Groups = []string{"all", "all"} },
+		"unknown_added": func(c *Config) { c.Policies[0].Added = []string{"missing"} }, "duplicate_added": func(c *Config) { c.Policies[0].Added = []string{"a", "a"} },
+		"unknown_excluded": func(c *Config) { c.Policies[0].Excluded = []string{"missing"} }, "duplicate_excluded": func(c *Config) { c.Policies[0].Excluded = []string{"a", "a"} },
 		"invalid_fingerprint": func(c *Config) { c.Policies[0].TokenSHA256 = "sk-bf-rawsecret" }, "uppercase_fingerprint": func(c *Config) { c.Policies[0].TokenSHA256 = strings.ToUpper(c.Policies[0].TokenSHA256) },
 		"duplicate_vk_id": func(c *Config) {
 			p := c.Policies[0]
@@ -184,6 +186,43 @@ func TestSelectors(t *testing.T) {
 		})
 	}
 }
+func TestPolicyLocalSelections(t *testing.T) {
+	c := fixture()
+	c.Groups[0].Description = "Shared catalogue"
+	c.Groups = append(c.Groups, Group{ID: "other", Name: "Other", ModelIDs: []string{"a", "b"}})
+	c.Policies[0].Groups = []string{"all", "other"}
+	c.Policies[0].Added = []string{"c"}
+	c.Policies[0].Excluded = []string{"a", "c"}
+	s := mustCompile(t, c)
+	if got := names(t, s); !reflect.DeepEqual(got, []string{"beta/smart"}) {
+		t.Fatalf("local exclusions must win across groups and additions: %v", got)
+	}
+	if !reflect.DeepEqual(s.Config().Policies[0].Added, []string{"c"}) || !reflect.DeepEqual(s.Config().Policies[0].Excluded, []string{"a", "c"}) {
+		t.Fatal("local selections changed during compile")
+	}
+	if s.Config().Groups[0].Description != "Shared catalogue" {
+		t.Fatal("group description lost during compile")
+	}
+	c.Policies[0].Groups = nil
+	c.Policies[0].Added = []string{"a", "b", "c"}
+	c.Policies[0].Excluded = nil
+	c.Policies[0].Sources = []string{"alpha"}
+	c.Models[2].Verified = false
+	if got := names(t, mustCompile(t, c)); !reflect.DeepEqual(got, []string{"alpha/smart"}) {
+		t.Fatalf("source and verification checks must apply to additions: %v", got)
+	}
+	c.Policies[0].Naming = "both"
+	c.Policies[0].Sources = nil
+	c.Models[2].Verified = true
+	if _, err := Compile(c); err == nil || !strings.Contains(err.Error(), "ambiguous") {
+		t.Fatalf("bare alias collision through additions accepted: %v", err)
+	}
+	c.Policies[0].Prefer = map[string]string{"smart": "b"}
+	c.Policies[0].Excluded = []string{"b"}
+	if _, err := Compile(c); err == nil || !strings.Contains(err.Error(), "preference") {
+		t.Fatalf("excluded preference accepted: %v", err)
+	}
+}
 func TestSnapshotIsolationAndDeterminism(t *testing.T) {
 	c := fixture()
 	s := mustCompile(t, c)
@@ -208,6 +247,7 @@ func TestSnapshotIsolationAndDeterminism(t *testing.T) {
 func TestCredential(t *testing.T) {
 	for name, h := range map[string]map[string]string{
 		"bearer": {"Authorization": "Bearer " + testToken}, "lower": {"authorization": "bearer " + testToken}, "header": {"X-Bf-Vk": testToken}, "matching": {"Authorization": "Bearer " + testToken, "x-bf-vk": testToken},
+		"anthropic": {"x-api-key": testToken}, "google": {"x-goog-api-key": testToken}, "azure": {"api-key": testToken},
 	} {
 		t.Run(name, func(t *testing.T) {
 			v, e := Credential(h)
@@ -217,7 +257,7 @@ func TestCredential(t *testing.T) {
 		})
 	}
 	for name, h := range map[string]map[string]string{
-		"missing": {}, "provider_key": {"Authorization": "Bearer sk-openai-provider-key"}, "basic": {"Authorization": "Basic xxx"}, "conflict": {"Authorization": "Bearer " + testToken, "x-bf-vk": testToken + "other"}, "case_duplicates": {"authorization": "Bearer " + testToken, "Authorization": "Bearer " + testToken}, "comma": {"x-bf-vk": testToken + ",abc"}, "newline": {"x-bf-vk": testToken + "\n"}, "too_short": {"x-bf-vk": "sk-bf-x"},
+		"missing": {}, "provider_key": {"Authorization": "Bearer sk-openai-provider-key"}, "basic": {"Authorization": "Basic xxx"}, "conflict": {"Authorization": "Bearer " + testToken, "x-bf-vk": testToken + "other"}, "alternate_conflict": {"Authorization": "Bearer " + testToken, "x-api-key": "sk-bf-other-valid-token"}, "case_duplicates": {"authorization": "Bearer " + testToken, "Authorization": "Bearer " + testToken}, "comma": {"x-bf-vk": testToken + ",abc"}, "newline": {"x-bf-vk": testToken + "\n"}, "too_short": {"Authorization": "Bearer sk-bf-x"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			if _, e := Credential(h); e == nil {
@@ -232,7 +272,7 @@ func TestRequestRejections(t *testing.T) {
 		change func(*Request)
 		status int
 	}{
-		{"wrong_method", func(r *Request) { r.Method = "GET" }, 405}, {"wrong_path", func(r *Request) { r.Path = "/v1/realtime" }, 400}, {"unknown_key", func(r *Request) { r.Headers["Authorization"] = "Bearer sk-bf-unknown-token" }, 403},
+		{"wrong_method", func(r *Request) { r.Method = "GET" }, 405}, {"wrong_path", func(r *Request) { r.Path = "/v1/realtime" }, 400},
 		{"missing_key", func(r *Request) { delete(r.Headers, "Authorization") }, 401}, {"hidden_model", func(r *Request) { r.Body = []byte(`{"model":"wire/a-1"}`) }, 403}, {"bare_hidden", func(r *Request) { r.Body = []byte(`{"model":"smart"}`) }, 403},
 		{"null_body", func(r *Request) { r.Body = []byte(`null`) }, 400}, {"array_body", func(r *Request) { r.Body = []byte(`[]`) }, 400}, {"missing_model", func(r *Request) { r.Body = []byte(`{}`) }, 400}, {"numeric_model", func(r *Request) { r.Body = []byte(`{"model":4}`) }, 400},
 		{"duplicate_model", func(r *Request) { r.Body = []byte(`{"model":"alpha/smart","model":"beta/smart"}`) }, 400}, {"duplicate_nested", func(r *Request) { r.Body = []byte(`{"model":"alpha/smart","extra":{"a":1,"a":2}}`) }, 400},
@@ -567,6 +607,35 @@ func TestCompileNativeCaseProvider(t *testing.T) {
 	}
 	if !bare {
 		t.Fatal("bare alias route missing")
+	}
+}
+
+func TestNativeProviderWithInternalSpace(t *testing.T) {
+	c := fixture()
+	c.Models[0].Provider = "CLI PROXY"
+	c.Policies[0].Sources = []string{"CLI PROXY"}
+	s := mustCompile(t, c)
+	if got := names(t, s); !reflect.DeepEqual(got, []string{"CLI PROXY/smart"}) {
+		t.Fatalf("native provider name changed: %v", got)
+	}
+	r := req(`{"model":"CLI PROXY/smart"}`)
+	session := mustPrepare(t, s, r)
+	if !strings.Contains(string(r.Body), `"CLI PROXY/smart"`) || session.CheckAttempt("CLI PROXY", "smart") != nil {
+		t.Fatalf("native provider route did not survive request: %s", r.Body)
+	}
+	if _, err := Parse(mustJSON(t, c)); err != nil {
+		t.Fatalf("round-trip rejected native provider name: %v", err)
+	}
+	for _, provider := range []string{" CLI PROXY", "CLI PROXY ", "CLI/PROXY", "CLI\tPROXY", "CLI\nPROXY", "CLI  /PROXY", strings.Repeat("A", 129)} {
+		c.Models[0].Provider = provider
+		if _, err := Compile(c); err == nil {
+			t.Fatalf("invalid provider %q accepted", provider)
+		}
+	}
+	c = passthroughFixture()
+	c.Models[3].RoutingTargets = []string{"CLI PROXY/smart"}
+	if _, err := Compile(c); err != nil {
+		t.Fatalf("native routing target rejected: %v", err)
 	}
 }
 

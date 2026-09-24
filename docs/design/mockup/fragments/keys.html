@@ -1,0 +1,269 @@
+<!-- ==================== VIRTUAL KEYS (M3 — filled) ==================== -->
+<!-- Fragment : contenu intérieur de <section id="screen-keys">. Pas de wrapper ici. -->
+
+<p class="mb-4 text-xs text-muted-foreground">Manage virtual keys, their groups, models, and rate limits.</p>
+
+<!-- Toolbar -->
+<div class="mb-4 flex flex-wrap items-center gap-3">
+  <div class="relative max-w-sm flex-1">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+    <input id="keys-search" type="text" placeholder="Search keys…" class="h-9 w-full rounded-sm border border-input bg-transparent pr-3 pl-9 text-sm outline-none focus-visible:border-primary" />
+  </div>
+  <select id="keys-group-filter" class="h-9 rounded-sm border border-input bg-transparent px-3 text-sm outline-none focus-visible:border-primary" aria-label="Filter by group">
+    <option value="">All groups</option>
+    <option value="cheap-fast">cheap-fast</option>
+    <option value="frontier">frontier</option>
+    <option value="vision">vision</option>
+  </select>
+  <button id="keys-new" class="btn btn-primary btn-sm ml-auto">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+    New Key
+  </button>
+</div>
+
+<!-- Table -->
+<div class="tbl-container max-h-[calc(100dvh-240px)] overflow-y-auto rounded-sm border">
+  <table class="tbl">
+    <thead>
+      <tr>
+        <th>Key</th>
+        <th>Groups</th>
+        <th>Models</th>
+        <th>Sources</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody id="keys-tbody">
+      <tr class="cursor-pointer" data-key="hermes" data-status="active">
+        <td><span class="font-medium">hermes</span></td>
+        <td>
+          <span class="badge badge-neutral">cheap-fast</span>
+          <span class="badge badge-neutral ml-1">frontier</span>
+        </td>
+        <td class="text-muted-foreground">all in groups</td>
+        <td><code class="badge badge-neutral font-mono text-[10px] tracking-wider">bifrost-web</code></td>
+        <td><span class="badge badge-success">active</span></td>
+      </tr>
+      <tr class="cursor-pointer" data-key="hindsight" data-status="active">
+        <td><span class="font-medium">hindsight</span></td>
+        <td>
+          <span class="badge badge-neutral">cheap-fast</span>
+          <span class="badge badge-neutral ml-1">vision</span>
+        </td>
+        <td class="text-muted-foreground">all in groups</td>
+        <td><code class="badge badge-neutral font-mono text-[10px] tracking-wider">bifrost-web</code></td>
+        <td><span class="badge badge-success">active</span></td>
+      </tr>
+      <tr class="cursor-pointer" data-key="cpa" data-status="active">
+        <td><span class="font-medium">cpa</span></td>
+        <td><span class="badge badge-neutral">cheap-fast</span></td>
+        <td class="text-muted-foreground">24 models</td>
+        <td><code class="badge badge-neutral font-mono text-[10px] tracking-wider">cli</code></td>
+        <td><span class="badge badge-success">active</span></td>
+      </tr>
+      <tr class="cursor-pointer" data-key="opencode-omo" data-status="active">
+        <td><span class="font-medium">opencode-omo</span></td>
+        <td><span class="badge badge-neutral">frontier</span></td>
+        <td class="text-muted-foreground">8 models</td>
+        <td><code class="badge badge-neutral font-mono text-[10px] tracking-wider">cli</code></td>
+        <td><span class="badge badge-success">active</span></td>
+      </tr>
+      <tr class="cursor-pointer" data-key="kimi-work" data-status="active">
+        <td><span class="font-medium">kimi-work</span></td>
+        <td>
+          <span class="badge badge-neutral">cheap-fast</span>
+          <span class="badge badge-neutral ml-1">vision</span>
+        </td>
+        <td class="text-muted-foreground">31 models</td>
+        <td><code class="badge badge-neutral font-mono text-[10px] tracking-wider">mcp</code></td>
+        <td><span class="badge badge-success">active</span></td>
+      </tr>
+      <tr class="cursor-pointer" data-key="playground" data-status="active">
+        <td><span class="font-medium">playground</span></td>
+        <td>
+          <span class="badge badge-neutral">cheap-fast</span>
+          <span class="badge badge-neutral ml-1">frontier</span>
+          <span class="badge badge-neutral ml-1">vision</span>
+        </td>
+        <td class="text-muted-foreground">all in groups</td>
+        <td><code class="badge badge-neutral font-mono text-[10px] tracking-wider">bifrost-web</code></td>
+        <td><span class="badge badge-success">active</span></td>
+      </tr>
+      <tr class="cursor-pointer" data-key="ci-runner" data-status="active">
+        <td><span class="font-medium">ci-runner</span></td>
+        <td><span class="badge badge-neutral">cheap-fast</span></td>
+        <td class="text-muted-foreground">24 models</td>
+        <td><code class="badge badge-neutral font-mono text-[10px] tracking-wider">cli</code></td>
+        <td><span class="badge badge-success">active</span></td>
+      </tr>
+      <tr class="cursor-pointer" data-key="docs-bot" data-status="active">
+        <td><span class="font-medium">docs-bot</span></td>
+        <td><span class="badge badge-neutral">cheap-fast</span></td>
+        <td class="text-muted-foreground">12 models</td>
+        <td><code class="badge badge-neutral font-mono text-[10px] tracking-wider">cli</code></td>
+        <td><span class="badge badge-success">active</span></td>
+      </tr>
+      <tr class="cursor-pointer" data-key="eval-harness" data-status="disabled">
+        <td><span class="font-medium">eval-harness</span></td>
+        <td>
+          <span class="badge badge-neutral">frontier</span>
+          <span class="badge badge-neutral ml-1">vision</span>
+        </td>
+        <td class="text-muted-foreground">19 models</td>
+        <td><code class="badge badge-neutral font-mono text-[10px] tracking-wider">cli</code></td>
+        <td><span class="badge badge-neutral">disabled</span></td>
+      </tr>
+      <tr class="cursor-pointer" data-key="legacy-import" data-status="disabled">
+        <td><span class="font-medium">legacy-import</span></td>
+        <td><span class="badge badge-neutral">cheap-fast</span></td>
+        <td class="text-muted-foreground">6 models</td>
+        <td><code class="badge badge-neutral font-mono text-[10px] tracking-wider">bifrost-web</code></td>
+        <td><span class="badge badge-neutral">disabled</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Empty state (uncomment when no key matches search/filter)
+  <div class="empty-state">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="h-[5.5rem] w-[5.5rem] text-muted-foreground"><path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"/><circle cx="16.5" cy="7.5" r=".5" fill="currentColor"/></svg>
+    <h2 class="text-xl font-medium text-muted-foreground">No key matches</h2>
+    <p class="max-w-[600px] text-sm text-muted-foreground">No virtual key matches the current search or group filter.</p>
+  </div>
+  -->
+</div>
+
+<!-- ==================== SHEET — edit virtual key (§3.9, hidden by default) ==================== -->
+<div id="br-keys-overlay" class="sheet-overlay hidden"></div>
+<aside id="br-keys-sheet" class="sheet" role="dialog" aria-modal="true" aria-label="Edit virtual key">
+  <!-- Header -->
+  <div class="flex items-start justify-between gap-4 border-b border-border p-6 pb-4">
+    <div class="flex items-center gap-2">
+      <h2 id="br-keys-sheet-name" class="text-lg leading-none font-semibold font-mono">hermes</h2>
+      <span id="br-keys-sheet-status" class="badge badge-success">active</span>
+    </div>
+    <button id="br-keys-close" class="btn btn-ghost !size-7 !px-0" aria-label="Close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+    </button>
+  </div>
+
+  <!-- Body -->
+  <div class="custom-scrollbar flex-1 space-y-6 overflow-y-auto p-6">
+    <!-- Access -->
+    <section>
+      <h3 class="text-sm font-medium">Access</h3>
+      <p class="mt-1 text-xs text-muted-foreground">Groups, models, and allowed sources.</p>
+
+      <p class="mt-4 mb-2 text-xs font-medium text-muted-foreground">Groups</p>
+      <div class="space-y-2">
+        <label class="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked class="size-4 rounded-[4px] border border-input accent-[var(--primary)]" />
+          <code class="font-mono text-xs">cheap-fast</code>
+          <span class="ml-auto text-xs text-muted-foreground">24 models</span>
+        </label>
+        <label class="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked class="size-4 rounded-[4px] border border-input accent-[var(--primary)]" />
+          <code class="font-mono text-xs">frontier</code>
+          <span class="ml-auto text-xs text-muted-foreground">8 models</span>
+        </label>
+        <label class="flex items-center gap-2 text-sm">
+          <input type="checkbox" class="size-4 rounded-[4px] border border-input accent-[var(--primary)]" />
+          <code class="font-mono text-xs">vision</code>
+          <span class="ml-auto text-xs text-muted-foreground">7 models</span>
+        </label>
+      </div>
+
+      <p class="mt-4 mb-2 text-xs font-medium text-muted-foreground">Sources</p>
+      <div class="space-y-2">
+        <label class="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked class="size-4 rounded-[4px] border border-input accent-[var(--primary)]" />
+          <code class="font-mono text-xs">bifrost-web</code>
+        </label>
+        <label class="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked class="size-4 rounded-[4px] border border-input accent-[var(--primary)]" />
+          <code class="font-mono text-xs">cli</code>
+        </label>
+        <label class="flex items-center gap-2 text-sm">
+          <input type="checkbox" class="size-4 rounded-[4px] border border-input accent-[var(--primary)]" />
+          <code class="font-mono text-xs">mcp</code>
+        </label>
+      </div>
+    </section>
+
+    <!-- Limits -->
+    <section class="border-t border-border pt-6">
+      <h3 class="text-sm font-medium">Limits</h3>
+      <p class="mt-1 text-xs text-muted-foreground">Rate and cost limits. <span class="badge badge-neutral ml-1">coming</span></p>
+      <div class="mt-4 grid grid-cols-3 gap-3">
+        <div>
+          <label class="text-xs font-medium text-muted-foreground" for="br-keys-rpm">RPM</label>
+          <input id="br-keys-rpm" type="number" disabled placeholder="—" class="mt-1 h-9 w-full rounded-sm border border-input bg-transparent px-3 text-sm opacity-50" />
+        </div>
+        <div>
+          <label class="text-xs font-medium text-muted-foreground" for="br-keys-tpm">TPM</label>
+          <input id="br-keys-tpm" type="number" disabled placeholder="—" class="mt-1 h-9 w-full rounded-sm border border-input bg-transparent px-3 text-sm opacity-50" />
+        </div>
+        <div>
+          <label class="text-xs font-medium text-muted-foreground" for="br-keys-cost">Cost / day</label>
+          <input id="br-keys-cost" type="number" disabled placeholder="—" class="mt-1 h-9 w-full rounded-sm border border-input bg-transparent px-3 text-sm opacity-50" />
+        </div>
+      </div>
+    </section>
+
+    <!-- Preview -->
+    <section class="border-t border-border pt-6">
+      <h3 class="text-sm font-medium">Preview</h3>
+      <p class="mt-1 text-xs text-muted-foreground">Resolved configuration for this key.</p>
+      <pre class="custom-scrollbar mt-4 overflow-x-auto rounded-sm border border-border bg-muted/50 p-4 font-mono text-xs leading-relaxed">{
+  "virtual_key_id": "hermes",
+  "token_sha256": "9f2c7a1d…0e2f58",
+  "naming": "model",
+  "groups": ["cheap-fast", "frontier"],
+  "sources": ["bifrost-web", "cli"],
+  "limits": null,
+  "enabled": true
+}</pre>
+    </section>
+  </div>
+
+  <!-- Footer -->
+  <div class="flex justify-end gap-2 border-t border-border p-4">
+    <button id="br-keys-cancel" class="btn btn-ghost">Cancel</button>
+    <button id="br-keys-save" class="btn btn-primary">Save changes</button>
+  </div>
+</aside>
+
+<script>
+  /* ===== Virtual Keys sheet — open/close (namespaced, no collision with shell JS) ===== */
+  (function () {
+    const brKeysSheet = document.getElementById('br-keys-sheet');
+    const brKeysOverlay = document.getElementById('br-keys-overlay');
+    const brKeysName = document.getElementById('br-keys-sheet-name');
+    const brKeysStatus = document.getElementById('br-keys-sheet-status');
+
+    function brKeysOpen(row) {
+      brKeysName.textContent = row.dataset.key;
+      const active = row.dataset.status === 'active';
+      brKeysStatus.textContent = active ? 'active' : 'disabled';
+      brKeysStatus.className = 'badge ' + (active ? 'badge-success' : 'badge-neutral');
+      brKeysSheet.classList.add('open');
+      brKeysOverlay.classList.remove('hidden');
+    }
+
+    function brKeysClose() {
+      brKeysSheet.classList.remove('open');
+      brKeysOverlay.classList.add('hidden');
+    }
+
+    document.getElementById('keys-tbody').addEventListener('click', (e) => {
+      const row = e.target.closest('tr[data-key]');
+      if (row) brKeysOpen(row);
+    });
+    document.getElementById('br-keys-close').addEventListener('click', brKeysClose);
+    document.getElementById('br-keys-cancel').addEventListener('click', brKeysClose);
+    document.getElementById('br-keys-save').addEventListener('click', brKeysClose);
+    brKeysOverlay.addEventListener('click', brKeysClose);
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && brKeysSheet.classList.contains('open')) brKeysClose();
+    });
+  })();
+</script>

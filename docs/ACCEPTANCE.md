@@ -1,13 +1,15 @@
-# Checklist d’acceptation native — non exécutée dans cette livraison
+# Checklist d’acceptation native
 
-Les tests locaux ne valident pas ces points. Effectuer les essais sur une instance de staging avec des clés et providers de test, avant toute bascule. Les essais d’inférence peuvent consommer quota et budget.
+Modèle à reprendre pour chaque campagne, en enregistrant version, environnement et preuves. Les cases ci-dessous ne constituent pas un rapport d'exécution ; voir [l'état audité](../STATUS.md) pour les vérifications consignées.
 
-## Construction et chargement
+Les preuves locales couvrent les scénarios identifiés dans leurs rapports, pas toutes les conditions de votre déploiement. Effectuer les essais sur une instance de staging avec des clés et providers de test, avant toute bascule. Les essais d’inférence peuvent consommer quota et budget.
+
+## Compilation et chargement
 
 - [ ] Le checkout correspond exactement à la version Bifrost choisie et son commit est enregistré.
 - [ ] Le gateway et le `.so` sont produits dans le même module et environnement ; la sonde ABI passe.
 - [ ] Le plugin est chargé par le vrai Bifrost, sans erreur de symbole, de version, de libc ou de configuration.
-- [ ] Le placement `pre_builtin` et l’ordre avec les autres plugins sont confirmés.
+- [ ] Le placement `post_builtin` et l’ordre avec les autres plugins sont confirmés.
 - [ ] L’administration existante de Bifrost fonctionne, y compris les sondes/listings internes nécessaires. Les restrictions SDK de cette version ne doivent pas provoquer de régression non acceptée.
 
 ## Gouvernance et catalogue
@@ -19,7 +21,7 @@ Les tests locaux ne valident pas ces points. Effectuer les essais sur une instan
 - [ ] La liste publique contient uniquement l’intersection autorisée ; aucun modèle brut ni metadata interne ne fuit.
 - [ ] Deux clés avec groupes différents obtiennent deux catalogues différents ; une sélection vide reste vide.
 - [ ] Les formats `model`, `provider/model`, `both` correspondent aux requêtes effectivement acceptées.
-- [ ] Un modèle non vérifié, désactivé, absent de l’allowlist native ou non disponible dans le listing n’est pas présenté comme accessible.
+- [ ] Un modèle sans accès natif configuré ou preuve historique valide, désactivé, absent de l’allowlist native ou non disponible dans le listing n’est pas présenté comme accessible.
 
 ## Routage et compatibilité
 

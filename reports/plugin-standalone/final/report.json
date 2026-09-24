@@ -1,0 +1,210 @@
+{
+  "scope": "local paired dynamic Bifrost candidate; synthetic provider; no inference",
+  "source_provenance": "caller must verify unmodified official 2.2.2 source",
+  "started_at_utc": "2026-09-24T15:55:39.688166+00:00",
+  "network_interfaces": [
+    "lo"
+  ],
+  "artifacts": {
+    "gateway": {
+      "path": "/artifacts/bifrost-http",
+      "sha256": "3d1af72db12d2904cf4e7d8a78814d46a99f521791f7374ca42c1bd1705d537f"
+    },
+    "plugin": {
+      "path": "/artifacts/bifrost-registry.so",
+      "sha256": "4c20d02747b0de86b44f9a0f6fa3b11c8b38234180f96e8044847e02ea97a9a2"
+    }
+  },
+  "checks": [
+    {
+      "name": "registry starts absent",
+      "pass": true
+    },
+    {
+      "name": "plugin installed from URL",
+      "pass": true,
+      "status": 201
+    },
+    {
+      "name": "URL downloaded completely",
+      "pass": true,
+      "requests": 1
+    },
+    {
+      "name": "plugin saved active and loaded",
+      "pass": true
+    },
+    {
+      "name": "registry path auto-created",
+      "pass": true
+    },
+    {
+      "name": "no native plugin UI API contribution",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "no native plugin route contribution",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "no native plugin API route contribution",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "standalone embedded HTML",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "HTML references embedded JS and CSS",
+      "pass": true
+    },
+    {
+      "name": "embedded asset /assets/index-BCdsEu97.js",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "embedded asset /assets/index-CDH_1K4d.css",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "no ui_dir mount required",
+      "pass": true
+    },
+    {
+      "name": "anonymous panel API refused",
+      "pass": true,
+      "status": 401
+    },
+    {
+      "name": "wrong panel token refused",
+      "pass": true,
+      "status": 401
+    },
+    {
+      "name": "cross-origin panel write refused",
+      "pass": true,
+      "status": 403
+    },
+    {
+      "name": "asset traversal refused",
+      "pass": true,
+      "status": 404
+    },
+    {
+      "name": "connected workspace and synthetic discovery",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "model and group saved",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "stale workspace revision rejected",
+      "pass": true,
+      "status": 409
+    },
+    {
+      "name": "model and group read back",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "native virtual key created",
+      "pass": true,
+      "status": 201
+    },
+    {
+      "name": "virtual key policy saved",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "independent /v1/models readback verified",
+      "pass": true,
+      "status": 200,
+      "exposed_ids": [
+        "openai/upstream-alpha"
+      ]
+    },
+    {
+      "name": "workspace omits virtual key secret",
+      "pass": true
+    },
+    {
+      "name": "native /v1/models matches published policy",
+      "pass": true,
+      "status": 200,
+      "exposed_ids": [
+        "openai/upstream-alpha"
+      ]
+    },
+    {
+      "name": "URL plugin survives gateway restart",
+      "pass": true
+    },
+    {
+      "name": "model group and policy survive restart",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "UI survives gateway restart",
+      "pass": true
+    },
+    {
+      "name": "disable accepted",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "disable closes standalone server",
+      "pass": true
+    },
+    {
+      "name": "known URL reload limitation reported clearly",
+      "pass": true,
+      "status": 500,
+      "error_class": "plugin already loaded"
+    },
+    {
+      "name": "failed reactivation leaves panel closed",
+      "pass": true
+    },
+    {
+      "name": "reactivation config remains enabled for restart",
+      "pass": true
+    },
+    {
+      "name": "plugin recovers after reactivation restart",
+      "pass": true
+    },
+    {
+      "name": "saved workspace recovers after reactivation restart",
+      "pass": true
+    },
+    {
+      "name": "native readback recovers after restart",
+      "pass": true
+    },
+    {
+      "name": "provider received no inference",
+      "pass": true
+    }
+  ],
+  "hot_url_reactivation_supported": false,
+  "registry_relative_path": "app/registry/registry.json",
+  "asset_downloads": 4,
+  "passed": true,
+  "gateway_stopped": true,
+  "fixture_removed": true,
+  "browser_auth_removed": true,
+  "finished_at_utc": "2026-09-24T15:56:07.948626+00:00"
+}

@@ -1,0 +1,64 @@
+{
+  "timestamp": "2026-09-23T22:28:34.671739+00:00",
+  "target": "http://127.0.0.1:8082",
+  "inference_requested": false,
+  "checks": [
+    {
+      "check": "registry snapshot",
+      "passed": true,
+      "status": 200
+    },
+    {
+      "check": "workspace read",
+      "passed": true,
+      "status": 200
+    },
+    {
+      "check": "workspace save",
+      "passed": true,
+      "status": 200,
+      "phase": null
+    },
+    {
+      "check": "stale revision rejected",
+      "passed": true,
+      "status": 409
+    },
+    {
+      "check": "isolated group name",
+      "passed": true
+    },
+    {
+      "check": "workspace save",
+      "passed": true,
+      "status": 200,
+      "phase": null
+    },
+    {
+      "check": "native key create",
+      "passed": true,
+      "status": 201
+    },
+    {
+      "check": "native key create",
+      "passed": true,
+      "status": 201
+    },
+    {
+      "check": "workspace save",
+      "passed": false,
+      "status": 502,
+      "phase": "refresh"
+    },
+    {
+      "check": "proof execution",
+      "passed": false,
+      "error_type": "AssertionError"
+    },
+    {
+      "check": "temporary keys revoked and registry restored",
+      "passed": true
+    }
+  ],
+  "passed": false
+}

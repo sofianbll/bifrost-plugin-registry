@@ -1,0 +1,3 @@
+ok  	bifrost-registry/cmd/registry	1.331s
+ok  	bifrost-registry/internal/admin	1.440s
+ok  	bifrost-registry/internal/registry	1.528s

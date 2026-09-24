@@ -3,4 +3,17 @@ __pycache__/
 *.pyc
 *.so
 .env
+.env.*
+!.env.example
+.DS_Store
 registry.local.json
+/configs/registry.prod.json
+
+# Local build outputs; retain build reports and checksums in Git.
+/registry
+/reports/native-build-v1/bifrost-http
+/reports/native-build-v1/native-probe
+/reports/**/browser-auth.json
+
+/ui/node_modules/
+/ui/dist/

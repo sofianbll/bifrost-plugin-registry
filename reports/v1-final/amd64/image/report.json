@@ -1,0 +1,110 @@
+{
+  "scope": "packaged image plus separate plugin URL; synthetic provider; no inference",
+  "started_at_utc": "2026-09-24T18:23:00.766719+00:00",
+  "image": "bifrost-dynamic:2.2.2-go1.27.1-amd64",
+  "plugin_sha256": "a9837aa58be7aea2548f126d738b54e88a29f363b9db44ca2e80bd873b554228",
+  "checks": [
+    {
+      "name": "packaged entrypoint and command",
+      "pass": true
+    },
+    {
+      "name": "packaged app directory and user",
+      "pass": true
+    },
+    {
+      "name": "image exposes gateway port",
+      "pass": true
+    },
+    {
+      "name": "packaged gateway binary hashed",
+      "pass": true
+    },
+    {
+      "name": "no plugin shared object bundled under /app",
+      "pass": true
+    },
+    {
+      "name": "published ports bound only to loopback",
+      "pass": true
+    },
+    {
+      "name": "initial custom plugin list empty",
+      "pass": true,
+      "list_status": 200,
+      "loaded_status": 200,
+      "saved_names": [],
+      "loaded_names": [
+        "compat",
+        "governance",
+        "logging",
+        "model-catalog-resolver",
+        "prompts",
+        "routing",
+        "telemetry"
+      ]
+    },
+    {
+      "name": "registry panel absent before URL installation",
+      "pass": true
+    },
+    {
+      "name": "plugin installed through separate fixture URL",
+      "pass": true,
+      "status": 201
+    },
+    {
+      "name": "installed plugin active and loaded",
+      "pass": true
+    },
+    {
+      "name": "standalone panel served from plugin",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "anonymous panel API refused",
+      "pass": true,
+      "status": 401
+    },
+    {
+      "name": "workspace connected to packaged gateway",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "model and group saved to persistent volume",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "published ports bound only to loopback",
+      "pass": true
+    },
+    {
+      "name": "URL plugin reloaded after container recreation",
+      "pass": true
+    },
+    {
+      "name": "panel and saved workspace persist after recreation",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "synthetic fixture received no inference",
+      "pass": true
+    }
+  ],
+  "prior_probe": "reports/plugin-standalone/final/report.json (38 checks; separate binary proof)",
+  "image_id": "sha256:0fc53d460978af634f5f00e6ac770f6ce60677d378f788eb57c50bee1cb2e68d",
+  "architecture": "linux/amd64",
+  "packaged_binary_sha256": "6d968057736bcc06bfccd239917ab886c9dbcb00343f349d1678f638c15750c7",
+  "cleanup": {
+    "registry-probe-gateway-5c6d2b5536cc": true,
+    "registry-probe-fixture-5c6d2b5536cc": true,
+    "network": true,
+    "volume": true
+  },
+  "passed": true,
+  "finished_at_utc": "2026-09-24T18:23:12.378727+00:00"
+}

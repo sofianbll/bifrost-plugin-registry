@@ -1,0 +1,204 @@
+diff --git a/integration/native_probe.go b/integration/native_probe.go
+index 0eddbdf..a476b20 100644
+--- a/integration/native_probe.go
++++ b/integration/native_probe.go
+@@ -1,9 +1,11 @@
+ //go:build bifrost
+ 
+-// This probes exports and plugin.Open ABI, not Bifrost's request pipeline.
++// This probes exports and the native hook context handoff, not a live Bifrost pipeline.
+ package main
+ 
+ import (
++	"context"
++	"crypto/sha256"
+ 	"encoding/json"
+ 	"fmt"
+ 	"os"
+@@ -39,18 +41,28 @@ func main() {
+ 	init := must[func(any) error](p, "Init")
+ 	cleanup := must[func() error](p, "Cleanup")
+ 	pre := must[func(*schemas.BifrostContext, *schemas.HTTPRequest) (*schemas.HTTPResponse, error)](p, "HTTPTransportPreHook")
+-	must[func(*schemas.BifrostContext, *schemas.HTTPRequest, *schemas.HTTPResponse) error](p, "HTTPTransportPostHook")
++	post := must[func(*schemas.BifrostContext, *schemas.HTTPRequest, *schemas.HTTPResponse) error](p, "HTTPTransportPostHook")
+ 	must[func(*schemas.BifrostContext, *schemas.HTTPRequest, *schemas.BifrostStreamChunk) (*schemas.BifrostStreamChunk, error)](p, "HTTPTransportStreamChunkHook")
+ 	must[func(*schemas.BifrostContext, *schemas.BifrostRequest) error](p, "PreRequestHook")
+ 	gate := must[func(*schemas.BifrostContext, *schemas.BifrostRequest) (*schemas.BifrostRequest, *schemas.LLMPluginShortCircuit, error)](p, "PreLLMHook")
+-	must[func(*schemas.BifrostContext, *schemas.BifrostResponse, *schemas.BifrostError) (*schemas.BifrostResponse, *schemas.BifrostError, error)](p, "PostLLMHook")
++	postLLM := must[func(*schemas.BifrostContext, *schemas.BifrostResponse, *schemas.BifrostError) (*schemas.BifrostResponse, *schemas.BifrostError, error)](p, "PostLLMHook")
+ 	dir, e := os.MkdirTemp("", "registry-abi-")
+ 	if e != nil {
+ 		panic(e)
+ 	}
+ 	defer os.RemoveAll(dir)
+ 	path := filepath.Join(dir, "registry.json")
+-	if e = os.WriteFile(path, []byte(`{"schema_version":1,"default_naming":"provider/model","models":[],"groups":[],"policies":[]}`), 0600); e != nil {
++	token := "sk-bf-native-probe-0123456789"
++	config, e := json.Marshal(map[string]any{
++		"schema_version": 1, "default_naming": "provider/model",
++		"models":   []any{map[string]any{"id": "alpha", "alias": "alpha", "provider": "openai", "provider_key_ids": []string{"key-1"}, "upstream_model": "alpha", "endpoints": []string{"chat/completions"}, "enabled": true, "verified": true, "evidence": "native hook probe"}},
++		"groups":   []any{map[string]any{"id": "all", "name": "All", "model_ids": []string{"alpha"}}},
++		"policies": []any{map[string]any{"virtual_key_id": "vk-probe", "name": "Probe", "token_sha256": fmt.Sprintf("%x", sha256.Sum256([]byte(token))), "groups": []string{"all"}, "enabled": true}},
++	})
++	if e != nil {
++		panic(e)
++	}
++	if e = os.WriteFile(path, config, 0600); e != nil {
+ 		panic(e)
+ 	}
+ 	if e = init(map[string]any{"registry_path": path}); e != nil {
+@@ -64,9 +76,64 @@ func main() {
+ 	if e != nil || blocked == nil || blocked.Error == nil || blocked.Error.AllowFallbacks == nil || *blocked.Error.AllowFallbacks {
+ 		panic("unguarded native call not rejected")
+ 	}
++	newRequest := func() (*schemas.BifrostContext, *schemas.HTTPRequest) {
++		parent := schemas.NewBifrostContext(context.Background(), schemas.NoDeadline)
++		req := &schemas.HTTPRequest{Method: "GET", Path: "/v1/models", Headers: map[string]string{"Authorization": "Bearer " + token}}
++		short, err := pre(parent, req)
++		if err != nil || short != nil {
++			panic("guarded models request not prepared")
++		}
++		return parent, req
++	}
++	project := func(parent *schemas.BifrostContext, req *schemas.HTTPRequest, want int) {
++		resp := &schemas.HTTPResponse{StatusCode: 200, Body: []byte(`{"object":"list","data":[{"id":"openai/alpha","object":"model"}]}`)}
++		if err := post(parent, req, resp); err != nil || resp.StatusCode != want {
++			panic(fmt.Sprintf("models projection status: got %d, want %d: %v", resp.StatusCode, want, err))
++		}
++		if want == 200 {
++			var body struct {
++				Data []struct {
++					ID string `json:"id"`
++				} `json:"data"`
++			}
++			if json.Unmarshal(resp.Body, &body) != nil || len(body.Data) != 1 || body.Data[0].ID != "openai/alpha" {
++				panic("models projection returned wrong IDs")
++			}
++		}
++	}
++	confirm := func(parent *schemas.BifrostContext, id string, wantError bool) {
++		child := schemas.NewBifrostContext(parent, schemas.NoDeadline)
++		child.SetValue(schemas.BifrostContextKeyGovernanceVirtualKeyID, id)
++		_, result, err := postLLM(child, nil, nil)
++		if err != nil || (result != nil) != wantError {
++			panic("child LLM identity result does not match")
++		}
++	}
++	parent, req := newRequest()
++	project(parent, req, 403) // Raw token and policy alone cannot authorize a listing.
++	parent, req = newRequest()
++	confirm(parent, "vk-probe", false)
++	project(parent, req, 200) // Parent has no Governance context stamp.
++	parent, req = newRequest()
++	confirm(parent, "vk-probe", false)
++	parent.SetValue(schemas.BifrostContextKeyGovernanceVirtualKeyID, "vk-other")
++	project(parent, req, 403) // A visible but different identity still wins over confirmation.
++	parent, req = newRequest()
++	confirm(parent, "", true) // A child without an authenticated identity fails closed.
++	confirm(parent, "vk-probe", true)
++	project(parent, req, 403)
++	parent, req = newRequest()
++	confirm(parent, "vk-probe", false)
++	confirm(parent, "vk-other", true)
++	confirm(parent, "vk-probe", true) // A later successful provider cannot erase rejection.
++	project(parent, req, 403)
++	parent, req = newRequest()
++	project(parent, req, 403) // No result is carried into the next HTTP request.
++	confirm(parent, "vk-probe", false)
++	project(parent, req, 200)
+ 	if e = cleanup(); e != nil {
+ 		panic(e)
+ 	}
+-	json.NewEncoder(os.Stdout).Encode(map[string]any{"plugin": name(), "plugin_open": true, "export_signatures": true, "init_cleanup": true, "nil_context_fail_closed": true, "real_bifrost_pipeline_tested": false})
++	json.NewEncoder(os.Stdout).Encode(map[string]any{"plugin": name(), "plugin_open": true, "export_signatures": true, "init_cleanup": true, "nil_context_fail_closed": true, "child_identity_handoff": true, "real_bifrost_pipeline_tested": false})
+ 	fmt.Fprintln(os.Stderr, "ABI smoke passed. Real Bifrost request and governance tests are still required.")
+ }
+diff --git a/native/main.go b/native/main.go
+index 964c6db..04118d9 100644
+--- a/native/main.go
++++ b/native/main.go
+@@ -37,6 +37,13 @@ var lifecycle sync.Mutex
+ 
+ const sessionKey schemas.BifrostContextKey = "bifrost-registry.private-session.v1"
+ 
++type guardedSession struct {
++	*registry.Session
++	// Child provider contexts hold Governance's stamp; this request-local session
++	// carries the verified result back to the transport parent.
++	identityState atomic.Int32 // 0: unknown, 1: confirmed by PostLLM, 2: rejected
++}
++
+ func GetName() string { return "bifrost-registry" }
+ func Init(config any) error {
+ 	lifecycle.Lock()
+@@ -96,11 +103,11 @@ func failureResponse(f *registry.Failure) *schemas.HTTPResponse {
+ func unavailable() *registry.Failure {
+ 	return &registry.Failure{Status: 503, Code: "registry_not_initialized", Message: "Registry is not initialized"}
+ }
+-func session(ctx *schemas.BifrostContext) *registry.Session {
++func session(ctx *schemas.BifrostContext) *guardedSession {
+ 	if ctx == nil {
+ 		return nil
+ 	}
+-	s, _ := ctx.Value(sessionKey).(*registry.Session)
++	s, _ := ctx.Value(sessionKey).(*guardedSession)
+ 	return s
+ }
+ func identity(ctx *schemas.BifrostContext) string {
+@@ -110,7 +117,6 @@ func identity(ctx *schemas.BifrostContext) string {
+ 	id, _ := ctx.Value(schemas.BifrostContextKeyGovernanceVirtualKeyID).(string)
+ 	return id
+ }
+-
+ func HTTPTransportPreHook(ctx *schemas.BifrostContext, req *schemas.HTTPRequest) (*schemas.HTTPResponse, error) {
+ 	if req == nil || ctx == nil {
+ 		return failureResponse(unavailable()), nil
+@@ -141,7 +147,7 @@ func HTTPTransportPreHook(ctx *schemas.BifrostContext, req *schemas.HTTPRequest)
+ 	// must still authenticate it and enforce budgets and native VK permissions.
+ 	token, _ := registry.Credential(req.Headers)
+ 	ctx.SetValue(schemas.BifrostContextKeyVirtualKey, token)
+-	ctx.SetValue(sessionKey, sess)
++	ctx.SetValue(sessionKey, &guardedSession{Session: sess})
+ 	return nil, nil
+ }
+ func HTTPTransportPostHook(ctx *schemas.BifrostContext, req *schemas.HTTPRequest, resp *schemas.HTTPResponse) error {
+@@ -153,7 +159,18 @@ func HTTPTransportPostHook(ctx *schemas.BifrostContext, req *schemas.HTTPRequest
+ 		resp.Headers = map[string]string{}
+ 	}
+ 	if s.IsModels() {
+-		out, f := s.Project(resp.Body, identity(ctx))
++		id := identity(ctx)
++		if id != "" && s.VerifyIdentity(id) != nil {
++			s.identityState.Store(2)
++		}
++		if s.identityState.Load() == 2 {
++			*resp = *failureResponse(s.VerifyIdentity(""))
++			return nil
++		}
++		if id == "" && s.identityState.Load() == 1 {
++			id = s.PolicyID()
++		}
++		out, f := s.Project(resp.Body, id)
+ 		if f != nil {
+ 			bad := failureResponse(f)
+ 			*resp = *bad
+@@ -221,7 +238,18 @@ func PostLLMHook(ctx *schemas.BifrostContext, resp *schemas.BifrostResponse, err
+ 	// though the provider call already happened (defense in depth; the token-hash
+ 	// binding makes a real mismatch virtually impossible).
+ 	if s := session(ctx); s != nil {
+-		if f := s.VerifyIdentity(identity(ctx)); f != nil {
++		f := s.VerifyIdentity(identity(ctx))
++		if s.IsModels() {
++			if f == nil {
++				s.identityState.CompareAndSwap(0, 1)
++				if s.identityState.Load() == 2 {
++					f = s.VerifyIdentity("")
++				}
++			} else {
++				s.identityState.Store(2)
++			}
++		}
++		if f != nil {
+ 			status := f.Status
+ 			typ := "registry_error"
+ 			fallbacks := false

@@ -1,0 +1,390 @@
+{
+  "all_passed": true,
+  "artifacts": {
+    "bifrost-http": "6d968057736bcc06bfccd239917ab886c9dbcb00343f349d1678f638c15750c7",
+    "bifrost-registry.so": "a369a86249ae980e4580dfad5cc4b9d33138e35c2b432008f0789e41c16c1d54"
+  },
+  "bifrost_commit": "fdeef8e3f31a3b18a61666ba49247d07bae3600a",
+  "bifrost_version": "2.2.2",
+  "checks": [
+    {
+      "expected": "2.2.2",
+      "name": "target Bifrost version",
+      "observed": "2.2.2",
+      "pass": true
+    },
+    {
+      "expected": "6d968057736bcc06bfccd239917ab886c9dbcb00343f349d1678f638c15750c7",
+      "name": "bifrost-http SHA-256",
+      "observed": "6d968057736bcc06bfccd239917ab886c9dbcb00343f349d1678f638c15750c7",
+      "pass": true
+    },
+    {
+      "expected": "a369a86249ae980e4580dfad5cc4b9d33138e35c2b432008f0789e41c16c1d54",
+      "name": "bifrost-registry.so SHA-256",
+      "observed": "a369a86249ae980e4580dfad5cc4b9d33138e35c2b432008f0789e41c16c1d54",
+      "pass": true
+    },
+    {
+      "expected": [
+        "lo"
+      ],
+      "name": "network namespace has only loopback",
+      "observed": [
+        "lo"
+      ],
+      "pass": true
+    },
+    {
+      "expected": 200,
+      "name": "native baseline key 1 status",
+      "observed": 200,
+      "pass": true
+    },
+    {
+      "expected": 200,
+      "name": "native baseline key 2 status",
+      "observed": 200,
+      "pass": true
+    },
+    {
+      "expected": 200,
+      "name": "native baseline key 3 status",
+      "observed": 200,
+      "pass": true
+    },
+    {
+      "expected": true,
+      "name": "native baseline valid key 1",
+      "observed": true,
+      "pass": true
+    },
+    {
+      "expected": true,
+      "name": "native baseline valid key 2",
+      "observed": true,
+      "pass": true
+    },
+    {
+      "expected": true,
+      "name": "native baseline valid legacy key",
+      "observed": true,
+      "pass": true
+    },
+    {
+      "expected": true,
+      "name": "native baseline same allowlist",
+      "observed": true,
+      "pass": true
+    },
+    {
+      "expected": [
+        "openai/alpha",
+        "openai/beta",
+        "openai/shared"
+      ],
+      "name": "native baseline exact IDs",
+      "observed": [
+        "openai/alpha",
+        "openai/beta",
+        "openai/shared"
+      ],
+      "pass": true
+    },
+    {
+      "expected": true,
+      "name": "native has alpha",
+      "observed": true,
+      "pass": true
+    },
+    {
+      "expected": true,
+      "name": "native has beta",
+      "observed": true,
+      "pass": true
+    },
+    {
+      "expected": true,
+      "name": "native has shared",
+      "observed": true,
+      "pass": true
+    },
+    {
+      "expected": false,
+      "name": "native permission excludes hidden",
+      "observed": false,
+      "pass": true
+    },
+    {
+      "expected": 200,
+      "name": "registry key 1 status",
+      "observed": 200,
+      "pass": true
+    },
+    {
+      "expected": [
+        "alpha",
+        "shared"
+      ],
+      "name": "registry key 1 exact IDs",
+      "observed": [
+        "alpha",
+        "shared"
+      ],
+      "pass": true
+    },
+    {
+      "expected": 200,
+      "name": "registry key 2 status",
+      "observed": 200,
+      "pass": true
+    },
+    {
+      "expected": [
+        "openai/beta",
+        "openai/shared"
+      ],
+      "name": "registry key 2 exact IDs",
+      "observed": [
+        "openai/beta",
+        "openai/shared"
+      ],
+      "pass": true
+    },
+    {
+      "expected": [
+        "alpha",
+        "shared"
+      ],
+      "name": "key 1 unchanged after key 2 read",
+      "observed": [
+        "alpha",
+        "shared"
+      ],
+      "pass": true
+    },
+    {
+      "expected": 200,
+      "name": "prefixed alias status",
+      "observed": 200,
+      "pass": true
+    },
+    {
+      "expected": [
+        "alpha",
+        "shared"
+      ],
+      "name": "prefixed alias same key 1 IDs",
+      "observed": [
+        "alpha",
+        "shared"
+      ],
+      "pass": true
+    },
+    {
+      "expected": true,
+      "name": "no key refused",
+      "observed": true,
+      "pass": true
+    },
+    {
+      "expected": true,
+      "name": "unbound key refused",
+      "observed": true,
+      "pass": true
+    },
+    {
+      "expected": 200,
+      "name": "existing native key without policy status",
+      "observed": 200,
+      "pass": true
+    },
+    {
+      "expected": [
+        "openai/alpha",
+        "openai/beta",
+        "openai/shared"
+      ],
+      "name": "existing native key without policy IDs",
+      "observed": [
+        "openai/alpha",
+        "openai/beta",
+        "openai/shared"
+      ],
+      "pass": true
+    },
+    {
+      "expected": 200,
+      "name": "admin GET status",
+      "observed": 200,
+      "pass": true
+    },
+    {
+      "expected": 200,
+      "name": "group save status",
+      "observed": 200,
+      "pass": true
+    },
+    {
+      "expected": true,
+      "name": "group revision advanced",
+      "observed": true,
+      "pass": true
+    },
+    {
+      "expected": 200,
+      "name": "grouped key 1 status",
+      "observed": 200,
+      "pass": true
+    },
+    {
+      "expected": [
+        "alpha",
+        "shared"
+      ],
+      "name": "grouped key 1 exact IDs",
+      "observed": [
+        "alpha",
+        "shared"
+      ],
+      "pass": true
+    },
+    {
+      "expected": 200,
+      "name": "grouped key 2 status",
+      "observed": 200,
+      "pass": true
+    },
+    {
+      "expected": [
+        "openai/alpha",
+        "openai/beta",
+        "openai/shared"
+      ],
+      "name": "grouped key 2 exact IDs",
+      "observed": [
+        "openai/alpha",
+        "openai/beta",
+        "openai/shared"
+      ],
+      "pass": true
+    },
+    {
+      "expected": 200,
+      "name": "naming save status",
+      "observed": 200,
+      "pass": true
+    },
+    {
+      "expected": 200,
+      "name": "renamed key 1 status",
+      "observed": 200,
+      "pass": true
+    },
+    {
+      "expected": [
+        "alpha",
+        "openai/alpha",
+        "openai/shared",
+        "shared"
+      ],
+      "name": "renamed key 1 exact IDs",
+      "observed": [
+        "alpha",
+        "openai/alpha",
+        "openai/shared",
+        "shared"
+      ],
+      "pass": true
+    },
+    {
+      "expected": 200,
+      "name": "renamed key 2 status",
+      "observed": 200,
+      "pass": true
+    },
+    {
+      "expected": [
+        "openai/alpha",
+        "openai/beta",
+        "openai/shared"
+      ],
+      "name": "renamed key 2 exact IDs",
+      "observed": [
+        "openai/alpha",
+        "openai/beta",
+        "openai/shared"
+      ],
+      "pass": true
+    },
+    {
+      "expected": 200,
+      "name": "binding swap saved",
+      "observed": 200,
+      "pass": true
+    },
+    {
+      "expected": 403,
+      "name": "native identity mismatch refused",
+      "observed": 403,
+      "pass": true
+    },
+    {
+      "expected": false,
+      "name": "no inference to stub",
+      "observed": false,
+      "pass": true
+    }
+  ],
+  "finished_at_utc": "2026-09-24T17:35:51.588755+00:00",
+  "native_baseline_ids": [
+    [
+      "openai/alpha",
+      "openai/beta",
+      "openai/shared"
+    ],
+    [
+      "openai/alpha",
+      "openai/beta",
+      "openai/shared"
+    ],
+    [
+      "openai/alpha",
+      "openai/beta",
+      "openai/shared"
+    ]
+  ],
+  "network_isolation": "Docker --network none required; only loopback interface accepted",
+  "registry_responses": [
+    {
+      "case": "key 1",
+      "error_code": null,
+      "status": 200
+    },
+    {
+      "case": "key 2",
+      "error_code": null,
+      "status": 200
+    },
+    {
+      "case": "key 1 reread",
+      "error_code": null,
+      "status": 200
+    },
+    {
+      "case": "prefixed alias",
+      "error_code": null,
+      "status": 200
+    }
+  ],
+  "revision_after": "74a289c498573ff8df2a7da5bb67bb62e698f4237b1505541e339fb8b8b8e791",
+  "revision_before": "70dfa7f594d37e5d9ed397cfb2efc51a26f8f40f7de1e4574e56bfe4cc542e27",
+  "revision_group": "900b7ea02aaa8d09bcd5c37d00fcf2cd1c5529fc3bf5dcfc17c0d82527ba341b",
+  "revision_identity_probe": "f27c7651aa04b70733a1287243d33b626813b957e11fe43acc14c1af72895522",
+  "scope": "isolated Bifrost HTTP /v1/models; mocked provider; no inference",
+  "started_at_utc": "2026-09-24T17:35:34.291644+00:00",
+  "stub_get_paths": [
+    "/v1/models"
+  ],
+  "verified_endpoint": "/v1/models"
+}

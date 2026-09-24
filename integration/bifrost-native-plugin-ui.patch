@@ -1,0 +1,725 @@
+diff --git a/core/schemas/plugin_ui.go b/core/schemas/plugin_ui.go
+new file mode 100644
+index 0000000..5682381
+--- /dev/null
++++ b/core/schemas/plugin_ui.go
+@@ -0,0 +1,27 @@
++package schemas
++
++import (
++	"io/fs"
++
++	"github.com/valyala/fasthttp"
++)
++
++// PluginAdminUIHost supplies the native services available to an authenticated
++// plugin page. CallNative keeps the current browser session for /api requests;
++// an explicit Authorization header may be used for /v1/models readback.
++type PluginAdminUIHost struct {
++	DataDir    string
++	CallNative func(parent *fasthttp.RequestCtx, req *fasthttp.Request, resp *fasthttp.Response)
++}
++
++// PluginAdminUI is an optional same-origin UI contribution. Assets is rooted
++// at index.html; API handles paths beginning with /api/.
++type PluginAdminUI struct {
++	Title  string
++	Assets fs.FS
++	API    fasthttp.RequestHandler
++}
++
++type AdminUIPlugin interface {
++	GetAdminUI(host PluginAdminUIHost) (PluginAdminUI, error)
++}
+diff --git a/framework/plugins/soloader.go b/framework/plugins/soloader.go
+index d8cfde4..cbd00f8 100644
+--- a/framework/plugins/soloader.go
++++ b/framework/plugins/soloader.go
+@@ -90,6 +90,13 @@ func (l *SharedObjectPluginLoader) LoadPlugin(path string, config any) (schemas.
+ 		return nil, fmt.Errorf("failed to cast Cleanup to func() error\nSee docs for more information: https://docs.getbifrost.ai/plugins/writing-go-plugin")
+ 	}
+ 
++	// Optional native administrative page; legacy plugins leave this unset.
++	if sym, err := pluginObj.Lookup("GetAdminUI"); err == nil {
++		if dp.getAdminUI, ok = sym.(func(schemas.PluginAdminUIHost) (schemas.PluginAdminUI, error)); !ok {
++			return nil, fmt.Errorf("failed to cast GetAdminUI to func(schemas.PluginAdminUIHost) (schemas.PluginAdminUI, error)")
++		}
++	}
++
+ 	// Optional: HTTPTransportPreAuthHook — runs before the transport authenticates the
+ 	// request. Plugins predating the hook simply don't export it and are skipped.
+ 	if sym, err := pluginObj.Lookup("HTTPTransportPreAuthHook"); err == nil {
+diff --git a/framework/plugins/soplugin.go b/framework/plugins/soplugin.go
+index be0a531..bff3660 100644
+--- a/framework/plugins/soplugin.go
++++ b/framework/plugins/soplugin.go
+@@ -18,8 +18,9 @@ type DynamicPlugin struct {
+ 	plugin   *plugin.Plugin
+ 
+ 	// BasePlugin (required)
+-	getName func() string
+-	cleanup func() error
++	getName    func() string
++	cleanup    func() error
++	getAdminUI func(host schemas.PluginAdminUIHost) (schemas.PluginAdminUI, error)
+ 
+ 	// HTTPTransportPlugin, pre-auth phase (optional). Forward-compat: new .so plugins can export
+ 	// HTTPTransportPreAuthHook to run before the transport authenticates the request.
+@@ -71,6 +72,13 @@ func (dp *DynamicPlugin) Cleanup() error {
+ 	return dp.cleanup()
+ }
+ 
++func (dp *DynamicPlugin) GetAdminUI(host schemas.PluginAdminUIHost) (schemas.PluginAdminUI, error) {
++	if dp.getAdminUI == nil {
++		return schemas.PluginAdminUI{}, nil
++	}
++	return dp.getAdminUI(host)
++}
++
+ // HTTPTransportPreAuthHook intercepts HTTP requests at the transport layer before the transport
+ // authenticates them (HTTPTransportPlugin interface). Same dispatch as the other optional
+ // hooks: typed symbol if exported, else no-op.
+diff --git a/transports/bifrost-http/handlers/middlewares.go b/transports/bifrost-http/handlers/middlewares.go
+index ee4b9f1..5e8b799 100644
+--- a/transports/bifrost-http/handlers/middlewares.go
++++ b/transports/bifrost-http/handlers/middlewares.go
+@@ -1160,6 +1160,12 @@ func (m *AuthMiddleware) APIMiddleware() schemas.BifrostHTTPMiddleware {
+ 	}, false)
+ }
+ 
++// PluginAdminUIMiddleware always checks native admin credentials, including
++// when an operator has whitelisted a matching path for other API traffic.
++func (m *AuthMiddleware) PluginAdminUIMiddleware() schemas.BifrostHTTPMiddleware {
++	return m.middleware(func(*configstore.AuthConfig, string) bool { return false }, false)
++}
++
+ // middleware is the core authentication middleware that checks if the request should be authenticated or not.
+ func (m *AuthMiddleware) middleware(shouldSkip func(*configstore.AuthConfig, string) bool, allowVirtualKeyAuth bool) schemas.BifrostHTTPMiddleware {
+ 	return func(next fasthttp.RequestHandler) fasthttp.RequestHandler {
+diff --git a/transports/bifrost-http/server/plugin_ui.go b/transports/bifrost-http/server/plugin_ui.go
+new file mode 100644
+index 0000000..93199ec
+--- /dev/null
++++ b/transports/bifrost-http/server/plugin_ui.go
+@@ -0,0 +1,262 @@
++package server
++
++import (
++	"encoding/json"
++	"fmt"
++	"io/fs"
++	"mime"
++	"net/url"
++	"path"
++	"sort"
++	"strings"
++
++	"github.com/maximhq/bifrost/core/schemas"
++	"github.com/maximhq/bifrost/transports/bifrost-http/lib"
++	"github.com/valyala/fasthttp"
++)
++
++// A plugin owns only /plugins/{GetName}/. Names cannot alias a native route or
++// another contribution through normalization.
++func validPluginUIName(name string) bool {
++	if name == "" || name == "." || name == ".." {
++		return false
++	}
++	for _, c := range name {
++		if !((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '-' || c == '_') {
++			return false
++		}
++	}
++	return true
++}
++
++func (s *BifrostHTTPServer) preparePluginUI(plugin schemas.BasePlugin) (schemas.PluginAdminUI, error) {
++	provider, ok := plugin.(schemas.AdminUIPlugin)
++	if !ok {
++		return schemas.PluginAdminUI{}, nil
++	}
++	ui, err := provider.GetAdminUI(schemas.PluginAdminUIHost{DataDir: GetDefaultConfigDir(s.AppDir), CallNative: s.callNativePluginAPI})
++	if err != nil {
++		return ui, err
++	}
++	if ui.Assets == nil && ui.API == nil && ui.Title == "" {
++		return ui, nil
++	} // optional .so symbol absent
++	if !validPluginUIName(plugin.GetName()) {
++		return ui, fmt.Errorf("invalid plugin UI name %q", plugin.GetName())
++	}
++	if ui.Title == "" || ui.Assets == nil {
++		return ui, fmt.Errorf("plugin UI requires title and embedded assets")
++	}
++	if _, err := fs.ReadFile(ui.Assets, "index.html"); err != nil {
++		return ui, fmt.Errorf("plugin UI index.html: %w", err)
++	}
++	return ui, nil
++}
++
++func (s *BifrostHTTPServer) setPluginUI(name string, ui schemas.PluginAdminUI) {
++	s.pluginUIMu.Lock()
++	defer s.pluginUIMu.Unlock()
++	if s.pluginUIs == nil {
++		s.pluginUIs = make(map[string]schemas.PluginAdminUI)
++	}
++	if ui.Assets == nil {
++		delete(s.pluginUIs, name)
++	} else {
++		s.pluginUIs[name] = ui
++	}
++}
++
++func (s *BifrostHTTPServer) registerPluginUIRoutes(middlewares ...schemas.BifrostHTTPMiddleware) error {
++	if s.Config != nil {
++		if plugins := s.Config.BasePlugins.Load(); plugins != nil {
++			for _, plugin := range *plugins {
++				ui, err := s.preparePluginUI(plugin)
++				if err != nil {
++					return fmt.Errorf("plugin %s: %w", plugin.GetName(), err)
++				}
++				if ui.Assets != nil {
++					s.pluginUIMu.RLock()
++					_, collision := s.pluginUIs[plugin.GetName()]
++					s.pluginUIMu.RUnlock()
++					if collision {
++						return fmt.Errorf("plugin UI route collision: %s", plugin.GetName())
++					}
++					s.setPluginUI(plugin.GetName(), ui)
++				}
++			}
++		}
++	}
++	if s.AuthMiddleware == nil {
++		return nil
++	}
++	// Keep the regular middleware chain (including enterprise hooks), then
++	// insist on native admin authentication even for a whitelisted path.
++	secured := append(append([]schemas.BifrostHTTPMiddleware(nil), middlewares...), s.AuthMiddleware.PluginAdminUIMiddleware())
++	s.Router.GET("/api/plugin-ui", lib.ChainMiddlewares(s.listPluginUIs, secured...))
++	handler := lib.ChainMiddlewares(s.servePluginUI, secured...)
++	for _, method := range []string{fasthttp.MethodGet, fasthttp.MethodHead, fasthttp.MethodPost, fasthttp.MethodPut, fasthttp.MethodPatch, fasthttp.MethodDelete} {
++		s.Router.Handle(method, "/plugins/{name}/", handler)
++		s.Router.Handle(method, "/plugins/{name}/{filepath:*}", handler)
++	}
++	return nil
++}
++
++func (s *BifrostHTTPServer) listPluginUIs(ctx *fasthttp.RequestCtx) {
++	if bypassed, _ := ctx.UserValue(schemas.BifrostContextKeyAuthBypassed).(bool); bypassed {
++		ctx.Error("Authentication required", fasthttp.StatusForbidden)
++		return
++	}
++	type item struct {
++		Name  string `json:"name"`
++		Title string `json:"title"`
++		URL   string `json:"url"`
++	}
++	s.pluginUIMu.RLock()
++	list := make([]item, 0, len(s.pluginUIs))
++	for name, ui := range s.pluginUIs {
++		list = append(list, item{name, ui.Title, "/plugins/" + name + "/"})
++	}
++	s.pluginUIMu.RUnlock()
++	sort.Slice(list, func(i, j int) bool { return list[i].Name < list[j].Name })
++	body, _ := json.Marshal(list)
++	ctx.SetContentType("application/json")
++	ctx.Response.Header.Set("Cache-Control", "no-store")
++	ctx.SetBody(body)
++}
++
++func samePluginUIOrigin(ctx *fasthttp.RequestCtx) bool {
++	site := string(ctx.Request.Header.Peek("Sec-Fetch-Site"))
++	if site == "cross-site" || site == "same-site" {
++		return false
++	}
++	origin := string(ctx.Request.Header.Peek("Origin"))
++	if origin == "" {
++		return true
++	}
++	parsed, err := url.Parse(origin)
++	scheme := "http"
++	if ctx.IsTLS() || string(ctx.Request.Header.Peek("X-Forwarded-Proto")) == "https" {
++		scheme = "https"
++	}
++	return err == nil && parsed.Scheme == scheme && parsed.Host == string(ctx.Host()) && parsed.User == nil && parsed.RawQuery == "" && parsed.Fragment == "" && parsed.Path == ""
++}
++
++func (s *BifrostHTTPServer) servePluginUI(ctx *fasthttp.RequestCtx) {
++	if bypassed, _ := ctx.UserValue(schemas.BifrostContextKeyAuthBypassed).(bool); bypassed {
++		ctx.Error("Authentication required", fasthttp.StatusForbidden)
++		return
++	}
++	if !samePluginUIOrigin(ctx) {
++		ctx.Error("Forbidden", fasthttp.StatusForbidden)
++		return
++	}
++	name, _ := ctx.UserValue("name").(string)
++	s.pluginUIMu.RLock()
++	ui, ok := s.pluginUIs[name]
++	defer s.pluginUIMu.RUnlock()
++	if !ok {
++		ctx.Error("Plugin UI not found", fasthttp.StatusNotFound)
++		return
++	}
++	raw := strings.SplitN(string(ctx.RequestURI()), "?", 2)[0]
++	decoded, err := url.PathUnescape(raw)
++	if err != nil || strings.Contains(decoded, "\\") {
++		ctx.Error("Invalid path", fasthttp.StatusBadRequest)
++		return
++	}
++	for _, part := range strings.Split(decoded, "/") {
++		if part == ".." {
++			ctx.Error("Invalid path", fasthttp.StatusBadRequest)
++			return
++		}
++	}
++	prefix := "/plugins/" + name + "/"
++	if !strings.HasPrefix(decoded, prefix) {
++		ctx.Error("Invalid path", fasthttp.StatusBadRequest)
++		return
++	}
++	relative := strings.TrimPrefix(decoded, prefix)
++	if relative == "api" || strings.HasPrefix(relative, "api/") {
++		if ui.API == nil {
++			ctx.Error("Not found", fasthttp.StatusNotFound)
++			return
++		}
++		if len(ctx.Request.Body()) > 4<<20 {
++			ctx.Error("Request too large", fasthttp.StatusRequestEntityTooLarge)
++			return
++		}
++		original := string(ctx.Path())
++		ctx.Request.URI().SetPath("/" + relative)
++		defer ctx.Request.URI().SetPath(original)
++		ui.API(ctx)
++		return
++	}
++	if string(ctx.Method()) != fasthttp.MethodGet && string(ctx.Method()) != fasthttp.MethodHead {
++		ctx.Error("Method not allowed", fasthttp.StatusMethodNotAllowed)
++		return
++	}
++	asset := relative
++	if asset == "" {
++		asset = "index.html"
++	}
++	if !fs.ValidPath(asset) || path.Clean(asset) != asset {
++		ctx.Error("Invalid path", fasthttp.StatusBadRequest)
++		return
++	}
++	body, err := fs.ReadFile(ui.Assets, asset)
++	if err != nil && !strings.Contains(path.Base(asset), ".") {
++		asset = "index.html"
++		body, err = fs.ReadFile(ui.Assets, asset)
++	}
++	if err != nil {
++		ctx.Error("Not found", fasthttp.StatusNotFound)
++		return
++	}
++	contentType := mime.TypeByExtension(path.Ext(asset))
++	if contentType == "" {
++		contentType = "application/octet-stream"
++	}
++	ctx.SetContentType(contentType)
++	ctx.Response.Header.Set("Cache-Control", "no-store")
++	ctx.Response.Header.Set("X-Content-Type-Options", "nosniff")
++	if asset == "index.html" {
++		ctx.Response.Header.Set("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self' data:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'")
++	}
++	if string(ctx.Method()) != fasthttp.MethodHead {
++		ctx.SetBody(body)
++	}
++}
++
++// callNativePluginAPI dispatches through the real router and auth middleware.
++// The child context is request-scoped; plugin code must not retain it.
++func (s *BifrostHTTPServer) callNativePluginAPI(parent *fasthttp.RequestCtx, req *fasthttp.Request, resp *fasthttp.Response) {
++	childPath := string(req.URI().Path())
++	// A plugin API request holds the UI read lock. Avoid reentering plugin
++	// lifecycle handlers, which take its write lock.
++	if strings.HasPrefix(childPath, "/api/plugins") || (childPath == "/api/config" && string(req.Header.Method()) != fasthttp.MethodGet) {
++		resp.SetStatusCode(fasthttp.StatusForbidden)
++		return
++	}
++	if !(strings.HasPrefix(childPath, "/api/") && childPath != "/api/plugin-ui" || childPath == "/v1/models" || childPath == "/openai/v1/models") {
++		resp.SetStatusCode(fasthttp.StatusForbidden)
++		return
++	}
++	var childRequest fasthttp.Request
++	req.CopyTo(&childRequest)
++	childRequest.Header.SetHost(string(parent.Host()))
++	if len(childRequest.Header.Peek("Authorization")) == 0 && childPath != "/v1/models" && childPath != "/openai/v1/models" {
++		childRequest.Header.SetBytesV("Authorization", parent.Request.Header.Peek("Authorization"))
++	}
++	if len(childRequest.Header.Peek("Cookie")) == 0 && childPath != "/v1/models" && childPath != "/openai/v1/models" {
++		childRequest.Header.SetBytesV("Cookie", parent.Request.Header.Peek("Cookie"))
++	}
++	for _, header := range []string{"Origin", "Sec-Fetch-Site", "X-Forwarded-Proto"} {
++		if len(childRequest.Header.Peek(header)) == 0 {
++			childRequest.Header.SetBytesV(header, parent.Request.Header.Peek(header))
++		}
++	}
++	var childCtx fasthttp.RequestCtx
++	childCtx.Init(&childRequest, parent.RemoteAddr(), nil)
++	s.Router.Handler(&childCtx)
++	childCtx.Response.CopyTo(resp)
++}
+diff --git a/transports/bifrost-http/server/plugin_ui_test.go b/transports/bifrost-http/server/plugin_ui_test.go
+new file mode 100644
+index 0000000..ed20f50
+--- /dev/null
++++ b/transports/bifrost-http/server/plugin_ui_test.go
+@@ -0,0 +1,161 @@
++package server
++
++import (
++	"errors"
++	"io/fs"
++	"testing"
++	"testing/fstest"
++
++	"github.com/fasthttp/router"
++	"github.com/maximhq/bifrost/core/schemas"
++	"github.com/maximhq/bifrost/transports/bifrost-http/handlers"
++	"github.com/maximhq/bifrost/transports/bifrost-http/lib"
++	"github.com/valyala/fasthttp"
++)
++
++func TestPluginUIRouteRegistration(t *testing.T) {
++	s := &BifrostHTTPServer{Router: router.New(), AuthMiddleware: &handlers.AuthMiddleware{}}
++	if err := s.registerPluginUIRoutes(); err != nil {
++		t.Fatal(err)
++	}
++	// The router aliases the wildcard root to the slashless path. The handler
++	// must canonicalize it without registering a duplicate explicit route.
++	routes := router.New()
++	routes.GET("/plugins/{name}/", s.servePluginUI)
++	routes.GET("/plugins/{name}/{filepath:*}", s.servePluginUI)
++	s.setPluginUI("demo", schemas.PluginAdminUI{Title: "Demo", Assets: fstest.MapFS{"index.html": &fstest.MapFile{Data: []byte("ok")}}})
++	ctx := pluginUIRequest("/plugins/demo", "GET", "")
++	routes.Handler(ctx)
++	if ctx.Response.StatusCode() != 301 || string(ctx.Response.Header.Peek("Location")) != "http://localhost:8080/plugins/demo/" {
++		t.Fatalf("slashless route = %d %q", ctx.Response.StatusCode(), ctx.Response.Header.Peek("Location"))
++	}
++}
++
++type failingUIPlugin struct{}
++
++func (failingUIPlugin) GetName() string { return "demo" }
++func (failingUIPlugin) Cleanup() error  { return nil }
++func (failingUIPlugin) GetAdminUI(schemas.PluginAdminUIHost) (schemas.PluginAdminUI, error) {
++	return schemas.PluginAdminUI{}, errors.New("broken assets")
++}
++
++func TestFailedReloadRemovesPreviousUI(t *testing.T) {
++	s := &BifrostHTTPServer{Config: &lib.Config{}}
++	s.setPluginUI("demo", schemas.PluginAdminUI{Title: "Old", Assets: fstest.MapFS{"index.html": &fstest.MapFile{Data: []byte("old")}}})
++	if err := s.SyncLoadedPlugin(nil, "demo", failingUIPlugin{}, nil, nil); err == nil {
++		t.Fatal("broken UI loaded")
++	}
++	ctx := pluginUIRequest("/plugins/demo/", "GET", "")
++	s.servePluginUI(ctx)
++	if ctx.Response.StatusCode() != 404 {
++		t.Fatalf("stale UI after reload failure: %d", ctx.Response.StatusCode())
++	}
++}
++
++func TestPluginUINameCollisionKeepsOwner(t *testing.T) {
++	config := &lib.Config{}
++	if err := config.ReloadPlugin(failingUIPlugin{}); err != nil {
++		t.Fatal(err)
++	}
++	config.UpdatePluginOverallStatus("demo", "first", schemas.PluginStatusActive, nil, nil)
++	s := &BifrostHTTPServer{Config: config}
++	s.setPluginUI("demo", schemas.PluginAdminUI{Title: "First", Assets: fstest.MapFS{"index.html": &fstest.MapFile{Data: []byte("first")}}})
++	if err := s.SyncLoadedPlugin(nil, "second", failingUIPlugin{}, nil, nil); err == nil {
++		t.Fatal("duplicate plugin name accepted")
++	}
++	ctx := pluginUIRequest("/plugins/demo/", "GET", "")
++	s.servePluginUI(ctx)
++	if ctx.Response.StatusCode() != 200 || string(ctx.Response.Body()) != "first" {
++		t.Fatalf("collision replaced owner: %d %q", ctx.Response.StatusCode(), ctx.Response.Body())
++	}
++}
++
++func pluginUIRequest(uri, method, origin string) *fasthttp.RequestCtx {
++	var request fasthttp.Request
++	request.SetRequestURI(uri)
++	request.Header.SetMethod(method)
++	request.Header.SetHost("localhost:8080")
++	if origin != "" {
++		request.Header.Set("Origin", origin)
++	}
++	ctx := &fasthttp.RequestCtx{}
++	ctx.Init(&request, nil, nil)
++	ctx.SetUserValue("name", "demo")
++	return ctx
++}
++
++func TestPluginUIBoundariesAndLifecycle(t *testing.T) {
++	s := &BifrostHTTPServer{}
++	assets := fstest.MapFS{"index.html": &fstest.MapFile{Data: []byte("<h1>demo</h1>")}, "assets/app.js": &fstest.MapFile{Data: []byte("ok")}}
++	s.setPluginUI("demo", schemas.PluginAdminUI{Title: "Demo", Assets: fs.FS(assets)})
++	for _, tc := range []struct {
++		uri, method, origin string
++		status              int
++	}{
++		{"/plugins/demo/", "GET", "", 200},
++		{"/plugins/demo/assets/app.js", "GET", "", 200},
++		{"/plugins/demo/%2e%2e/secret", "GET", "", 400},
++		{"/plugins/demo/assets/missing.js", "GET", "", 404},
++		{"/plugins/demo/", "PUT", "http://evil.example", 403},
++	} {
++		ctx := pluginUIRequest(tc.uri, tc.method, tc.origin)
++		s.servePluginUI(ctx)
++		if got := ctx.Response.StatusCode(); got != tc.status {
++			t.Fatalf("%s: got %d want %d", tc.uri, got, tc.status)
++		}
++	}
++	s.setPluginUI("demo", schemas.PluginAdminUI{})
++	ctx := pluginUIRequest("/plugins/demo/", "GET", "")
++	s.servePluginUI(ctx)
++	if ctx.Response.StatusCode() != 404 {
++		t.Fatalf("disabled UI status = %d", ctx.Response.StatusCode())
++	}
++	s.setPluginUI("demo", schemas.PluginAdminUI{Title: "Demo", Assets: fs.FS(assets)})
++	ctx = pluginUIRequest("/plugins/demo/", "GET", "")
++	s.servePluginUI(ctx)
++	if ctx.Response.StatusCode() != 200 {
++		t.Fatalf("reactivated UI status = %d", ctx.Response.StatusCode())
++	}
++	if validPluginUIName("../demo") || validPluginUIName("API") || !validPluginUIName("demo-2") {
++		t.Fatal("unsafe UI name accepted")
++	}
++}
++
++func TestPluginUINativeCallUsesCurrentSessionAndExplicitVK(t *testing.T) {
++	s := &BifrostHTTPServer{Router: router.New()}
++	s.Router.GET("/api/config", func(ctx *fasthttp.RequestCtx) {
++		if string(ctx.Request.Header.Cookie("token")) != "session" {
++			ctx.Error("no session", 401)
++			return
++		}
++		ctx.SetBodyString("ok")
++	})
++	s.Router.GET("/v1/models", func(ctx *fasthttp.RequestCtx) {
++		ctx.SetBody(ctx.Request.Header.Peek("Authorization"))
++	})
++	parent := pluginUIRequest("/plugins/demo/api/workspace", "GET", "http://localhost:8080")
++	parent.Request.Header.SetCookie("token", "session")
++	parent.Request.Header.Set("Authorization", "Bearer admin")
++	var req fasthttp.Request
++	var resp fasthttp.Response
++	req.SetRequestURI("/api/config")
++	s.callNativePluginAPI(parent, &req, &resp)
++	if resp.StatusCode() != 200 {
++		t.Fatalf("session call = %d", resp.StatusCode())
++	}
++	req.Reset()
++	resp.Reset()
++	req.SetRequestURI("/v1/models")
++	req.Header.Set("Authorization", "Bearer sk-bf-vk")
++	s.callNativePluginAPI(parent, &req, &resp)
++	if string(resp.Body()) != "Bearer sk-bf-vk" {
++		t.Fatalf("VK overwritten: %q", resp.Body())
++	}
++	req.Reset()
++	resp.Reset()
++	req.SetRequestURI("/plugins/demo/")
++	s.callNativePluginAPI(parent, &req, &resp)
++	if resp.StatusCode() != 403 {
++		t.Fatalf("recursive native call = %d", resp.StatusCode())
++	}
++}
+diff --git a/transports/bifrost-http/server/server.go b/transports/bifrost-http/server/server.go
+index a8cb585..956a9e2 100644
+--- a/transports/bifrost-http/server/server.go
++++ b/transports/bifrost-http/server/server.go
+@@ -234,8 +234,11 @@ type BifrostHTTPServer struct {
+ 	Client *bifrost.Bifrost
+ 	Config *lib.Config
+ 
+-	Server *fasthttp.Server
+-	Router *router.Router
++	Server              *fasthttp.Server
++	Router              *router.Router
++	pluginUIMu          sync.RWMutex
++	pluginUIs           map[string]schemas.PluginAdminUI
++	pluginUILifecycleMu sync.Mutex
+ 
+ 	// ShellRewriter lets a build rewrite the pre-hydration HTML shell before it
+ 	// is served — the enterprise build uses it to swap in a custom logo.
+@@ -2199,6 +2202,25 @@ func (s *BifrostHTTPServer) updatePluginErrorStatus(name, step string, originalE
+ 
+ // SyncLoadedPlugin syncs a loaded plugin to the Bifrost client and updates the plugin status
+ func (s *BifrostHTTPServer) SyncLoadedPlugin(ctx context.Context, name string, plugin schemas.BasePlugin, placement *schemas.PluginPlacement, order *int) error {
++	s.pluginUILifecycleMu.Lock()
++	defer s.pluginUILifecycleMu.Unlock()
++	return s.syncLoadedPluginLocked(ctx, name, plugin, placement, order)
++}
++
++func (s *BifrostHTTPServer) syncLoadedPluginLocked(ctx context.Context, name string, plugin schemas.BasePlugin, placement *schemas.PluginPlacement, order *int) error {
++	if _, err := s.Config.FindPluginByName(plugin.GetName()); err == nil {
++		previousName, sameConfig := s.Config.GetPluginNameByDisplayName(name)
++		if !sameConfig || previousName != plugin.GetName() {
++			return s.updatePluginErrorStatus(name, "rejecting UI route collision for", fmt.Errorf("plugin name %q is already loaded", plugin.GetName()))
++		}
++	}
++	// Remove the prior handler and wait for its in-flight requests before
++	// replacing or cleaning up this plugin.
++	s.setPluginUI(plugin.GetName(), schemas.PluginAdminUI{})
++	ui, err := s.preparePluginUI(plugin)
++	if err != nil {
++		return s.updatePluginErrorStatus(name, "preparing admin UI for", err)
++	}
+ 	// 2. Register (replaces old version atomically)
+ 	if err := s.Config.ReloadPlugin(plugin); err != nil {
+ 		return s.updatePluginErrorStatus(plugin.GetName(), "registering", err)
+@@ -2227,6 +2249,7 @@ func (s *BifrostHTTPServer) SyncLoadedPlugin(ctx context.Context, name string, p
+ 	// 5. Update plugin status
+ 	s.Config.UpdatePluginOverallStatus(plugin.GetName(), name, schemas.PluginStatusActive,
+ 		[]string{fmt.Sprintf("plugin %s reloaded successfully", name)}, InferPluginTypes(plugin))
++	s.setPluginUI(plugin.GetName(), ui)
+ 	return nil
+ }
+ 
+@@ -2234,6 +2257,11 @@ func (s *BifrostHTTPServer) SyncLoadedPlugin(ctx context.Context, name string, p
+ // The plugin is checked for LLM and MCP interfaces independently and registered
+ // to the appropriate arrays based on which interfaces it implements.
+ func (s *BifrostHTTPServer) ReloadPlugin(ctx context.Context, name string, path *string, pluginConfig any, placement *schemas.PluginPlacement, order *int) error {
++	s.pluginUILifecycleMu.Lock()
++	defer s.pluginUILifecycleMu.Unlock()
++	if previous, ok := s.Config.GetPluginNameByDisplayName(name); ok {
++		s.setPluginUI(previous, schemas.PluginAdminUI{})
++	}
+ 	logger.Debug("reloading plugin %s", name)
+ 	// 1. Instantiate new version
+ 	plugin, err := InstantiatePlugin(ctx, name, path, pluginConfig, s.Config)
+@@ -2261,17 +2289,20 @@ func (s *BifrostHTTPServer) ReloadPlugin(ctx context.Context, name string, path
+ 	if routingResponsesPlugin, ok := plugin.(routing.ResponsesExecutorSetter); ok {
+ 		routingResponsesPlugin.SetResponsesRequestExecutor(s.Client.ResponsesRequest)
+ 	}
+-	return s.SyncLoadedPlugin(ctx, name, plugin, placement, order)
++	return s.syncLoadedPluginLocked(ctx, name, plugin, placement, order)
+ }
+ 
+ // RemovePlugin removes a plugin from the server.
+ // The plugin is removed from both LLM and MCP arrays independently if it exists in them.
+ func (s *BifrostHTTPServer) RemovePlugin(ctx context.Context, displayName string) error {
++	s.pluginUILifecycleMu.Lock()
++	defer s.pluginUILifecycleMu.Unlock()
+ 	// Get the actual plugin name from the display name
+ 	name, ok := s.Config.GetPluginNameByDisplayName(displayName)
+ 	if !ok {
+ 		return dynamicPlugins.ErrPluginNotFound
+ 	}
++	s.setPluginUI(name, schemas.PluginAdminUI{})
+ 
+ 	// Check if plugin implements ObservabilityPlugin before removal
+ 	var isObservability bool
+@@ -2474,6 +2505,9 @@ func (s *BifrostHTTPServer) RegisterAPIRoutes(ctx context.Context, callbacks Ser
+ 	mcpPerUserHeadersHandler.RegisterRoutes(s.Router, middlewares...)
+ 	mcpSessionsHandler.RegisterRoutes(s.Router, middlewares...)
+ 	configHandler.RegisterRoutes(s.Router, middlewares...)
++	if err := s.registerPluginUIRoutes(middlewares...); err != nil {
++		return err
++	}
+ 	oauthHandler.RegisterRoutes(s.Router, middlewares...)
+ 	if pluginsHandler != nil {
+ 		pluginsHandler.RegisterRoutes(s.Router, middlewares...)
+diff --git a/ui/components/sidebar.tsx b/ui/components/sidebar.tsx
+index 663008d..d06bd50 100644
+--- a/ui/components/sidebar.tsx
++++ b/ui/components/sidebar.tsx
+@@ -147,6 +147,7 @@ interface SidebarItem {
+ 	tag?: string;
+ 	new?: boolean;
+ 	isExternal?: boolean;
++	isPluginUI?: boolean;
+ 	queryParam?: string; // Optional: for tab-based subitems (e.g., "client-settings")
+ 	testId?: string; // Optional: pin the data-testid slug across a rename (else derived from title)
+ }
+@@ -318,8 +319,8 @@ const SidebarItemView = ({
+ 			<SidebarMenuButton asChild tooltip={item.title} className={buttonClassName}>
+ 				<a
+ 					href={item.url}
+-					target="_blank"
+-					rel="noopener noreferrer"
++					target={item.isPluginUI ? undefined : "_blank"}
++					rel={item.isPluginUI ? undefined : "noopener noreferrer"}
+ 					data-nav-url={item.url}
+ 					onClick={isSidebarCollapsed ? (e: React.MouseEvent) => e.stopPropagation() : undefined}
+ 				>
+@@ -391,6 +392,8 @@ const SidebarItemView = ({
+ 										>
+ 											{inner}
+ 										</div>
++									) : subItem.isPluginUI ? (
++										<a href={subItem.url} data-testid={`sidebar-subitem-link-${subSlug}`} className={`flex h-7 items-center rounded-sm px-2 ${isSubItemActive ? "bg-sidebar-accent" : "hover:bg-sidebar-accent"}`}>{inner}</a>
+ 									) : (
+ 										<Link
+ 											to={href}
+@@ -450,6 +453,10 @@ const SidebarItemView = ({
+ 									>
+ 										{subInner}
+ 									</SidebarMenuSubButton>
++								) : subItem.isPluginUI ? (
++									<SidebarMenuSubButton asChild className={subItemClassName}>
++										<a href={subItem.url} data-nav-url={subItem.url} data-testid={`sidebar-subitem-link-${subItem.testId ?? slug(subItem.title)}`}>{subInner}</a>
++									</SidebarMenuSubButton>
+ 								) : (
+ 									<SidebarMenuSubButton asChild className={subItemClassName}>
+ 										<Link
+@@ -512,6 +519,13 @@ const compareVersions = (v1: string, v2: string): number => {
+ 
+ export default function AppSidebar() {
+ 	const pathname = useLocation({ select: (l) => l.pathname });
++	const [pluginUIs, setPluginUIs] = useState<{ name: string; title: string; url: string }[]>([]);
++	useEffect(() => {
++		fetch("/api/plugin-ui", { credentials: "same-origin" })
++			.then((response) => response.ok ? response.json() : [])
++			.then((items) => setPluginUIs(Array.isArray(items) ? items : []))
++			.catch(() => setPluginUIs([]));
++	}, [pathname]);
+ 	const search = useLocation({ select: (l) => l.searchStr ?? "" });
+ 	const tsNavigate = useNavigate();
+ 	// Wrapper that accepts arbitrary string URLs (TanStack Router's `to` is
+@@ -676,6 +690,14 @@ export default function AppSidebar() {
+ 						description: "Configure models",
+ 						hasAccess: hasModelProvidersAccess,
+ 					},
++					...pluginUIs.map((plugin) => ({
++						title: plugin.title,
++						url: plugin.url,
++						icon: Puzzle,
++						description: plugin.title,
++						hasAccess: hasSettingsAccess,
++						isPluginUI: true,
++					})),
+ 					{
+ 						title: "Budgets & Limits",
+ 						url: "/workspace/model-limits",
+@@ -1112,6 +1134,7 @@ export default function AppSidebar() {
+ 			hasClusterConfigAccess,
+ 			isAdaptiveRoutingAllowed,
+ 			hasSettingsAccess,
++			pluginUIs,
+ 			hasPromptRepositoryAccess,
+ 			hasSkillsRepositoryAccess,
+ 			hasAccessProfilesAccess,
+@@ -1277,6 +1300,8 @@ export default function AppSidebar() {
+ 					const url = target.url;
+ 					if (target.isExternal || e.metaKey || e.ctrlKey) {
+ 						window.open(url, "_blank", "noopener,noreferrer");
++					} else if (url.startsWith("/plugins/")) {
++						window.location.assign(url);
+ 					} else {
+ 						navigate(url);
+ 					}
+@@ -1572,4 +1597,4 @@ export default function AppSidebar() {
+ 			<PoweredByBifrost />
+ 		</Sidebar>
+ 	);
+-}
+\ No newline at end of file
++}

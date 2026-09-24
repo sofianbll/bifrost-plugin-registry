@@ -1,84 +1,77 @@
-# Bifrost · Plugin Registry — 0.1.0
+# Bifrost Registry
 
-**Implémentation source d’une première version.** Le moteur Go et le panneau local sont construits et testés. L’adaptateur natif `.so` est fourni en source, mais **n’a pas été compilé ni chargé dans Bifrost dans cet environnement**. Ce n’est pas encore une livraison de production ni la réalisation intégrale du plan initial.
+**A model catalog and access policies for Bifrost virtual keys.**
 
-## Démarrer le panneau maintenant
+[![CI](https://github.com/sofianbll/bifrost-plugin-registry/actions/workflows/ci.yml/badge.svg)](https://github.com/sofianbll/bifrost-plugin-registry/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/badge/release-v0.2.0--rc.1-blue)](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.2.0-rc.1)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-Depuis ce dossier, avec Go 1.23 ou ultérieur :
+English · [Français](README.fr.md)
 
-```bash
-go run ./cmd/registry serve --config configs/registry.json
-```
+Organize models into reusable groups, choose what each virtual key can access, and compare the published catalog with the actual `/v1/models` response. Registry adds a management interface to [Bifrost](https://github.com/maximhq/bifrost); Bifrost continues to handle inference, credentials, routing and budgets.
 
-Ouvrir `http://127.0.0.1:8099/model-registry`. Copier le jeton d’administration affiché dans le terminal. Le catalogue initial est vide et n’autorise aucun modèle.
+> **Release candidate.** `v0.2.0-rc.1` is qualified with Bifrost 2.2.2 on Linux ARM64 and AMD64/musl. Provider capability certification and production deployment are outside those checks. This is an independent project, not an official Maxim/Bifrost product.
 
-Un binaire **d’administration seulement**, Linux amd64, est également fourni :
+## What it does
 
-```bash
-chmod +x dist/registry-linux-amd64
-./dist/registry-linux-amd64 serve --config configs/registry.json
-```
+- **Catalog:** reference models and provider accesses, Bifrost/Models.dev metadata, field provenance and manual corrections that survive refreshes.
+- **Groups and keys:** shared selections, additions and exclusions per key, naming formats, preview, publication and independent readback.
+- **Native coexistence:** existing Bifrost keys retain their behavior until explicitly adopted; Registry cannot expand their native permissions.
+- **Import and export:** versioned JSON snapshots with preview and backup, flat CSV export and an offline legacy datasheet converter.
+- **Administration:** embedded React interface, light/dark themes, a separate admin token and persistent configuration.
 
-Sur Mac Apple Silicon, utiliser la première commande ou construire `go build -o registry ./cmd/registry`. Le binaire Linux inclus ne s’exécute pas nativement sur macOS.
+## Install
 
-Pour explorer les écrans avec des données synthétiques, lancer le panneau avec `--config configs/registry.demo.json`. **Tous les providers, modèles amont et identifiants de cette démo sont des fixtures : aucune disponibilité réelle n’est annoncée.** Ne jamais charger cette configuration dans une instance de production.
+The release contains **two separate artifacts** for each architecture:
 
-## Ce qui est implémenté
-
-| Zone | Comportement |
+| Artifact | Purpose |
 | --- | --- |
-| Modèles | CRUD, alias, source Bifrost, clés provider existantes, cible amont, modèle canonique, famille native, créateur, famille de classement, capacités, endpoints et origine de vérification. |
-| Groupes | Sélections explicites, filtres dynamiques, exclusions prioritaires. |
-| Clés virtuelles | Association à un identifiant natif et à une empreinte du jeton ; groupes et sources autorisés ; noms `model`, `provider/model` ou `both`. |
-| Collisions | Préférence explicite pour un alias court partagé. Pas de sélection implicite entre sources. |
-| `/v1/models` | Moteur de projection : intersection avec la liste native autorisée, sans métadonnées riches. |
-| Requêtes | Moteur de garde : résolution vers `provider/alias`, validation des endpoints, contrôle du primaire et des fallbacks explicites. |
-| Administration | Interface claire/sombre, recherche, aperçu par clé, import/export, validation serveur, sauvegarde atomique et contrôle de révision. |
-| Déploiement | Plan d’alias natifs et de permissions attendues ; fusion non destructive des alias dans **une copie** de `config.json`. |
+| Bifrost Docker image archive | The complete Bifrost 2.2.2 gateway compiled with dynamic loading from unmodified upstream sources. **No Registry plugin inside.** |
+| Registry `.so` | Install through its direct, versioned URL in Bifrost. Includes the UI and serves it on port `8099`. |
 
-Le plugin ne crée pas de proxy d’inférence. Le panneau n’appelle aucun fournisseur. Les alias amont, l’authentification, les budgets, les prix et les réponses restent confiés à Bifrost. La compatibilité réelle de l’adaptateur avec la version installée reste à tester.
+1. Download the matching image archive from [Releases](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.2.0-rc.1), verify its checksum and load it with `docker load -i <archive.tar.gz>`.
+2. Configure persistent storage and the two admin credentials, then add the matching `.so` URL through Bifrost's plugin settings.
+3. Open the Registry panel on `http://127.0.0.1:8099/model-registry`.
 
-## Limites à connaître avant installation
+**[Installation, configuration and rollback →](docs/INSTALL.md)**
 
-**Intégration native non validée.** `go test ./...` n’inclut pas `native/main.go`, protégé par le tag de build `bifrost`. Les tests locaux ne prouvent pas la compatibilité ABI, le comportement de la gouvernance, l’ordre effectif des hooks ou le support des endpoints par vos providers.
+The published `.so` requires the compatible gateway build. It is not a drop-in plugin for the tested static official image. Plugin updates require a gateway restart; native sidebar integration is deferred.
 
-**Panneau séparé.** L’interface n’est pas injectée dans la navigation du dashboard Bifrost ou dans sa page Virtual Keys. Elle est servie sur un port local ; le plugin peut l’héberger dans le même processus que Bifrost, ou le CLI peut servir à préparer une configuration hors ligne.
+## Develop
 
-**Application native manuelle.** Il n’y a ni connexion à l’API d’administration Bifrost, ni import automatique de `/models`, ni synchronisation automatique des prix/quotas. Le plan et la fusion des alias ne mettent pas à jour les permissions des clés virtuelles. Ces permissions et les sélections de clés provider doivent être configurées dans Bifrost avant activation.
-
-**Périmètre HTTP restreint.** Sont prévus `GET models`, et les POST JSON configurés parmi `chat/completions`, `responses`, `completions`, `embeddings`, `images/generations`, `audio/speech`, sous `/v1/`, `/openai/v1/` ou `/openai/`. `GET models/{id}`, multipart, WebSocket, Realtime, batches, routes Gemini/Anthropic natives et accès SDK Go direct ne sont pas couverts. Les appels cœur sans session HTTP Registry sont refusés : cela peut affecter des sondes internes de Bifrost et doit être vérifié en staging.
-
-**Noms des réponses.** Cette version ne réécrit pas le champ `model` des réponses d’inférence ou des fragments de streaming. Elle ne modifie que les noms de requête, les fallbacks explicites et la liste des modèles.
-
-**Un seul writer.** Le Store fournit un verrou et une révision dans un processus, pas un verrou distribué. Ne pas faire écrire simultanément un CLI standalone et l’administration du plugin dans le même fichier. Une modification directe du fichier n’est pas rechargée automatiquement par le plugin ; redémarrer/recharger le plugin, ou utiliser son propre panneau embarqué.
-
-## Construire le vrai plugin
-
-Le build doit partir du **checkout Bifrost correspondant à votre installation**, avec les assets UI réellement construits et la chaîne Go/C compatible. Le script produit le gateway et le `.so` ensemble, sans toucher à votre instance :
+See [CONTRIBUTING.md](CONTRIBUTING.md) for requirements and the full check command. Start with:
 
 ```bash
-./scripts/build-with-bifrost.sh /chemin/vers/bifrost ./dist/native
+git clone https://github.com/sofianbll/bifrost-plugin-registry.git
+cd bifrost-plugin-registry
+make check
 ```
 
-Lire [les instructions de build](docs/BUILD.md), puis [la checklist de validation native](docs/ACCEPTANCE.md). Le fragment `configs/plugin.fragment.json` doit être **fusionné**, jamais substitué à la configuration existante.
-
-## Fichiers utiles
+The standalone Go CLI is a separate configuration tool. Compiling the native `.so` requires a matching Bifrost checkout and Go/C toolchain; follow [the native build guide](docs/BUILD.md).
 
 ```text
-native/main.go                  adaptateur des hooks Bifrost, build séparé
-internal/registry/              moteur déterministe et tests unitaires
-internal/admin/                 API locale et interface embarquée
-cmd/registry/                   CLI d’administration / validation / export
-configs/registry.json           configuration initiale vide
-configs/registry.demo.json      démonstration synthétique, hors production
-configs/plugin.fragment.json    fragment d’installation, pas un config complet
-scripts/build-with-bifrost.sh   build commun gateway + .so + sonde ABI
-scripts/test.sh                 tests Go avec détecteur de courses
-integration/native_probe.go    sonde plugin.Open et signatures, à compiler avec Bifrost
-integration/live_smoke.py       tests HTTP sur votre instance, opt-in explicite
-reports/                       résultats réellement obtenus et captures
+cmd/registry/      Standalone administration CLI
+internal/          Registry engine, persistence and admin API
+native/            Bifrost plugin hooks
+ui/                React interface and its upstream attribution
+configs/           Empty configuration, synthetic example and plugin fragment
+integration/       Native HTTP, image and client probes
+packaging/         Gateway image recipe
+scripts/           Build, test, import and packaging commands
+docs/              Guides, design decisions and historical notes
+reports/           Dated validation evidence
 ```
 
-La [référence de configuration](docs/CONFIGURATION.md), la [sécurité](docs/SECURITY.md), les [origines vérifiées](docs/SOURCES.md) et les [résultats des tests](reports/VALIDATION.md) font partie du paquet.
+## Documentation and validation
 
-Projet non officiel, sans affiliation à Maxim/Bifrost. Aucun secret réel ni configuration de votre installation n’a été utilisé.
+[Documentation index](docs/README.md) · [Current status](STATUS.md) · [Changelog](CHANGELOG.md) · [Security](SECURITY.md)
+
+The [release evidence](reports/v1-final/README.md) records the pinned source and artifact hashes, ABI checks, per-key catalogs, persistence, adoption and rollback. ARM64 and AMD64 each passed 42 catalog and 54 standalone-plugin checks. Hermes was exercised with a synthetic provider; this is not a claim about real provider inference. Routine CI validates the source without rebuilding or certifying the native gateway/plugin pair.
+
+## Contribute and report issues
+
+Use [GitHub Issues](https://github.com/sofianbll/bifrost-plugin-registry/issues) for bugs and feature proposals. Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request. Report vulnerabilities privately through [SECURITY.md](SECURITY.md).
+
+## License
+
+Project-authored code is [MIT licensed](LICENSE). Vendored Bifrost UI code and assets retain their [Apache-2.0 license](ui/LICENSE); Geist fonts retain their [SIL Open Font License](ui/public/static/fonts/OFL.txt). See [third-party notices](THIRD_PARTY_NOTICES.md) and [upstream provenance](ui/PROVENANCE.md).

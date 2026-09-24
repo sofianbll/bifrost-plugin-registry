@@ -1,0 +1,159 @@
+--- a/framework/plugins/soloader.go
++++ b/framework/plugins/soloader.go
+@@ -2,10 +2,15 @@
+ 
+ import (
+ 	"context"
++	"crypto/sha256"
+ 	"fmt"
++	"io"
+ 	"net/http"
++	"os"
++	"path/filepath"
+ 	"plugin"
+ 	"strings"
++	"sync"
+ 
+ 	"github.com/maximhq/bifrost/core/network"
+ 	"github.com/maximhq/bifrost/core/schemas"
+@@ -18,6 +23,33 @@
+ 	downloadClient *http.Client
+ }
+ 
++// plugin.Open caches by filename for the lifetime of the process. URL downloads
++// have a new filename each time, so remember their loaded module by content.
++// ponytail: one process-wide lock serializes plugin.Open; split it if plugin-load throughput matters.
++var openedSharedObjects = struct {
++	sync.Mutex
++	byDigest map[[sha256.Size]byte]*plugin.Plugin
++	bySource map[string][sha256.Size]byte
++}{
++	byDigest: make(map[[sha256.Size]byte]*plugin.Plugin),
++	bySource: make(map[string][sha256.Size]byte),
++}
++
++func pluginDigest(path string) ([sha256.Size]byte, error) {
++	file, err := os.Open(path)
++	if err != nil {
++		return [sha256.Size]byte{}, err
++	}
++	defer file.Close()
++	hash := sha256.New()
++	if _, err := io.Copy(hash, file); err != nil {
++		return [sha256.Size]byte{}, err
++	}
++	var digest [sha256.Size]byte
++	copy(digest[:], hash.Sum(nil))
++	return digest, nil
++}
++
+ // NewSharedObjectPluginLoader constructs a loader whose plugin-download client is
+ // additionally permitted to reach the hosts/CIDRs in allow. allow may be nil for the
+ // default (all private/loopback/CGNAT/link-local targets blocked).
+@@ -26,8 +58,21 @@
+ }
+ 
+ func (l *SharedObjectPluginLoader) openPlugin(dp *DynamicPlugin) (*plugin.Plugin, error) {
++	source := dp.Path
++	remote := strings.HasPrefix(source, "http")
++	if !remote {
++		absolute, err := filepath.Abs(source)
++		if err != nil {
++			return nil, err
++		}
++		source, err = filepath.EvalSymlinks(absolute)
++		if err != nil {
++			return nil, err
++		}
++		dp.Path = source
++	}
+ 	// Checking if path is URL or file path
+-	if strings.HasPrefix(dp.Path, "http") {
++	if remote {
+ 		client := l.downloadClient
+ 		if client == nil {
+ 			client = NewPluginDownloadClient(nil) // zero-value loader: safe default
+@@ -38,11 +83,28 @@
+ 			return nil, err
+ 		}
+ 		dp.Path = tempPath
++		defer os.Remove(tempPath)
++	}
++	digest, err := pluginDigest(dp.Path)
++	if err != nil {
++		return nil, err
++	}
++	openedSharedObjects.Lock()
++	defer openedSharedObjects.Unlock()
++	if previous, exists := openedSharedObjects.bySource[source]; exists && previous != digest {
++		return nil, fmt.Errorf("plugin at %q changed; restart required to load new binary", source)
++	}
++	if pluginObj := openedSharedObjects.byDigest[digest]; pluginObj != nil {
++		openedSharedObjects.bySource[source] = digest
++		dp.plugin = pluginObj
++		return pluginObj, nil
+ 	}
+ 	pluginObj, err := plugin.Open(dp.Path)
+ 	if err != nil {
+ 		return nil, err
+ 	}
++	openedSharedObjects.byDigest[digest] = pluginObj
++	openedSharedObjects.bySource[source] = digest
+ 	dp.plugin = pluginObj
+ 	return pluginObj, nil
+ }
+--- a/framework/plugins/soplugin_test.go
++++ b/framework/plugins/soplugin_test.go
+@@ -10,6 +10,7 @@
+ 	"path/filepath"
+ 	"runtime"
+ 	"strings"
++	"sync/atomic"
+ 	"testing"
+ 	"time"
+ 
+@@ -848,3 +849,44 @@
+ 	require.Error(t, err) // fails at plugin.Open - the bytes aren't a real .so
+ 	assert.NotContains(t, err.Error(), "non-public address")
+ }
++
++func TestSharedObjectPluginLoader_ReusesDownloadedPlugin(t *testing.T) {
++	pluginPath := filepath.Join(t.TempDir(), "hello-world.so")
++	source := filepath.Join(t.TempDir(), "main.go")
++	require.NoError(t, os.WriteFile(source, []byte("package main\nfunc GetName() string { return \"hello-world\" }\nfunc Cleanup() error { return nil }\n"), 0600))
++	build := exec.Command("go", "build", "-buildmode=plugin", "-o", pluginPath, source)
++	build.Env = append(os.Environ(), "CGO_ENABLED=1", "GOWORK=off")
++	output, err := build.CombinedOutput()
++	require.NoError(t, err, string(output))
++	payload, err := os.ReadFile(pluginPath)
++	require.NoError(t, err)
++	var gets atomic.Int32
++	var changed atomic.Bool
++	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
++		gets.Add(1)
++		if changed.Load() {
++			_, _ = w.Write(append(payload, 0))
++			return
++		}
++		_, _ = w.Write(payload)
++	}))
++	defer server.Close()
++	u, err := url.Parse(server.URL)
++	require.NoError(t, err)
++	allow, err := network.NewAllowlist([]string{u.Hostname()})
++	require.NoError(t, err)
++	loader := NewSharedObjectPluginLoader(allow)
++	pluginURL := server.URL + "/hello-world.so"
++
++	for i := range 2 {
++		loaded, err := loader.LoadPlugin(pluginURL, map[string]any{"attempt": i})
++		require.NoError(t, err)
++		assert.Equal(t, "hello-world", loaded.GetName())
++	}
++	assert.EqualValues(t, 2, gets.Load(), "each load must re-download through the protected client")
++
++	changed.Store(true)
++	_, err = loader.LoadPlugin(pluginURL, nil)
++	require.ErrorContains(t, err, "restart required")
++	assert.EqualValues(t, 3, gets.Load())
++}

@@ -1,0 +1,23 @@
+name: Feature request / Proposition
+description: Describe a concrete use case / Décrire un besoin concret
+labels: [needs-triage]
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: Need / Besoin
+      description: What are you trying to do, and what blocks you today? / Quel usage est bloqué aujourd'hui ?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior / Comportement souhaité
+      description: Describe the smallest useful outcome. / Décrivez le résultat utile le plus simple.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance example / Exemple de validation
+      description: Give one example that would show this works. / Donnez un exemple qui prouverait que cela fonctionne.

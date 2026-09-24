@@ -1,75 +1,79 @@
-# Installation du plugin dans Bifrost — procédure validée
+# Install Registry
 
-Date : 2026-09-23. Validée de bout en bout sur un staging Pulsar (Alpine/musl, x86_64, Bifrost v2.2.1 dynamique).
+English · [Français](RELEASE.md)
 
-## Pourquoi on ne « déclare pas juste le .so » dans le gateway existant
+This guide targets **[v0.2.0-rc.1](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.2.0-rc.1)** with Bifrost 2.2.2. Use a staging instance before migrating an existing deployment.
 
-Le binaire officiel des images `maximhq/bifrost` est **statiquement lié** (`ldd /app/main` → « Not a valid dynamic program »). Un binaire statique **ne peut pas charger de plugin Go** : `plugin.Open` exige un binaire dynamique. Vérifié sur la prod le 2026-09-23.
+## 1. Download the matching pair
 
-L'installation = **remplacer le binaire du gateway par le binaire dynamique buildé en même temps que le `.so`**, monter le `.so`, déclarer le plugin dans la config. Rien d'autre ne change (même image de base, mêmes libs, entrypoint officiel conservé).
+Choose `amd64` for an x86_64 Linux host or `arm64` for an ARM64 Linux host. The release provides:
 
-## Procédure (3 mounts + 1 section de config)
+- `bifrost-dynamic-2.2.2-linux-{arch}.tar.gz`: a Docker image containing the complete Bifrost gateway compiled with dynamic loading, **without the Registry plugin**.
+- `bifrost-registry-v0.2.0-rc.1-linux-{arch}.so`: the separately installed Registry plugin, including its interface.
+- `SHA256SUMS` and a provenance/license bundle.
 
-À partir des artefacts `/home/sofian/build/out/native-v1/` (Pulsar) — produits par `build-registry-plugin.sh` :
+Verify the downloaded files against `SHA256SUMS`. For example, on an AMD64 host:
 
-```yaml
-volumes:
-  # 1. binaire dynamique par-dessus le binaire statique officiel
-  - /home/sofian/build/out/native-v1/bifrost-http:/app/main:ro
-  # 2. le plugin
-  - /home/sofian/build/out/native-v1/bifrost-registry.so:/app/plugins/bifrost-registry.so:ro
-  # 3. le RÉPERTOIRE du registre (jamais le seul fichier : sauvegarde atomique par rename)
-  - /chemin/vers/registry:/app/registry
+```bash
+sha256sum bifrost-dynamic-2.2.2-linux-amd64.tar.gz
+# Compare the result with the same filename in SHA256SUMS.
+docker load -i bifrost-dynamic-2.2.2-linux-amd64.tar.gz
 ```
 
-Section `plugins` **fusionnée** dans `config.json` (jamais substituée — voir `configs/plugin.fragment.json`) :
+On macOS, `shasum -a 256 <file>` provides the equivalent checksum. The loaded image tag is `bifrost-dynamic:2.2.2-go1.27.1-amd64` (or `-arm64`).
 
-```json
-"plugins": [
-  {
-    "name": "bifrost-registry",
-    "enabled": true,
-    "path": "/app/plugins/bifrost-registry.so",
-    "placement": "pre_builtin",
-    "order": 0,
-    "config": {
-      "registry_path": "/app/registry/registry.json",
-      "admin_listen": "0.0.0.0:8099",
-      "admin_token_env": "REGISTRY_ADMIN_TOKEN"
-    }
-  }
-]
+The gateway and plugin must match architecture, Go toolchain, dependencies, build settings and libc. The published pair uses Linux/musl and Go 1.27.1. The tested static official Bifrost image cannot load this `.so`. These are two separate installation steps; starting the image does not install the plugin.
+
+## 2. Configure the gateway and credentials
+
+Keep the existing Bifrost providers, keys, budgets and routing configuration. Use the image's normal entrypoint and a **writable, persistent** volume mounted at `/app/data`. Before replacing an existing gateway image, stop it and back up the **complete** volume, including SQLite and WAL files. Never run two writers against that volume.
+
+For a new gateway, configure native Bifrost administration and providers first. Supply these separate environment values through your secret manager or a private environment file:
+
+| Variable | Purpose |
+| --- | --- |
+| `REGISTRY_ADMIN_TOKEN` | At least 32 characters; opens the Registry panel. |
+| `REGISTRY_BIFROST_AUTH` | Complete `Authorization` header for the native Bifrost admin API, for example `Basic <base64(username:password)>`. Must match the gateway's configured authentication. |
+
+Keep credentials out of committed JSON and logs. Expose the Registry port only on host loopback, for example `127.0.0.1:8099:8099`. Inside the container, `admin_listen` must be `0.0.0.0:8099` for that mapping to work. The gateway's usual port is `8080`.
+
+## 3. Install the plugin by URL
+
+Use the URL of the **`.so` file**, not the repository or release page:
+
+**AMD64**
+
+```text
+https://github.com/sofianbll/bifrost-plugin-registry/releases/download/v0.2.0-rc.1/bifrost-registry-v0.2.0-rc.1-linux-amd64.so
 ```
 
-Puis `REGISTRY_ADMIN_TOKEN=<secret long>` dans l'env du conteneur.
+**ARM64**
 
-## Pièges rencontrés et résolus (staging 2026-09-23)
+```text
+https://github.com/sofianbll/bifrost-plugin-registry/releases/download/v0.2.0-rc.1/bifrost-registry-v0.2.0-rc.1-linux-arm64.so
+```
 
-1. **`registry.json` doit exister** avant le premier boot du plugin, sinon `Init failed: open /app/registry/registry.json: no such file or directory` et le plugin passe en statut `error`. Amorcer avec `configs/registry.json` (schéma vide).
-2. **`admin_listen` à `0.0.0.0:8099` dans le conteneur** si le port est publié : une écoute `127.0.0.1` interne n'est joignable que depuis l'intérieur du conteneur (docker-proxy forward vers l'eth0). Côté hôte, publier **uniquement** `127.0.0.1:8099:8099`.
-3. **Pas de restart automatique du plugin en erreur** : après correction du fichier, un `docker restart` suffit — le statut repasse à `active`.
-4. En mode DB (défaut), la config du plugin est stockée en base au premier boot ; le message `no config file change for plugin bifrost-registry, keeping stored config` est normal.
+Add the plugin through Bifrost's native plugin settings or `POST /api/plugins`. Merge the [plugin fragment](../configs/plugin.fragment.json) into the existing configuration, replacing its placeholder `path` with the matching URL. Keep:
 
-## Vérifications (résultats obtenus sur le staging)
+- `placement: "post_builtin"` and `order: 0`;
+- `registry_path: "/app/data/registry/registry.json"`;
+- `admin_listen: "0.0.0.0:8099"`;
+- `admin_token_env: "REGISTRY_ADMIN_TOKEN"`;
+- `bifrost_auth_env: "REGISTRY_BIFROST_AUTH"`;
+- `bifrost_url: "http://127.0.0.1:8080"` when plugin and gateway share the same container.
 
-| Contrôle | Résultat |
-|---|---|
-| `docker logs … \| grep "plugin status: bifrost-registry"` | `active` |
-| Panneau `GET :8099/model-registry` (Bearer token) | HTTP 200 |
-| `GET :8099/api/status` | `{"mode":"local-control-plane","version":"0.1.0",…}` |
-| Garde inférence : `POST /v1/chat/completions` sans VK | HTTP 401 `registry_virtual_key_required` (le hook `pre_builtin` intercepte bien dans le vrai pipeline) |
-| Health gateway | `/health` → 200 |
+The plugin initializes a missing Registry file. Its UI assets are embedded; no separate frontend mount is needed. Open **http://127.0.0.1:8099/model-registry** and enter the Registry admin token. It stays in tab memory and must be entered again after reloading.
 
-## Rollback
+Verify the plugin is `active` in `GET /api/plugins` and present in `GET /api/plugins/loaded`. Publish a small test catalog and read back `/v1/models` with a dedicated virtual key. Existing native keys remain unmanaged until explicitly adopted; adoption cannot expand their native permissions.
 
-Retirer les 3 mounts et la section `plugins` (ou repasser sur l'image officielle sans mount de `/app/main`), recréer le conteneur. La base de données du gateway n'est pas modifiée par le plugin hors de ses propres tables.
+## Upgrade and rollback
 
-## Référence staging
+Stop the gateway and back up **all of `/app/data`** before an update. Save the new compatible `.so` URL and restart the gateway; Bifrost downloads the saved URL at startup. Disabling and re-enabling a Go plugin without restarting is not a supported update path (`plugin already loaded`). Verify loading, saved data and the test key again.
 
-Stack complète : `/home/sofian/build/bifrost-staging/` sur Pulsar (compose, config, staging.env en 0600, `registry/`). Port gateway `100.65.38.100:9210`, panneau `127.0.0.1:8099`. 9209 est déjà pris par Synapse.
+To roll back, stop the gateway, restore the complete stopped-volume backup, restore the prior gateway image if changed, and restart. This restores the Bifrost database, plugin URL and Registry data together. Pointing an old plugin at already-migrated data is not the tested rollback procedure. Keep the old plugin bytes available at their versioned URL.
 
-## Reste avant production (checklist `docs/ACCEPTANCE.md`)
+## Qualification and limits
 
-- Tests de la garde et de la projection `/v1/models` **avec les providers et VK réels** (copie de la prod ou fenêtre de maintenance)
-- Décision propriété des alias (décision 3 de `DECISIONS.md`) si le plugin devient l'étage de nommage canonique
-- Seul writer : ne pas faire écrire le CLI standalone et le panneau embarqué sur le même `registry.json`
+[Release evidence](../reports/v1-final/README.md) covers both architectures, separate URL installation, persistence, native adoption and an ARM64 upgrade/rollback. The installed Hermes client was tested against a synthetic provider. Real-provider capabilities, a production rollout and native sidebar integration are not certified by these checks.
+
+The previous Bifrost 2.2.1 binary-mount recipe is retained in [the historical archive](archive/installation-2.2.1.md).

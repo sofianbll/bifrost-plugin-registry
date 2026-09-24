@@ -1,0 +1,56 @@
+{
+  "scope": "packaged image plus separate plugin URL; synthetic provider; no inference",
+  "started_at_utc": "2026-09-24T17:19:08.181035+00:00",
+  "image": "bifrost-dynamic:2.2.2-go1.27.1-arm64",
+  "plugin_sha256": "4c20d02747b0de86b44f9a0f6fa3b11c8b38234180f96e8044847e02ea97a9a2",
+  "checks": [
+    {
+      "name": "packaged entrypoint and command",
+      "pass": true
+    },
+    {
+      "name": "packaged app directory and user",
+      "pass": true
+    },
+    {
+      "name": "image exposes gateway port",
+      "pass": true
+    },
+    {
+      "name": "packaged gateway binary hashed",
+      "pass": true
+    },
+    {
+      "name": "no plugin shared object bundled under /app",
+      "pass": true
+    }
+  ],
+  "prior_probe": "reports/plugin-standalone/final/report.json (38 checks; separate binary proof)",
+  "image_id": "sha256:8737446e1b7dc0c7e8542ff46d0d41da7c55f0b0d398bc6eb4f35bb4a351b933",
+  "architecture": "linux/arm64",
+  "packaged_binary_sha256": "3d1af72db12d2904cf4e7d8a78814d46a99f521791f7374ca42c1bd1705d537f",
+  "gateway_state": {
+    "status": "running",
+    "exit_code": 0
+  },
+  "gateway_log_tail": "info\",\"time\":\"2026-09-24T17:19:11Z\",\"message\":\"[configstore] finished migration add_mcp_code_mode_binding_level_column\"}\n{\"level\":\"info\",\"time\":\"2026-09-24T17:19:11Z\",\"message\":\"[configstore] starting migration normalize_mcp_client_names\"}\n{\"level\":\"info\",\"time\":\"2026-09-24T17:19:11Z\",\"message\":\"[configstore] normalize_mcp_client_names: processing 0 mcpClients\"}\n{\"level\":\"info\",\"time\":\"2026-09-24T17:19:11Z\",\"message\":\"[configstore] finished migration normalize_mcp_client_names\"}\n{\"level\":\"info\",\"time\":\"2026-09-24T17:19:11Z\",\"message\":\"[configstore] starting migration move_keys_to_provider_config\"}\n{\"level\":\"info\",\"time\":\"2026-09-24T17:19:11Z\",\"message\":\"[configstore] move_keys_to_provider_config: creating table TableVirtualKeyProviderConfigKey\"}\n{\"level\":\"info\",\"time\":\"2026-09-24T17:19:11Z\",\"message\":\"[configstore] move_keys_to_provider_config: processing 0 oldAssociations\"}\n{\"level\":\"info\",\"time\":\"2026-09-24T17:19:11Z\",\"message\":\"[configstore] move_keys_to_provider_config: dropping table governance_virtual_key_keys\"}\n{\"level\":\"info\",\"time\":\"2026-09-24T17:19:11Z\",\"message\":\"[configstore] finished migration move_keys_to_provider_config\"}\n{\"level\":\"info\",\"time\":\"2026-09-24T17:19:11Z\",\"message\":\"[configstore] starting migration add_plugin_version_column\"}\n{\"level\":\"info\",\"time\":\"2026-09-24T17:19:11Z\",\"message\":\"[configstore] finished migration add_plugin_version_column\"}\n{\"level\":\"info\",\"time\":\"2026-09-24T17:19:11Z\",\"message\":\"[configstore] starting migration add_send_back_raw_request_columns\"}\n{\"level\":\"info\",\"time\":\"2026-09-24T17:19:11Z\",\"message\":\"[configstore] finished migration add_send_back_raw_request_columns\"}\n{\"level\":\"info\",\"time\":\"2026-09-24T17:19:11Z\",\"message\":\"[configstore] starting migration add_config_hash_column\"}\n{\"level\":\"info\",\"time\":\"2026-09-24T17:19:11Z\",\"message\":\"[configstore] finished migration add_config_hash_column\"}\n{\"level\":\"info\",\"time\":\"2026-09-24T17:19:11Z\",\"message\":\"[configstore] starting migration add_virtual_key_config_hash_column\"}\n",
+  "error": "gateway has no published ports",
+  "error_at": [
+    {
+      "function": "host",
+      "line": 220
+    },
+    {
+      "function": "start_gateway",
+      "line": 151
+    }
+  ],
+  "cleanup": {
+    "registry-probe-gateway-b3120ec84ae4": true,
+    "registry-probe-fixture-b3120ec84ae4": true,
+    "network": true,
+    "volume": true
+  },
+  "passed": false,
+  "finished_at_utc": "2026-09-24T17:19:11.626542+00:00"
+}

@@ -1,0 +1,30 @@
+name: Bug report / Signalement de bug
+description: Report a reproducible problem / Signaler un problème reproductible
+labels: [needs-triage]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / Problème
+      description: What happened, and what did you expect? / Résultat obtenu et attendu.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce / Étapes de reproduction
+      description: Include the smallest reproducible example. / Donnez le plus petit exemple reproductible.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version and environment / Version et environnement
+      placeholder: Registry version, Bifrost version, OS, architecture
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Sanitized evidence / Preuves sans secrets
+      description: Remove tokens, keys, private URLs, and personal data before sharing logs or screenshots.

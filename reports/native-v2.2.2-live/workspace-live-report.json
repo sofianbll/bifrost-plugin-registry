@@ -1,0 +1,266 @@
+{
+  "timestamp": "2026-09-23T22:32:09.997387+00:00",
+  "target": "http://127.0.0.1:8082",
+  "inference_requested": true,
+  "checks": [
+    {
+      "check": "registry snapshot",
+      "passed": true,
+      "status": 200
+    },
+    {
+      "check": "workspace read",
+      "passed": true,
+      "status": 200
+    },
+    {
+      "check": "workspace save",
+      "passed": true,
+      "status": 200,
+      "phase": null
+    },
+    {
+      "check": "stale revision rejected",
+      "passed": true,
+      "status": 409
+    },
+    {
+      "check": "isolated group name",
+      "passed": true
+    },
+    {
+      "check": "workspace save",
+      "passed": true,
+      "status": 200,
+      "phase": null
+    },
+    {
+      "check": "native key create",
+      "passed": true,
+      "status": 201
+    },
+    {
+      "check": "native key create",
+      "passed": true,
+      "status": 201
+    },
+    {
+      "check": "workspace save",
+      "passed": true,
+      "status": 200,
+      "phase": null
+    },
+    {
+      "check": "readback API",
+      "passed": true,
+      "status": 200
+    },
+    {
+      "check": "exact independent readback",
+      "passed": true,
+      "state": "verified",
+      "expected": [
+        "gpt-6-luna"
+      ],
+      "actual": [
+        "gpt-6-luna"
+      ]
+    },
+    {
+      "check": "readback API",
+      "passed": true,
+      "status": 200
+    },
+    {
+      "check": "exact independent readback",
+      "passed": true,
+      "state": "verified",
+      "expected": [
+        "gpt-6-luna"
+      ],
+      "actual": [
+        "gpt-6-luna"
+      ]
+    },
+    {
+      "check": "workspace save",
+      "passed": true,
+      "status": 200,
+      "phase": null
+    },
+    {
+      "check": "readback API",
+      "passed": true,
+      "status": 200
+    },
+    {
+      "check": "exact independent readback",
+      "passed": true,
+      "state": "verified",
+      "expected": [
+        "CLI PROXY/gpt-6-luna",
+        "gpt-6-luna"
+      ],
+      "actual": [
+        "CLI PROXY/gpt-6-luna",
+        "gpt-6-luna"
+      ]
+    },
+    {
+      "check": "readback API",
+      "passed": true,
+      "status": 200
+    },
+    {
+      "check": "exact independent readback",
+      "passed": true,
+      "state": "verified",
+      "expected": [
+        "gpt-6-luna"
+      ],
+      "actual": [
+        "gpt-6-luna"
+      ]
+    },
+    {
+      "check": "workspace save",
+      "passed": true,
+      "status": 200,
+      "phase": null
+    },
+    {
+      "check": "readback API",
+      "passed": true,
+      "status": 200
+    },
+    {
+      "check": "exact independent readback",
+      "passed": true,
+      "state": "verified",
+      "expected": [
+        "CLI PROXY/gpt-6-luna",
+        "gpt-6-luna"
+      ],
+      "actual": [
+        "CLI PROXY/gpt-6-luna",
+        "gpt-6-luna"
+      ]
+    },
+    {
+      "check": "readback API",
+      "passed": true,
+      "status": 200
+    },
+    {
+      "check": "exact independent readback",
+      "passed": true,
+      "state": "verified",
+      "expected": [
+        "gpt-6-luna",
+        "gpt-6-sol"
+      ],
+      "actual": [
+        "gpt-6-luna",
+        "gpt-6-sol"
+      ]
+    },
+    {
+      "check": "workspace save",
+      "passed": true,
+      "status": 200,
+      "phase": null
+    },
+    {
+      "check": "native key rename",
+      "passed": true
+    },
+    {
+      "check": "readback API",
+      "passed": true,
+      "status": 200
+    },
+    {
+      "check": "exact independent readback",
+      "passed": true,
+      "state": "verified",
+      "expected": [
+        "CLI PROXY/gpt-6-luna",
+        "gpt-6-luna"
+      ],
+      "actual": [
+        "CLI PROXY/gpt-6-luna",
+        "gpt-6-luna"
+      ]
+    },
+    {
+      "check": "workspace save",
+      "passed": true,
+      "status": 200,
+      "phase": null
+    },
+    {
+      "check": "disabled key denied",
+      "passed": true,
+      "status": 403
+    },
+    {
+      "check": "workspace save",
+      "passed": true,
+      "status": 200,
+      "phase": null
+    },
+    {
+      "check": "readback API",
+      "passed": true,
+      "status": 200
+    },
+    {
+      "check": "exact independent readback",
+      "passed": true,
+      "state": "verified",
+      "expected": [
+        "CLI PROXY/gpt-6-luna",
+        "gpt-6-luna"
+      ],
+      "actual": [
+        "CLI PROXY/gpt-6-luna",
+        "gpt-6-luna"
+      ]
+    },
+    {
+      "check": "workspace does not disclose native key secrets",
+      "passed": true
+    },
+    {
+      "check": "inference catalog requires key",
+      "passed": true,
+      "status": 401
+    },
+    {
+      "check": "cross origin denied",
+      "passed": true,
+      "status": 403
+    },
+    {
+      "check": "real bounded chat",
+      "passed": true,
+      "model": "gpt-6-luna",
+      "status": 200
+    },
+    {
+      "check": "real bounded chat",
+      "passed": true,
+      "model": "CLI PROXY/gpt-6-luna",
+      "status": 200
+    },
+    {
+      "check": "proof complete",
+      "passed": true
+    },
+    {
+      "check": "temporary keys revoked and registry restored",
+      "passed": true
+    }
+  ],
+  "passed": true
+}

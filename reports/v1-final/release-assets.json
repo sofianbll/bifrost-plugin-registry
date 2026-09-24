@@ -1,0 +1,47 @@
+{
+  "assets": [
+    {
+      "name": "LICENSE",
+      "sha256": "d7227970ce29633b1684acc74ef5efac21a173aa89b30c42872ef2efd2db3254",
+      "size_bytes": 1093
+    },
+    {
+      "name": "README.txt",
+      "sha256": "28053086cb4f4b59a1d5c69460f2359e7c23a338acd89428fd913fda7ef82a30",
+      "size_bytes": 612
+    },
+    {
+      "name": "SHA256SUMS",
+      "sha256": "f6a7d6c9b3b0accb67467995f61d2087f5e3e5390aa62060c3321774a64a1ebc",
+      "size_bytes": 681
+    },
+    {
+      "name": "bifrost-dynamic-2.2.2-linux-amd64.tar.gz",
+      "sha256": "0fc81128ede2466e131b5aa71915fd97489658bc5b8d260e35d811748e085e7f",
+      "size_bytes": 105830415,
+      "verified_image_id": "sha256:0fc53d460978af634f5f00e6ac770f6ce60677d378f788eb57c50bee1cb2e68d"
+    },
+    {
+      "name": "bifrost-dynamic-2.2.2-linux-arm64.tar.gz",
+      "sha256": "3d700d65031f522b3e2e5ff81e24e925e27a1631fc2c91d25b32f2134c89b10a",
+      "size_bytes": 95892692,
+      "verified_image_id": "sha256:f1c130921c5d4bdd284f15291e1063843e3ff9c83412e48f50fd4ef5b01f341e"
+    },
+    {
+      "name": "bifrost-registry-v0.2.0-rc.1-linux-amd64.so",
+      "sha256": "a9837aa58be7aea2548f126d738b54e88a29f363b9db44ca2e80bd873b554228",
+      "size_bytes": 32174296
+    },
+    {
+      "name": "bifrost-registry-v0.2.0-rc.1-linux-arm64.so",
+      "sha256": "e6d8106c8070bc649f3cb572d83167344470e80a8daa816e729c262b8a30c923",
+      "size_bytes": 27140376
+    },
+    {
+      "name": "provenance-v0.2.0-rc.1.tar.gz",
+      "sha256": "b1e2190ee4e586b4e2825cfef6d467505218e417c2a592346666528356809ad6",
+      "size_bytes": 55449
+    }
+  ],
+  "release_id": "v0.2.0-rc.1"
+}

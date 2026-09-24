@@ -1,0 +1,165 @@
+<!-- ==================== DENIALS (M1) ==================== -->
+<p class="mb-4 text-xs text-muted-foreground">Guardrail denials recorded by the registry plugin, most recent first.</p>
+
+<!-- Toolbar — filters + refresh (§4.1 pattern: mb-4 flex flex-wrap items-center gap-3) -->
+<div class="mb-4 flex flex-wrap items-center gap-3">
+  <div class="relative">
+    <select aria-label="Virtual key" class="h-9 w-auto cursor-pointer appearance-none rounded-sm border border-input bg-transparent pr-8 pl-3 text-sm outline-none focus-visible:border-primary">
+      <option value="">All virtual keys</option>
+      <option value="hermes">hermes</option>
+      <option value="hindsight">hindsight</option>
+      <option value="cpa">cpa</option>
+      <option value="opencode-omo">opencode-omo</option>
+    </select>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2 opacity-50"><path d="m6 9 6 6 6-6"/></svg>
+  </div>
+
+  <div class="relative">
+    <select aria-label="Denial code" class="h-9 w-auto cursor-pointer appearance-none rounded-sm border border-input bg-transparent pr-8 pl-3 text-sm outline-none focus-visible:border-primary">
+      <option value="">All codes</option>
+      <option value="registry_model_not_allowed">registry_model_not_allowed</option>
+      <option value="registry_group_not_allowed">registry_group_not_allowed</option>
+      <option value="registry_policy_missing">registry_policy_missing</option>
+    </select>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2 opacity-50"><path d="m6 9 6 6 6-6"/></svg>
+  </div>
+
+  <div class="relative">
+    <select aria-label="Period" class="h-9 w-auto cursor-pointer appearance-none rounded-sm border border-input bg-transparent pr-8 pl-3 text-sm outline-none focus-visible:border-primary">
+      <option value="24h" selected>Last 24h</option>
+      <option value="7d">Last 7 days</option>
+      <option value="30d">Last 30 days</option>
+    </select>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2 opacity-50"><path d="m6 9 6 6 6-6"/></svg>
+  </div>
+
+  <button class="btn btn-ghost btn-sm ml-auto" title="Refresh">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+    Refresh
+  </button>
+</div>
+
+<!-- Denials table (.tbl — design system §3.3) -->
+<div class="tbl-container rounded-sm border">
+  <table class="tbl">
+    <thead>
+      <tr>
+        <th class="w-[110px]">Time</th>
+        <th>Virtual Key</th>
+        <th>Code</th>
+        <th>Requested</th>
+        <th>Detail</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="font-mono text-xs">14:32:07</td>
+        <td><span class="badge badge-neutral">hermes</span></td>
+        <td><span class="badge badge-danger">registry_model_not_allowed</span></td>
+        <td><code class="font-mono text-xs">anthropic/claude-opus-4.6</code></td>
+        <td class="text-muted-foreground">allowed: none — model not in any group for key</td>
+      </tr>
+      <tr>
+        <td class="font-mono text-xs">14:28:51</td>
+        <td><span class="badge badge-neutral">opencode-omo</span></td>
+        <td><span class="badge badge-warn">registry_policy_missing</span></td>
+        <td><code class="font-mono text-xs">openai/gpt-5.2</code></td>
+        <td class="text-muted-foreground">no policy bound to this virtual key</td>
+      </tr>
+      <tr>
+        <td class="font-mono text-xs">14:19:33</td>
+        <td><span class="badge badge-neutral">hindsight</span></td>
+        <td><span class="badge badge-danger">registry_model_not_allowed</span></td>
+        <td><code class="font-mono text-xs">google/gemini-3-pro</code></td>
+        <td class="text-muted-foreground">allowed: 12 models — requested model not exposed</td>
+      </tr>
+      <tr>
+        <td class="font-mono text-xs">14:11:02</td>
+        <td><span class="badge badge-neutral">hermes</span></td>
+        <td><span class="badge badge-warn">registry_group_not_allowed</span></td>
+        <td><code class="font-mono text-xs">group/cheap-fast</code></td>
+        <td class="text-muted-foreground">group not in policy groups for key</td>
+      </tr>
+      <tr>
+        <td class="font-mono text-xs">13:58:44</td>
+        <td><span class="badge badge-neutral">cpa</span></td>
+        <td><span class="badge badge-danger">registry_model_not_allowed</span></td>
+        <td><code class="font-mono text-xs">anthropic/claude-sonnet-4.6</code></td>
+        <td class="text-muted-foreground">allowed: frontier — model not in any group for key</td>
+      </tr>
+      <tr>
+        <td class="font-mono text-xs">13:47:19</td>
+        <td><span class="badge badge-neutral">hermes</span></td>
+        <td><span class="badge badge-danger">registry_model_not_allowed</span></td>
+        <td><code class="font-mono text-xs">anthropic/claude-opus-4.6</code></td>
+        <td class="text-muted-foreground">allowed: cheap-fast, vision — model not in any group for key</td>
+      </tr>
+      <tr>
+        <td class="font-mono text-xs">13:35:08</td>
+        <td><span class="badge badge-neutral">opencode-omo</span></td>
+        <td><span class="badge badge-danger">registry_model_not_allowed</span></td>
+        <td><code class="font-mono text-xs">deepseek/deepseek-v3.2</code></td>
+        <td class="text-muted-foreground">allowed: cheap-fast — model not in any group for key</td>
+      </tr>
+      <tr>
+        <td class="font-mono text-xs">13:22:56</td>
+        <td><span class="badge badge-neutral">hindsight</span></td>
+        <td><span class="badge badge-warn">registry_group_not_allowed</span></td>
+        <td><code class="font-mono text-xs">group/frontier</code></td>
+        <td class="text-muted-foreground">group not in policy groups for key</td>
+      </tr>
+      <tr>
+        <td class="font-mono text-xs">13:14:30</td>
+        <td><span class="badge badge-neutral">cpa</span></td>
+        <td><span class="badge badge-danger">registry_model_not_allowed</span></td>
+        <td><code class="font-mono text-xs">openai/o3</code></td>
+        <td class="text-muted-foreground">allowed: frontier — model not in any group for key</td>
+      </tr>
+      <tr>
+        <td class="font-mono text-xs">12:59:12</td>
+        <td><span class="badge badge-neutral">opencode-omo</span></td>
+        <td><span class="badge badge-warn">registry_policy_missing</span></td>
+        <td><code class="font-mono text-xs">anthropic/claude-haiku-4.5</code></td>
+        <td class="text-muted-foreground">no policy bound to this virtual key</td>
+      </tr>
+      <tr>
+        <td class="font-mono text-xs">12:41:47</td>
+        <td><span class="badge badge-neutral">hermes</span></td>
+        <td><span class="badge badge-danger">registry_model_not_allowed</span></td>
+        <td><code class="font-mono text-xs">google/gemini-3-flash</code></td>
+        <td class="text-muted-foreground">allowed: none — model not in any group for key</td>
+      </tr>
+      <tr>
+        <td class="font-mono text-xs">12:30:05</td>
+        <td><span class="badge badge-neutral">hindsight</span></td>
+        <td><span class="badge badge-warn">registry_group_not_allowed</span></td>
+        <td><code class="font-mono text-xs">group/cheap-fast</code></td>
+        <td class="text-muted-foreground">group not in policy groups for key</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Table footer — count + pagination (§3.16) -->
+  <div class="flex items-center justify-between border-t border-border px-4 py-2 text-xs">
+    <div class="text-muted-foreground">15 denials in the last 24h</div>
+    <div class="flex items-center gap-2">
+      <button class="btn btn-ghost btn-sm !px-2" disabled aria-label="Previous page">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <span class="text-muted-foreground">Page 1 of 2</span>
+      <button class="btn btn-ghost btn-sm !px-2" aria-label="Next page">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- empty: no denials in selected period
+<div class="empty-state">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="h-[5.5rem] w-[5.5rem] text-muted-foreground"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
+  <h2 class="text-xl font-medium text-muted-foreground">No denials</h2>
+  <p class="max-w-[600px] text-sm text-muted-foreground">No guardrail denials recorded for the selected key, code, and period.</p>
+</div>
+-->
+
+<p class="mt-4 text-xs text-muted-foreground">In-memory ring buffer — events are not persisted.</p>

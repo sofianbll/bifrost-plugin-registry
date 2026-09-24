@@ -37,7 +37,7 @@ func (s *Snapshot) Plan() NativePlan {
 	}}
 	byKey := map[string]*KeyPlan{}
 	for _, m := range s.config.Models {
-		if !m.Enabled || !m.Verified {
+		if !m.Enabled || (!m.Verified && !m.Configured) {
 			continue
 		}
 		for _, id := range m.ProviderKeyIDs {

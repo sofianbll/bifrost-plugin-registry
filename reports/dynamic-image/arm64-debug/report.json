@@ -1,0 +1,25 @@
+{
+  "scope": "packaged image plus separate plugin URL; synthetic provider; no inference",
+  "started_at_utc": "2026-09-24T17:18:18.135390+00:00",
+  "image": "bifrost-dynamic:2.2.2-go1.27.1-arm64",
+  "plugin_sha256": "4c20d02747b0de86b44f9a0f6fa3b11c8b38234180f96e8044847e02ea97a9a2",
+  "checks": [],
+  "prior_probe": "reports/plugin-standalone/final/report.json (38 checks; separate binary proof)",
+  "error": "docker image failed",
+  "error_at": [
+    {
+      "function": "host",
+      "line": 160
+    },
+    {
+      "function": "docker",
+      "line": 34
+    }
+  ],
+  "cleanup": {
+    "registry-probe-gateway-6ac2d351c340": false,
+    "registry-probe-fixture-6ac2d351c340": false
+  },
+  "passed": false,
+  "finished_at_utc": "2026-09-24T17:18:18.418059+00:00"
+}

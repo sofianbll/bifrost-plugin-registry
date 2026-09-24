@@ -1,0 +1,32 @@
+--- a/transports/Dockerfile
++++ b/transports/Dockerfile
+@@ -37,15 +37,22 @@
+ 
+   COPY --from=ui-builder /app/out ./bifrost-http/ui
+ 
+-  # Build the binary with CGO enabled and static SQLite linking
++  # Keep the default static release; opt in to Go plugin loading when packaging plugins.
+   ENV GOWORK=off
+   ARG VERSION=unknown
+-  RUN go build \
+-    -ldflags="-w -s -X main.Version=v${VERSION} -extldflags '-static'" \
+-    -a -trimpath \
+-    -tags "sqlite_static" \
+-    -o /app/main \
+-    ./bifrost-http
++  ARG DYNAMIC_PLUGINS=0
++  RUN if [ "$DYNAMIC_PLUGINS" = "1" ]; then \
++      go build -mod=readonly -trimpath -buildvcs=false \
++        -tags "bifrost" \
++        -ldflags="-w -s -X main.Version=v${VERSION}" \
++        -o /app/main ./bifrost-http; \
++    else \
++      go build \
++        -ldflags="-w -s -X main.Version=v${VERSION} -extldflags '-static'" \
++        -a -trimpath \
++        -tags "sqlite_static" \
++        -o /app/main ./bifrost-http; \
++    fi
+ 
+   # Verify build succeeded
+   RUN test -f /app/main || (echo "Build failed" && exit 1)

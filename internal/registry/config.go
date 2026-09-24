@@ -15,7 +15,7 @@ import (
 	"strings"
 )
 
-const Version = "0.1.0"
+const Version = "0.2.0-rc.1"
 const MaxConfigBytes = 4 << 20
 const MaxBodyBytes = 32 << 20
 
@@ -25,6 +25,7 @@ type Config struct {
 	Models        []Model  `json:"models"`
 	Groups        []Group  `json:"groups"`
 	Policies      []Policy `json:"policies"`
+	Catalog       *Catalog `json:"catalog,omitempty"`
 }
 
 type Model struct {
@@ -41,6 +42,7 @@ type Model struct {
 	Endpoints      []string                   `json:"endpoints"`
 	Enabled        bool                       `json:"enabled"`
 	Verified       bool                       `json:"verified"`
+	Configured     bool                       `json:"configured,omitempty"`
 	Evidence       string                     `json:"evidence,omitempty"`
 	Metadata       map[string]json.RawMessage `json:"metadata,omitempty"`
 	// Passthrough marks routing aliases: Bifrost routing rules (CEL model == "<alias>")
@@ -59,22 +61,27 @@ type Filter struct {
 }
 
 type Group struct {
-	ID       string   `json:"id"`
-	Name     string   `json:"name"`
-	ModelIDs []string `json:"model_ids"`
-	Filter   *Filter  `json:"filter,omitempty"`
-	Exclude  []string `json:"exclude,omitempty"`
+	ID          string   `json:"id"`
+	Name        string   `json:"name"`
+	Description string   `json:"description,omitempty"`
+	ModelIDs    []string `json:"model_ids"`
+	Filter      *Filter  `json:"filter,omitempty"`
+	Exclude     []string `json:"exclude,omitempty"`
 }
 
 type Policy struct {
-	VirtualKeyID string            `json:"virtual_key_id"`
-	Name         string            `json:"name"`
-	TokenSHA256  string            `json:"token_sha256"`
-	Naming       string            `json:"naming,omitempty"`
-	Groups       []string          `json:"groups"`
-	Sources      []string          `json:"sources,omitempty"`
-	Prefer       map[string]string `json:"prefer,omitempty"`
-	Enabled      bool              `json:"enabled"`
+	VirtualKeyID   string            `json:"virtual_key_id"`
+	Name           string            `json:"name"`
+	TokenSHA256    string            `json:"token_sha256"`
+	Naming         string            `json:"naming,omitempty"`
+	Groups         []string          `json:"groups"`
+	Added          []string          `json:"added,omitempty"`
+	Excluded       []string          `json:"excluded,omitempty"`
+	Sources        []string          `json:"sources,omitempty"`
+	Prefer         map[string]string `json:"prefer,omitempty"`
+	Enabled        bool              `json:"enabled"`
+	Adopted        bool              `json:"adopted,omitempty"`
+	NativeModelIDs []string          `json:"native_model_ids,omitempty"`
 }
 
 type Route struct {
@@ -105,11 +112,13 @@ type Snapshot struct {
 }
 
 var slug = regexp.MustCompile(`^[a-z0-9][a-z0-9._-]{0,127}$`)
+
 // Provider names are Bifrost-native identifiers (e.g. "Google", "Codex"): they are
 // admin-controlled (never request-controlled) and are written verbatim into the
 // rewritten "model" field as "Provider/alias", which must match Bifrost's native
-// provider/model routing form. Control characters and spaces stay rejected.
-var slugProvider = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$`)
+// provider/model routing form. Internal ASCII spaces are native for custom
+// providers; leading/trailing whitespace, slashes and controls stay rejected.
+var slugProvider = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._ -]{0,127}$`)
 var nativeFamilies = map[string]bool{"anthropic": true, "openai": true, "mistral": true, "cohere": true, "gemini": true, "gemma": true, "llama": true, "imagen": true, "veo": true, "nova": true, "titan": true}
 var endpoints = map[string]bool{"chat/completions": true, "responses": true, "completions": true, "embeddings": true, "images/generations": true, "audio/speech": true}
 
@@ -264,13 +273,16 @@ func Compile(c Config) (*Snapshot, error) {
 	if !NamingValid(c.DefaultNaming) {
 		return nil, errors.New("default_naming must be model, provider/model, or both")
 	}
+	if err := validateCatalog(c.Catalog); err != nil {
+		return nil, err
+	}
 	if len(c.Models) > 10000 || len(c.Groups) > 1000 || len(c.Policies) > 1000 {
 		return nil, errors.New("registry size limit exceeded")
 	}
 	models := map[string]Model{}
 	nativeNames := map[string]string{}
 	for _, m := range c.Models {
-		if !slug.MatchString(m.ID) || !slug.MatchString(m.Alias) || !slugProvider.MatchString(m.Provider) {
+		if !slug.MatchString(m.ID) || !slug.MatchString(m.Alias) || !slugProvider.MatchString(m.Provider) || strings.TrimSpace(m.Provider) != m.Provider {
 			return nil, fmt.Errorf("model %q: id and alias must be lowercase safe identifiers, provider a safe identifier", m.ID)
 		}
 		if _, ok := models[m.ID]; ok {
@@ -310,7 +322,7 @@ func Compile(c Config) (*Snapshot, error) {
 			}
 			for _, t := range m.RoutingTargets {
 				prov, rest, ok := strings.Cut(t, "/")
-				if !ok || !slugProvider.MatchString(prov) || rest == "" || len(t) > 512 ||
+				if !ok || !slugProvider.MatchString(prov) || strings.TrimSpace(prov) != prov || rest == "" || len(t) > 512 ||
 					strings.TrimSpace(t) != t || !noControls(t) {
 					return nil, fmt.Errorf("model %s: invalid routing target %q", m.ID, t)
 				}
@@ -397,20 +409,47 @@ func Compile(c Config) (*Snapshot, error) {
 		if !NamingValid(p.Naming) {
 			return nil, fmt.Errorf("policy %s: invalid naming", p.VirtualKeyID)
 		}
-		if !unique(p.Groups) || !unique(p.Sources) {
+		if !unique(p.Groups) || !unique(p.Added) || !unique(p.Excluded) || !unique(p.Sources) {
 			return nil, fmt.Errorf("policy %s: duplicate/empty selectors", p.VirtualKeyID)
 		}
-		eligible := map[string]Model{}
+		if p.Adopted {
+			if len(p.NativeModelIDs) == 0 || !unique(p.NativeModelIDs) {
+				return nil, fmt.Errorf("policy %s: adopted key needs unique native model IDs", p.VirtualKeyID)
+			}
+			for _, id := range p.NativeModelIDs {
+				if _, ok := models[id]; !ok {
+					return nil, fmt.Errorf("policy %s: unknown native model %s", p.VirtualKeyID, id)
+				}
+			}
+		} else if len(p.NativeModelIDs) > 0 {
+			return nil, fmt.Errorf("policy %s: native model ceiling requires adoption", p.VirtualKeyID)
+		}
+		selected := map[string]bool{}
 		for _, gid := range p.Groups {
 			set, ok := groups[gid]
 			if !ok {
 				return nil, fmt.Errorf("policy %s: unknown group %s", p.VirtualKeyID, gid)
 			}
 			for id := range set {
-				m := models[id]
-				if m.Enabled && m.Verified && (len(p.Sources) == 0 || Has(p.Sources, m.Provider)) {
-					eligible[id] = m
-				}
+				selected[id] = true
+			}
+		}
+		for _, id := range append(append([]string{}, p.Added...), p.Excluded...) {
+			if _, ok := models[id]; !ok {
+				return nil, fmt.Errorf("policy %s: unknown model %s", p.VirtualKeyID, id)
+			}
+		}
+		for _, id := range p.Added {
+			selected[id] = true
+		}
+		for _, id := range p.Excluded {
+			delete(selected, id)
+		}
+		eligible := map[string]Model{}
+		for id := range selected {
+			m := models[id]
+			if m.Enabled && (m.Verified || m.Configured) && (len(p.Sources) == 0 || Has(p.Sources, m.Provider)) && (!p.Adopted || Has(p.NativeModelIDs, id)) {
+				eligible[id] = m
 			}
 		}
 		byAlias := map[string][]Model{}
@@ -480,11 +519,4 @@ func (s *Snapshot) View(id string) (*View, bool) {
 	var out View
 	_ = json.Unmarshal(b, &out)
 	return &out, true
-}
-func (s *Snapshot) bound(token string) (*View, error) {
-	v, ok := s.tokens[TokenHash(token)]
-	if !ok || !v.Policy.Enabled {
-		return nil, errors.New("virtual key is not bound to an enabled registry policy")
-	}
-	return v, nil
 }

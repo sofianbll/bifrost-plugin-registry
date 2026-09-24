@@ -1,0 +1,9 @@
+
+> bifrost-registry-prototype@0.0.0 check
+> node --import tsx src/demo.test.ts && node --import tsx src/lab.test.ts && node --import tsx src/harness.test.ts && node --import tsx src/harness-targets.test.ts && node --import tsx src/api.test.ts
+
+Demo state checks passed
+View override and filtered selection: OK
+Harness catalog and Newman import checks passed
+Harness target filtering and hidden selection: OK
+Live API request contract: OK

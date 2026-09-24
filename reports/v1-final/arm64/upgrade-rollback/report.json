@@ -1,0 +1,160 @@
+{
+  "scope": "packaged image plus separate plugin URL; synthetic provider; no inference; stopped-volume upgrade and rollback",
+  "started_at_utc": "2026-09-24T18:20:15.497377+00:00",
+  "image": "bifrost-dynamic:2.2.2-go1.27.1-arm64",
+  "plugin_sha256": "e6d8106c8070bc649f3cb572d83167344470e80a8daa816e729c262b8a30c923",
+  "checks": [
+    {
+      "name": "packaged entrypoint and command",
+      "pass": true
+    },
+    {
+      "name": "packaged app directory and user",
+      "pass": true
+    },
+    {
+      "name": "image exposes gateway port",
+      "pass": true
+    },
+    {
+      "name": "packaged gateway binary hashed",
+      "pass": true
+    },
+    {
+      "name": "no plugin shared object bundled under /app",
+      "pass": true
+    },
+    {
+      "name": "published ports bound only to loopback",
+      "pass": true
+    },
+    {
+      "name": "initial custom plugin list empty",
+      "pass": true,
+      "list_status": 200,
+      "loaded_status": 200,
+      "saved_names": [],
+      "loaded_names": [
+        "compat",
+        "governance",
+        "logging",
+        "model-catalog-resolver",
+        "prompts",
+        "routing",
+        "telemetry"
+      ]
+    },
+    {
+      "name": "registry panel absent before URL installation",
+      "pass": true
+    },
+    {
+      "name": "plugin installed through separate fixture URL",
+      "pass": true,
+      "status": 201
+    },
+    {
+      "name": "installed plugin active and loaded",
+      "pass": true
+    },
+    {
+      "name": "standalone panel served from plugin",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "anonymous panel API refused",
+      "pass": true,
+      "status": 401
+    },
+    {
+      "name": "workspace connected to packaged gateway",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "model and group saved to persistent volume",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "previous plugin has no catalogue API",
+      "pass": true,
+      "status": 404
+    },
+    {
+      "name": "stopped backup includes SQLite and legacy Registry JSON",
+      "pass": true
+    },
+    {
+      "name": "published ports bound only to loopback",
+      "pass": true
+    },
+    {
+      "name": "candidate loaded after restart from a different URL",
+      "pass": true
+    },
+    {
+      "name": "candidate reads legacy model and group",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "candidate exposes catalogue after legacy load",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "complete stopped-volume backup restored before rollback",
+      "pass": true
+    },
+    {
+      "name": "published ports bound only to loopback",
+      "pass": true
+    },
+    {
+      "name": "previous plugin URL and exact bytes restored after restart",
+      "pass": true
+    },
+    {
+      "name": "previous plugin reads restored group",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "rollback restored legacy API shape",
+      "pass": true,
+      "status": 404
+    },
+    {
+      "name": "synthetic fixture received no inference",
+      "pass": true
+    }
+  ],
+  "prior_probe": "reports/plugin-standalone/final/report.json (38 checks; separate binary proof)",
+  "previous_plugin_sha256": "4c20d02747b0de86b44f9a0f6fa3b11c8b38234180f96e8044847e02ea97a9a2",
+  "image_id": "sha256:f1c130921c5d4bdd284f15291e1063843e3ff9c83412e48f50fd4ef5b01f341e",
+  "architecture": "linux/arm64",
+  "packaged_binary_sha256": "3d1af72db12d2904cf4e7d8a78814d46a99f521791f7374ca42c1bd1705d537f",
+  "stopped_backup_files": {
+    "config.json": "a03c3e18fed5ce686b09266f16337b8e09b2eedeececa591cc622e27ead6e9da",
+    "pricing.json": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356",
+    "parameters.json": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356",
+    "config.db": "12c408c405d69f9a24cb2372adb2396d991fe967ac61efb29cf31a44f91854fe",
+    "config.db-wal": "f71b4ae8d5db1b0675158168493bcdaf9d3e6fd0cd3977abc7be25d3fa4d9ca9",
+    "config.db-shm": "7b2b6d811e4aa0270dd80d0102ad697a528d7b3f3f1337021de6a219859245ab",
+    "logs.db": "5c9dec1886cc01f5f2307ee1ea87f9b32a4cef0f8f9a2c68beebc558013bedab",
+    "logs.db-wal": "9dc98865e5cd124904e38025f1ba1e1c1d6aa389b836148e996630d904d4c271",
+    "logs.db-shm": "5363630f2d672edea75aea6af389cfaf1aee6a06dc197546c811ba783ae731ac",
+    "registry/registry.json": "573c3b1b994c492e9697dacfb24ddd6ec9888ba2129972d6f79b4f9ed99b8740"
+  },
+  "cleanup": {
+    "registry-probe-gateway-bc20cf3ce528": true,
+    "registry-probe-fixture-bc20cf3ce528": true,
+    "network": true,
+    "volume": true,
+    "backup": true
+  },
+  "passed": true,
+  "finished_at_utc": "2026-09-24T18:20:28.102639+00:00"
+}

@@ -2,6 +2,7 @@
 package admin
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"crypto/subtle"
 	"embed"
@@ -12,6 +13,8 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -25,6 +28,10 @@ type Server struct {
 	Store        *registry.Store
 	tokenHash    [32]byte
 	allowedHosts map[string]bool
+	live         liveState
+	catalogHTTP  *http.Client
+	uiDir        string
+	uiAssets     fs.FS
 }
 
 func New(store *registry.Store, token string, hosts []string) (*Server, error) {
@@ -37,21 +44,54 @@ func New(store *registry.Store, token string, hosts []string) (*Server, error) {
 			allowed[strings.ToLower(host)] = true
 		}
 	}
-	return &Server{store, sha256.Sum256([]byte(token)), allowed}, nil
+	return &Server{Store: store, tokenHash: sha256.Sum256([]byte(token)), allowedHosts: allowed}, nil
 }
+
+func NewEmbedded(store *registry.Store) *Server { return &Server{Store: store} }
+
+// UseUIDirectory serves the built React UI while keeping the embedded admin as fallback.
+func (s *Server) UseUIDirectory(dir string) error {
+	root, err := filepath.EvalSymlinks(dir)
+	if err != nil {
+		return err
+	}
+	info, err := os.Stat(filepath.Join(root, "index.html"))
+	if err != nil || !info.Mode().IsRegular() {
+		return errors.New("UI directory needs index.html")
+	}
+	s.uiDir = root
+	return nil
+}
+
+// UseEmbeddedUI serves the React build included in the plugin binary.
+func (s *Server) UseEmbeddedUI() error {
+	assets, err := EmbeddedAssets()
+	if err != nil {
+		return err
+	}
+	s.uiAssets = assets
+	return nil
+}
+
 func (s *Server) HTTPServer(addr string) *http.Server {
 	return &http.Server{Addr: addr, Handler: s, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 20 * time.Second, WriteTimeout: 30 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 16 << 10}
 }
-func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) { s.serve(w, r, false) }
+
+// ServeEmbeddedHTTP is called only behind Bifrost's native admin authentication.
+// The standalone listener continues to require its own bearer token.
+func (s *Server) ServeEmbeddedHTTP(w http.ResponseWriter, r *http.Request) { s.serve(w, r, true) }
+
+func (s *Server) serve(w http.ResponseWriter, r *http.Request, embedded bool) {
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("Referrer-Policy", "no-referrer")
 	w.Header().Set("Cache-Control", "no-store")
-	w.Header().Set("Content-Security-Policy", "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'")
+	w.Header().Set("Content-Security-Policy", "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'")
 	host := r.Host
 	if h, _, err := net.SplitHostPort(host); err == nil {
 		host = h
 	}
-	if !s.allowedHosts[strings.ToLower(host)] {
+	if !embedded && !s.allowedHosts[strings.ToLower(host)] {
 		reply(w, 403, map[string]string{"error": "host not allowed"})
 		return
 	}
@@ -65,6 +105,18 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if !strings.HasPrefix(r.URL.Path, "/api/") {
 		if r.Method != http.MethodGet && r.Method != http.MethodHead {
 			reply(w, 405, map[string]string{"error": "method not allowed"})
+			return
+		}
+		if embedded {
+			http.NotFound(w, r)
+			return
+		}
+		if s.uiDir != "" {
+			s.serveUI(w, r)
+			return
+		}
+		if s.uiAssets != nil {
+			s.serveEmbeddedUI(w, r)
 			return
 		}
 		path := strings.TrimPrefix(r.URL.Path, "/")
@@ -89,19 +141,27 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	// Explicit Bearer token, no ambient cookies, no CORS, no query-string credentials.
-	auths := r.Header.Values("Authorization")
-	if len(auths) != 1 || !strings.HasPrefix(auths[0], "Bearer ") {
-		w.Header().Set("WWW-Authenticate", "Bearer")
-		reply(w, 401, map[string]string{"error": "admin authentication required"})
-		return
-	}
-	got := sha256.Sum256([]byte(strings.TrimPrefix(auths[0], "Bearer ")))
-	if subtle.ConstantTimeCompare(got[:], s.tokenHash[:]) != 1 {
-		reply(w, 401, map[string]string{"error": "admin authentication required"})
-		return
+	if !embedded {
+		// Explicit Bearer token, no ambient cookies, no CORS, no query-string credentials.
+		auths := r.Header.Values("Authorization")
+		if len(auths) != 1 || !strings.HasPrefix(auths[0], "Bearer ") {
+			w.Header().Set("WWW-Authenticate", "Bearer")
+			reply(w, 401, map[string]string{"error": "admin authentication required"})
+			return
+		}
+		got := sha256.Sum256([]byte(strings.TrimPrefix(auths[0], "Bearer ")))
+		if subtle.ConstantTimeCompare(got[:], s.tokenHash[:]) != 1 {
+			reply(w, 401, map[string]string{"error": "admin authentication required"})
+			return
+		}
 	}
 	switch r.URL.Path {
+	case "/api/snapshot", "/api/snapshot.csv", "/api/snapshot/preview", "/api/snapshot/apply":
+		s.snapshotHandler(w, r)
+	case "/api/catalog", "/api/catalog/refresh", "/api/catalog/override", "/api/catalog/match", "/api/catalog/reference":
+		s.catalogHandler(w, r)
+	case "/api/workspace", "/api/keys", "/api/keys/adopt":
+		s.liveHandler(w, r)
 	case "/api/status":
 		if !method(w, r, http.MethodGet) {
 			return
@@ -173,8 +233,77 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		reply(w, 200, map[string]any{"valid": true, "revision": snap.Revision()})
 	default:
+		if strings.HasPrefix(r.URL.Path, "/api/keys/") {
+			s.liveHandler(w, r)
+			return
+		}
 		http.NotFound(w, r)
 	}
+}
+func EmbeddedAssets() (fs.FS, error) {
+	assets, err := fs.Sub(files, "web/react")
+	if err != nil {
+		return nil, err
+	}
+	if _, err = fs.ReadFile(assets, "index.html"); err != nil {
+		return nil, err
+	}
+	return assets, nil
+}
+
+func (s *Server) serveEmbeddedUI(w http.ResponseWriter, r *http.Request) {
+	path := strings.TrimPrefix(r.URL.Path, "/")
+	if path == "" || path == "model-registry" {
+		path = "index.html"
+	}
+	if !fs.ValidPath(path) || strings.HasPrefix(path, ".") || strings.Contains(path, "/.") {
+		http.NotFound(w, r)
+		return
+	}
+	info, err := fs.Stat(s.uiAssets, path)
+	if err != nil || !info.Mode().IsRegular() {
+		http.NotFound(w, r)
+		return
+	}
+	data, err := fs.ReadFile(s.uiAssets, path)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	http.ServeContent(w, r, filepath.Base(path), time.Time{}, bytes.NewReader(data))
+}
+
+func (s *Server) serveUI(w http.ResponseWriter, r *http.Request) {
+	path := strings.TrimPrefix(r.URL.Path, "/")
+	if path == "" || path == "model-registry" {
+		path = "index.html"
+	}
+	if strings.HasPrefix(path, ".") || strings.Contains(path, "/.") || filepath.IsAbs(path) {
+		http.NotFound(w, r)
+		return
+	}
+	clean := filepath.Clean(path)
+	if clean == ".." || strings.HasPrefix(clean, "../") {
+		http.NotFound(w, r)
+		return
+	}
+	file := filepath.Join(s.uiDir, clean)
+	resolved, err := filepath.EvalSymlinks(file)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	rel, err := filepath.Rel(s.uiDir, resolved)
+	if err != nil || rel == ".." || strings.HasPrefix(rel, "../") {
+		http.NotFound(w, r)
+		return
+	}
+	info, err := os.Stat(resolved)
+	if err != nil || !info.Mode().IsRegular() {
+		http.NotFound(w, r)
+		return
+	}
+	http.ServeFile(w, r, resolved)
 }
 func readJSON(w http.ResponseWriter, r *http.Request) ([]byte, error) {
 	if t := strings.Split(r.Header.Get("Content-Type"), ";")[0]; strings.TrimSpace(t) != "application/json" {

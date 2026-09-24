@@ -11,6 +11,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -26,9 +27,12 @@ type configuration struct {
 	AdminListen       string   `json:"admin_listen,omitempty"`
 	AdminTokenEnv     string   `json:"admin_token_env,omitempty"`
 	AdminAllowedHosts []string `json:"admin_allowed_hosts,omitempty"`
+	BifrostURL        string   `json:"bifrost_url,omitempty"`
+	BifrostAuthEnv    string   `json:"bifrost_auth_env,omitempty"`
+	UIDir             string   `json:"ui_dir,omitempty"`
 }
 type instance struct {
-	store  *registry.Store
+	store  atomic.Pointer[registry.Store]
 	server *http.Server
 }
 
@@ -36,6 +40,13 @@ var current atomic.Pointer[instance]
 var lifecycle sync.Mutex
 
 const sessionKey schemas.BifrostContextKey = "bifrost-registry.private-session.v1"
+
+type guardedSession struct {
+	*registry.Session
+	// Child provider contexts hold Governance's stamp; this request-local session
+	// carries the verified result back to the transport parent.
+	identityState atomic.Int32 // 0: unknown, 1: confirmed by PostLLM, 2: rejected
+}
 
 func GetName() string { return "bifrost-registry" }
 func Init(config any) error {
@@ -52,21 +63,37 @@ func Init(config any) error {
 	if e = registry.StrictJSON(data, &cfg, true); e != nil {
 		return e
 	}
-	if cfg.RegistryPath == "" {
-		return errors.New("registry_path is required")
+	inst := &instance{}
+	if cfg.RegistryPath != "" {
+		store, err := openOrCreateStore(cfg.RegistryPath)
+		if err != nil {
+			return err
+		}
+		inst.store.Store(store)
 	}
-	store, e := registry.OpenStore(cfg.RegistryPath)
-	if e != nil {
-		return e
-	}
-	inst := &instance{store: store}
 	if cfg.AdminListen != "" {
+		store := inst.store.Load()
+		if store == nil {
+			return errors.New("registry_path is required for standalone admin listener")
+		}
 		env := cfg.AdminTokenEnv
 		if env == "" {
 			env = "REGISTRY_ADMIN_TOKEN"
 		}
 		handler, e := admin.New(store, os.Getenv(env), cfg.AdminAllowedHosts)
 		if e != nil {
+			return e
+		}
+		if cfg.BifrostURL != "" {
+			if e = handler.ConnectBifrost(cfg.BifrostURL, os.Getenv(cfg.BifrostAuthEnv)); e != nil {
+				return e
+			}
+		}
+		if cfg.UIDir != "" {
+			if e = handler.UseUIDirectory(cfg.UIDir); e != nil {
+				return e
+			}
+		} else if e = handler.UseEmbeddedUI(); e != nil {
 			return e
 		}
 		listener, e := net.Listen("tcp", cfg.AdminListen)
@@ -90,17 +117,42 @@ func Cleanup() error {
 	defer cancel()
 	return old.server.Shutdown(ctx)
 }
+
+func openOrCreateStore(path string) (*registry.Store, error) {
+	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
+		return nil, err
+	}
+	seed, err := registry.Compile(registry.Config{SchemaVersion: 1, DefaultNaming: "provider/model", Models: []registry.Model{}, Groups: []registry.Group{}, Policies: []registry.Policy{}})
+	if err != nil {
+		return nil, err
+	}
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
+	if err == nil {
+		_, err = f.Write(append(seed.JSON(), '\n'))
+		closeErr := f.Close()
+		if err == nil {
+			err = closeErr
+		}
+		if err != nil {
+			_ = os.Remove(path)
+			return nil, err
+		}
+	} else if !os.IsExist(err) {
+		return nil, err
+	}
+	return registry.OpenStore(path)
+}
 func failureResponse(f *registry.Failure) *schemas.HTTPResponse {
 	return &schemas.HTTPResponse{StatusCode: f.Status, Headers: map[string]string{"Content-Type": "application/json", "Cache-Control": "no-store"}, Body: f.JSON()}
 }
 func unavailable() *registry.Failure {
 	return &registry.Failure{Status: 503, Code: "registry_not_initialized", Message: "Registry is not initialized"}
 }
-func session(ctx *schemas.BifrostContext) *registry.Session {
+func session(ctx *schemas.BifrostContext) *guardedSession {
 	if ctx == nil {
 		return nil
 	}
-	s, _ := ctx.Value(sessionKey).(*registry.Session)
+	s, _ := ctx.Value(sessionKey).(*guardedSession)
 	return s
 }
 func identity(ctx *schemas.BifrostContext) string {
@@ -110,7 +162,6 @@ func identity(ctx *schemas.BifrostContext) string {
 	id, _ := ctx.Value(schemas.BifrostContextKeyGovernanceVirtualKeyID).(string)
 	return id
 }
-
 func HTTPTransportPreHook(ctx *schemas.BifrostContext, req *schemas.HTTPRequest) (*schemas.HTTPResponse, error) {
 	if req == nil || ctx == nil {
 		return failureResponse(unavailable()), nil
@@ -124,9 +175,19 @@ func HTTPTransportPreHook(ctx *schemas.BifrostContext, req *schemas.HTTPRequest)
 		return failureResponse(unavailable()), nil
 	}
 	input := &registry.Request{Method: req.Method, Path: req.Path, Headers: req.Headers, Body: req.Body}
-	sess, f := inst.store.Load().Prepare(input)
+	store := inst.store.Load()
+	if store == nil {
+		return failureResponse(unavailable()), nil
+	}
+	sess, f := store.Load().Prepare(input)
 	if f != nil {
 		return failureResponse(f), nil
+	}
+	ctx.SetValue(sessionKey, &guardedSession{Session: sess})
+	if !sess.IsManaged() {
+		// Governance authenticates this candidate later. Leave its native request
+		// and credential context untouched until its VK ID is known.
+		return nil, nil
 	}
 	req.Body = input.Body
 	if req.Headers == nil {
@@ -141,7 +202,6 @@ func HTTPTransportPreHook(ctx *schemas.BifrostContext, req *schemas.HTTPRequest)
 	// must still authenticate it and enforce budgets and native VK permissions.
 	token, _ := registry.Credential(req.Headers)
 	ctx.SetValue(schemas.BifrostContextKeyVirtualKey, token)
-	ctx.SetValue(sessionKey, sess)
 	return nil, nil
 }
 func HTTPTransportPostHook(ctx *schemas.BifrostContext, req *schemas.HTTPRequest, resp *schemas.HTTPResponse) error {
@@ -149,11 +209,35 @@ func HTTPTransportPostHook(ctx *schemas.BifrostContext, req *schemas.HTTPRequest
 	if s == nil || resp == nil || resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil
 	}
+	if !s.IsManaged() {
+		id := identity(ctx)
+		if s.identityState.Load() == 2 || (id == "" && s.identityState.Load() != 1) {
+			*resp = *failureResponse(s.VerifyIdentity(""))
+			return nil
+		}
+		if id != "" {
+			if f := s.VerifyIdentity(id); f != nil {
+				*resp = *failureResponse(f)
+			}
+		}
+		return nil
+	}
 	if resp.Headers == nil {
 		resp.Headers = map[string]string{}
 	}
 	if s.IsModels() {
-		out, f := s.Project(resp.Body, identity(ctx))
+		id := identity(ctx)
+		if id != "" && s.VerifyIdentity(id) != nil {
+			s.identityState.Store(2)
+		}
+		if s.identityState.Load() == 2 {
+			*resp = *failureResponse(s.VerifyIdentity(""))
+			return nil
+		}
+		if id == "" && s.identityState.Load() == 1 {
+			id = s.PolicyID()
+		}
+		out, f := s.Project(resp.Body, id)
 		if f != nil {
 			bad := failureResponse(f)
 			*resp = *bad
@@ -203,8 +287,11 @@ func PreLLMHook(ctx *schemas.BifrostContext, req *schemas.BifrostRequest) (*sche
 	if s == nil || req == nil {
 		f = &registry.Failure{Status: 403, Code: "registry_http_required", Message: "A guarded HTTP registry request is required"}
 	} else {
-		provider, model, _ := req.GetRequestFields()
-		f = s.CheckAttempt(string(provider), model)
+		f = s.VerifyIdentity(identity(ctx))
+		if f == nil {
+			provider, model, _ := req.GetRequestFields()
+			f = s.CheckAttempt(string(provider), model)
+		}
 	}
 	if f == nil {
 		return req, nil, nil
@@ -216,12 +303,20 @@ func PreLLMHook(ctx *schemas.BifrostContext, req *schemas.BifrostRequest) (*sche
 	return req, &schemas.LLMPluginShortCircuit{Error: err}, nil
 }
 func PostLLMHook(ctx *schemas.BifrostContext, resp *schemas.BifrostResponse, err *schemas.BifrostError) (*schemas.BifrostResponse, *schemas.BifrostError, error) {
-	// Authoritative identity enforcement: governance stamped the authenticated
-	// virtual key id in its PreLLM, so it is visible here. Reject on mismatch even
-	// though the provider call already happened (defense in depth; the token-hash
-	// binding makes a real mismatch virtually impossible).
+	// Governance stamped the authenticated VK ID in its PreLLM. The earlier
+	// Registry PreLLM blocked mismatches before the provider; recheck each result
+	// and relay a verified child-context identity to the transport post-hook.
 	if s := session(ctx); s != nil {
-		if f := s.VerifyIdentity(identity(ctx)); f != nil {
+		f := s.VerifyIdentity(identity(ctx))
+		if f == nil {
+			s.identityState.CompareAndSwap(0, 1)
+			if s.identityState.Load() == 2 {
+				f = s.VerifyIdentity("")
+			}
+		} else {
+			s.identityState.Store(2)
+		}
+		if f != nil {
 			status := f.Status
 			typ := "registry_error"
 			fallbacks := false
