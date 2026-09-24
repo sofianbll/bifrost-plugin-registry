@@ -1,0 +1,74 @@
+{
+  "release_url": "https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.2.0-rc.1",
+  "tag": "v0.2.0-rc.1",
+  "target_commit": "9eb7b8314181d53c1c7a32c8dcf9501dcd4da38d",
+  "prerelease": true,
+  "checked_at_utc": "2026-09-24T18:29:02.752446+00:00",
+  "assets": [
+    {
+      "file": "bifrost-dynamic-2.2.2-linux-amd64.tar.gz",
+      "size": 105830415,
+      "sha256": "0fc81128ede2466e131b5aa71915fd97489658bc5b8d260e35d811748e085e7f",
+      "github_digest_matches": true
+    },
+    {
+      "file": "bifrost-dynamic-2.2.2-linux-arm64.tar.gz",
+      "size": 95892692,
+      "sha256": "3d700d65031f522b3e2e5ff81e24e925e27a1631fc2c91d25b32f2134c89b10a",
+      "github_digest_matches": true
+    },
+    {
+      "file": "bifrost-registry-v0.2.0-rc.1-linux-amd64.so",
+      "size": 32174296,
+      "sha256": "a9837aa58be7aea2548f126d738b54e88a29f363b9db44ca2e80bd873b554228",
+      "github_digest_matches": true
+    },
+    {
+      "file": "bifrost-registry-v0.2.0-rc.1-linux-arm64.so",
+      "size": 27140376,
+      "sha256": "e6d8106c8070bc649f3cb572d83167344470e80a8daa816e729c262b8a30c923",
+      "github_digest_matches": true
+    },
+    {
+      "file": "LICENSE",
+      "size": 1093,
+      "sha256": "d7227970ce29633b1684acc74ef5efac21a173aa89b30c42872ef2efd2db3254",
+      "github_digest_matches": true
+    },
+    {
+      "file": "provenance-v0.2.0-rc.1.tar.gz",
+      "size": 55449,
+      "sha256": "b1e2190ee4e586b4e2825cfef6d467505218e417c2a592346666528356809ad6",
+      "github_digest_matches": true
+    },
+    {
+      "file": "README.txt",
+      "size": 612,
+      "sha256": "28053086cb4f4b59a1d5c69460f2359e7c23a338acd89428fd913fda7ef82a30",
+      "github_digest_matches": true
+    },
+    {
+      "file": "SHA256SUMS",
+      "size": 681,
+      "sha256": "f6a7d6c9b3b0accb67467995f61d2087f5e3e5390aa62060c3321774a64a1ebc",
+      "github_digest_matches": true
+    }
+  ],
+  "public_plugin_downloads": [
+    {
+      "file": "bifrost-registry-v0.2.0-rc.1-linux-amd64.so",
+      "url": "https://github.com/sofianbll/bifrost-plugin-registry/releases/download/v0.2.0-rc.1/bifrost-registry-v0.2.0-rc.1-linux-amd64.so",
+      "anonymous_http_status": 200,
+      "sha256": "a9837aa58be7aea2548f126d738b54e88a29f363b9db44ca2e80bd873b554228",
+      "matches_tested_plugin": true
+    },
+    {
+      "file": "bifrost-registry-v0.2.0-rc.1-linux-arm64.so",
+      "url": "https://github.com/sofianbll/bifrost-plugin-registry/releases/download/v0.2.0-rc.1/bifrost-registry-v0.2.0-rc.1-linux-arm64.so",
+      "anonymous_http_status": 200,
+      "sha256": "e6d8106c8070bc649f3cb572d83167344470e80a8daa816e729c262b8a30c923",
+      "matches_tested_plugin": true
+    }
+  ],
+  "passed": true
+}

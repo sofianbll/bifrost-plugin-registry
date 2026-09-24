@@ -37,3 +37,7 @@ Onglet fermé, dimensions rétablies, conteneurs et volumes des sondes supprimé
 ## Limites
 
 La réactivation à chaud par URL reste refusée par le chargeur Go (`plugin already loaded`). Les mises à jour utilisent un redémarrage ; le retour arrière testé restaure le volume complet sauvegardé à l'arrêt. Les tests ne qualifient pas une migration de production, les autres versions Bifrost ni l'image officielle précompilée statique. Le pilote utilisateur sur `8082` est conservé. L'intégration au menu Bifrost et le runner du laboratoire restent différés.
+
+## Vérification après publication
+
+La [prérelease v0.2.0-rc.1](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.2.0-rc.1) cible le commit `9eb7b8314181d53c1c7a32c8dcf9501dcd4da38d`. Les huit assets correspondent à leurs tailles et empreintes locales. Les deux URL publiques de `.so` ont été téléchargées sans authentification : HTTP 200, mêmes SHA-256 que les plugins testés. [Rapport de téléchargement](public-downloads.json).
