@@ -4,9 +4,11 @@ Current release: **[v0.2.0-rc.1](https://github.com/sofianbll/bifrost-plugin-reg
 
 Registry V1 is implemented and published as a release candidate. It uses an unmodified Bifrost 2.2.2 gateway compiled with dynamic loading, distributed separately from the Registry `.so`. The plugin embeds the React UI and serves its own admin port, `8099`.
 
-## In development after the release
+## Implemented after the release — unreleased
 
-[#14](https://github.com/sofianbll/bifrost-plugin-registry/issues/14) adds searchable model/creator/series selectors, reviewed AI assistance and on-demand key copy. These changes are not in the published `v0.2.0-rc.1` artifacts. The [scope and usage](docs/design/catalog-assistance.md) describe the follow-up; [Bifrost 2.2.3 review](docs/design/bifrost-2.2.3-compatibility.md) distinguishes source findings from native qualification.
+[#14](https://github.com/sofianbll/bifrost-plugin-registry/issues/14), delivered in [PR #15](https://github.com/sofianbll/bifrost-plugin-registry/pull/15), adds searchable model/creator/series selectors with custom values, explicit reference mapping, reviewed AI assistance and on-demand key copy. These changes are not in the published `v0.2.0-rc.1` artifacts. See the [scope and usage](docs/design/catalog-assistance.md).
+
+The exact `e25de3d` gateway/plugin pair passes native ABI checks and **133/133 HTTP checks** (42 models, 72 standalone/assistant, 19 adoption) on **Bifrost 2.2.3, Linux ARM64/musl**, using synthetic providers. Browser checks cover selection, mapping, reviewed suggestions, key copy and responsive layout. [Qualification and artifact hashes](reports/bifrost-2.2.3/README.md) · [2.2.3 compatibility review](docs/design/bifrost-2.2.3-compatibility.md). AMD64 2.2.3 and real-provider inference remain unqualified; the existing local pilot and published release are unchanged.
 
 ## Delivered
 
