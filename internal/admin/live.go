@@ -30,11 +30,12 @@ type liveState struct {
 	proofs map[string]publication
 }
 type accessDTO struct {
-	Provider    string `json:"provider"`
-	ID          string `json:"id"`
-	Route       string `json:"route"`
-	Status      string `json:"status"`
-	NativeModel string `json:"nativeModel,omitempty"`
+	Provider    string  `json:"provider"`
+	ID          string  `json:"id"`
+	Route       string  `json:"route"`
+	Status      string  `json:"status"`
+	NativeModel string  `json:"nativeModel,omitempty"`
+	ReferenceID *string `json:"referenceId,omitempty"`
 }
 type modelDTO struct {
 	ID               string            `json:"id"`
@@ -191,7 +192,7 @@ func (c *liveClient) call(ctx context.Context, method, path string, body any, ou
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("Bifrost returned HTTP %d", resp.StatusCode)
+		return nativeHTTPError(resp.StatusCode)
 	}
 	limited := io.LimitReader(resp.Body, 8<<20)
 	b, e := io.ReadAll(limited)
@@ -206,6 +207,11 @@ func (c *liveClient) call(ctx context.Context, method, path string, body any, ou
 	}
 	return nil
 }
+
+type nativeHTTPError int
+
+func (e nativeHTTPError) Error() string { return fmt.Sprintf("Bifrost returned HTTP %d", e) }
+
 func (s *Server) liveHandler(w http.ResponseWriter, r *http.Request) {
 	s.live.Lock()
 	defer s.live.Unlock()
@@ -229,6 +235,13 @@ func (s *Server) liveHandler(w http.ResponseWriter, r *http.Request) {
 		s.createKey(w, r)
 	case r.URL.Path == "/api/keys/adopt" && r.Method == http.MethodPost:
 		s.adoptKey(w, r)
+	case strings.HasPrefix(r.URL.Path, "/api/keys/") && strings.HasSuffix(r.URL.Path, "/secret") && r.Method == http.MethodPost:
+		id := strings.TrimSuffix(strings.TrimPrefix(r.URL.Path, "/api/keys/"), "/secret")
+		if id == "" || strings.Contains(id, "/") {
+			http.NotFound(w, r)
+			return
+		}
+		s.keySecret(w, r, id)
 	case strings.HasPrefix(r.URL.Path, "/api/keys/") && strings.HasSuffix(r.URL.Path, "/readback") && r.Method == http.MethodPost:
 		id := strings.TrimSuffix(strings.TrimPrefix(r.URL.Path, "/api/keys/"), "/readback")
 		if id == "" || strings.Contains(id, "/") {
@@ -384,6 +397,12 @@ func (s *Server) workspace(ctx context.Context) (workspace, error) {
 		return workspace{}, e
 	}
 	discovered := nativeToDiscovery(rows)
+	for i := range discovered {
+		for j := range discovered[i].Accesses {
+			a := &discovered[i].Accesses[j]
+			a.ReferenceID = workspaceReferenceID(config.Catalog, a.Provider, a.NativeModel)
+		}
+	}
 	dto := demoDTO{Models: []modelDTO{}, Groups: []groupDTO{}, Keys: []keyDTO{}, Campaigns: []any{}}
 	index := map[string]int{}
 	for _, m := range config.Models {
@@ -399,7 +418,7 @@ func (s *Server) workspace(ctx context.Context) (workspace, error) {
 		if ui.Name == "" {
 			ui.Name = m.Alias
 		}
-		a := accessDTO{Provider: m.Provider, ID: m.Provider + "/" + m.Alias, NativeModel: m.UpstreamModel, Route: "Direct provider", Status: "Configured"}
+		a := accessDTO{Provider: m.Provider, ID: m.Provider + "/" + m.Alias, NativeModel: m.UpstreamModel, Route: "Direct provider", Status: "Configured", ReferenceID: workspaceReferenceID(config.Catalog, m.Provider, m.UpstreamModel)}
 		if i, ok := index[ui.ID]; ok {
 			dto.Models[i].Accesses = append(dto.Models[i].Accesses, a)
 		} else {
@@ -463,7 +482,11 @@ func (s *Server) workspace(ctx context.Context) (workspace, error) {
 	sort.Slice(dto.Keys, func(i, j int) bool { return dto.Keys[i].Name < dto.Keys[j].Name })
 	ws := workspace{Revision: snap.Revision(), Data: dto, Discovery: discovered}
 	ws.Connection.Connected = true
-	ws.Connection.Version = "2.2.2"
+	ws.Connection.Version = "unknown"
+	var version string
+	if s.live.client.call(ctx, http.MethodGet, "/api/version", nil, &version) == nil && strings.TrimSpace(version) != "" {
+		ws.Connection.Version = version
+	}
 	return ws, nil
 }
 func refsToAliases(ids []string, refs map[string]string) []string {
@@ -517,7 +540,7 @@ func (s *Server) putWorkspace(w http.ResponseWriter, r *http.Request) {
 	for _, p := range old.Policies {
 		oldPolicy[p.VirtualKeyID] = p
 	}
-	cfg := registry.Config{SchemaVersion: 1, DefaultNaming: old.DefaultNaming, Models: []registry.Model{}, Groups: []registry.Group{}, Policies: []registry.Policy{}, Catalog: old.Catalog}
+	cfg := registry.Config{SchemaVersion: 1, DefaultNaming: old.DefaultNaming, Models: []registry.Model{}, Groups: []registry.Group{}, Policies: []registry.Policy{}, Catalog: old.Catalog, Assistant: old.Assistant}
 	nativeAccess := map[string]nativeModel{}
 	for _, n := range nativeRows {
 		nativeAccess[n.Provider+"/"+n.Name] = n
@@ -547,6 +570,10 @@ func (s *Server) putWorkspace(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			seenRegistry[id] = true
+			if e := setWorkspaceReference(&cfg, a.Provider, raw, a.ReferenceID); e != nil {
+				reply(w, 422, map[string]string{"error": e.Error()})
+				return
+			}
 			persisted := sanitizeLiveModel(m)
 			stripCatalogAutofill(&persisted, catalogFieldsForAccess(cfg.Catalog, a.Provider, raw))
 			metadata, _ := json.Marshal(persisted)

@@ -4,6 +4,10 @@ Current release: **[v0.2.0-rc.1](https://github.com/sofianbll/bifrost-plugin-reg
 
 Registry V1 is implemented and published as a release candidate. It uses an unmodified Bifrost 2.2.2 gateway compiled with dynamic loading, distributed separately from the Registry `.so`. The plugin embeds the React UI and serves its own admin port, `8099`.
 
+## In development after the release
+
+[#14](https://github.com/sofianbll/bifrost-plugin-registry/issues/14) adds searchable model/creator/series selectors, reviewed AI assistance and on-demand key copy. These changes are not in the published `v0.2.0-rc.1` artifacts. The [scope and usage](docs/design/catalog-assistance.md) describe the follow-up; [Bifrost 2.2.3 review](docs/design/bifrost-2.2.3-compatibility.md) distinguishes source findings from native qualification.
+
 ## Delivered
 
 - Reference catalog and distinct provider accesses; Bifrost/Models.dev sources, provenance, protected corrections and explicit matching.

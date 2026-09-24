@@ -29,13 +29,18 @@ func TestLiveWorkspacePublishAndReadback(t *testing.T) {
 	keyID := "vk-native"
 	nativeKey := `{"id":"vk-native","name":"Hermes","description":"Hermes","value":"sk-bf-live-secret","is_active":true,"provider_configs":[]}`
 	var applied map[string]any
-	failApply, failKeyRead := false, false
+	failApply, failKeyRead, failVersion := false, false, false
 	actual := `{"data":[{"id":"CLI PROXY/gpt-6-sol"}]}`
 	s.live.client.http.Transport = nativeRoundTrip(func(r *http.Request) (*http.Response, error) {
 		if r.URL.Host != "bifrost.local" {
 			t.Fatal("unexpected upstream", r.URL.String())
 		}
 		switch r.URL.Path {
+		case "/api/version":
+			if failVersion {
+				return nativeResponse(503, `{}`), nil
+			}
+			return nativeResponse(200, `"2.2.3"`), nil
 		case "/api/providers":
 			if r.Header.Get("Authorization") != "Bearer native-admin" {
 				t.Fatal("missing native admin authorization")
@@ -107,9 +112,14 @@ func TestLiveWorkspacePublishAndReadback(t *testing.T) {
 	if err := json.Unmarshal(get.Body.Bytes(), &ws); err != nil {
 		t.Fatal(err)
 	}
-	if len(ws.Discovery) != 1 || ws.Discovery[0].Accesses[0].ID != "CLI PROXY/gpt-6-sol" || !ws.Data.Keys[0].Managed {
+	if len(ws.Discovery) != 1 || ws.Discovery[0].Accesses[0].ID != "CLI PROXY/gpt-6-sol" || !ws.Data.Keys[0].Managed || ws.Connection.Version != "2.2.3" {
 		t.Fatal("discovery or managed key missing")
 	}
+	failVersion = true
+	if unavailable := perform(s, "GET", "/api/workspace", "", authorized()); unavailable.Code != 200 || !strings.Contains(unavailable.Body.String(), `"version":"unknown"`) {
+		t.Fatal("version failure blocked workspace", unavailable.Code, unavailable.Body.String())
+	}
+	failVersion = false
 	model := ws.Discovery[0]
 	model.Kind = "Chat"
 	model.Tasks = []string{"Chat"}

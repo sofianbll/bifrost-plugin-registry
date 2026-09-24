@@ -183,6 +183,7 @@ def main():
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--manifest", type=Path, required=True,
                         help="JSON with bifrost_version, bifrost_commit and artifact SHA-256s")
+    parser.add_argument("--expected-version", default="2.2.2")
     args = parser.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
     manifest = json.loads(args.manifest.read_text())
@@ -198,7 +199,7 @@ def main():
         "network_isolation": "Docker --network none required; only loopback interface accepted",
     }
     try:
-        check(report, "target Bifrost version", manifest["bifrost_version"], "2.2.2")
+        check(report, "target Bifrost version", manifest["bifrost_version"], args.expected_version)
         if not report["checks"][-1]["pass"]:
             raise RuntimeError("manifest targets a different Bifrost version")
         for name, path in (("bifrost-http", args.gateway), ("bifrost-registry.so", args.plugin)):

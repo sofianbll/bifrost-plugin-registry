@@ -2,6 +2,7 @@ import { applyKeyAdoption, clearAdminToken, getWorkspace, previewKeyAdoption, pu
 import { createCatalogReference, getCatalog, matchCatalogReference, overrideCatalogField, parseCatalogValue, refreshCatalog } from "./catalog-api";
 import { applySnapshot, getSnapshot, getSnapshotCsv, previewSnapshot } from "./snapshot-api";
 import type { Demo } from "./demo";
+import { revealKeySecret } from "./key-secret-api";
 
 const calls: { url: string; init: RequestInit }[] = [];
 const equal = (actual: unknown, expected: unknown) => { if (JSON.stringify(actual) !== JSON.stringify(expected)) throw new Error(`Expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`); };
@@ -73,4 +74,11 @@ equal(JSON.parse(calls[13].init.body as string), { keyId: "native/key", operatio
 equal(calls[14].url, "./api/keys/adopt");
 equal(new Headers(calls[14].init.headers).get("If-Match"), "adoption-revision");
 equal(JSON.parse(calls[14].init.body as string), { keyId: "native/key", operation: "adopt", phase: "apply", previewToken: "preview-token" });
+setAdminToken("test-admin-token");
+await revealKeySecret("native/key");
+clearAdminToken();
+equal(calls[15].url, "./api/keys/native%2Fkey/secret");
+equal(calls[15].init.method, "POST");
+equal(new Headers(calls[15].init.headers).get("Authorization"), "Bearer test-admin-token");
+equal(calls[15].init.cache, "no-store");
 console.log("Live API request contract: OK");
