@@ -2,6 +2,8 @@
 
 Catalogue de modèles et groupes réutilisables pour les clés virtuelles Bifrost. Le dépôt contient un moteur Go, un plugin natif et un panneau d'administration local.
 
+**V1 RC — [v0.2.0-rc.1](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.2.0-rc.1) :** image Bifrost 2.2.2 compilée avec liaison dynamique et plugin `.so` séparé, compilés ensemble depuis les sources officielles non modifiées avec Go 1.27.1 pour Linux ARM64 et AMD64/musl. Les [rapports finaux](reports/v1-final/) passent sur chaque architecture pour `/v1/models` (42/42) et le plugin autonome (54/54). L'image ARM64 avec mise à jour et retour arrière passe [26/26](reports/v1-final/arm64/upgrade-rollback/report.json) ; l'image AMD64 passe [18/18](reports/v1-final/amd64/image/report.json). Le panneau React embarqué est servi par le plugin sur `8099`. Voir la [procédure de livraison](docs/RELEASE.md). La [revue navigateur](reports/v1-final/README.md#revue-navigateur) couvre le catalogue, la recherche, l’import et le mobile ; la production n’a pas été modifiée.
+
 ## Où en est le projet ?
 
 | Pour comprendre… | Lire… |
@@ -12,9 +14,9 @@ Catalogue de modèles et groupes réutilisables pour les clés virtuelles Bifros
 | Les capacités actuelles du moteur et du panneau | [Inventaire du code](docs/design/capabilities-inventory.md) |
 | Les API et outils Bifrost à réutiliser | [Recherche d'intégration](docs/design/bifrost-integration-research.md) |
 
-**Pilote local disponible :** Bifrost 2.2.2 sert la nouvelle UI sur [http://127.0.0.1:8082/bifrost-registry/](http://127.0.0.1:8082/bifrost-registry/). Le parcours modèle → groupe → clé virtuelle native → publication → relecture réelle de `/v1/models` fonctionne sur cette instance locale. [39 contrôles sur 39](reports/native-v2.2.2-live/workspace-live-report.json) passent, dont deux conversations HTTP 200 sur `gpt-6-luna` et `CLI PROXY/gpt-6-luna`. La paire finale passe ensuite [44 contrôles de gestion et publication](reports/native-v2.2.2-live/workspace-final-report.json), sans nouvelles conversations, dont l'invalidation des anciennes preuves après modification directe. L'UI a aussi été inspectée pour l'import, la sauvegarde/recharge et « Verified » ; l'en-tête des clés a été corrigé et contrôlé à 320 px sans débordement horizontal. Le lien depuis la sidebar Bifrost est vérifié. Prochaine étape : finir la revue UI/UX avec Sofian, puis vérifier le parcours dans Hermes. Production inchangée.
+**Pilote intégré historique :** l'ancien panneau sous `127.0.0.1:8082/bifrost-registry/` utilise des patchs hôte et possède ses [preuves archivées](reports/native-v2.2.2-live/workspace-final-report.json). Le candidat autonome ne dépend pas de ce pilote.
 
-L'[UI React Bifrost](docs/design/registry-prototype/README.md) réutilise les composants upstream pour le catalogue, les groupes, les clés et les préférences. Ses écrans métier utilisent désormais le pont API réel du pilote ; le laboratoire reste visible comme parcours **Planned**, sans campagne active. Les préférences restent locales au navigateur. L’[audit UX initial](docs/design/ux-audit-2026-09-23.md), les [références UI natives](docs/design/bifrost-ui-patterns.md) et les [anciennes maquettes](docs/design/mockup/README.md) documentent l'historique.
+L'[UI React](docs/design/registry-prototype/README.md) affiche le catalogue, les groupes, les clés et les préférences. Le catalogue distingue fiche de référence et accès fournisseur : sources et dates par champ, correction manuelle protégée, dernier état valide de Models.dev/Bifrost et références manuelles. L'import/export utilise un JSON versionné avec aperçu et sauvegarde ; le CSV est une vue aplatie, et un convertisseur hors ligne traite les anciennes datasheets. Le laboratoire reste **Planned**. Les [anciennes maquettes](docs/design/mockup/README.md) documentent l'historique.
 
 Le build natif et des essais sur Pulsar sont consignés dans [BUILD_STATUS.json](BUILD_STATUS.json) et [les rapports de build](reports/native-build-v1/). Ces preuves historiques ne constituent pas une vérification actuelle de la production.
 
@@ -28,7 +30,7 @@ go run ./cmd/registry serve --config configs/registry.json
 
 Ouvrir `http://127.0.0.1:8099/model-registry`. Copier le jeton d’administration affiché dans le terminal. Le catalogue initial est vide et n’autorise aucun modèle.
 
-Pour construire le CLI d'administration sur la machine courante :
+Pour compiler le CLI d'administration sur la machine courante :
 
 ```bash
 make build
@@ -58,25 +60,27 @@ Le plugin ne crée pas de proxy d’inférence. Le panneau n’appelle aucun fou
 
 **Validation native distincte.** `go test ./...` n’inclut pas `native/main.go`, protégé par le tag de build `bifrost`. Les tests locaux ne prouvent pas la compatibilité ABI, le comportement de la gouvernance, l’ordre effectif des hooks ou le support des endpoints par vos providers. Utiliser la [checklist native](docs/ACCEPTANCE.md) pour la version et l'environnement ciblés.
 
-**Intégration UI locale.** Le pilote 2.2.2 ajoute une entrée Model Registry à la navigation et monte l'UI sous `/bifrost-registry/` via un patch host épinglé. Le panneau Registry reste derrière le proxy local ; le CLI peut toujours préparer une configuration hors ligne. Voir les [instructions de build et montage](docs/BUILD.md).
+**Intégration UI locale historique.** Le pilote 2.2.2 ajoute une entrée Model Registry à la navigation et monte l'UI sous `/bifrost-registry/` via un patch hôte épinglé. Le mode standard sert l'UI directement depuis le plugin sur `8099`, avec un jeton admin distinct ; le CLI peut toujours préparer une configuration hors ligne. Voir les [instructions de compilation et d'installation](docs/BUILD.md).
 
-**Portée de la synchronisation native.** Le pilote lit les modèles et clés provider déjà configurés dans Bifrost, crée ses clés virtuelles via l'API native et sauvegarde leurs sélections. Il ne synchronise pas automatiquement prix/quotas, n'adopte pas les clés natives non gérées et ne crée pas de répartition entre plusieurs sources pour un alias court ambigu.
+**Réactivation à chaud.** Après désactivation, le panneau se ferme ; la réactivation par URL sans redémarrage échoue avec `plugin already loaded`. Le redémarrage restaure le panneau, les données et la relecture native. Voir la [preuve locale](reports/plugin-standalone/final/report.json).
 
-**Périmètre HTTP restreint.** Sont prévus `GET models`, et les POST JSON configurés parmi `chat/completions`, `responses`, `completions`, `embeddings`, `images/generations`, `audio/speech`, sous `/v1/`, `/openai/v1/` ou `/openai/`. `GET models/{id}`, multipart, WebSocket, Realtime, batches, routes Gemini/Anthropic natives et accès SDK Go direct ne sont pas couverts. Les appels cœur sans session HTTP Registry sont refusés : cela peut affecter des sondes internes de Bifrost et doit être vérifié en staging.
+**Coexistence native.** Les clés préexistantes conservent leur comportement jusqu'à adoption explicite. L'aperçu et l'adoption ne peuvent pas élargir les droits natifs. Les surfaces Anthropic et Gemini natives restent hors garde Registry documentée ; une capacité inconnue reste inconnue. Aucun alias court ambigu ne déclenche une répartition automatique.
+
+**Périmètre HTTP restreint.** La garde Registry couvre `GET models` et les POST JSON documentés parmi `chat/completions`, `responses`, `completions`, `embeddings`, `images/generations`, `audio/speech`, sous `/v1/`, `/openai/v1/` ou `/openai/`. `GET models/{id}`, multipart, WebSocket, Realtime, batches, routes Gemini/Anthropic natives et accès SDK Go direct ne sont pas qualifiés comme contrôlés par Registry. Les appels cœur sans session HTTP Registry demandent une vérification d'intégration.
 
 **Noms des réponses.** Cette version ne réécrit pas le champ `model` des réponses d’inférence ou des fragments de streaming. Elle ne modifie que les noms de requête, les fallbacks explicites et la liste des modèles.
 
 **Un seul writer.** Le Store fournit un verrou et une révision dans un processus, pas un verrou distribué. Ne pas faire écrire simultanément un CLI standalone et l’administration du plugin dans le même fichier. Une modification directe du fichier n’est pas rechargée automatiquement par le plugin ; redémarrer/recharger le plugin, ou utiliser son propre panneau embarqué.
 
-## Construire le vrai plugin
+## Compiler le vrai plugin
 
-Le build doit partir du **checkout Bifrost correspondant à votre installation**, avec les assets UI réellement construits et la chaîne Go/C compatible. Le script produit le gateway et le `.so` ensemble, sans toucher à votre instance :
+La compilation doit partir du **checkout Bifrost correspondant à votre installation**, avec les assets UI réellement compilés et la chaîne Go/C compatible. Le script produit le gateway et le `.so` ensemble, sans toucher à votre instance :
 
 ```bash
 ./scripts/build-with-bifrost.sh /chemin/vers/bifrost ./dist/native
 ```
 
-Lire [les instructions de build](docs/BUILD.md), puis [la checklist de validation native](docs/ACCEPTANCE.md). Le fragment `configs/plugin.fragment.json` doit être **fusionné**, jamais substitué à la configuration existante.
+Lire [les instructions de compilation](docs/BUILD.md), puis [la checklist de validation native](docs/ACCEPTANCE.md). Le fragment [plugin.fragment.json](configs/plugin.fragment.json) contient une URL d'artefact fictive à remplacer et doit être **fusionné**, jamais substitué à la configuration existante.
 
 ## Fichiers utiles
 

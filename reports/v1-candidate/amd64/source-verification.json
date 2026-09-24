@@ -1,0 +1,16 @@
+{
+  "upstream_repository": "https://github.com/maximhq/bifrost",
+  "tag": "transports/v2.2.2",
+  "commit": "fdeef8e3f31a3b18a61666ba49247d07bae3600a",
+  "verified_files": 2744,
+  "verification": "all selected source files matched upstream Git blob IDs before compilation",
+  "after_compilation_modified_tracked_files": [],
+  "core_module": "v1.10.1",
+  "framework_module": "v1.7.3",
+  "mode": "GOWORK=off, published dependencies, no replace directives or source patch",
+  "platform": "linux/amd64 musl",
+  "go": "go1.27.1",
+  "ui": "Built from same verified official source; Registry React embedded in plugin",
+  "official_prebuilt_image": false,
+  "source_copy_validation": "rsync --checksum dry run against verified source had no file-content differences after build; only transports directory mtime changed"
+}

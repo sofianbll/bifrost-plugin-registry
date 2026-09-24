@@ -107,12 +107,15 @@ type nativeModel struct {
 	AccessibleByKeys []string `json:"accessible_by_keys"`
 }
 type nativeVK struct {
-	ID              string                 `json:"id"`
-	Name            string                 `json:"name"`
-	Description     string                 `json:"description"`
-	Value           string                 `json:"value"`
-	IsActive        *bool                  `json:"is_active"`
-	ProviderConfigs []nativeProviderConfig `json:"provider_configs"`
+	ID                     string                 `json:"id"`
+	Name                   string                 `json:"name"`
+	Description            string                 `json:"description"`
+	Value                  string                 `json:"value"`
+	IsActive               *bool                  `json:"is_active"`
+	ExpiresAt              *time.Time             `json:"expires_at"`
+	AllowAllProviders      bool                   `json:"allow_all_providers"`
+	IsAccessProfileManaged bool                   `json:"is_access_profile_managed"`
+	ProviderConfigs        []nativeProviderConfig `json:"provider_configs"`
 }
 type nativeProviderConfig struct {
 	ID                uint     `json:"id"`
@@ -224,6 +227,8 @@ func (s *Server) liveHandler(w http.ResponseWriter, r *http.Request) {
 		s.putWorkspace(w, r)
 	case r.URL.Path == "/api/keys" && r.Method == http.MethodPost:
 		s.createKey(w, r)
+	case r.URL.Path == "/api/keys/adopt" && r.Method == http.MethodPost:
+		s.adoptKey(w, r)
 	case strings.HasPrefix(r.URL.Path, "/api/keys/") && strings.HasSuffix(r.URL.Path, "/readback") && r.Method == http.MethodPost:
 		id := strings.TrimSuffix(strings.TrimPrefix(r.URL.Path, "/api/keys/"), "/readback")
 		if id == "" || strings.Contains(id, "/") {
@@ -388,7 +393,11 @@ func (s *Server) workspace(ctx context.Context) (workspace, error) {
 		}
 		ui = sanitizeLiveModel(ui)
 		if ui.ID == "" {
-			ui = modelDTO{ID: m.Alias, Name: m.Alias, Creator: m.Creator, Family: m.Family, Context: "Unknown", Kind: "Chat"}
+			ui = modelDTO{ID: m.Alias, Creator: m.Creator, Family: m.Family, Context: "Unknown", Kind: "Chat"}
+		}
+		catalogModelFields(&ui, catalogFieldsForAccess(config.Catalog, m.Provider, m.UpstreamModel))
+		if ui.Name == "" {
+			ui.Name = m.Alias
 		}
 		a := accessDTO{Provider: m.Provider, ID: m.Provider + "/" + m.Alias, NativeModel: m.UpstreamModel, Route: "Direct provider", Status: "Configured"}
 		if i, ok := index[ui.ID]; ok {
@@ -508,7 +517,7 @@ func (s *Server) putWorkspace(w http.ResponseWriter, r *http.Request) {
 	for _, p := range old.Policies {
 		oldPolicy[p.VirtualKeyID] = p
 	}
-	cfg := registry.Config{SchemaVersion: 1, DefaultNaming: old.DefaultNaming, Models: []registry.Model{}, Groups: []registry.Group{}, Policies: []registry.Policy{}}
+	cfg := registry.Config{SchemaVersion: 1, DefaultNaming: old.DefaultNaming, Models: []registry.Model{}, Groups: []registry.Group{}, Policies: []registry.Policy{}, Catalog: old.Catalog}
 	nativeAccess := map[string]nativeModel{}
 	for _, n := range nativeRows {
 		nativeAccess[n.Provider+"/"+n.Name] = n
@@ -538,13 +547,15 @@ func (s *Server) putWorkspace(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			seenRegistry[id] = true
-			metadata, _ := json.Marshal(sanitizeLiveModel(m))
+			persisted := sanitizeLiveModel(m)
+			stripCatalogAutofill(&persisted, catalogFieldsForAccess(cfg.Catalog, a.Provider, raw))
+			metadata, _ := json.Marshal(persisted)
 			endpoints := selectedEndpoints(m.Kind)
 			if len(endpoints) == 0 {
-				reply(w, 422, map[string]string{"error": "Select model tasks and modalities before publishing"})
+				reply(w, 422, map[string]string{"error": "Select a supported endpoint type before publishing"})
 				return
 			}
-			cfg.Models = append(cfg.Models, registry.Model{ID: id, Alias: m.ID, Provider: a.Provider, ProviderKeyIDs: native.AccessibleByKeys, UpstreamModel: raw, Creator: cleanUnknown(m.Creator), Family: cleanUnknown(m.Family), Endpoints: endpoints, Enabled: true, Verified: true, Evidence: "Bifrost native model catalog", Metadata: map[string]json.RawMessage{"ui": metadata}})
+			cfg.Models = append(cfg.Models, registry.Model{ID: id, Alias: m.ID, Provider: a.Provider, ProviderKeyIDs: native.AccessibleByKeys, UpstreamModel: raw, Creator: cleanUnknown(m.Creator), Family: cleanUnknown(m.Family), Endpoints: endpoints, Enabled: true, Configured: true, Evidence: "Configured in Bifrost native model catalog; inference not observed", Metadata: map[string]json.RawMessage{"ui": metadata}})
 			byLogical[m.ID] = append(byLogical[m.ID], id)
 		}
 	}
@@ -604,6 +615,10 @@ func (s *Server) putWorkspace(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	if e := validateAdoptedWorkspaceModels(old, cfg); e != nil {
+		reply(w, 422, map[string]string{"error": e.Error()})
+		return
+	}
 	snap, e := registry.Compile(cfg)
 	if e != nil {
 		reply(w, 422, map[string]string{"error": e.Error()})
@@ -638,6 +653,11 @@ func (s *Server) putWorkspace(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	for _, pp := range plan.VirtualKeys {
+		if oldPolicy[pp.VirtualKeyID].Adopted {
+			// Adoption only binds an existing native key. Registry edits may narrow
+			// its own view, but must never rewrite its Bifrost permissions.
+			continue
+		}
 		vk := nativeByID[pp.VirtualKeyID]
 		var key keyDTO
 		for _, k := range input.Data.Keys {

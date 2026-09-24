@@ -1,4 +1,6 @@
-# Installation du plugin dans Bifrost — procédure validée
+# Installation historique du plugin dans Bifrost
+
+La procédure active V1 RC est dans [RELEASE.md](RELEASE.md) : image Bifrost compilée avec liaison dynamique, puis installation du `.so` séparé par URL. Le montage ci-dessous conserve la preuve historique du 23 septembre ; le placement indiqué a été actualisé pour la coexistence des clés natives.
 
 Date : 2026-09-23. Validée de bout en bout sur un staging Pulsar (Alpine/musl, x86_64, Bifrost v2.2.1 dynamique).
 
@@ -10,14 +12,14 @@ L'installation = **remplacer le binaire du gateway par le binaire dynamique buil
 
 ## Procédure (3 mounts + 1 section de config)
 
-À partir des artefacts `/home/sofian/build/out/native-v1/` (Pulsar) — produits par `build-registry-plugin.sh` :
+À partir des artefacts `/srv/bifrost-build/out/native-v1/` (Pulsar) — produits par `build-registry-plugin.sh` :
 
 ```yaml
 volumes:
   # 1. binaire dynamique par-dessus le binaire statique officiel
-  - /home/sofian/build/out/native-v1/bifrost-http:/app/main:ro
+  - /srv/bifrost-build/out/native-v1/bifrost-http:/app/main:ro
   # 2. le plugin
-  - /home/sofian/build/out/native-v1/bifrost-registry.so:/app/plugins/bifrost-registry.so:ro
+  - /srv/bifrost-build/out/native-v1/bifrost-registry.so:/app/plugins/bifrost-registry.so:ro
   # 3. le RÉPERTOIRE du registre (jamais le seul fichier : sauvegarde atomique par rename)
   - /chemin/vers/registry:/app/registry
 ```
@@ -30,7 +32,7 @@ Section `plugins` **fusionnée** dans `config.json` (jamais substituée — voir
     "name": "bifrost-registry",
     "enabled": true,
     "path": "/app/plugins/bifrost-registry.so",
-    "placement": "pre_builtin",
+    "placement": "post_builtin",
     "order": 0,
     "config": {
       "registry_path": "/app/registry/registry.json",
@@ -66,7 +68,7 @@ Retirer les 3 mounts et la section `plugins` (ou repasser sur l'image officielle
 
 ## Référence staging
 
-Stack complète : `/home/sofian/build/bifrost-staging/` sur Pulsar (compose, config, staging.env en 0600, `registry/`). Port gateway `100.65.38.100:9210`, panneau `127.0.0.1:8099`. 9209 est déjà pris par Synapse.
+Stack complète : `/srv/bifrost-build/bifrost-staging/` sur Pulsar (compose, config, staging.env en 0600, `registry/`). Port gateway `<private-host>:9210`, panneau `127.0.0.1:8099`. Les ports dépendent de votre installation.
 
 ## Reste avant production (checklist `docs/ACCEPTANCE.md`)
 

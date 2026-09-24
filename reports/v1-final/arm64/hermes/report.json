@@ -1,0 +1,27 @@
+{
+  "scope": "installed Hermes source against caller-supplied local gateway; provider provenance out of scope",
+  "started_at_utc": "2026-09-24T18:21:45.279232+00:00",
+  "hermes_source": "installed Hermes checkout (local path omitted)",
+  "checks": [
+    {
+      "name": "Hermes child completed",
+      "pass": true,
+      "returncode": 0
+    },
+    {
+      "name": "Hermes discovered selected model",
+      "pass": true,
+      "model_count": 1
+    },
+    {
+      "name": "Hermes loaded zero tools",
+      "pass": true
+    },
+    {
+      "name": "Hermes chat returned fixture marker",
+      "pass": true
+    }
+  ],
+  "passed": true,
+  "finished_at_utc": "2026-09-24T18:21:47.938678+00:00"
+}

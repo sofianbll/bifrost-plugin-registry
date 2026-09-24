@@ -3,13 +3,15 @@
     {
       "name": "bifrost-registry",
       "enabled": true,
-      "path": "/app/plugins/bifrost-registry.so",
-      "placement": "pre_builtin",
+      "path": "https://downloads.example.test/bifrost-registry/vX.Y.Z/bifrost-registry-linux-arm64-musl.so",
+      "placement": "post_builtin",
       "order": 0,
       "config": {
-        "registry_path": "/app/registry/registry.json",
-        "admin_listen": "127.0.0.1:8099",
-        "admin_token_env": "REGISTRY_ADMIN_TOKEN"
+        "registry_path": "/app/data/registry/registry.json",
+        "admin_listen": "0.0.0.0:8099",
+        "admin_token_env": "REGISTRY_ADMIN_TOKEN",
+        "bifrost_url": "http://127.0.0.1:8080",
+        "bifrost_auth_env": "REGISTRY_BIFROST_AUTH"
       }
     }
   ]

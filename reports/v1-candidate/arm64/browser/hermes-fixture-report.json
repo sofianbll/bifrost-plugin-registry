@@ -1,0 +1,10 @@
+{
+  "scope": "Hermes synthetic fixture only; no real provider",
+  "client_provider_posts": 1,
+  "provider_models": [
+    "upstream-alpha"
+  ],
+  "denied_model_status": 403,
+  "denied_reached_provider": false,
+  "passed": true
+}

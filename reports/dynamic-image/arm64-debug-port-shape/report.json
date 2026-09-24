@@ -1,0 +1,60 @@
+{
+  "scope": "packaged image plus separate plugin URL; synthetic provider; no inference",
+  "started_at_utc": "2026-09-24T17:19:28.866275+00:00",
+  "image": "bifrost-dynamic:2.2.2-go1.27.1-arm64",
+  "plugin_sha256": "4c20d02747b0de86b44f9a0f6fa3b11c8b38234180f96e8044847e02ea97a9a2",
+  "checks": [
+    {
+      "name": "packaged entrypoint and command",
+      "pass": true
+    },
+    {
+      "name": "packaged app directory and user",
+      "pass": true
+    },
+    {
+      "name": "image exposes gateway port",
+      "pass": true
+    },
+    {
+      "name": "packaged gateway binary hashed",
+      "pass": true
+    },
+    {
+      "name": "no plugin shared object bundled under /app",
+      "pass": true
+    }
+  ],
+  "prior_probe": "reports/plugin-standalone/final/report.json (38 checks; separate binary proof)",
+  "image_id": "sha256:8737446e1b7dc0c7e8542ff46d0d41da7c55f0b0d398bc6eb4f35bb4a351b933",
+  "architecture": "linux/arm64",
+  "packaged_binary_sha256": "3d1af72db12d2904cf4e7d8a78814d46a99f521791f7374ca42c1bd1705d537f",
+  "published_ports": {
+    "8080/tcp": null,
+    "8099/tcp": null
+  },
+  "gateway_state": {
+    "status": "running",
+    "exit_code": 0
+  },
+  "gateway_log_tail": "backfill_empty_virtual_key_configs\"}\n{\"level\":\"info\",\"time\":\"2026-09-24T17:19:31Z\",\"message\":\"[configstore] backfill_empty_virtual_key_configs: processing 0 allVKs\"}\n{\"level\":\"info\",\"time\":\"2026-09-24T17:19:31Z\",\"message\":\"[configstore] backfill_empty_virtual_key_configs: processing 0 allVKs\"}\n{\"level\":\"info\",\"time\":\"2026-09-24T17:19:31Z\",\"message\":\"[configstore] backfill_empty_virtual_key_configs: processing 0 modifiedVKIDs\"}\n{\"level\":\"info\",\"time\":\"2026-09-24T17:19:31Z\",\"message\":\"[configstore] finished migration backfill_empty_virtual_key_configs\"}\n{\"level\":\"info\",\"time\":\"2026-09-24T17:19:31Z\",\"message\":\"[configstore] starting migration add_mcp_disable_auto_tool_inject_column\"}\n{\"level\":\"info\",\"time\":\"2026-09-24T17:19:31Z\",\"message\":\"[configstore] finished migration add_mcp_disable_auto_tool_inject_column\"}\n{\"level\":\"info\",\"time\":\"2026-09-24T17:19:31Z\",\"message\":\"[configstore] starting migration add_mcp_enable_temp_token_auth_column\"}\n{\"level\":\"info\",\"time\":\"2026-09-24T17:19:31Z\",\"message\":\"[configstore] finished migration add_mcp_enable_temp_token_auth_column\"}\n{\"level\":\"info\",\"time\":\"2026-09-24T17:19:31Z\",\"message\":\"[configstore] starting migration backfill_allowed_models_wildcard\"}\n{\"level\":\"info\",\"time\":\"2026-09-24T17:19:31Z\",\"message\":\"[configstore] backfill_allowed_models_wildcard: processing 0 modifiedVKIDs\"}\n{\"level\":\"info\",\"time\":\"2026-09-24T17:19:31Z\",\"message\":\"[configstore] backfill_allowed_models_wildcard: processing 0 keys\"}\n{\"level\":\"info\",\"time\":\"2026-09-24T17:19:31Z\",\"message\":\"[configstore] finished migration backfill_allowed_models_wildcard\"}\n{\"level\":\"info\",\"time\":\"2026-09-24T17:19:31Z\",\"message\":\"[configstore] starting migration add_mcp_client_allowed_extra_headers_json_column\"}\n{\"level\":\"info\",\"time\":\"2026-09-24T17:19:31Z\",\"message\":\"[configstore] finished migration add_mcp_client_allowed_extra_headers_json_column\"}\n{\"level\":\"info\",\"time\":\"2026-09-24T17:19:31Z\",\"message\":\"[configstore] starting migration make_base_pricing_columns_nullable\"}\n",
+  "error": "gateway has no published ports",
+  "error_at": [
+    {
+      "function": "host",
+      "line": 221
+    },
+    {
+      "function": "start_gateway",
+      "line": 152
+    }
+  ],
+  "cleanup": {
+    "registry-probe-gateway-1e6b03199252": true,
+    "registry-probe-fixture-1e6b03199252": true,
+    "network": true,
+    "volume": true
+  },
+  "passed": false,
+  "finished_at_utc": "2026-09-24T17:19:32.419798+00:00"
+}

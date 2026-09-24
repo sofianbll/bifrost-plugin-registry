@@ -309,7 +309,7 @@ def main():
                 registry_file.write_text(json.dumps(registry) + "\n")
                 gateway_config["plugins"].insert(0, {
                     "name": "bifrost-registry", "enabled": True, "path": str(args.plugin),
-                    "placement": "pre_builtin", "order": 0,
+                    "placement": "post_builtin", "order": 0,
                     "config": {"registry_path": str(registry_file), "admin_listen": f"127.0.0.1:{port()}",
                                "admin_token_env": "REGISTRY_ADMIN_TOKEN"},
                 })
@@ -340,9 +340,8 @@ def main():
                         status, _, _ = request(base + MODELS_PATH, key_value)
                         check(report, label + " refused", status in (401, 403), True)
                     status, legacy_body, _ = request(base + MODELS_PATH, legacy_key["value"])
-                    check(report, "existing native key without policy refused", status, 403)
-                    code = error_code(legacy_body)
-                    check(report, "existing key refusal is Registry policy", code, "registry_policy_missing")
+                    check(report, "existing native key without policy status", status, baseline[2]["status"])
+                    check(report, "existing native key without policy IDs", ids(status, legacy_body, native=True), baseline[2]["ids"])
 
                     admin = f"http://127.0.0.1:{admin_port}"
                     status, current, headers = request(admin + "/api/config", token)

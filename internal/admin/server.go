@@ -2,6 +2,7 @@
 package admin
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"crypto/subtle"
 	"embed"
@@ -28,7 +29,9 @@ type Server struct {
 	tokenHash    [32]byte
 	allowedHosts map[string]bool
 	live         liveState
+	catalogHTTP  *http.Client
 	uiDir        string
+	uiAssets     fs.FS
 }
 
 func New(store *registry.Store, token string, hosts []string) (*Server, error) {
@@ -59,6 +62,17 @@ func (s *Server) UseUIDirectory(dir string) error {
 	s.uiDir = root
 	return nil
 }
+
+// UseEmbeddedUI serves the React build included in the plugin binary.
+func (s *Server) UseEmbeddedUI() error {
+	assets, err := EmbeddedAssets()
+	if err != nil {
+		return err
+	}
+	s.uiAssets = assets
+	return nil
+}
+
 func (s *Server) HTTPServer(addr string) *http.Server {
 	return &http.Server{Addr: addr, Handler: s, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 20 * time.Second, WriteTimeout: 30 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 16 << 10}
 }
@@ -101,6 +115,10 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request, embedded bool) {
 			s.serveUI(w, r)
 			return
 		}
+		if s.uiAssets != nil {
+			s.serveEmbeddedUI(w, r)
+			return
+		}
 		path := strings.TrimPrefix(r.URL.Path, "/")
 		if path == "" || path == "model-registry" {
 			path = "index.html"
@@ -138,7 +156,11 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request, embedded bool) {
 		}
 	}
 	switch r.URL.Path {
-	case "/api/workspace", "/api/keys":
+	case "/api/snapshot", "/api/snapshot.csv", "/api/snapshot/preview", "/api/snapshot/apply":
+		s.snapshotHandler(w, r)
+	case "/api/catalog", "/api/catalog/refresh", "/api/catalog/override", "/api/catalog/match", "/api/catalog/reference":
+		s.catalogHandler(w, r)
+	case "/api/workspace", "/api/keys", "/api/keys/adopt":
 		s.liveHandler(w, r)
 	case "/api/status":
 		if !method(w, r, http.MethodGet) {
@@ -227,6 +249,28 @@ func EmbeddedAssets() (fs.FS, error) {
 		return nil, err
 	}
 	return assets, nil
+}
+
+func (s *Server) serveEmbeddedUI(w http.ResponseWriter, r *http.Request) {
+	path := strings.TrimPrefix(r.URL.Path, "/")
+	if path == "" || path == "model-registry" {
+		path = "index.html"
+	}
+	if !fs.ValidPath(path) || strings.HasPrefix(path, ".") || strings.Contains(path, "/.") {
+		http.NotFound(w, r)
+		return
+	}
+	info, err := fs.Stat(s.uiAssets, path)
+	if err != nil || !info.Mode().IsRegular() {
+		http.NotFound(w, r)
+		return
+	}
+	data, err := fs.ReadFile(s.uiAssets, path)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	http.ServeContent(w, r, filepath.Base(path), time.Time{}, bytes.NewReader(data))
 }
 
 func (s *Server) serveUI(w http.ResponseWriter, r *http.Request) {

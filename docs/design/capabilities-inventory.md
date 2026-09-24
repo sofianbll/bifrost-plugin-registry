@@ -2,7 +2,7 @@
 
 Inventaire établi par lecture du code à `503e775`, corrigé pendant l'audit du 23 septembre. Les priorités en fin de document sont des pistes ; le [cadrage produit](product-direction.md) porte les besoins et l'ordre de travail retenus. Toutes les références sont de la forme `fichier:ligne`.
 
-Périmètre : moteur (`internal/registry/`), serveur admin (`internal/admin/`), UI web (`internal/admin/web/`), adaptateur natif (`native/main.go`), CLI (`cmd/registry/main.go`), config de prod (`configs/registry.prod.json`).
+Périmètre : moteur (`internal/registry/`), serveur admin (`internal/admin/`), UI web (`internal/admin/web/`), adaptateur natif (`native/main.go`), CLI (`cmd/registry/main.go`), config de prod (export local de production privé (non distribué)).
 
 ---
 
@@ -106,7 +106,7 @@ Tout ce qui suit traverse le code à l'exécution mais n'est ni stocké, ni comp
 
 ### 5.1 Ce que le moteur sait faire mais que l'UI ne permet pas de configurer
 
-- **`passthrough` / `routing_targets`** : supportés par le schéma (`config.go:50-51`) et utilisés en prod (10 modèles sur 129 dans `configs/registry.prod.json`), mais **absents de l'éditeur de modèles** (`app.js:86`) et du tableau. Seul l'import JSON permet de les renseigner. C'est le plus gros trou de l'UI.
+- **`passthrough` / `routing_targets`** : supportés par le schéma (`config.go:50-51`) et utilisés en prod (10 modèles sur 129 dans export local de production privé (non distribué)), mais **absents de l'éditeur de modèles** (`app.js:86`) et du tableau. Seul l'import JSON permet de les renseigner. C'est le plus gros trou de l'UI.
 - **`metadata`** (`config.go:45`) : accepté par le schéma, non éditable, non affiché.
 - **`prefer`** : éditable uniquement en JSON brut (`app.js:88`) alors que le moteur pourrait proposer les modèles éligibles par alias (la validation d'ambiguïté `config.go:448-456` en connaît la sémantique exacte).
 - **`MergeAliases`** (`plan.go:89-172`) : capacité complète (fusion contrôlée des alias dans un `config.json` Bifrost, refus des conflits, audit anti-collision insensible à la casse) **exposée uniquement en CLI** (`cmd/registry/main.go:68-80`). L'onglet Déploiement l'affiche comme une commande à copier-coller (`app.js:72-73`) sans jamais l'exécuter côté serveur.
@@ -119,7 +119,7 @@ Tout ce qui suit traverse le code à l'exécution mais n'est ni stocké, ni comp
 - **Application partielle** : un `PUT /api/config` sur l'admin embarqué actualise la garde en direct (`server.go:129`, `store.go:59`, `native/main.go:133`). Les alias et permissions natifs Bifrost restent à appliquer séparément ; une modification du fichier hors du plugin n'est pas rechargée automatiquement. Le panneau `serve` autonome ne partage pas le store du plugin.
 - **Double écrivain possible** : le store vérifie le disque avant d'écrire (`store.go:45-57`), donc un `serve` autonome et le plugin peuvent partager le fichier, mais le plugin ne reprendra jamais les modifications du serveur sans redémarrage (pas de reload, pas de watch).
 - **`Session.Revision()` mort** : méthode définie (`runtime.go:40`) mais aucun appelant — la révision servie n'apparaît dans aucune réponse.
-- **Prod sous-utilise le moteur** : 0 groupe avec `filter`, 0 avec `exclude`, alors que ce sont des capacités de base du schéma (`configs/registry.prod.json` — stats de lecture directe).
+- **Prod sous-utilise le moteur** : 0 groupe avec `filter`, 0 avec `exclude`, alors que ce sont des capacités de base du schéma (export local de production privé (non distribué) — stats de lecture directe).
 - **`/api/validate` duplique la validation du PUT** sans effet de bord ; c'est cohérent, mais l'UI l'appelle systématiquement avant chaque ajout au brouillon (`app.js:99,114`) — un round-trip serveur par champ modifié.
 - **WebCrypto non testé en contexte navigateur sécurisé** : le hachage local du jeton (`app.js:96`) requiert un contexte sécurisé ; la doc le reconnaît sans mitigation (`docs/CONFIGURATION.md`).
 

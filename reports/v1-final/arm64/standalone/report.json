@@ -1,0 +1,291 @@
+{
+  "scope": "local paired dynamic Bifrost candidate; synthetic provider; no inference",
+  "source_provenance": "caller must verify unmodified official 2.2.2 source",
+  "started_at_utc": "2026-09-24T18:20:18.448383+00:00",
+  "network_interfaces": [
+    "lo"
+  ],
+  "artifacts": {
+    "gateway": {
+      "path": "/registry/dist/v1-final-arm64/bifrost-http",
+      "sha256": "3d1af72db12d2904cf4e7d8a78814d46a99f521791f7374ca42c1bd1705d537f"
+    },
+    "plugin": {
+      "path": "/registry/dist/v1-final-arm64/bifrost-registry.so",
+      "sha256": "e6d8106c8070bc649f3cb572d83167344470e80a8daa816e729c262b8a30c923"
+    }
+  },
+  "checks": [
+    {
+      "name": "registry starts absent",
+      "pass": true
+    },
+    {
+      "name": "plugin installed from URL",
+      "pass": true,
+      "status": 201
+    },
+    {
+      "name": "URL downloaded completely",
+      "pass": true,
+      "requests": 1
+    },
+    {
+      "name": "plugin saved active and loaded",
+      "pass": true
+    },
+    {
+      "name": "registry path auto-created",
+      "pass": true
+    },
+    {
+      "name": "no native plugin UI API contribution",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "no native plugin route contribution",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "no native plugin API route contribution",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "standalone embedded HTML",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "HTML references embedded JS and CSS",
+      "pass": true
+    },
+    {
+      "name": "embedded asset /assets/index-DGNcAeWI.js",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "embedded asset /assets/index-6szQtQO-.css",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "no ui_dir mount required",
+      "pass": true
+    },
+    {
+      "name": "anonymous panel API refused",
+      "pass": true,
+      "status": 401
+    },
+    {
+      "name": "wrong panel token refused",
+      "pass": true,
+      "status": 401
+    },
+    {
+      "name": "cross-origin panel write refused",
+      "pass": true,
+      "status": 403
+    },
+    {
+      "name": "asset traversal refused",
+      "pass": true,
+      "status": 404
+    },
+    {
+      "name": "connected workspace and synthetic discovery",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "catalogue shares Registry revision",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "Bifrost catalogue refresh discovers configured access",
+      "pass": true,
+      "status": 200,
+      "configured_accesses": 4
+    },
+    {
+      "name": "manual reference stored with exact ID and provenance",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "catalogue override changes effective value and provenance",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "invalid catalogue override rejected",
+      "pass": true,
+      "status": 422
+    },
+    {
+      "name": "stale catalogue revision rejected",
+      "pass": true,
+      "status": 409
+    },
+    {
+      "name": "revert restores Bifrost value and provenance",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "versioned JSON snapshot preserves catalogue",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "flattened CSV has catalogue columns and no credentials",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "unchanged snapshot preview is idempotent",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "snapshot preview reports reference change",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "snapshot apply writes private pre-import backup",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "snapshot import updates live catalogue",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "repeat snapshot import creates no duplicate or backup",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "workspace reloads after catalogue and snapshot writes",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "model and group saved",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "stale workspace revision rejected",
+      "pass": true,
+      "status": 409
+    },
+    {
+      "name": "model and group read back",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "native virtual key created",
+      "pass": true,
+      "status": 201
+    },
+    {
+      "name": "virtual key policy saved",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "independent /v1/models readback verified",
+      "pass": true,
+      "status": 200,
+      "exposed_ids": [
+        "openai/upstream-alpha"
+      ]
+    },
+    {
+      "name": "workspace omits virtual key secret",
+      "pass": true
+    },
+    {
+      "name": "native /v1/models matches published policy",
+      "pass": true,
+      "status": 200,
+      "exposed_ids": [
+        "openai/upstream-alpha"
+      ]
+    },
+    {
+      "name": "URL plugin survives gateway restart",
+      "pass": true
+    },
+    {
+      "name": "model group and policy survive restart",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "imported reference survives gateway restart",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "UI survives gateway restart",
+      "pass": true
+    },
+    {
+      "name": "disable accepted",
+      "pass": true,
+      "status": 200
+    },
+    {
+      "name": "disable closes standalone server",
+      "pass": true
+    },
+    {
+      "name": "known URL reload limitation reported clearly",
+      "pass": true,
+      "status": 500,
+      "error_class": "plugin already loaded"
+    },
+    {
+      "name": "failed reactivation leaves panel closed",
+      "pass": true
+    },
+    {
+      "name": "reactivation config remains enabled for restart",
+      "pass": true
+    },
+    {
+      "name": "plugin recovers after reactivation restart",
+      "pass": true
+    },
+    {
+      "name": "saved workspace recovers after reactivation restart",
+      "pass": true
+    },
+    {
+      "name": "native readback recovers after restart",
+      "pass": true
+    },
+    {
+      "name": "provider received no inference",
+      "pass": true
+    }
+  ],
+  "hot_url_reactivation_supported": false,
+  "registry_relative_path": "app/registry/registry.json",
+  "asset_downloads": 4,
+  "passed": true,
+  "gateway_stopped": true,
+  "fixture_removed": true,
+  "browser_auth_removed": true,
+  "finished_at_utc": "2026-09-24T18:20:47.640325+00:00"
+}

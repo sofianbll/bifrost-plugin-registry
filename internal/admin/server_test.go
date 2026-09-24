@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"testing/fstest"
 
 	"bifrost-registry/internal/registry"
 )
@@ -116,6 +117,34 @@ func TestStaticAssets(t *testing.T) {
 	}
 	if w := perform(s, "POST", "/app.js", "", nil); w.Code != 405 {
 		t.Fatal("static write accepted")
+	}
+}
+
+func TestEmbeddedReactAssetsAndAPIAuth(t *testing.T) {
+	s := setup(t)
+	s.uiAssets = fstest.MapFS{
+		"index.html":       &fstest.MapFile{Data: []byte("<main>Registry</main>")},
+		"assets/index.js":  &fstest.MapFile{Data: []byte("export const ready = true")},
+		"assets/index.css": &fstest.MapFile{Data: []byte("main { color: red }")},
+	}
+	for _, tc := range []struct{ path, mime string }{
+		{"/", "text/html"}, {"/model-registry", "text/html"}, {"/assets/index.js", "javascript"}, {"/assets/index.css", "text/css"},
+	} {
+		w := perform(s, "GET", tc.path, "", nil)
+		if w.Code != 200 || !strings.Contains(w.Header().Get("Content-Type"), tc.mime) {
+			t.Fatalf("%s: %d %s", tc.path, w.Code, w.Header().Get("Content-Type"))
+		}
+	}
+	for _, path := range []string{"/assets", "/assets/", "/assets/../index.html", "/.hidden"} {
+		if w := perform(s, "GET", path, "", nil); w.Code != 404 {
+			t.Fatalf("%s: %d", path, w.Code)
+		}
+	}
+	if w := perform(s, "HEAD", "/assets/index.js", "", nil); w.Code != 200 || w.Body.Len() != 0 {
+		t.Fatal("bad embedded HEAD")
+	}
+	if w := perform(s, "GET", "/api/workspace", "", nil); w.Code != 401 {
+		t.Fatal("unauthorized embedded API request", w.Code)
 	}
 }
 func TestEmbeddedAdminUsesHostAuthenticationBoundary(t *testing.T) {

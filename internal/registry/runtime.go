@@ -35,11 +35,26 @@ type Session struct {
 	allowed  map[string]Route
 }
 
-func (s *Session) PolicyID() string { return s.view.Policy.VirtualKeyID }
+func (s *Session) IsManaged() bool { return s.view != nil }
+func (s *Session) PolicyID() string {
+	if s.view == nil {
+		return ""
+	}
+	return s.view.Policy.VirtualKeyID
+}
 func (s *Session) IsModels() bool   { return s.endpoint == "models" }
 func (s *Session) Revision() string { return s.snapshot.Revision() }
 func (s *Session) VerifyIdentity(authenticatedID string) *Failure {
-	if authenticatedID == "" || authenticatedID != s.PolicyID() {
+	if authenticatedID == "" {
+		return fail(403, "registry_identity_mismatch", "Bifrost did not confirm the virtual key identity")
+	}
+	if s.view == nil {
+		if _, managed := s.snapshot.views[authenticatedID]; managed {
+			return fail(403, "registry_binding_stale", "The native virtual key has a registry policy with a different credential")
+		}
+		return nil
+	}
+	if authenticatedID != s.PolicyID() {
 		return fail(403, "registry_identity_mismatch", "Bifrost did not confirm the bound virtual key identity")
 	}
 	return nil
@@ -48,7 +63,7 @@ func (s *Session) VerifyIdentity(authenticatedID string) *Failure {
 // CheckAttempt is run for EVERY provider attempt, after routing and before the provider.
 // Never return a normal plugin error for rejection: Bifrost logs and ignores those.
 func (s *Session) CheckAttempt(provider, model string) *Failure {
-	if s.IsModels() {
+	if !s.IsManaged() || s.IsModels() {
 		return nil
 	}
 	r, ok := s.allowed[provider+"/"+model]
@@ -88,6 +103,7 @@ func header(headers map[string]string, name string) (string, error) {
 // Credential only accepts Bifrost virtual keys. Raw upstream credentials are not accepted.
 func Credential(headers map[string]string) (string, error) {
 	vk, err := header(headers, "x-bf-vk")
+	explicitNative := vk != ""
 	if err != nil {
 		return "", err
 	}
@@ -103,13 +119,26 @@ func Credential(headers map[string]string) (string, error) {
 		}
 		bearer = parts[1]
 	}
-	if vk != "" && bearer != "" && vk != bearer {
-		return "", errors.New("conflicting virtual key credentials")
+	values := []string{bearer}
+	for _, name := range []string{"x-api-key", "x-goog-api-key", "api-key"} {
+		value, err := header(headers, name)
+		if err != nil {
+			return "", err
+		}
+		if strings.HasPrefix(strings.ToLower(value), "sk-bf-") {
+			values = append(values, value)
+		}
 	}
-	if vk == "" {
-		vk = bearer
+	for _, value := range values {
+		if value == "" {
+			continue
+		}
+		if vk != "" && vk != value {
+			return "", errors.New("conflicting virtual key credentials")
+		}
+		vk = value
 	}
-	if !strings.HasPrefix(vk, "sk-bf-") || len(vk) < 16 || len(vk) > 512 || strings.ContainsAny(vk, " ,\t") {
+	if vk == "" || (!explicitNative && (!strings.HasPrefix(vk, "sk-bf-") || len(vk) < 16)) || len(vk) > 512 || strings.ContainsAny(vk, " ,\t") {
 		return "", errors.New("a Bifrost virtual key is required")
 	}
 	return vk, nil
@@ -130,7 +159,20 @@ func Endpoint(path string) (string, bool) {
 	return "", false
 }
 func (s *Snapshot) Prepare(req *Request) (*Session, *Failure) {
+	token, err := Credential(req.Headers)
+	if err != nil {
+		return nil, fail(401, "registry_virtual_key_required", err.Error())
+	}
+	v := s.tokens[TokenHash(token)]
 	endpoint, ok := Endpoint(req.Path)
+	if v == nil {
+		// Native candidates keep all gateway protocol paths, methods and payloads.
+		// Governance must confirm that their ID has no Registry policy before use.
+		return &Session{snapshot: s, endpoint: endpoint}, nil
+	}
+	if !v.Policy.Enabled {
+		return nil, fail(403, "registry_policy_missing", "virtual key is not bound to an enabled registry policy")
+	}
 	if !ok {
 		return nil, fail(400, "registry_unsupported_endpoint", "This endpoint is not covered by the registry guard")
 	}
@@ -140,14 +182,6 @@ func (s *Snapshot) Prepare(req *Request) (*Session, *Failure) {
 	}
 	if req.Method != expectedMethod {
 		return nil, fail(405, "registry_method_not_allowed", "Method not allowed")
-	}
-	token, err := Credential(req.Headers)
-	if err != nil {
-		return nil, fail(401, "registry_virtual_key_required", err.Error())
-	}
-	v, err := s.bound(token)
-	if err != nil {
-		return nil, fail(403, "registry_policy_missing", err.Error())
 	}
 	for _, name := range []string{"x-bf-direct-key", "x-bf-api-key", "x-bf-api-key-id"} {
 		value, e := header(req.Headers, name)
@@ -248,6 +282,9 @@ func (s *Snapshot) Prepare(req *Request) (*Session, *Failure) {
 func (s *Session) Project(body []byte, authenticatedID string) ([]byte, *Failure) {
 	if f := s.VerifyIdentity(authenticatedID); f != nil {
 		return nil, f
+	}
+	if !s.IsManaged() {
+		return nil, fail(500, "registry_unmanaged_projection", "Unmanaged responses are handled by Bifrost")
 	}
 	if len(body) > MaxBodyBytes {
 		return nil, fail(502, "registry_models_too_large", "Native model listing exceeds the registry limit")

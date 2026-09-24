@@ -6,13 +6,13 @@
 
 `upstream_model` est la cible exacte envoyée par l’alias natif. `canonical_model` est exporté comme `model_name` pour le mapping canonique/pricing natif. `model_family` est exporté comme famille de protocole native : ce n’est **pas** une étiquette de classement et il ne faut pas la deviner. `creator`, `family`, `capabilities` et `metadata` sont des métadonnées d’administration. La famille de classement peut par exemple être `Claude` sans correspondre à la valeur native `anthropic`.
 
-`endpoints` est une liste explicite des endpoints testés/autorisés pour ce modèle. Déclarer un endpoint ne l’implémente pas dans le provider. `enabled` et `verified` doivent être vrais pour qu’un modèle soit publiable. `verified: true` exige `evidence` non vide ; il s’agit d’une déclaration de l’administrateur dont l’exactitude n’est pas vérifiée automatiquement.
+`endpoints` est une liste explicite des endpoints autorisés pour ce modèle ; la déclaration ne prouve pas que le provider les implémente. Pour entrer dans la vue compilée ou le plan d'alias, un modèle doit avoir `enabled: true` et **au moins un** des états `configured: true` ou `verified: true`. `configured` indique un accès natif Bifrost configuré ; il ne prouve aucune inférence ni capacité. `verified: true` exige `evidence` non vide : c'est une déclaration de l'administrateur, sans vérification automatique. Les permissions et la liste native Bifrost continuent de limiter les accès effectifs.
 
 ## Groupes
 
 `model_ids` et `filter` sont réunis par UNION. Un filtre comprend les listes optionnelles `sources`, `creators`, `families`, `capabilities`.
 
-À l’intérieur des sources/créateurs/familles, une correspondance suffit. Entre catégories, toutes les conditions doivent être satisfaites. Pour les capacités, toutes les capacités demandées doivent être présentes. `exclude` soustrait ensuite les identifiants précisés. Les modèles désactivés ou non vérifiés sont encore retirés lors de la compilation de chaque vue.
+À l’intérieur des sources/créateurs/familles, une correspondance suffit. Entre catégories, toutes les conditions doivent être satisfaites. Pour les capacités, toutes les capacités demandées doivent être présentes. `exclude` soustrait ensuite les identifiants précisés. Les modèles désactivés, ou ni configurés ni vérifiés, sont encore retirés lors de la compilation de chaque vue.
 
 Un groupe sans modèles explicites et sans filtre non vide est invalide. Une politique sans aucun groupe est valide et interdit tout. Les membres de groupe sont des IDs locaux, pas des alias.
 
@@ -78,3 +78,15 @@ Toutes les routes `/api/*` demandent un jeton d’administration Bearer, distinc
 | `POST /api/preview` | `{"config":{…},"virtual_key_id":"…"}` ; vue calculée sans accès amont. |
 | `POST /api/plan` | `{"config":{…}}` ; compilation des primitives natives attendues. |
 | `GET /api/status` | Statut du contrôle local ; ne revendique pas une connexion administrative à Bifrost ou un chargement `.so` vérifié. |
+
+## Import des anciennes datasheets Bifrost
+
+Exporter d'abord l'instantané JSON du Registry, puis convertir les deux fichiers produits par `datasheet-sync.py` dans un **nouveau** fichier :
+
+```bash
+python3 scripts/import-bifrost-datasheets.py \
+  --snapshot registry-snapshot.json --pricing pricing.json \
+  --parameters model-parameters.json --out registry-with-datasheets.json
+```
+
+Importer le résultat dans le panneau via l'aperçu puis l'application avec révision. Le convertisseur garde les lignes de prix et paramètres complètes dans `catalog.accesses[].overrides.legacy_datasheet`, y compris les paliers et horaires hors pointe. Il exige `provider` et `base_model` cohérents avec la clé `Provider/model` lorsqu'elle existe, refuse les correspondances ambiguës et ne lit ni clés ni base Bifrost. Les nouveaux accès sont `configured: false` ; modèles, groupes et politiques restent inchangés.

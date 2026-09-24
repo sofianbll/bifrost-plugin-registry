@@ -5,11 +5,9 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
-	"io"
 	"net"
 	"net/http"
 	"os"
@@ -22,8 +20,6 @@ import (
 	"bifrost-registry/internal/admin"
 	"bifrost-registry/internal/registry"
 	"github.com/maximhq/bifrost/core/schemas"
-	"github.com/valyala/fasthttp"
-	"github.com/valyala/fasthttp/fasthttpadaptor"
 )
 
 type configuration struct {
@@ -69,7 +65,7 @@ func Init(config any) error {
 	}
 	inst := &instance{}
 	if cfg.RegistryPath != "" {
-		store, err := registry.OpenStore(cfg.RegistryPath)
+		store, err := openOrCreateStore(cfg.RegistryPath)
 		if err != nil {
 			return err
 		}
@@ -97,6 +93,8 @@ func Init(config any) error {
 			if e = handler.UseUIDirectory(cfg.UIDir); e != nil {
 				return e
 			}
+		} else if e = handler.UseEmbeddedUI(); e != nil {
+			return e
 		}
 		listener, e := net.Listen("tcp", cfg.AdminListen)
 		if e != nil {
@@ -120,46 +118,7 @@ func Cleanup() error {
 	return old.server.Shutdown(ctx)
 }
 
-type nativeRequestKey struct{}
-
-type nativeTransport struct {
-	call func(*fasthttp.RequestCtx, *fasthttp.Request, *fasthttp.Response)
-}
-
-func (t nativeTransport) RoundTrip(r *http.Request) (*http.Response, error) {
-	parent, ok := r.Context().Value(nativeRequestKey{}).(*fasthttp.RequestCtx)
-	if !ok {
-		return nil, errors.New("native request context is missing")
-	}
-	var child fasthttp.Request
-	child.Header.SetMethod(r.Method)
-	child.Header.SetHost(string(parent.Host()))
-	child.SetRequestURI(r.URL.RequestURI())
-	for key, values := range r.Header {
-		for _, value := range values {
-			child.Header.Add(key, value)
-		}
-	}
-	if r.Body != nil {
-		body, err := io.ReadAll(io.LimitReader(r.Body, (8<<20)+1))
-		if err != nil || len(body) > 8<<20 {
-			return nil, errors.New("native request body is too large")
-		}
-		child.SetBody(body)
-	}
-	var result fasthttp.Response
-	t.call(parent, &child, &result)
-	headers := http.Header{}
-	result.Header.VisitAll(func(key, value []byte) { headers.Add(string(key), string(value)) })
-	body := append([]byte(nil), result.Body()...)
-	return &http.Response{StatusCode: result.StatusCode(), Header: headers, Body: io.NopCloser(bytes.NewReader(body)), ContentLength: int64(len(body)), Request: r}, nil
-}
-
-func defaultStore(dir string) (*registry.Store, error) {
-	if dir == "" {
-		return nil, errors.New("Bifrost app directory is unavailable")
-	}
-	path := filepath.Join(dir, "registry", "registry.json")
+func openOrCreateStore(path string) (*registry.Store, error) {
 	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
 		return nil, err
 	}
@@ -182,44 +141,6 @@ func defaultStore(dir string) (*registry.Store, error) {
 		return nil, err
 	}
 	return registry.OpenStore(path)
-}
-
-func GetAdminUI(host schemas.PluginAdminUIHost) (schemas.PluginAdminUI, error) {
-	lifecycle.Lock()
-	defer lifecycle.Unlock()
-	inst := current.Load()
-	if inst == nil {
-		return schemas.PluginAdminUI{}, errors.New("registry is not initialized")
-	}
-	assets, err := admin.EmbeddedAssets()
-	if err != nil {
-		return schemas.PluginAdminUI{}, err
-	}
-	if host.CallNative == nil {
-		return schemas.PluginAdminUI{}, errors.New("native Bifrost API is unavailable")
-	}
-	store := inst.store.Load()
-	if store == nil {
-		store, err = defaultStore(host.DataDir)
-		if err != nil {
-			return schemas.PluginAdminUI{}, err
-		}
-		inst.store.Store(store)
-	}
-	panel := admin.NewEmbedded(store)
-	panel.ConnectNative(nativeTransport{call: host.CallNative})
-	api := func(ctx *fasthttp.RequestCtx) {
-		fasthttpadaptor.NewFastHTTPHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			index := strings.Index(r.URL.Path, "/api/")
-			if index < 0 {
-				http.NotFound(w, r)
-				return
-			}
-			r.URL.Path = r.URL.Path[index:]
-			panel.ServeEmbeddedHTTP(w, r.WithContext(context.WithValue(r.Context(), nativeRequestKey{}, ctx)))
-		}))(ctx)
-	}
-	return schemas.PluginAdminUI{Title: "Model Registry", Assets: assets, API: api}, nil
 }
 func failureResponse(f *registry.Failure) *schemas.HTTPResponse {
 	return &schemas.HTTPResponse{StatusCode: f.Status, Headers: map[string]string{"Content-Type": "application/json", "Cache-Control": "no-store"}, Body: f.JSON()}
@@ -262,6 +183,12 @@ func HTTPTransportPreHook(ctx *schemas.BifrostContext, req *schemas.HTTPRequest)
 	if f != nil {
 		return failureResponse(f), nil
 	}
+	ctx.SetValue(sessionKey, &guardedSession{Session: sess})
+	if !sess.IsManaged() {
+		// Governance authenticates this candidate later. Leave its native request
+		// and credential context untouched until its VK ID is known.
+		return nil, nil
+	}
 	req.Body = input.Body
 	if req.Headers == nil {
 		req.Headers = map[string]string{}
@@ -275,12 +202,24 @@ func HTTPTransportPreHook(ctx *schemas.BifrostContext, req *schemas.HTTPRequest)
 	// must still authenticate it and enforce budgets and native VK permissions.
 	token, _ := registry.Credential(req.Headers)
 	ctx.SetValue(schemas.BifrostContextKeyVirtualKey, token)
-	ctx.SetValue(sessionKey, &guardedSession{Session: sess})
 	return nil, nil
 }
 func HTTPTransportPostHook(ctx *schemas.BifrostContext, req *schemas.HTTPRequest, resp *schemas.HTTPResponse) error {
 	s := session(ctx)
 	if s == nil || resp == nil || resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil
+	}
+	if !s.IsManaged() {
+		id := identity(ctx)
+		if s.identityState.Load() == 2 || (id == "" && s.identityState.Load() != 1) {
+			*resp = *failureResponse(s.VerifyIdentity(""))
+			return nil
+		}
+		if id != "" {
+			if f := s.VerifyIdentity(id); f != nil {
+				*resp = *failureResponse(f)
+			}
+		}
 		return nil
 	}
 	if resp.Headers == nil {
@@ -348,8 +287,11 @@ func PreLLMHook(ctx *schemas.BifrostContext, req *schemas.BifrostRequest) (*sche
 	if s == nil || req == nil {
 		f = &registry.Failure{Status: 403, Code: "registry_http_required", Message: "A guarded HTTP registry request is required"}
 	} else {
-		provider, model, _ := req.GetRequestFields()
-		f = s.CheckAttempt(string(provider), model)
+		f = s.VerifyIdentity(identity(ctx))
+		if f == nil {
+			provider, model, _ := req.GetRequestFields()
+			f = s.CheckAttempt(string(provider), model)
+		}
 	}
 	if f == nil {
 		return req, nil, nil
@@ -361,21 +303,18 @@ func PreLLMHook(ctx *schemas.BifrostContext, req *schemas.BifrostRequest) (*sche
 	return req, &schemas.LLMPluginShortCircuit{Error: err}, nil
 }
 func PostLLMHook(ctx *schemas.BifrostContext, resp *schemas.BifrostResponse, err *schemas.BifrostError) (*schemas.BifrostResponse, *schemas.BifrostError, error) {
-	// Authoritative identity enforcement: governance stamped the authenticated
-	// virtual key id in its PreLLM, so it is visible here. Reject on mismatch even
-	// though the provider call already happened (defense in depth; the token-hash
-	// binding makes a real mismatch virtually impossible).
+	// Governance stamped the authenticated VK ID in its PreLLM. The earlier
+	// Registry PreLLM blocked mismatches before the provider; recheck each result
+	// and relay a verified child-context identity to the transport post-hook.
 	if s := session(ctx); s != nil {
 		f := s.VerifyIdentity(identity(ctx))
-		if s.IsModels() {
-			if f == nil {
-				s.identityState.CompareAndSwap(0, 1)
-				if s.identityState.Load() == 2 {
-					f = s.VerifyIdentity("")
-				}
-			} else {
-				s.identityState.Store(2)
+		if f == nil {
+			s.identityState.CompareAndSwap(0, 1)
+			if s.identityState.Load() == 2 {
+				f = s.VerifyIdentity("")
 			}
+		} else {
+			s.identityState.Store(2)
 		}
 		if f != nil {
 			status := f.Status

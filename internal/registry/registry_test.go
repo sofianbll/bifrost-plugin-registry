@@ -247,6 +247,7 @@ func TestSnapshotIsolationAndDeterminism(t *testing.T) {
 func TestCredential(t *testing.T) {
 	for name, h := range map[string]map[string]string{
 		"bearer": {"Authorization": "Bearer " + testToken}, "lower": {"authorization": "bearer " + testToken}, "header": {"X-Bf-Vk": testToken}, "matching": {"Authorization": "Bearer " + testToken, "x-bf-vk": testToken},
+		"anthropic": {"x-api-key": testToken}, "google": {"x-goog-api-key": testToken}, "azure": {"api-key": testToken},
 	} {
 		t.Run(name, func(t *testing.T) {
 			v, e := Credential(h)
@@ -256,7 +257,7 @@ func TestCredential(t *testing.T) {
 		})
 	}
 	for name, h := range map[string]map[string]string{
-		"missing": {}, "provider_key": {"Authorization": "Bearer sk-openai-provider-key"}, "basic": {"Authorization": "Basic xxx"}, "conflict": {"Authorization": "Bearer " + testToken, "x-bf-vk": testToken + "other"}, "case_duplicates": {"authorization": "Bearer " + testToken, "Authorization": "Bearer " + testToken}, "comma": {"x-bf-vk": testToken + ",abc"}, "newline": {"x-bf-vk": testToken + "\n"}, "too_short": {"x-bf-vk": "sk-bf-x"},
+		"missing": {}, "provider_key": {"Authorization": "Bearer sk-openai-provider-key"}, "basic": {"Authorization": "Basic xxx"}, "conflict": {"Authorization": "Bearer " + testToken, "x-bf-vk": testToken + "other"}, "alternate_conflict": {"Authorization": "Bearer " + testToken, "x-api-key": "sk-bf-other-valid-token"}, "case_duplicates": {"authorization": "Bearer " + testToken, "Authorization": "Bearer " + testToken}, "comma": {"x-bf-vk": testToken + ",abc"}, "newline": {"x-bf-vk": testToken + "\n"}, "too_short": {"Authorization": "Bearer sk-bf-x"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			if _, e := Credential(h); e == nil {
@@ -271,7 +272,7 @@ func TestRequestRejections(t *testing.T) {
 		change func(*Request)
 		status int
 	}{
-		{"wrong_method", func(r *Request) { r.Method = "GET" }, 405}, {"wrong_path", func(r *Request) { r.Path = "/v1/realtime" }, 400}, {"unknown_key", func(r *Request) { r.Headers["Authorization"] = "Bearer sk-bf-unknown-token" }, 403},
+		{"wrong_method", func(r *Request) { r.Method = "GET" }, 405}, {"wrong_path", func(r *Request) { r.Path = "/v1/realtime" }, 400},
 		{"missing_key", func(r *Request) { delete(r.Headers, "Authorization") }, 401}, {"hidden_model", func(r *Request) { r.Body = []byte(`{"model":"wire/a-1"}`) }, 403}, {"bare_hidden", func(r *Request) { r.Body = []byte(`{"model":"smart"}`) }, 403},
 		{"null_body", func(r *Request) { r.Body = []byte(`null`) }, 400}, {"array_body", func(r *Request) { r.Body = []byte(`[]`) }, 400}, {"missing_model", func(r *Request) { r.Body = []byte(`{}`) }, 400}, {"numeric_model", func(r *Request) { r.Body = []byte(`{"model":4}`) }, 400},
 		{"duplicate_model", func(r *Request) { r.Body = []byte(`{"model":"alpha/smart","model":"beta/smart"}`) }, 400}, {"duplicate_nested", func(r *Request) { r.Body = []byte(`{"model":"alpha/smart","extra":{"a":1,"a":2}}`) }, 400},

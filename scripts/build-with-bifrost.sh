@@ -14,6 +14,10 @@ command -v npm >/dev/null || fail "npm is required to build the embedded Registr
 [[ $(go env GOOS) == "linux" || $(go env GOOS) == "darwin" ]] || fail "Go plugins require Linux or macOS"
 [[ $(go env GOOS) == $(go env GOHOSTOS) && $(go env GOARCH) == $(go env GOHOSTARCH) ]] || fail "Use a native matching builder, not cross-compilation"
 [[ -z ${GOFLAGS:-} ]] || fail "Unset GOFLAGS to avoid hidden build flag mismatches"
+case ${REGISTRY_NATIVE_UI:-0} in
+  0|1) ;;
+  *) fail "REGISTRY_NATIVE_UI must be 0 or 1" ;;
+esac
 if ! [[ -f "$BF/transports/bifrost-http/ui/index.html" ]]; then
  fail "Real Bifrost UI assets missing. Build the UI from this SAME checkout and copy its output to transports/bifrost-http/ui (see docs/BUILD.md). No placeholder UI is generated."
 fi
@@ -37,8 +41,8 @@ import pathlib,shutil,sys
 root,stage=map(pathlib.Path,sys.argv[1:3]); module=sys.argv[3]; ui=pathlib.Path(sys.argv[4])
 shutil.copytree(root/'internal',stage/'internal')
 shutil.copytree(ui,stage/'internal/admin/web/react')
-shutil.copy(root/'native/main.go',stage/'main.go')
-shutil.copy(root/'native/main_test.go',stage/'main_test.go')
+for source in (root/'native').glob('*.go'):
+    shutil.copy(source,stage/source.name)
 (stage/'abi-probe').mkdir()
 shutil.copy(root/'integration/native_probe.go',stage/'abi-probe/main.go')
 (stage/'legacy-proof').mkdir()
@@ -51,10 +55,18 @@ export GOWORK=off CGO_ENABLED=1
 # Both packages are loaded together before build, so the same dependency versions
 # are selected. -mod=readonly stops silent go.mod/go.sum edits.
 FLAGS=(-mod=readonly -trimpath -buildvcs=false -tags=bifrost)
+if [[ ${REGISTRY_NATIVE_UI:-0} == 1 ]]; then
+ FLAGS=(-mod=readonly -trimpath -buildvcs=false -tags=bifrost,bifrost_native_ui)
+fi
 go list "${FLAGS[@]}" -deps ./bifrost-http ./registry-plugin ./registry-plugin/abi-probe ./registry-plugin/legacy-proof >/dev/null
-go test -mod=readonly -tags=bifrost ./registry-plugin
+go test "${FLAGS[@]}" ./registry-plugin
 {
- printf 'Bifrost checkout: '; git -c safe.directory='*' -C "$BF" rev-parse HEAD 2>/dev/null || printf 'unknown (git safe.directory)'
+ printf 'Bifrost checkout: '
+ if [[ $(git -c safe.directory='*' -C "$BF" rev-parse --show-toplevel 2>/dev/null || true) == "$BF" ]]; then
+  git -c safe.directory='*' -C "$BF" rev-parse HEAD
+ else
+  printf 'unknown (source directory has no own Git metadata)\n'
+ fi
  printf 'Go: '; go version
  printf 'Toolchain env: '; go env GOVERSION GOOS GOARCH CGO_ENABLED GOWORK
  printf 'Build flags: '; printf '%s ' "${FLAGS[@]}"; printf '\n'
