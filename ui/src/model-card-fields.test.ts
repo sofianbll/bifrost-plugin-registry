@@ -1,4 +1,4 @@
-import { parsePropertyValue, proposedAccessValue } from "./model-card-fields";
+import { parsePropertyValue, proposedAccessValue, stageCatalogOverride } from "./model-card-fields";
 
 const equal = (actual: unknown, expected: unknown) => { if (actual !== expected) throw new Error(`Expected ${String(expected)}, got ${String(actual)}`); };
 const rejects = (work: () => unknown) => { try { work(); } catch { return; } throw new Error("Expected invalid value to be rejected"); };
@@ -13,4 +13,7 @@ equal(proposedAccessValue("reference", "ref", "access", "ref", 128000, 128000, 3
 equal(proposedAccessValue("reference", "ref", "access", "other", undefined, 128000, 32000), 128000);
 equal(proposedAccessValue("access", "access", "access", "ref", false, true, true), true);
 equal(proposedAccessValue("access", "other", "access", "ref", false, true, true), false);
+const staged = stageCatalogOverride([], { target: "reference", id: "ref", field: "context_length", value: 32000 }, 128000);
+equal(staged.length, 1);
+equal(stageCatalogOverride(staged, { target: "reference", id: "ref", field: "context_length", value: 128000 }, 128000).length, 0);
 console.log("Model card property checks passed");

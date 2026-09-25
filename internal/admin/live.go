@@ -515,7 +515,8 @@ func (s *Server) putWorkspace(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var input struct {
-		Data demoDTO `json:"data"`
+		Data             demoDTO                `json:"data"`
+		CatalogOverrides []catalogOverrideInput `json:"catalogOverrides,omitempty"`
 	}
 	if e = registry.StrictJSON(b, &input, true); e != nil {
 		reply(w, 400, map[string]string{"error": "Invalid workspace JSON"})
@@ -541,6 +542,31 @@ func (s *Server) putWorkspace(w http.ResponseWriter, r *http.Request) {
 		oldPolicy[p.VirtualKeyID] = p
 	}
 	cfg := registry.Config{SchemaVersion: 1, DefaultNaming: old.DefaultNaming, Models: []registry.Model{}, Groups: []registry.Group{}, Policies: []registry.Policy{}, Catalog: old.Catalog, Assistant: old.Assistant}
+	seenOverrides := map[string]bool{}
+	for _, override := range input.CatalogOverrides {
+		if override.Field != "context_length" && override.Field != "max_output_tokens" && override.Field != "tool_call" && override.Field != "structured_output" {
+			reply(w, 422, map[string]string{"error": "Unsupported model card property"})
+			return
+		}
+		if (override.Field == "context_length" || override.Field == "max_output_tokens") && !validCardTokenCount(override.Value) {
+			reply(w, 422, map[string]string{"error": "Model card token count must be a safe non-negative integer"})
+			return
+		}
+		key := override.Target + "\x00" + override.ID + "\x00" + override.Field
+		if seenOverrides[key] {
+			reply(w, 422, map[string]string{"error": "Duplicate catalogue override"})
+			return
+		}
+		seenOverrides[key] = true
+		if string(override.Value) == "null" {
+			reply(w, 422, map[string]string{"error": "Invalid catalogue override"})
+			return
+		}
+		if status := applyCatalogOverride(cfg.Catalog, override); status != 0 {
+			reply(w, 422, map[string]string{"error": "Invalid or unknown catalogue override"})
+			return
+		}
+	}
 	nativeAccess := map[string]nativeModel{}
 	for _, n := range nativeRows {
 		nativeAccess[n.Provider+"/"+n.Name] = n
@@ -714,6 +740,10 @@ func cleanUnknown(v string) string {
 		return ""
 	}
 	return v
+}
+func validCardTokenCount(raw json.RawMessage) bool {
+	var n int64
+	return json.Unmarshal(raw, &n) == nil && n >= 0 && n <= 9007199254740991
 }
 func sanitizeLiveModel(m modelDTO) modelDTO {
 	if m.Tasks == nil {

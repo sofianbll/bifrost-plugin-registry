@@ -151,6 +151,38 @@ type catalogDTO struct {
 	Sources    []registry.CatalogSource `json:"sources"`
 }
 
+type catalogOverrideInput struct {
+	Target string          `json:"target"`
+	ID     string          `json:"id"`
+	Field  string          `json:"field"`
+	Value  json.RawMessage `json:"value"`
+}
+
+func applyCatalogOverride(c *registry.Catalog, input catalogOverrideInput) int {
+	if !registry.CatalogFieldAllowed(input.Field) || len(input.Value) == 0 || !json.Valid(input.Value) {
+		return http.StatusBadRequest
+	}
+	if c == nil {
+		return http.StatusNotFound
+	}
+	record := catalogRecord(c, input.Target, input.ID)
+	if record == nil {
+		return http.StatusNotFound
+	}
+	if string(input.Value) == "null" {
+		delete(record.Overrides, input.Field)
+		return 0
+	}
+	if !registry.CatalogValueValid(input.Field, input.Value) {
+		return http.StatusUnprocessableEntity
+	}
+	if record.Overrides == nil {
+		record.Overrides = map[string]registry.CatalogValue{}
+	}
+	record.Overrides[input.Field] = registry.CatalogValue{Value: input.Value, Source: "manual", UpdatedAt: time.Now().UTC().Format(time.RFC3339), Kind: "declared"}
+	return 0
+}
+
 func catalogView(snap *registry.Snapshot) catalogDTO {
 	cfg := snap.Config()
 	out := catalogDTO{Revision: snap.Revision(), References: []catalogReferenceDTO{}, Accesses: []catalogAccessDTO{}, Sources: []registry.CatalogSource{}}
@@ -251,28 +283,14 @@ func (s *Server) catalogHandler(w http.ResponseWriter, r *http.Request) {
 		cfg.Catalog.References = append(cfg.Catalog.References, ref)
 		sort.Slice(cfg.Catalog.References, func(i, j int) bool { return cfg.Catalog.References[i].ID < cfg.Catalog.References[j].ID })
 	case "/api/catalog/override":
-		var input struct {
-			Target string          `json:"target"`
-			ID     string          `json:"id"`
-			Field  string          `json:"field"`
-			Value  json.RawMessage `json:"value"`
-		}
-		if registry.StrictJSON(b, &input, true) != nil || !registry.CatalogFieldAllowed(input.Field) || len(input.Value) == 0 || !json.Valid(input.Value) {
+		var input catalogOverrideInput
+		if registry.StrictJSON(b, &input, true) != nil {
 			reply(w, 400, map[string]string{"error": "Invalid catalogue override"})
 			return
 		}
-		record := catalogRecord(cfg.Catalog, input.Target, input.ID)
-		if record == nil {
-			reply(w, 404, map[string]string{"error": "Unknown catalogue target"})
+		if status := applyCatalogOverride(cfg.Catalog, input); status != 0 {
+			reply(w, status, map[string]string{"error": "Invalid or unknown catalogue override"})
 			return
-		}
-		if string(input.Value) == "null" {
-			delete(record.Overrides, input.Field)
-		} else {
-			if record.Overrides == nil {
-				record.Overrides = map[string]registry.CatalogValue{}
-			}
-			record.Overrides[input.Field] = registry.CatalogValue{Value: input.Value, Source: "manual", UpdatedAt: time.Now().UTC().Format(time.RFC3339), Kind: "declared"}
 		}
 	case "/api/catalog/match":
 		var input struct {

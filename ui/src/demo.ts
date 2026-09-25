@@ -14,6 +14,7 @@ export type Model = {
   capabilities: Record<string, Capability>;
   accesses: Access[];
 };
+export const modelOperationLabels: Record<Model["kind"], string> = { Unknown: "Inconnu", Chat: "Chat / Responses", Vision: "Chat / Responses (profil Vision)", Image: "Images / Generations", Embedding: "Embeddings" };
 export type Group = { id: string; name: string; description: string; members: string[] };
 export type Policy = { groups: string[]; added: string[]; excluded: string[]; naming: "model" | "provider/model" | "both" };
 export type Publication = { state: "verified" | "drift" | "not_verified"; revision: string; checkedAt: string; observedAt?: string; observedRevision?: string; expected: string[]; actual: string[] | null; missing: string[]; unexpected: string[]; error?: string };

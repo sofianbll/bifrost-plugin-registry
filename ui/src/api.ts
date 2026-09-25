@@ -1,4 +1,5 @@
 import type { Demo, Model, Publication } from "./demo";
+import type { CatalogOverride } from "./model-card-fields";
 
 export type Workspace = {
   revision: string;
@@ -32,10 +33,10 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const getWorkspace = () => request<Workspace>("workspace");
-export const putWorkspace = (data: Demo, revision: string) => request<Workspace>("workspace", {
+export const putWorkspace = (data: Demo, revision: string, catalogOverrides?: CatalogOverride[]) => request<Workspace>("workspace", {
   method: "PUT",
   headers: { "Content-Type": "application/json", "If-Match": revision },
-  body: JSON.stringify({ data }),
+  body: JSON.stringify({ data, ...(catalogOverrides?.length ? { catalogOverrides } : {}) }),
 });
 export const createKey = (name: string, client: string) => request<{ workspace?: Workspace; managed?: boolean; bindingError?: string; refreshError?: string; created: { id: string; secret: string } }>("keys", {
   method: "POST",

@@ -82,3 +82,13 @@ equal(calls[15].init.method, "POST");
 equal(new Headers(calls[15].init.headers).get("Authorization"), "Bearer test-admin-token");
 equal(calls[15].init.cache, "no-store");
 console.log("Live API request contract: OK");
+
+// A model save carries its metadata corrections in the same revisioned write.
+const stagedCorrections = [{ target: "access" as const, id: "example/model", field: "context_length" as const, value: 32000 }];
+await putWorkspace(data, "draft-revision", stagedCorrections);
+equal(calls.at(-1)?.url, "./api/workspace");
+equal(JSON.parse(calls.at(-1)?.init.body as string), { data, catalogOverrides: stagedCorrections });
+equal(new Headers(calls.at(-1)?.init.headers).get("If-Match"), "draft-revision");
+let unknownBooleanRejected = false;
+try { parseCatalogValue("reasoning", ""); } catch { unknownBooleanRejected = true; }
+equal(unknownBooleanRejected, true);
