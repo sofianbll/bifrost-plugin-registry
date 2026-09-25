@@ -1,9 +1,10 @@
 # Model card experiment
 
-Interactive, in-memory experiment: one canonical model, two provider offers, and
-Registry corrections that preserve the difference between provider-authored and
-inherited properties. This proposes an editing behavior; it does not establish a
-native Bifrost application contract.
+Interactive, in-memory experiment: can a user register one model card from two
+gateway entries, then predict the effect of a targeted edit without learning the
+source inheritance rules? The gateway entries are explicit scenario examples;
+the Models.dev records are pinned upstream data. No native application contract
+is established by this experiment.
 
 From the repository root:
 
@@ -25,7 +26,7 @@ The proposed precedence is: Registry access correction → provider-authored val
 restores that precedence. This bounded case has no `base_model_omit`; it is not a
 general replacement for Models.dev's merge rules.
 
-## Verification — 2026-09-25
+## First revision — historical verification, 2026-09-25
 
 `npm run check`, `npm run build`, the state self-check and the source generator
 passed. The production build retains its existing large-chunk warning; this
@@ -41,8 +42,41 @@ the viewport override were cleared.
 
 Captured on `codex/prototype-model-card-modelsdev`. GitHub issue tracking is
 pending: `gh issue list` could not connect to `api.github.com` during this run.
-The next decision is whether this inheritance/editing interaction fits the
-intended product; native application and routing remain separate work.
+Sofian rejected this first interaction as confusing. The subsequent
+[UX audit](../../../docs/design/model-card-ux-audit.md) found that the interface
+exposed the inheritance mechanism before the user's task. Functional checks above
+did not establish that the journey was understandable.
+
+## Second revision — UX question
+
+The intended sequence is selecting example gateway entries, reviewing the model
+card and its linked providers, then reviewing changes before saving in the demo.
+Properties are readable by default, with a scoped editor and an immediate
+before/after preview. Source provenance stays available without dominating the
+page. Saving remains in memory and does not publish a callable alias.
+
+One cohesive revision follows the accepted audit direction. The previous
+revision remains at `7df5fc3` for comparison; multiple alternative layouts are not
+added to the user's workflow. Native application and routing remain separate work.
+
+### Verification, 2026-09-25
+
+`npm run check`, `npm run build` and the state self-check pass. The state check now
+also exercises the pinned catalogue: common context propagation, preservation of
+provider-authored limits, a provider-only correction, reset and unknown versus
+false. The existing production bundle-size warning remains.
+
+Browser checks covered selection (including none and one provider), scoped
+before/after previews, invalid and unchanged inputs, reset, local registration,
+editing a saved card and cancelling back to its saved state. Escape closes the
+editor and restores focus to its opening button. Desktop and 390 × 844 layouts
+were inspected; the mobile review now keeps Before and After visible together.
+A fresh reload reported no browser warning or error. Test edits and the temporary
+viewport override were cleared. These checks establish interaction behavior;
+Sofian's first-use comprehension still needs his trial.
+
+GitHub tracking remains pending because `api.github.com` was unreachable. This
+revision is local to the prototype branch and does not change the gateway.
 
 ## Data and regeneration
 

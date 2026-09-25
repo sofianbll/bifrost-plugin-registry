@@ -1,110 +1,213 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, RotateCcw } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { change, effective, emptyDraft, readPath, validLimit, type Access, type Data, type Draft, type Field } from "./state";
 import catalog from "./catalog.json";
 
 const model = catalog.model.metadata as Data;
 const accesses = catalog.accesses as Access[];
-const fields: { key: Field; label: string; destination: string; nativePath: string }[] = [
-  { key: "limit.context", label: "Fenêtre de contexte", destination: "Bifrost pricing · portée à qualifier", nativePath: "governance_model_pricing.context_length" },
-  { key: "limit.output", label: "Sortie maximale", destination: "Bifrost pricing · portée à qualifier", nativePath: "governance_model_pricing.max_output_tokens" },
-  { key: "tool_call", label: "Appels d’outils", destination: "Bifrost parameters · portée à qualifier", nativePath: "supports_function_calling" },
-  { key: "structured_output", label: "Sortie structurée", destination: "Bifrost parameters · portée à qualifier", nativePath: "supports_response_schema" },
+const fields: { key: Field; label: string; native: string }[] = [
+  { key: "limit.context", label: "Fenêtre de contexte", native: "governance_model_pricing.context_length" },
+  { key: "limit.output", label: "Sortie maximale", native: "governance_model_pricing.max_output_tokens" },
+  { key: "tool_call", label: "Appels d’outils", native: "supports_function_calling" },
+  { key: "structured_output", label: "Sortie structurée", native: "supports_response_schema" },
 ];
-const yesNo = (value: unknown) => value === undefined ? "Inconnu" : value === true || value === "true" ? "Oui" : value === false || value === "false" ? "Non" : String(value);
-const formatted = (value: unknown, field: Field) => value === undefined ? "Inconnu" : field.startsWith("limit.") && Number.isFinite(Number(value)) ? `${Number(value).toLocaleString("fr-FR")} tokens` : yesNo(value);
-const price = (access: Access, key: "input" | "output") => {
-  const value = readPath(access.resolved, `cost.${key}`);
-  return typeof value === "number" ? `${value.toLocaleString("fr-FR", { maximumFractionDigits: 4 })} $ / M tokens` : "Inconnu";
+type Screen = "choose" | "card" | "review" | "registered";
+type Snapshot = { selectedIds: string[]; name: string; alias: string; draft: Draft };
+type Editing = { field: Field; scope: string; value: string | undefined; dirty: boolean };
+const initial = (): Snapshot => ({
+  selectedIds: accesses.map(access => access.id),
+  name: String(model.name ?? catalog.model.id),
+  alias: "claude-sonnet-4.6",
+  draft: emptyDraft(),
+});
+const label = (field: Field) => fields.find(item => item.key === field)?.label ?? field;
+const format = (value: unknown, field: Field) => value === undefined ? "Inconnu"
+  : field.startsWith("limit.") && Number.isFinite(Number(value)) ? `${Number(value).toLocaleString("fr-FR")} tokens`
+  : value === true || value === "true" ? "Oui" : value === false || value === "false" ? "Non" : String(value);
+const source = (name: string) => {
+  if (name === "Inconnu") return "Source inconnue";
+  const owner = name.startsWith("Correction") ? "Vous" : "Models.dev";
+  return `${owner} · ${name.includes("accès") || name.includes("provider") ? "fournisseur" : "fiche"}`;
+};
+const same = (a: unknown, b: unknown) => String(a) === String(b);
+const accessFor = (id: string) => accesses.find(access => access.id === id);
+const scopeName = (id: string) => id === "common" ? "Fiche commune" : `${accessFor(id)?.providerName ?? id} uniquement`;
+const local = (snapshot: Snapshot, scope: string, field: Field) => scope === "common" ? snapshot.draft.common[field] : snapshot.draft.access[scope]?.[field];
+const result = (snapshot: Snapshot, scope: string, field: Field) => effective(model, accessFor(scope), field, snapshot.draft);
+const price = (access: Access, type: "input" | "output") => {
+  const value = readPath(access.resolved, `cost.${type}`);
+  return typeof value === "number" ? `${value.toLocaleString("fr-FR", { maximumFractionDigits: 4 })} $` : "Inconnu";
 };
 
 function Value({ field, access, draft }: { field: Field; access?: Access; draft: Draft }) {
-  const result = effective(model, access, field, draft);
-  return <div className="flex flex-wrap items-center gap-2"><strong className="font-medium tabular-nums">{formatted(result.value, field)}</strong><Badge variant="secondary" className="font-normal">{result.source}</Badge></div>;
+  const value = effective(model, access, field, draft);
+  return <div className="flex flex-col items-start gap-1">
+    <strong className="font-medium tabular-nums">{format(value.value, field)}</strong>
+    <span className="text-xs text-muted-foreground">{source(value.source)}</span>
+  </div>;
 }
 
 export function App() {
-  const [step, setStep] = useState(0);
-  const [selected, setSelected] = useState(accesses[0]?.id ?? "");
-  const [draft, setDraft] = useState<Draft>(emptyDraft);
-  const [alias, setAlias] = useState("claude-sonnet-4.6");
-  const [displayName, setDisplayName] = useState("Claude Sonnet 4.6");
-  const [simulated, setSimulated] = useState(false);
-  const access = accesses.find(item => item.id === selected) ?? accesses[0];
-  const entries = ["Identifier", "Ajuster", "Relire"];
-  const edits = Object.entries(draft.common).map(([field, value]) => ({ scope: "Fiche commune", field: field as Field, value }));
-  for (const item of accesses) for (const [field, value] of Object.entries(draft.access[item.id] ?? {})) edits.push({ scope: item.providerName, field: field as Field, value });
-  const invalidLimits = edits.filter(edit => edit.field.startsWith("limit.") && !validLimit(edit.value ?? ""));
-  const fieldName = (field: Field) => fields.find(item => item.key === field)?.label ?? field;
-  const update = (accessId: string | undefined, field: Field, value: string | undefined) => { setDraft(current => change(current, accessId, field, value)); setSimulated(false); };
+  const editorOpener = useRef<HTMLElement | null>(null);
+  const [screen, setScreen] = useState<Screen>("choose");
+  const [current, setCurrent] = useState<Snapshot>(initial);
+  const [saved, setSaved] = useState<Snapshot | null>(null);
+  const [editing, setEditing] = useState<Editing | null>(null);
+  const [identityOpen, setIdentityOpen] = useState(false);
+  const [identity, setIdentity] = useState({ name: "", alias: "" });
+  const selected = accesses.filter(access => current.selectedIds.includes(access.id));
+  const baseline = saved ?? { ...initial(), selectedIds: [] };
+  const changedFields = fields.filter(item => local(current, "common", item.key) !== local(baseline, "common", item.key)
+    || selected.some(access => local(current, access.id, item.key) !== local(baseline, access.id, item.key)));
+  const patch = (value: Partial<Snapshot>) => setCurrent(previous => ({ ...previous, ...value }));
+
+  function openField(field: Field, scope = "common") {
+    editorOpener.current = document.activeElement as HTMLElement | null;
+    const existing = local(current, scope, field) ?? result(current, scope, field).value;
+    setEditing({ field, scope, value: existing === undefined ? undefined : String(existing), dirty: false });
+  }
+  function chooseScope(scope: string) {
+    if (!editing) return;
+    const existing = local(current, scope, editing.field) ?? result(current, scope, editing.field).value;
+    setEditing({ ...editing, scope, value: existing === undefined ? undefined : String(existing), dirty: false });
+  }
+  function cancelEdit() {
+    setCurrent(saved ?? initial());
+    setScreen(saved ? "registered" : "choose");
+  }
+
+  function openIdentity() {
+    editorOpener.current = document.activeElement as HTMLElement | null;
+    setIdentity({ name: current.name, alias: current.alias });
+    setIdentityOpen(true);
+  }
+
+  function restoreEditorFocus(event: Event) {
+    event.preventDefault();
+    editorOpener.current?.focus();
+  }
+
+  const proposed = editing ? change(current.draft, editing.scope === "common" ? undefined : editing.scope, editing.field, editing.value) : current.draft;
+  const invalid = !!editing && editing.field.startsWith("limit.") && editing.value !== undefined && !validLimit(editing.value);
+  const preview = editing && selected.map(access => ({
+    access,
+    before: effective(model, access, editing.field, current.draft),
+    after: effective(model, access, editing.field, proposed),
+  }));
+  const unchanged = preview?.every(row => same(row.before.value, row.after.value));
+  const reference = editing && effective(model, accessFor(editing.scope), editing.field,
+    change(current.draft, editing.scope === "common" ? undefined : editing.scope, editing.field, undefined)).value;
+  const actualChange = !!editing?.dirty && editing.value !== local(current, editing.scope, editing.field)
+    && (local(current, editing.scope, editing.field) !== undefined || !same(editing.value, result(current, editing.scope, editing.field).value));
+  const ownsEveryValue = !!editing && editing.scope === "common" && selected.every(access => readPath(access.authored, editing.field) !== undefined);
 
   return <main className="min-h-screen bg-muted/30 text-foreground">
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-8 sm:py-12">
-      <header className="mb-8 flex flex-wrap items-start justify-between gap-4 border-b pb-6">
-        <div><p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Registry · étude de fiche</p><h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Claude Sonnet 4.6</h1><p className="mt-2 max-w-2xl text-sm text-muted-foreground">Une identité commune, deux accès fournisseurs et leurs valeurs propres.</p></div>
-        <Badge variant="outline" className="mt-1 max-w-full whitespace-normal [overflow-wrap:anywhere]">Prototype · connexions d’exemple · aucune application gateway</Badge>
+    <div className="mx-auto max-w-5xl px-4 pb-28 pt-7 sm:px-8 sm:pt-10">
+      <header className="mb-6 space-y-4">
+        <nav aria-label="Fil d’Ariane" className="text-sm text-muted-foreground">Registry / Modèles / {screen === "choose" ? "Enregistrer un modèle" : current.name}</nav>
+        <p className="rounded-sm border bg-card px-4 py-3 text-sm font-medium">Démonstration · aucune modification de votre gateway</p>
       </header>
 
-      <nav aria-label="Étapes du prototype" className="mb-7 grid grid-cols-3 gap-2">
-        {entries.map((name, index) => <button key={name} type="button" onClick={() => setStep(index)} aria-current={step === index ? "step" : undefined} className={`rounded-sm border px-3 py-3 text-left text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary ${step === index ? "border-primary bg-primary/10 font-semibold" : "bg-card hover:bg-accent"}`}><span className="mr-2 text-muted-foreground">0{index + 1}</span>{name}</button>)}
-      </nav>
+      {screen === "choose" && <div className="space-y-5">
+        <div><h1 className="text-3xl font-semibold tracking-tight">Enregistrer un modèle</h1><p className="mt-2 text-muted-foreground">Regroupez les accès à un même modèle dans une seule fiche.</p></div>
+        <Card><CardHeader className="pb-3"><CardDescription>Correspondance suggérée · Models.dev</CardDescription><CardTitle className="text-2xl">{String(model.name)}</CardTitle><CardDescription>Anthropic · Texte · Entrées : texte, image, PDF · Sortie : texte</CardDescription></CardHeader>
+          <CardContent className="space-y-2"><p className="text-sm font-medium">Exemple d’un gateway avec deux fournisseurs</p>{accesses.map(access => <label key={access.id} className="flex cursor-pointer items-start gap-3 rounded-sm border bg-background px-3 py-2">
+            <Checkbox checked={current.selectedIds.includes(access.id)} onCheckedChange={checked => patch({ selectedIds: checked === true ? [...current.selectedIds, access.id] : current.selectedIds.filter(id => id !== access.id) })} aria-label={`Regrouper ${access.providerName}`} />
+            <span className="min-w-0"><span className="block font-medium">{access.providerName}</span><span className="block break-all font-mono text-xs text-muted-foreground">{access.modelId}</span></span>
+          </label>)}<p className="pt-1 text-sm text-muted-foreground">{selected.length} fournisseur{selected.length > 1 ? "s" : ""} à regrouper dans cette fiche.</p><details className="text-xs text-muted-foreground"><summary className="cursor-pointer">Identifiant de référence et portée</summary><code className="mt-2 block break-all">{catalog.model.id}</code><p>Ce choix ne change ni le routage ni les clés virtuelles.</p></details></CardContent>
+        </Card>
+      </div>}
 
-      {step === 0 && <div className="grid gap-5 lg:grid-cols-[1.05fr_.95fr]">
-        <Card><CardHeader><CardTitle>Le modèle de référence</CardTitle><CardDescription>Une seule fiche canonique pour les deux offres.</CardDescription></CardHeader><CardContent className="space-y-5">
-          <div><p className="text-xs text-muted-foreground">Nom public</p><p className="text-xl font-semibold">{String(model.name ?? catalog.model.id)}</p></div>
-          <div><p className="text-xs text-muted-foreground">Identifiant source</p><code className="break-all text-sm">{catalog.model.id}</code></div>
-          <div className="grid gap-4 sm:grid-cols-2">{fields.slice(0, 2).map(item => <div key={item.key} className="rounded-sm border bg-muted/30 p-3"><p className="mb-1 text-xs text-muted-foreground">{item.label}</p><Value field={item.key} draft={draft} /></div>)}</div>
-          <details className="text-xs text-muted-foreground"><summary className="cursor-pointer">Source technique</summary><p className="mt-2 break-all">{catalog.source.repository} · {catalog.source.commit.slice(0, 12)} · {catalog.model.sourcePath}</p></details>
+      {(screen === "card" || screen === "registered") && <div className="space-y-6">
+        <div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{screen === "registered" ? "Fiche enregistrée dans la démo" : "Aperçu de la fiche"}</p><h1 className="mt-1 text-3xl font-semibold tracking-tight">{current.name}</h1><p className="mt-2 text-sm text-muted-foreground">Anthropic · Texte · Entrées : texte, image, PDF · Sortie : texte</p><div className="mt-3 flex flex-wrap items-center gap-3 text-sm"><span className="text-muted-foreground">Alias de la fiche · local, non appelable ici</span><code className="break-all">{current.alias}</code>{screen === "card" && <Button variant="outline" onClick={openIdentity}>Modifier l’identité</Button>}</div></div>
+          {screen === "registered" && <Button onClick={() => setScreen("card")}>Modifier</Button>}</div>
+        {screen === "registered" && <p role="status" className="rounded-sm border bg-primary/10 p-4 text-sm">Enregistré dans cette démo uniquement. La fiche reste en mémoire jusqu’au rechargement de la page.</p>}
+        <Card className="hidden md:block"><CardHeader><CardTitle>Comparer les fournisseurs</CardTitle><CardDescription>Valeurs déclarées et tarifs standard Models.dev. Limite documentée, pas un plafond imposé aux requêtes.</CardDescription></CardHeader><CardContent>
+          <Table><TableHeader><TableRow><TableHead>Caractéristique</TableHead><TableHead>Fiche commune</TableHead>{selected.map(access => <TableHead key={access.id}>{access.providerName}<span className="block max-w-48 break-all font-mono text-xs font-normal text-muted-foreground">{access.modelId}</span></TableHead>)}</TableRow></TableHeader>
+            <TableBody>{fields.map(item => <TableRow key={item.key}><TableCell className="font-medium">{item.label}</TableCell><TableCell className="whitespace-normal"><Value field={item.key} draft={current.draft} />{screen === "card" && <Button variant="ghost" className="mt-1" onClick={() => openField(item.key)}>Modifier <span className="sr-only">{item.label} · fiche commune</span></Button>}</TableCell>{selected.map(access => <TableCell key={access.id} className="whitespace-normal"><Value field={item.key} access={access} draft={current.draft} />{screen === "card" && <Button variant="ghost" className="mt-1" onClick={() => openField(item.key, access.id)}>Modifier <span className="sr-only">{item.label} · {access.providerName}</span></Button>}</TableCell>)}</TableRow>)}
+              {(["input", "output"] as const).map(kind => <TableRow key={kind}><TableCell className="font-medium">Prix {kind === "input" ? "entrée" : "sortie"}</TableCell><TableCell>—</TableCell>{selected.map(access => <TableCell key={access.id}>{price(access, kind)} <span className="block text-xs text-muted-foreground">USD / 1 M tokens · Models.dev</span></TableCell>)}</TableRow>)}</TableBody>
+          </Table>
         </CardContent></Card>
-        <Card><CardHeader><CardTitle>Deux accès d’exemple</CardTitle><CardDescription>Identifiants exacts fournis par Models.dev ; aucune connexion privée de votre gateway n’est lue.</CardDescription></CardHeader><CardContent className="space-y-3">
-          {accesses.map(item => <div key={item.id} className="rounded-sm border p-4"><div className="mb-2 flex items-center justify-between gap-2"><strong>{item.providerName}</strong><Badge variant="outline">Accès source</Badge></div><p className="break-all font-mono text-xs">{item.modelId}</p><p className="mt-2 text-xs text-muted-foreground">base_model → {item.baseModelId}</p></div>)}
-          <div className="rounded-sm bg-primary/5 p-4"><Label htmlFor="display-name">Nom affiché dans Registry</Label><Input id="display-name" className="mt-2" value={displayName} onChange={event => { setDisplayName(event.target.value); setSimulated(false); }} /><p className="mt-1 text-xs text-muted-foreground">Nom de présentation local ; le nom source reste {String(model.name)}.</p><Label htmlFor="alias" className="mt-4 block">Alias commun appelable · brouillon Registry</Label><Input id="alias" className="mt-2" value={alias} onChange={event => { setAlias(event.target.value); setSimulated(false); }} aria-describedby="alias-help" /><p id="alias-help" className="mt-2 text-xs text-muted-foreground">L’alias identifie la fiche. Il ne choisit pas à lui seul l’accès utilisé lors d’un appel.</p></div>
+        <Card className="md:hidden"><CardHeader><CardTitle>Caractéristiques communes</CardTitle><CardDescription>Limites et prise en charge déclarées. Limite documentée, pas un plafond imposé aux requêtes.</CardDescription></CardHeader>
+          <CardContent className="divide-y rounded-sm border bg-background">{fields.map(item => <div key={item.key} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+            <div><p className="text-sm text-muted-foreground">{item.label}</p><Value field={item.key} draft={current.draft} /></div>
+            {screen === "card" && <Button variant="ghost" onClick={() => openField(item.key)}>Modifier <span className="sr-only">{item.label}</span></Button>}
+          </div>)}</CardContent>
+        </Card>
+        <Card className="md:hidden"><CardHeader><CardTitle>Comparer les fournisseurs</CardTitle><CardDescription>Valeurs propres à chaque accès. Tarifs standard en USD pour un million de tokens.</CardDescription></CardHeader>
+          <CardContent className="grid gap-4 md:grid-cols-2">{selected.map(access => <section key={access.id} aria-label={access.providerName} className="min-w-0 rounded-sm border bg-background p-4">
+            <h3 className="font-semibold">{access.providerName}</h3><p className="mt-1 break-all font-mono text-xs text-muted-foreground">{access.modelId}</p>
+            <div className="mt-4 divide-y border-t">{fields.map(item => <div key={item.key} className="flex flex-wrap items-center justify-between gap-2 py-3">
+              <div><p className="text-xs text-muted-foreground">{item.label}</p><Value field={item.key} access={access} draft={current.draft} /></div>
+              {screen === "card" && <Button variant="ghost" onClick={() => openField(item.key, access.id)}>Modifier <span className="sr-only">{item.label} pour {access.providerName}</span></Button>}
+            </div>)}</div>
+            <div className="mt-2 border-t pt-3 text-sm"><p className="mb-2 font-medium">Tarifs standard <span className="font-normal text-muted-foreground">· Models.dev</span></p><div className="flex flex-wrap gap-x-5 gap-y-1"><p>Entrée <strong>{price(access, "input")}</strong></p><p>Sortie <strong>{price(access, "output")}</strong></p></div><p className="mt-1 text-xs text-muted-foreground">USD / 1 M tokens</p></div>
+          </section>)}</CardContent>
+        </Card>
+        <details className="rounded-sm border bg-card p-4 text-xs text-muted-foreground"><summary className="cursor-pointer font-medium text-foreground">Sources et champs techniques</summary>
+          <div className="mt-3 space-y-2 break-words"><p>Référence : {catalog.source.repository} · révision {catalog.source.commit.slice(0, 12)} · {catalog.model.sourcePath}</p><p>Identifiant canonique : <code>{catalog.model.id}</code></p>{fields.map(item => <p key={item.key}>{item.label} : <code>{item.key}</code> → destination Bifrost envisagée <code>{item.native}</code></p>)}{selected.map(access => <p key={access.id}>{access.providerName} : {access.sourcePath}</p>)}<p>Ce mapping n’est pas appliqué ; capacité et routage réels nécessitent une vérification distincte.</p></div>
+        </details>
+      </div>}
+
+      {screen === "review" && <div className="space-y-6">
+        <div><h1 className="text-3xl font-semibold tracking-tight">Vérifier la fiche</h1><p className="mt-2 text-muted-foreground">Aperçu local avant l’enregistrement dans la démo.</p></div>
+        <Card><CardHeader><CardTitle>{current.name}</CardTitle><CardDescription>Anthropic · alias de fiche : {current.alias}</CardDescription></CardHeader><CardContent><p className="text-sm font-medium">{selected.length} fournisseur{selected.length > 1 ? "s" : ""} lié{selected.length > 1 ? "s" : ""} à cette fiche</p><ul className="mt-2 space-y-1 text-sm text-muted-foreground">{selected.map(access => <li key={access.id}>{access.providerName} · <code className="break-all">{access.modelId}</code></li>)}</ul><p className="mt-3 text-xs text-muted-foreground">Alias et liaison non actifs dans votre gateway.</p></CardContent></Card>
+        <Card><CardHeader><CardTitle>Changements prévus</CardTitle><CardDescription>Comparaison avec {saved ? "la fiche enregistrée dans la démo" : "les données Models.dev"}.</CardDescription></CardHeader><CardContent className="space-y-4">
+          {changedFields.length === 0 && <p className="text-sm text-muted-foreground">Aucune caractéristique corrigée. Les valeurs source seront conservées.</p>}
+          {changedFields.map(item => <div key={item.key} className="rounded-sm border p-4"><h3 className="font-medium">{item.label}</h3>
+            <p className="mt-1 text-xs text-muted-foreground">{local(current, "common", item.key) !== local(baseline, "common", item.key) ? `Fiche commune : ${format(effective(model, undefined, item.key, baseline.draft).value, item.key)} → ${format(effective(model, undefined, item.key, current.draft).value, item.key)}` : "Fiche commune inchangée"}</p>
+            <div className="mt-3 divide-y border-t">{selected.map(access => {
+              const before = effective(model, access, item.key, baseline.draft);
+              const after = effective(model, access, item.key, current.draft);
+              return <div key={access.id} className="grid grid-cols-2 gap-3 py-3 text-sm sm:grid-cols-3">
+                <strong className="col-span-2 font-medium sm:col-span-1">{access.providerName}</strong>
+                <div><p className="text-xs text-muted-foreground">Avant</p><p>{format(before.value, item.key)}</p></div>
+                <div className="min-w-0"><p className="text-xs text-muted-foreground">Après</p><p>{format(after.value, item.key)}</p><p className="text-xs text-muted-foreground">{source(after.source)}{same(before.value, after.value) ? " · inchangé" : ""}</p></div>
+              </div>;
+            })}</div>
+          </div>)}
+          {changedFields.length > 0 && <p className="text-xs text-muted-foreground">Une valeur propre au fournisseur garde priorité sur une correction commune.</p>}
         </CardContent></Card>
       </div>}
 
-      {step === 1 && <div className="space-y-5">
-        <Card><CardHeader><CardTitle>Propriétés communes</CardTitle><CardDescription>Une correction de la fiche se propage aux accès qui héritent de ce champ.</CardDescription></CardHeader><CardContent className="grid gap-3 sm:grid-cols-2">
-          {fields.map(item => <FieldEditor key={item.key} item={item} draft={draft} onChange={value => update(undefined, item.key, value)} />)}
-        </CardContent></Card>
-        <Card><CardHeader><CardTitle>Ajustement d’un accès</CardTitle><CardDescription>Une valeur rédigée pour le provider garde priorité sur la fiche commune, même si elle a le même nombre.</CardDescription></CardHeader><CardContent>
-          <div role="group" aria-label="Choisir l’accès à examiner" className="mb-5 flex flex-wrap gap-2">{accesses.map(item => <Button key={item.id} type="button" variant={selected === item.id ? "default" : "outline"} onClick={() => setSelected(item.id)}>{item.providerName}</Button>)}</div>
-          {access && <><div className="grid gap-3 sm:grid-cols-2">{fields.map(item => <FieldEditor key={`${access.id}-${item.key}`} item={item} access={access} draft={draft} onChange={value => update(access.id, item.key, value)} />)}</div>
-            <div className="mt-5 border-t pt-4"><p className="mb-3 text-sm font-medium">Tarifs standard de cet accès · lecture seule</p><div className="grid gap-3 sm:grid-cols-2"><p className="rounded-sm bg-muted/40 p-3 text-sm">Entrée <strong className="ml-2">{price(access, "input")}</strong></p><p className="rounded-sm bg-muted/40 p-3 text-sm">Sortie <strong className="ml-2">{price(access, "output")}</strong></p></div><p className="mt-2 text-xs text-muted-foreground">Source Models.dev · provider → destination proposée Bifrost pricing. Conversion en coût par token et application à qualifier.</p></div>
-          </>}
-        </CardContent></Card>
-      </div>}
+      {screen !== "registered" && <footer className="fixed inset-x-0 bottom-0 z-10 border-t bg-background/95 p-3 shadow-lg backdrop-blur sm:p-4"><div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3">
+        {screen === "choose" ? <span className="text-sm text-muted-foreground">{selected.length} fournisseur{selected.length > 1 ? "s" : ""} sélectionné{selected.length > 1 ? "s" : ""}</span> : <Button variant="ghost" onClick={() => setScreen(screen === "review" ? "card" : "choose")}><ArrowLeft /> Retour</Button>}
+        <div className="contents sm:flex sm:flex-wrap sm:items-center sm:gap-3">{screen === "card" && <Button variant="ghost" onClick={cancelEdit}>Annuler les modifications</Button>}
+          {screen === "choose" && <Button disabled={selected.length === 0} onClick={() => setScreen("card")}>Préparer la fiche <ArrowRight /></Button>}
+          {screen === "card" && <Button className="w-full sm:w-auto" disabled={!current.name.trim() || !current.alias.trim() || selected.length === 0} onClick={() => setScreen("review")}>Vérifier et enregistrer</Button>}
+          {screen === "review" && <Button onClick={() => { setSaved(current); setScreen("registered"); }}>Enregistrer dans la démo</Button>}
+        </div>
+      </div></footer>}
 
-      {step === 2 && <Card><CardHeader><CardTitle>Relire le brouillon</CardTitle><CardDescription>Ce résumé prépare un mapping ; il ne modifie ni Bifrost ni Registry.</CardDescription></CardHeader><CardContent className="space-y-5">
-        <div className="rounded-sm border p-4"><p className="text-xs text-muted-foreground">Nom affiché Registry</p><p className="mt-1 text-lg font-semibold">{displayName.trim() || "À renseigner"}</p><p className="mt-3 text-xs text-muted-foreground">Alias commun proposé</p><p className="mt-1 break-all font-mono text-lg">{alias.trim() || "À renseigner"}</p><Badge variant="outline" className="mt-2 max-w-full whitespace-normal [overflow-wrap:anywhere]">Destination proposée · Registry / alias Bifrost à qualifier</Badge></div>
-        <div><h2 className="mb-3 font-semibold">Impact des corrections</h2>{edits.length === 0 ? <p className="rounded-sm bg-muted/40 p-4 text-sm text-muted-foreground">Aucune correction. Les valeurs source restent visibles dans la fiche.</p> : <div className="space-y-2">{edits.map(edit => <div key={`${edit.scope}-${edit.field}`} className="flex flex-wrap items-center justify-between gap-2 rounded-sm border p-3 text-sm"><span><strong>{edit.scope}</strong> · {fieldName(edit.field)} → {formatted(edit.value, edit.field)}</span><Badge variant="outline" className="max-w-full whitespace-normal [overflow-wrap:anywhere]">Destination proposée · {fields.find(field => field.key === edit.field)?.destination}</Badge></div>)}</div>}</div>
-        <div><h2 className="mb-3 font-semibold">Valeurs effectives par accès</h2><div className="grid gap-3 sm:grid-cols-2">{accesses.map(item => <div key={item.id} className="rounded-sm border p-4"><strong>{item.providerName}</strong><p className="mt-1 break-all font-mono text-xs text-muted-foreground">{item.modelId}</p><div className="mt-4 space-y-3">{fields.map(field => <div key={field.key} className="text-sm"><p className="text-xs text-muted-foreground">{field.label}</p><Value field={field.key} access={item} draft={draft} /></div>)}</div></div>)}</div></div>
-        <div className="rounded-sm border border-dashed p-4 text-sm"><p className="font-medium">Avant tout enregistrement réel</p><p className="mt-1 text-muted-foreground">Confirmer le mapping des identifiants, la destination native de chaque champ et l’effet sur les deux accès. L’état « appliqué » exigerait une relecture Bifrost.</p></div>
-        {invalidLimits.length > 0 && <p role="alert" className="text-sm text-destructive">Corriger les limites invalides avant la simulation.</p>}
-        <Button type="button" disabled={!alias.trim() || !displayName.trim() || invalidLimits.length > 0} onClick={() => setSimulated(true)}>Simuler l’enregistrement local</Button>
-        {simulated && <p role="status" className="rounded-sm bg-primary/10 p-3 text-sm">Simulation terminée dans cette page. Aucun enregistrement Registry ou Bifrost ; recharger efface le brouillon.</p>}
-      </CardContent></Card>}
+      <Dialog open={identityOpen} onOpenChange={setIdentityOpen}><DialogContent onCloseAutoFocus={restoreEditorFocus}><DialogHeader><DialogTitle>Modifier l’identité</DialogTitle><DialogDescription>Nom et alias de cette fiche locale. L’alias n’est pas activé pour les appels.</DialogDescription></DialogHeader>
+        <div className="space-y-4"><div><Label htmlFor="identity-name">Nom affiché</Label><Input id="identity-name" className="mt-2" value={identity.name} onChange={event => setIdentity({ ...identity, name: event.target.value })} /></div><div><Label htmlFor="identity-alias">Alias de la fiche</Label><Input id="identity-alias" className="mt-2" value={identity.alias} onChange={event => setIdentity({ ...identity, alias: event.target.value })} /></div><details className="text-xs text-muted-foreground"><summary className="cursor-pointer">Identifiant canonique Models.dev</summary><code className="mt-2 block break-all">{catalog.model.id}</code></details></div>
+        <DialogFooter><Button variant="outline" onClick={() => setIdentityOpen(false)}>Annuler</Button><Button disabled={!identity.name.trim() || !identity.alias.trim()} onClick={() => { patch({ name: identity.name.trim(), alias: identity.alias.trim() }); setIdentityOpen(false); }}>Garder cette modification</Button></DialogFooter>
+      </DialogContent></Dialog>
 
-      <div className="mt-7 flex items-center justify-between"><Button type="button" variant="ghost" disabled={step === 0} onClick={() => setStep(step - 1)}><ArrowLeft /> Retour</Button><Button type="button" disabled={step === 2} onClick={() => setStep(step + 1)}>Continuer <ArrowRight /></Button></div>
+      <Dialog open={!!editing} onOpenChange={open => { if (!open) setEditing(null); }}><DialogContent onCloseAutoFocus={restoreEditorFocus}><DialogHeader><DialogTitle>Modifier {editing && label(editing.field)}</DialogTitle><DialogDescription>Choisissez la portée et vérifiez l’effet avant de garder cette modification.</DialogDescription></DialogHeader>
+        {editing && <div className="space-y-4"><fieldset><legend className="mb-2 text-sm font-medium">Portée</legend><div className="flex flex-wrap gap-2">{["common", ...selected.map(access => access.id)].map(scope => <Button key={scope} type="button" variant={editing.scope === scope ? "default" : "outline"} aria-pressed={editing.scope === scope} onClick={() => chooseScope(scope)}>{scopeName(scope)}</Button>)}</div></fieldset>
+          <div><Label htmlFor="field-value">Valeur proposée · {scopeName(editing.scope)}</Label>{editing.field.startsWith("limit.")
+            ? <Input id="field-value" type="number" min="0" step="1" inputMode="numeric" className="mt-2" value={editing.value ?? ""} aria-invalid={invalid} aria-describedby={invalid ? "field-error" : undefined} onChange={event => setEditing({ ...editing, value: event.target.value || undefined, dirty: true })} />
+            : <select id="field-value" className="mt-2 h-9 w-full rounded-sm border bg-background px-3 text-sm" value={editing.value ?? ""} onChange={event => setEditing({ ...editing, value: event.target.value || undefined, dirty: true })}><option value="">Valeur de référence ({format(reference, editing.field)})</option><option value="true">Oui</option><option value="false">Non</option></select>}
+            <p className="mt-2 text-xs text-muted-foreground">Actuel : {format(result(current, editing.scope, editing.field).value, editing.field)} · {source(result(current, editing.scope, editing.field).source)}</p>
+            {invalid && <p id="field-error" role="alert" className="mt-2 text-xs text-destructive">Saisir un entier entre 0 et {Number.MAX_SAFE_INTEGER.toLocaleString("fr-FR")}.</p>}
+            {editing.field.startsWith("limit.") && <p className="mt-2 text-xs text-muted-foreground">Limite documentée, pas un plafond imposé aux requêtes.</p>}
+            {local(current, editing.scope, editing.field) !== undefined && <Button type="button" variant="ghost" className="mt-2" onClick={() => setEditing({ ...editing, value: undefined, dirty: true })}><RotateCcw /> Retirer la correction</Button>}
+          </div>
+          <div className="rounded-sm border bg-muted/30 p-3"><p className="mb-2 text-sm font-medium">Aperçu avant confirmation</p><div className="space-y-2">{editing.scope === "common" && <p className="text-sm"><strong>Fiche commune</strong> · {format(effective(model, undefined, editing.field, current.draft).value, editing.field)} → {format(effective(model, undefined, editing.field, proposed).value, editing.field)}</p>}{preview?.map(row => <p key={row.access.id} className="text-sm"><strong>{row.access.providerName}</strong> · {format(row.before.value, editing.field)} → {format(row.after.value, editing.field)} <span className="text-xs text-muted-foreground">({source(row.after.source)}{same(row.before.value, row.after.value) ? " · inchangé" : ""})</span></p>)}</div>
+            {unchanged && <p className="mt-3 text-sm text-muted-foreground">{ownsEveryValue && actualChange ? "Aucun fournisseur modifié : chacun possède sa propre valeur." : "Valeur inchangée pour les fournisseurs sélectionnés."}</p>}
+          </div>
+          <details className="text-xs text-muted-foreground"><summary className="cursor-pointer">Source et destination envisagée</summary><p className="mt-2">Models.dev : {editing.field} · {result(current, editing.scope, editing.field).source} → {fields.find(item => item.key === editing.field)?.native}. Destination native à qualifier.</p></details>
+          <DialogFooter><Button variant="outline" onClick={() => setEditing(null)}>Annuler</Button><Button disabled={invalid || !actualChange} onClick={() => { patch({ draft: proposed }); setEditing(null); }}>Garder cette modification</Button></DialogFooter>
+        </div>}
+      </DialogContent></Dialog>
     </div>
   </main>;
-}
-
-function FieldEditor({ item, access, draft, onChange }: { item: typeof fields[number]; access?: Access; draft: Draft; onChange: (value: string | undefined) => void }) {
-  const local = access ? draft.access[access.id]?.[item.key] : draft.common[item.key];
-  const authored = access && readPath(access.authored, item.key) !== undefined;
-  const id = `${access?.id ?? "common"}-${item.key.replace(".", "-")}`;
-  const invalid = item.key.startsWith("limit.") && local !== undefined && !validLimit(local);
-  return <div className="rounded-sm border bg-card p-4"><div className="mb-3 flex flex-wrap items-start justify-between gap-2"><div><Label htmlFor={id}>{item.label}</Label><p className="mt-1 text-xs text-muted-foreground">{item.key}</p></div><Badge variant="outline" className="font-normal">{item.destination}</Badge></div>
-    <Value field={item.key} access={access} draft={draft} />
-    <div className="mt-3 flex gap-2">{item.key.startsWith("limit.") ? <Input id={id} type="number" min="0" step="1" inputMode="numeric" placeholder="Correction locale" value={local ?? ""} aria-invalid={invalid} aria-describedby={invalid ? `${id}-error` : undefined} onChange={event => onChange(event.target.value || undefined)} /> : <select id={id} className="h-9 flex-1 rounded-sm border bg-background px-2 text-sm" value={local ?? ""} onChange={event => onChange(event.target.value || undefined)}><option value="">Hériter de la source</option><option value="true">Oui</option><option value="false">Non</option></select>}
-      {local !== undefined && <Button type="button" variant="ghost" size="icon" onClick={() => onChange(undefined)} aria-label={`Retirer la correction de ${item.label}`} title="Retirer la correction"><RotateCcw /></Button>}</div>
-    {invalid && <p id={`${id}-error`} role="alert" className="mt-2 text-xs text-destructive">Saisir un nombre entier positif ou zéro.</p>}
-    {access && <p className="mt-2 text-xs text-muted-foreground">{authored ? "Valeur définie dans le TOML provider : retirer la correction restaure cette contrainte." : "Champ hérité du modèle : une correction commune s’applique ici."}</p>}
-    <details className="mt-2 text-xs text-muted-foreground"><summary className="cursor-pointer">Champ technique et portée</summary><p className="mt-1 break-all">Models.dev : {item.key} → {item.key.startsWith("limit.") ? "Table Bifrost" : "Paramètres Bifrost"} : {item.nativePath}. {item.key.startsWith("limit.") ? "La valeur provider effective peut primer." : "La datasheet parameters est indexée par modèle ; une écriture indépendante par provider reste à qualifier. Ce choix ne prouve pas que la capacité fonctionne."}</p></details>
-  </div>;
 }
