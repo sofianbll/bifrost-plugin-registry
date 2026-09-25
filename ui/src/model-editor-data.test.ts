@@ -1,4 +1,4 @@
-import { applyModelId, changeAccessProvider, modelEditorOptions, omitUnchangedReferenceIds, prefillFromReference } from "./model-editor-data";
+import { applyModelId, canonicalCapabilities, changeAccessProvider, modelEditorOptions, omitUnchangedReferenceIds, prefillFromReference } from "./model-editor-data";
 import type { Catalog } from "./catalog-api";
 import type { Model } from "./demo";
 
@@ -28,7 +28,9 @@ equal(next.context, "64000");
 equal(next.summary, "Manual summary");
 equal(next.accesses, draft.accesses);
 equal(next.kind, "Unknown");
-equal(next.capabilities.Tools, "Declared");
+equal(next.capabilities["Tool calling"], "Declared");
+equal(canonicalCapabilities({ Tools: "Declared", "Tool calling": "Unknown" }), { "Tool calling": "Unknown" });
+equal(canonicalCapabilities({ Tools: "Declared" }), { "Tool calling": "Declared" });
 const selected = applyModelId(draft, "new-model", { provider: "provider", nativeModel: "native/path", status: "Configured", source: "provider/native/path" });
 equal(selected.accesses[0], { ...draft.accesses[0], provider: "provider", id: "provider/new-model", nativeModel: "native/path", status: "Configured" });
 equal(applyModelId(selected, "new-alias").accesses[0].id, "provider/new-alias");

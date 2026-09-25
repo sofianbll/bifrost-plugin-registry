@@ -4,7 +4,7 @@ export type Workspace = {
   revision: string;
   data: Demo;
   discovery: Model[];
-  connection: { connected: true; version: string };
+  connection: { connected: true; version: string; mode?: "snapshot"; source?: string; capturedAt?: string; partial?: boolean };
 };
 
 const endpoint = (path: string) => `${import.meta.env?.BASE_URL ?? "./"}api/${path}`;
@@ -45,8 +45,8 @@ export const createKey = (name: string, client: string) => request<{ workspace?:
 export const readbackKey = (id: string) => request<Workspace>(`keys/${encodeURIComponent(id)}/readback`, { method: "POST" });
 
 export type AdoptionOperation = "adopt" | "rebind";
-export type AdoptionPreview = { keyId: string; operation: AdoptionOperation; revision: string; previewToken?: string; selectedRoutes: string[]; nativeRoutes: string[]; blocked: string[]; canApply: boolean; nativePermissionsPreserved: true };
-export type AdoptionReceipt = { keyId: string; revision: string; managed: true; nativePermissionsPreserved: true };
+export type AdoptionPreview = { keyId: string; operation: AdoptionOperation; revision: string; previewToken?: string; selectedRoutes: string[]; nativeRoutes: string[]; blocked: string[]; canApply: boolean; nativePermissionsPreserved: true; evidence?: "snapshot"; source?: string; capturedAt?: string };
+export type AdoptionReceipt = { keyId: string; revision: string; managed: true; nativePermissionsPreserved: true; evidence?: "snapshot"; source?: string; capturedAt?: string };
 export const previewKeyAdoption = (keyId: string, operation: AdoptionOperation) => request<AdoptionPreview>("keys/adopt", {
   method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ keyId, operation, phase: "preview" }),
 });

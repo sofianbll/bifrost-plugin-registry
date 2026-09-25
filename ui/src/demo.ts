@@ -56,9 +56,15 @@ export const discoveryModels: Model[] = [
 ];
 
 export const copy = <T,>(value: T): T => structuredClone(value);
-export const catalogModels = (registered: Model[], discovered: Model[]) => [
-  ...new Map([...discovered, ...registered].map(model => [model.id, model])).values(),
-];
+export const catalogModels = (registered: Model[], discovered: Model[]) => {
+  const byId = new Map(discovered.map(model => [model.id, model]));
+  for (const model of registered) {
+    const accesses = new Map((byId.get(model.id)?.accesses || []).map(access => [JSON.stringify([access.provider, access.nativeModel || access.id]), access]));
+    for (const access of model.accesses) accesses.set(JSON.stringify([access.provider, access.nativeModel || access.id]), access);
+    byId.set(model.id, { ...model, accesses: [...accesses.values()] });
+  }
+  return [...byId.values()];
+};
 export const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 export const members = (policy: Policy, groups: Group[]) => [...new Set([...groups.filter(g => policy.groups.includes(g.id)).flatMap(g => g.members), ...policy.added])].filter(id => !policy.excluded.includes(id));
 export const origin = (id: string, policy: Policy, groups: Group[]) => groups.filter(g => policy.groups.includes(g.id) && g.members.includes(id)).map(g => g.name);

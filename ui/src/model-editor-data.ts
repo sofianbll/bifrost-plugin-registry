@@ -36,6 +36,12 @@ export function modelEditorOptions(catalog: Catalog | null, workspace: Model[]) 
 
 export type AccessCandidate = Pick<Access, "provider" | "nativeModel" | "status"> & { source: string };
 
+export function canonicalCapabilities(values: Model["capabilities"]): Model["capabilities"] {
+  const { Tools, ...canonical } = values;
+  if (Tools && !Object.hasOwn(canonical, "Tool calling")) canonical["Tool calling"] = Tools;
+  return canonical;
+}
+
 export function changeAccessProvider(access: Access, modelId: string, provider: string): Access {
   return { ...access, provider, id: provider && modelId ? `${provider}/${modelId}` : "" };
 }
@@ -58,8 +64,8 @@ export function prefillFromReference(draft: Model, reference: CatalogRecord): Mo
   const fill = (current: string, field: string) => missing(current) ? stringField(reference, field) || current : current;
   const context = reference.fields.context_length?.value;
   const modalities = (field: string, current: string[]) => current.length ? current : Array.isArray(reference.fields[field]?.value) ? (reference.fields[field].value as unknown[]).filter((value): value is string => typeof value === "string").map(value => value.charAt(0).toUpperCase() + value.slice(1)) : current;
-  const capabilities = { ...draft.capabilities };
-  for (const [field, name] of [["reasoning", "Reasoning"], ["tool_call", "Tools"], ["structured_output", "Structured output"]] as const) {
+  const capabilities = canonicalCapabilities(draft.capabilities);
+  for (const [field, name] of [["reasoning", "Reasoning"], ["tool_call", "Tool calling"], ["structured_output", "Structured output"]] as const) {
     if (reference.fields[field]?.value === true && (!capabilities[name] || capabilities[name] === "Unknown")) capabilities[name] = "Declared";
   }
   return {
