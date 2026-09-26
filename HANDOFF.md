@@ -1,5 +1,7 @@
 # HANDOFF — bifrost-plugin-registry
 
+> **Archive historique — ne pas utiliser comme instructions courantes.** Ce texte conserve l'état et les consignes d'une ancienne session. Pour reprendre le projet, lire [STATUS.md](STATUS.md) puis le [bilan du 26 septembre](docs/reviews/2026-09-26-project-state.md) ; les décisions actives sont dans [product-direction.md](docs/design/product-direction.md). Les affirmations ci-dessous sur la release, la production, l'UI et le prochain travail sont datées et ne décrivent pas l'état actuel.
+
 > Dernière mise à jour : 2026-09-25 · session Kimi Work (Sofian)
 > But : reprendre le fil exactement là où on l'a laissé, sans rien re-découvrir.
 

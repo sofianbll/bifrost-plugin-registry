@@ -1,16 +1,22 @@
 # Project status
 
-Current release: **[v0.2.0-rc.1](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.2.0-rc.1)** — September 24, 2026.
+Current release: **[v0.2.0-rc.1](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.2.0-rc.1)** — September 24, 2026. This page is the entry point for the current release, merged follow-up and local development. The [September 26 project reconciliation](docs/reviews/2026-09-26-project-state.md) records their evidence and remaining gaps.
 
 Registry V1 is implemented and published as a release candidate. It uses an unmodified Bifrost 2.2.2 gateway compiled with dynamic loading, distributed separately from the Registry `.so`. The plugin embeds the React UI and serves its own admin port, `8099`.
 
 ## Implemented after the release — unreleased
 
-[#14](https://github.com/sofianbll/bifrost-plugin-registry/issues/14), delivered in [PR #15](https://github.com/sofianbll/bifrost-plugin-registry/pull/15), adds searchable model/creator/series selectors with custom values, explicit reference mapping, reviewed AI assistance and on-demand key copy. These changes are not in the published `v0.2.0-rc.1` artifacts. See the [scope and usage](docs/design/catalog-assistance.md).
+[#14](https://github.com/sofianbll/bifrost-plugin-registry/issues/14), delivered in merged [PR #15](https://github.com/sofianbll/bifrost-plugin-registry/pull/15), adds searchable model/creator/series selectors with custom values, explicit reference mapping, reviewed AI assistance and on-demand key copy. Its [#16 UX repairs](docs/reviews/2026-09-25-ux-audit.md) are merged too. These changes are not in the published `v0.2.0-rc.1` artifacts. See the [scope and usage](docs/design/catalog-assistance.md).
 
 The exact `e25de3d` gateway/plugin pair passes native ABI checks and **133/133 HTTP checks** (42 models, 72 standalone/assistant, 19 adoption) on **Bifrost 2.2.3, Linux ARM64/musl**, using synthetic providers. Browser checks cover selection, mapping, reviewed suggestions, key copy and responsive layout. [Qualification and artifact hashes](reports/bifrost-2.2.3/README.md) · [2.2.3 compatibility review](docs/design/bifrost-2.2.3-compatibility.md). AMD64 2.2.3 and real-provider inference remain unqualified; the existing local pilot and published release are unchanged.
 
 The September 25 audit in [#16](https://github.com/sofianbll/bifrost-plugin-registry/issues/16), also delivered in PR #15, repairs draft protection, provider access setup, catalog pagination/fallback, key selection origins and publication state, mobile editors, clipboard recovery and assistant key-detail lookup. The corrected candidate passes `make check`, **18/18 browser journeys**, and a freshly compiled **133/133 native HTTP qualification** on Bifrost 2.2.3 ARM64/musl. The [audit report](docs/reviews/2026-09-25-ux-audit.md) records the final source snapshot, binary hashes, visual review and synthetic scope; the previous `e25de3d` evidence above remains historical. These corrections are unreleased.
+
+## Current local development — not merged or released
+
+The September 25–26 model-card work explores reuse of Models.dev inside Registry, a single card with distinct provider accesses, native property application, per-group and per-key access selections, and Bifrost-native routing limited to each key's selected accesses. The [product decisions](docs/design/product-direction.md#recadrage-des-fiches--décisions-du-26-septembre-2026-implémentation-à-qualifier), [native model-card contract](docs/design/model-card-bifrost-contract.md), [Models.dev research](docs/design/models-dev-reuse-research.md) and [project reconciliation](docs/reviews/2026-09-26-project-state.md) separate confirmed direction, existing code, experiments and gaps. This work has no new release or production qualification.
+
+For the key-creation UX, Sofian selected both Basic and Expert variants; mobile uses Basic only. The Accesses menu and a compact Expert toggle beside dark mode, green with white text when active, are approved design choices. Kimi's last reported work was a clickable UI mockup stopped by quota; application integration and final validation are not established.
 
 ## Delivered
 
@@ -46,6 +52,6 @@ The [CI workflow](.github/workflows/ci.yml) checks Go, the React UI and local sc
 
 ## Project records
 
-[Product scope](docs/design/core-v1-spec.md) · [Decisions and product history](docs/design/product-direction.md) · [Domain vocabulary](CONTEXT.md)
+[V1 release scope and historical criteria](docs/design/core-v1-spec.md) · [Current decisions and product history](docs/design/product-direction.md) · [September 26 reconciliation](docs/reviews/2026-09-26-project-state.md) · [Domain vocabulary](CONTEXT.md)
 
 The previous detailed working log is preserved in [the historical archive](docs/archive/status-through-2026-09-24.md). The early Bifrost 2.2.1 record is [archived with its build evidence](reports/native-build-v1/BUILD_STATUS.json). Historical claims describe their dated checkpoints, not the state of the current release.

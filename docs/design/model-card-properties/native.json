@@ -1,0 +1,1746 @@
+[
+  {
+    "id": "key.id",
+    "group": "Configuration · provider et clé",
+    "label": "Identifiant clé",
+    "path": "id",
+    "type": "string",
+    "origin": "native",
+    "scope": "access",
+    "read": "GET /api/keys; identité provider via /api/models",
+    "write": "Édition par administration provider/clé; routes modèles en lecture seule",
+    "note": "Identifie la clé provider.",
+    "source": {
+      "path": "core/schemas/account.go",
+      "line": 136
+    }
+  },
+  {
+    "id": "key.name",
+    "group": "Configuration · provider et clé",
+    "label": "Nom clé",
+    "path": "name",
+    "type": "string",
+    "origin": "native",
+    "scope": "access",
+    "read": "GET /api/keys; identité provider via /api/models",
+    "write": "PUT /api/providers/{provider}/keys/{key_id} ; config store puis gateway. Le mode source_of_truth contrôle la réconciliation avec config.json au démarrage.",
+    "note": "Nom administratif.",
+    "source": {
+      "path": "core/schemas/account.go",
+      "line": 137
+    }
+  },
+  {
+    "id": "key.models",
+    "group": "Configuration · provider et clé",
+    "label": "Modèles autorisés",
+    "path": "models[]",
+    "type": "string[]",
+    "origin": "native",
+    "scope": "access",
+    "read": "GET /api/keys; identité provider via /api/models",
+    "write": "PUT /api/providers/{provider}/keys/{key_id} ; config store puis gateway. Le mode source_of_truth contrôle la réconciliation avec config.json au démarrage.",
+    "note": "Liste ou wildcard; droits d’accès.",
+    "source": {
+      "path": "core/schemas/account.go",
+      "line": 139
+    }
+  },
+  {
+    "id": "key.blacklisted_models",
+    "group": "Configuration · provider et clé",
+    "label": "Modèles bloqués",
+    "path": "blacklisted_models[]",
+    "type": "string[]",
+    "origin": "native",
+    "scope": "access",
+    "read": "GET /api/keys; identité provider via /api/models",
+    "write": "PUT /api/providers/{provider}/keys/{key_id} ; config store puis gateway. Le mode source_of_truth contrôle la réconciliation avec config.json au démarrage.",
+    "note": "Liste ou wildcard; restriction.",
+    "source": {
+      "path": "core/schemas/account.go",
+      "line": 140
+    }
+  },
+  {
+    "id": "key.weight",
+    "group": "Configuration · provider et clé",
+    "label": "Poids clé",
+    "path": "weight",
+    "type": "number",
+    "origin": "native",
+    "scope": "access",
+    "read": "GET /api/keys; identité provider via /api/models",
+    "write": "PUT /api/providers/{provider}/keys/{key_id} ; config store puis gateway. Le mode source_of_truth contrôle la réconciliation avec config.json au démarrage.",
+    "note": "Pondère la sélection entre clés du même provider.",
+    "source": {
+      "path": "core/schemas/account.go",
+      "line": 141
+    }
+  },
+  {
+    "id": "key.enabled",
+    "group": "Configuration · provider et clé",
+    "label": "Clé active",
+    "path": "enabled",
+    "type": "boolean|null",
+    "origin": "native",
+    "scope": "access",
+    "read": "GET /api/keys; identité provider via /api/models",
+    "write": "PUT /api/providers/{provider}/keys/{key_id} ; config store puis gateway. Le mode source_of_truth contrôle la réconciliation avec config.json au démarrage.",
+    "note": "Valeur absente: défaut actif.",
+    "source": {
+      "path": "core/schemas/account.go",
+      "line": 153
+    }
+  },
+  {
+    "id": "key.use_for_batch_api",
+    "group": "Configuration · provider et clé",
+    "label": "Usage Batch API",
+    "path": "use_for_batch_api",
+    "type": "boolean|null",
+    "origin": "native",
+    "scope": "access",
+    "read": "GET /api/keys; identité provider via /api/models",
+    "write": "PUT /api/providers/{provider}/keys/{key_id} ; config store puis gateway. Le mode source_of_truth contrôle la réconciliation avec config.json au démarrage.",
+    "note": "",
+    "source": {
+      "path": "core/schemas/account.go",
+      "line": 154
+    }
+  },
+  {
+    "id": "key.use_anthropic_endpoints",
+    "group": "Configuration · provider et clé",
+    "label": "Endpoints Anthropic",
+    "path": "use_anthropic_endpoints",
+    "type": "boolean|null",
+    "origin": "native",
+    "scope": "access",
+    "read": "GET /api/keys; identité provider via /api/models",
+    "write": "PUT /api/providers/{provider}/keys/{key_id} ; config store puis gateway. Le mode source_of_truth contrôle la réconciliation avec config.json au démarrage.",
+    "note": "",
+    "source": {
+      "path": "core/schemas/account.go",
+      "line": 155
+    }
+  },
+  {
+    "id": "key.use_openai_endpoints",
+    "group": "Configuration · provider et clé",
+    "label": "Endpoints OpenAI-compatible",
+    "path": "use_openai_endpoints",
+    "type": "boolean|null",
+    "origin": "native",
+    "scope": "access",
+    "read": "GET /api/keys; identité provider via /api/models",
+    "write": "PUT /api/providers/{provider}/keys/{key_id} ; config store puis gateway. Le mode source_of_truth contrôle la réconciliation avec config.json au démarrage.",
+    "note": "",
+    "source": {
+      "path": "core/schemas/account.go",
+      "line": 156
+    }
+  },
+  {
+    "id": "key.status",
+    "group": "Configuration · provider et clé",
+    "label": "État clé",
+    "path": "status",
+    "type": "enum",
+    "origin": "native",
+    "scope": "access",
+    "read": "GET /api/keys; identité provider via /api/models",
+    "write": "Édition par administration provider/clé; routes modèles en lecture seule",
+    "note": "",
+    "source": {
+      "path": "core/schemas/account.go",
+      "line": 158
+    }
+  },
+  {
+    "id": "key.description",
+    "group": "Configuration · provider et clé",
+    "label": "Description clé",
+    "path": "description",
+    "type": "string",
+    "origin": "native",
+    "scope": "access",
+    "read": "GET /api/keys; identité provider via /api/models",
+    "write": "PUT /api/providers/{provider}/keys/{key_id} ; config store puis gateway. Le mode source_of_truth contrôle la réconciliation avec config.json au démarrage.",
+    "note": "",
+    "source": {
+      "path": "core/schemas/account.go",
+      "line": 159
+    }
+  },
+  {
+    "id": "provider.identity",
+    "group": "Configuration · provider et clé",
+    "label": "Identité provider",
+    "path": "provider",
+    "type": "string",
+    "origin": "native",
+    "scope": "access",
+    "read": "GET /api/keys; identité provider via /api/models",
+    "write": "Édition par administration provider/clé; routes modèles en lecture seule",
+    "note": "Identité provider associée à l’accès; provient du contexte du modèle, non de Key.",
+    "source": {
+      "path": "transports/bifrost-http/handlers/providers.go",
+      "line": 721
+    }
+  },
+  {
+    "id": "deployment.alias-key",
+    "group": "Configuration · Deployments et alias",
+    "label": "Nom Deployment demandé",
+    "path": "aliases.*",
+    "type": "string key",
+    "origin": "native",
+    "scope": "access",
+    "read": "GET /api/keys ou configuration provider",
+    "write": "PUT /api/providers/{provider}/keys/{key_id}, objet aliases ; persisté dans le config store puis appliqué au gateway. config.json n’est pas réécrit.",
+    "note": "Option de configuration par alias; champ de formulaire spécialisé.",
+    "source": {
+      "path": "core/schemas/account.go",
+      "line": 293
+    }
+  },
+  {
+    "id": "deployment.model_id",
+    "group": "Configuration · Deployments et alias",
+    "label": "Model ID cible",
+    "path": "aliases.*.model_id",
+    "type": "string",
+    "origin": "native",
+    "scope": "access",
+    "read": "GET /api/keys ou configuration provider",
+    "write": "PUT /api/providers/{provider}/keys/{key_id}, objet aliases ; persisté dans le config store puis appliqué au gateway. config.json n’est pas réécrit.",
+    "note": "Option de configuration par alias; champ de formulaire spécialisé.",
+    "source": {
+      "path": "core/schemas/account.go",
+      "line": 234
+    }
+  },
+  {
+    "id": "deployment.model_name",
+    "group": "Configuration · Deployments et alias",
+    "label": "Nom canonique",
+    "path": "aliases.*.model_name",
+    "type": "string|null",
+    "origin": "native",
+    "scope": "access",
+    "read": "GET /api/keys ou configuration provider",
+    "write": "PUT /api/providers/{provider}/keys/{key_id}, objet aliases ; persisté dans le config store puis appliqué au gateway. config.json n’est pas réécrit.",
+    "note": "Option de configuration par alias; champ de formulaire spécialisé.",
+    "source": {
+      "path": "core/schemas/account.go",
+      "line": 235
+    }
+  },
+  {
+    "id": "deployment.model_family",
+    "group": "Configuration · Deployments et alias",
+    "label": "Famille modèle",
+    "path": "aliases.*.model_family",
+    "type": "enum|null",
+    "origin": "native",
+    "scope": "access",
+    "read": "GET /api/keys ou configuration provider",
+    "write": "PUT /api/providers/{provider}/keys/{key_id}, objet aliases ; persisté dans le config store puis appliqué au gateway. config.json n’est pas réécrit.",
+    "note": "Option de configuration par alias; champ de formulaire spécialisé.",
+    "source": {
+      "path": "core/schemas/account.go",
+      "line": 236
+    }
+  },
+  {
+    "id": "deployment.description",
+    "group": "Configuration · Deployments et alias",
+    "label": "Description Deployment",
+    "path": "aliases.*.description",
+    "type": "string",
+    "origin": "native",
+    "scope": "access",
+    "read": "GET /api/keys ou configuration provider",
+    "write": "PUT /api/providers/{provider}/keys/{key_id}, objet aliases ; persisté dans le config store puis appliqué au gateway. config.json n’est pas réécrit.",
+    "note": "Option de configuration par alias; champ de formulaire spécialisé.",
+    "source": {
+      "path": "core/schemas/account.go",
+      "line": 237
+    }
+  },
+  {
+    "id": "deployment.use_anthropic_endpoints",
+    "group": "Configuration · Deployments et alias",
+    "label": "Endpoint Anthropic",
+    "path": "aliases.*.use_anthropic_endpoints",
+    "type": "boolean|null",
+    "origin": "native",
+    "scope": "access",
+    "read": "GET /api/keys ou configuration provider",
+    "write": "PUT /api/providers/{provider}/keys/{key_id}, objet aliases ; persisté dans le config store puis appliqué au gateway. config.json n’est pas réécrit.",
+    "note": "Option de configuration par alias; champ de formulaire spécialisé.",
+    "source": {
+      "path": "core/schemas/account.go",
+      "line": 246
+    }
+  },
+  {
+    "id": "deployment.use_openai_endpoints",
+    "group": "Configuration · Deployments et alias",
+    "label": "Endpoint OpenAI-compatible",
+    "path": "aliases.*.use_openai_endpoints",
+    "type": "boolean|null",
+    "origin": "native",
+    "scope": "access",
+    "read": "GET /api/keys ou configuration provider",
+    "write": "PUT /api/providers/{provider}/keys/{key_id}, objet aliases ; persisté dans le config store puis appliqué au gateway. config.json n’est pas réécrit.",
+    "note": "Option de configuration par alias; champ de formulaire spécialisé.",
+    "source": {
+      "path": "core/schemas/account.go",
+      "line": 247
+    }
+  },
+  {
+    "id": "deployment.azure.api_version",
+    "group": "Configuration · Deployments et alias",
+    "label": "Version API Azure",
+    "path": "aliases.*.api_version",
+    "type": "string|null",
+    "origin": "native",
+    "scope": "access",
+    "read": "GET /api/keys ou configuration provider",
+    "write": "PUT /api/providers/{provider}/keys/{key_id}, objet aliases ; persisté dans le config store puis appliqué au gateway. config.json n’est pas réécrit.",
+    "note": "Option de configuration par alias; champ de formulaire spécialisé.",
+    "source": {
+      "path": "core/schemas/account.go",
+      "line": 199
+    }
+  },
+  {
+    "id": "deployment.azure.anthropic_version",
+    "group": "Configuration · Deployments et alias",
+    "label": "Version Anthropic Azure",
+    "path": "aliases.*.anthropic_version",
+    "type": "string|null",
+    "origin": "native",
+    "scope": "access",
+    "read": "GET /api/keys ou configuration provider",
+    "write": "PUT /api/providers/{provider}/keys/{key_id}, objet aliases ; persisté dans le config store puis appliqué au gateway. config.json n’est pas réécrit.",
+    "note": "Option de configuration par alias; champ de formulaire spécialisé.",
+    "source": {
+      "path": "core/schemas/account.go",
+      "line": 200
+    }
+  },
+  {
+    "id": "deployment.vertex.force_single_region",
+    "group": "Configuration · Deployments et alias",
+    "label": "Région unique Vertex",
+    "path": "aliases.*.force_single_region",
+    "type": "boolean|null",
+    "origin": "native",
+    "scope": "access",
+    "read": "GET /api/keys ou configuration provider",
+    "write": "PUT /api/providers/{provider}/keys/{key_id}, objet aliases ; persisté dans le config store puis appliqué au gateway. config.json n’est pas réécrit.",
+    "note": "Option de configuration par alias; champ de formulaire spécialisé.",
+    "source": {
+      "path": "core/schemas/account.go",
+      "line": 215
+    }
+  },
+  {
+    "id": "deployment.replicate.use_deployments_endpoint",
+    "group": "Configuration · Deployments et alias",
+    "label": "Endpoint Deployments Replicate",
+    "path": "aliases.*.use_deployments_endpoint",
+    "type": "boolean|null",
+    "origin": "native",
+    "scope": "access",
+    "read": "GET /api/keys ou configuration provider",
+    "write": "PUT /api/providers/{provider}/keys/{key_id}, objet aliases ; persisté dans le config store puis appliqué au gateway. config.json n’est pas réécrit.",
+    "note": "Option de configuration par alias; champ de formulaire spécialisé.",
+    "source": {
+      "path": "core/schemas/account.go",
+      "line": 225
+    }
+  },
+  {
+    "id": "deployment.region",
+    "group": "Configuration · Deployments et alias",
+    "label": "Région",
+    "path": "aliases.*.region",
+    "type": "SecretVar",
+    "origin": "native",
+    "scope": "access",
+    "read": "GET /api/keys; configuration provider",
+    "write": "PUT /api/providers/{provider}/keys/{key_id}, objet aliases ; persisté dans le config store puis appliqué au gateway. config.json n’est pas réécrit.",
+    "note": "Nom de propriété inclus; aucune valeur secrète ou endpoint réel n’est consulté ni consigné.",
+    "source": {
+      "path": "core/schemas/account.go",
+      "line": 238
+    }
+  },
+  {
+    "id": "deployment.project_id",
+    "group": "Configuration · Deployments et alias",
+    "label": "Projet",
+    "path": "aliases.*.project_id",
+    "type": "SecretVar",
+    "origin": "native",
+    "scope": "access",
+    "read": "GET /api/keys; configuration provider",
+    "write": "PUT /api/providers/{provider}/keys/{key_id}, objet aliases ; persisté dans le config store puis appliqué au gateway. config.json n’est pas réécrit.",
+    "note": "Nom de propriété inclus; aucune valeur secrète ou endpoint réel n’est consulté ni consigné.",
+    "source": {
+      "path": "core/schemas/account.go",
+      "line": 245
+    }
+  },
+  {
+    "id": "deployment.azure.endpoint",
+    "group": "Configuration · Deployments et alias",
+    "label": "Endpoint Azure",
+    "path": "aliases.*.endpoint",
+    "type": "SecretVar",
+    "origin": "native",
+    "scope": "access",
+    "read": "GET /api/keys; configuration provider",
+    "write": "PUT /api/providers/{provider}/keys/{key_id}, objet aliases ; persisté dans le config store puis appliqué au gateway. config.json n’est pas réécrit.",
+    "note": "Nom de propriété inclus; aucune valeur secrète ou endpoint réel n’est consulté ni consigné.",
+    "source": {
+      "path": "core/schemas/account.go",
+      "line": 201
+    }
+  },
+  {
+    "id": "deployment.vertex.project_number",
+    "group": "Configuration · Deployments et alias",
+    "label": "Numéro projet Vertex",
+    "path": "aliases.*.project_number",
+    "type": "SecretVar",
+    "origin": "native",
+    "scope": "access",
+    "read": "GET /api/keys; configuration provider",
+    "write": "PUT /api/providers/{provider}/keys/{key_id}, objet aliases ; persisté dans le config store puis appliqué au gateway. config.json n’est pas réécrit.",
+    "note": "Nom de propriété inclus; aucune valeur secrète ou endpoint réel n’est consulté ni consigné.",
+    "source": {
+      "path": "core/schemas/account.go",
+      "line": 214
+    }
+  },
+  {
+    "id": "deployment.bedrock.inference_profile_arn",
+    "group": "Configuration · Deployments et alias",
+    "label": "Profil inférence Bedrock",
+    "path": "aliases.*.inference_profile_arn",
+    "type": "SecretVar",
+    "origin": "native",
+    "scope": "access",
+    "read": "GET /api/keys; configuration provider",
+    "write": "PUT /api/providers/{provider}/keys/{key_id}, objet aliases ; persisté dans le config store puis appliqué au gateway. config.json n’est pas réécrit.",
+    "note": "Nom de propriété inclus; aucune valeur secrète ou endpoint réel n’est consulté ni consigné.",
+    "source": {
+      "path": "core/schemas/account.go",
+      "line": 220
+    }
+  },
+  {
+    "id": "model.id",
+    "group": "Lecture du modèle · identité",
+    "label": "Identifiant du modèle exposé",
+    "path": "id",
+    "type": "string",
+    "origin": "native",
+    "scope": "model",
+    "read": "/v1/models; lecture catalogue fusionnée",
+    "write": "Aucune édition par cette route",
+    "note": "Identifiant natif du modèle.",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 150
+    }
+  },
+  {
+    "id": "model.canonical_slug",
+    "group": "Lecture du modèle · identité",
+    "label": "Slug canonique",
+    "path": "canonical_slug",
+    "type": "string|null",
+    "origin": "native",
+    "scope": "model",
+    "read": "/v1/models; lecture catalogue fusionnée",
+    "write": "Aucune édition par cette route",
+    "note": "Champ du contrat natif de lecture ; aucun complément de cette propriété par ApplyModelInfo.",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 151
+    }
+  },
+  {
+    "id": "model.name",
+    "group": "Lecture du modèle · identité",
+    "label": "Nom",
+    "path": "name",
+    "type": "string|null",
+    "origin": "native",
+    "scope": "model",
+    "read": "/v1/models; lecture catalogue fusionnée",
+    "write": "Aucune édition par cette route",
+    "note": "Champ du contrat natif de lecture ; aucun complément de cette propriété par ApplyModelInfo.",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 152
+    }
+  },
+  {
+    "id": "model.normalized_name",
+    "group": "Lecture du modèle · identité",
+    "label": "Nom normalisé",
+    "path": "normalized_name",
+    "type": "string|null",
+    "origin": "mixed",
+    "scope": "model",
+    "read": "/v1/models; lecture catalogue fusionnée",
+    "write": "Aucune édition par cette route",
+    "note": "Peut dériver du base_model de datasheet.",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 153
+    }
+  },
+  {
+    "id": "model.alias",
+    "group": "Lecture du modèle · identité",
+    "label": "Identifiant alias provider",
+    "path": "alias",
+    "type": "string|null",
+    "origin": "native",
+    "scope": "model",
+    "read": "/v1/models; lecture catalogue fusionnée",
+    "write": "Aucune édition par cette route",
+    "note": "Identifiant API cible; différent de l’alias commun de fiche.",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 154
+    }
+  },
+  {
+    "id": "model.created",
+    "group": "Lecture du modèle · identité",
+    "label": "Date de création",
+    "path": "created",
+    "type": "integer|null",
+    "origin": "native",
+    "scope": "model",
+    "read": "/v1/models; lecture catalogue fusionnée",
+    "write": "Aucune édition par cette route",
+    "note": "Champ du contrat natif de lecture ; aucun complément de cette propriété par ApplyModelInfo.",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 155
+    }
+  },
+  {
+    "id": "model.context_length",
+    "group": "Lecture du modèle · limites",
+    "label": "Fenêtre de contexte",
+    "path": "context_length",
+    "type": "integer|null",
+    "origin": "mixed",
+    "scope": "model",
+    "read": "/v1/models; lecture catalogue fusionnée",
+    "write": "Aucune édition par cette route",
+    "note": "",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 156
+    }
+  },
+  {
+    "id": "model.max_input_tokens",
+    "group": "Lecture du modèle · limites",
+    "label": "Tokens entrants max.",
+    "path": "max_input_tokens",
+    "type": "integer|null",
+    "origin": "mixed",
+    "scope": "model",
+    "read": "/v1/models; lecture catalogue fusionnée",
+    "write": "Aucune édition par cette route",
+    "note": "",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 157
+    }
+  },
+  {
+    "id": "model.max_output_tokens",
+    "group": "Lecture du modèle · limites",
+    "label": "Tokens sortants max.",
+    "path": "max_output_tokens",
+    "type": "integer|null",
+    "origin": "mixed",
+    "scope": "model",
+    "read": "/v1/models; lecture catalogue fusionnée",
+    "write": "Aucune édition par cette route",
+    "note": "Fusion provider + datasheet selon les règles catalogue; présence et valeur variables.",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 158
+    }
+  },
+  {
+    "id": "model.architecture.modality",
+    "group": "Lecture du modèle · modalités et état",
+    "label": "Modalité architecture",
+    "path": "architecture.modality",
+    "type": "string|null",
+    "origin": "mixed",
+    "scope": "model",
+    "read": "/v1/models; lecture catalogue fusionnée",
+    "write": "Aucune édition par cette route",
+    "note": "Fusion provider + datasheet selon les règles catalogue; présence et valeur variables.",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 184
+    }
+  },
+  {
+    "id": "model.architecture.tokenizer",
+    "group": "Lecture du modèle · modalités et état",
+    "label": "Tokenizer",
+    "path": "architecture.tokenizer",
+    "type": "string|null",
+    "origin": "mixed",
+    "scope": "model",
+    "read": "/v1/models; lecture catalogue fusionnée",
+    "write": "Aucune édition par cette route",
+    "note": "Fusion provider + datasheet selon les règles catalogue; présence et valeur variables.",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 185
+    }
+  },
+  {
+    "id": "model.architecture.instruct_type",
+    "group": "Lecture du modèle · modalités et état",
+    "label": "Type instruction",
+    "path": "architecture.instruct_type",
+    "type": "string|null",
+    "origin": "mixed",
+    "scope": "model",
+    "read": "/v1/models; lecture catalogue fusionnée",
+    "write": "Aucune édition par cette route",
+    "note": "Fusion provider + datasheet selon les règles catalogue; présence et valeur variables.",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 186
+    }
+  },
+  {
+    "id": "model.architecture.input_modalities",
+    "group": "Lecture du modèle · modalités et état",
+    "label": "Modalités entrantes",
+    "path": "architecture.input_modalities[]",
+    "type": "string[]",
+    "origin": "mixed",
+    "scope": "model",
+    "read": "/v1/models; lecture catalogue fusionnée",
+    "write": "Aucune édition par cette route",
+    "note": "Fusion provider + datasheet selon les règles catalogue; présence et valeur variables.",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 187
+    }
+  },
+  {
+    "id": "model.architecture.output_modalities",
+    "group": "Lecture du modèle · modalités et état",
+    "label": "Modalités sortantes",
+    "path": "architecture.output_modalities[]",
+    "type": "string[]",
+    "origin": "mixed",
+    "scope": "model",
+    "read": "/v1/models; lecture catalogue fusionnée",
+    "write": "Aucune édition par cette route",
+    "note": "Fusion provider + datasheet selon les règles catalogue; présence et valeur variables.",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 188
+    }
+  },
+  {
+    "id": "model.is_deprecated",
+    "group": "Lecture du modèle · modalités et état",
+    "label": "Déprécié",
+    "path": "is_deprecated",
+    "type": "boolean",
+    "origin": "mixed",
+    "scope": "model",
+    "read": "/v1/models; lecture catalogue fusionnée",
+    "write": "Aucune édition par cette route",
+    "note": "Fusion catalogue par OU.",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 160
+    }
+  },
+  {
+    "id": "model.pricing.prompt",
+    "group": "Lecture du modèle · prix",
+    "label": "Prix entrée",
+    "path": "pricing.prompt",
+    "type": "string|null",
+    "origin": "mixed",
+    "scope": "model",
+    "read": "/v1/models; lecture catalogue fusionnée",
+    "write": "Aucune édition par cette route",
+    "note": "Fusion provider + datasheet selon les règles catalogue; présence et valeur variables.",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 192
+    }
+  },
+  {
+    "id": "model.pricing.completion",
+    "group": "Lecture du modèle · prix",
+    "label": "Prix sortie",
+    "path": "pricing.completion",
+    "type": "string|null",
+    "origin": "mixed",
+    "scope": "model",
+    "read": "/v1/models; lecture catalogue fusionnée",
+    "write": "Aucune édition par cette route",
+    "note": "Fusion provider + datasheet selon les règles catalogue; présence et valeur variables.",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 193
+    }
+  },
+  {
+    "id": "model.pricing.request",
+    "group": "Lecture du modèle · prix",
+    "label": "Prix par requête",
+    "path": "pricing.request",
+    "type": "string|null",
+    "origin": "mixed",
+    "scope": "model",
+    "read": "/v1/models; lecture catalogue fusionnée",
+    "write": "Aucune édition par cette route",
+    "note": "Fusion provider + datasheet selon les règles catalogue; présence et valeur variables.",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 194
+    }
+  },
+  {
+    "id": "model.pricing.image",
+    "group": "Lecture du modèle · prix",
+    "label": "Prix image",
+    "path": "pricing.image",
+    "type": "string|null",
+    "origin": "mixed",
+    "scope": "model",
+    "read": "/v1/models; lecture catalogue fusionnée",
+    "write": "Aucune édition par cette route",
+    "note": "Fusion provider + datasheet selon les règles catalogue; présence et valeur variables.",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 195
+    }
+  },
+  {
+    "id": "model.pricing.web_search",
+    "group": "Lecture du modèle · prix",
+    "label": "Prix recherche web",
+    "path": "pricing.web_search",
+    "type": "string|null",
+    "origin": "mixed",
+    "scope": "model",
+    "read": "/v1/models; lecture catalogue fusionnée",
+    "write": "Aucune édition par cette route",
+    "note": "Fusion provider + datasheet selon les règles catalogue; présence et valeur variables.",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 196
+    }
+  },
+  {
+    "id": "model.pricing.internal_reasoning",
+    "group": "Lecture du modèle · prix",
+    "label": "Prix raisonnement interne",
+    "path": "pricing.internal_reasoning",
+    "type": "string|null",
+    "origin": "native",
+    "scope": "model",
+    "read": "/v1/models; lecture catalogue fusionnée",
+    "write": "Aucune édition par cette route",
+    "note": "Champ natif/provider; ApplyModelInfo ne le complète pas depuis la datasheet.",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 197
+    }
+  },
+  {
+    "id": "model.pricing.input_cache_read",
+    "group": "Lecture du modèle · prix",
+    "label": "Prix cache lu",
+    "path": "pricing.input_cache_read",
+    "type": "string|null",
+    "origin": "mixed",
+    "scope": "model",
+    "read": "/v1/models; lecture catalogue fusionnée",
+    "write": "Aucune édition par cette route",
+    "note": "Fusion provider + datasheet selon les règles catalogue; présence et valeur variables.",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 198
+    }
+  },
+  {
+    "id": "model.pricing.input_cache_write",
+    "group": "Lecture du modèle · prix",
+    "label": "Prix cache écrit",
+    "path": "pricing.input_cache_write",
+    "type": "string|null",
+    "origin": "mixed",
+    "scope": "model",
+    "read": "/v1/models; lecture catalogue fusionnée",
+    "write": "Aucune édition par cette route",
+    "note": "Fusion provider + datasheet selon les règles catalogue; présence et valeur variables.",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 199
+    }
+  },
+  {
+    "id": "model.top_provider.is_moderated",
+    "group": "Lecture du modèle · modalités et état",
+    "label": "Modération fournisseur principal",
+    "path": "top_provider.is_moderated",
+    "type": "boolean|null",
+    "origin": "native",
+    "scope": "model",
+    "read": "/v1/models; lecture catalogue fusionnée",
+    "write": "Aucune édition par cette route",
+    "note": "Fusion provider + datasheet selon les règles catalogue; présence et valeur variables.",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 203
+    }
+  },
+  {
+    "id": "model.top_provider.context_length",
+    "group": "Lecture du modèle · limites",
+    "label": "Contexte fournisseur principal",
+    "path": "top_provider.context_length",
+    "type": "integer|null",
+    "origin": "native",
+    "scope": "model",
+    "read": "/v1/models; lecture catalogue fusionnée",
+    "write": "Aucune édition par cette route",
+    "note": "Fusion provider + datasheet selon les règles catalogue; présence et valeur variables.",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 204
+    }
+  },
+  {
+    "id": "model.top_provider.max_completion_tokens",
+    "group": "Lecture du modèle · limites",
+    "label": "Complétion max. fournisseur principal",
+    "path": "top_provider.max_completion_tokens",
+    "type": "integer|null",
+    "origin": "native",
+    "scope": "model",
+    "read": "/v1/models; lecture catalogue fusionnée",
+    "write": "Aucune édition par cette route",
+    "note": "Fusion provider + datasheet selon les règles catalogue; présence et valeur variables.",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 205
+    }
+  },
+  {
+    "id": "model.per_request_limits.prompt_tokens",
+    "group": "Lecture du modèle · limites",
+    "label": "Tokens prompt par requête",
+    "path": "per_request_limits.prompt_tokens",
+    "type": "integer|null",
+    "origin": "native",
+    "scope": "model",
+    "read": "/v1/models; lecture catalogue fusionnée",
+    "write": "Aucune édition par cette route",
+    "note": "Fusion provider + datasheet selon les règles catalogue; présence et valeur variables.",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 209
+    }
+  },
+  {
+    "id": "model.per_request_limits.completion_tokens",
+    "group": "Lecture du modèle · limites",
+    "label": "Tokens réponse par requête",
+    "path": "per_request_limits.completion_tokens",
+    "type": "integer|null",
+    "origin": "native",
+    "scope": "model",
+    "read": "/v1/models; lecture catalogue fusionnée",
+    "write": "Aucune édition par cette route",
+    "note": "Fusion provider + datasheet selon les règles catalogue; présence et valeur variables.",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 210
+    }
+  },
+  {
+    "id": "model.supported_parameters",
+    "group": "Lecture du modèle · paramètres et raisonnement",
+    "label": "Paramètres supportés",
+    "path": "supported_parameters[]",
+    "type": "string[]",
+    "origin": "mixed",
+    "scope": "model",
+    "read": "/v1/models; lecture catalogue fusionnée",
+    "write": "Aucune édition par cette route",
+    "note": "Peut être fourni par le provider ou renseigné depuis la datasheet via GetModelInfo.",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 164
+    }
+  },
+  {
+    "id": "model.default_parameters.temperature",
+    "group": "Lecture du modèle · paramètres et raisonnement",
+    "label": "Température par défaut",
+    "path": "default_parameters.temperature",
+    "type": "number|null",
+    "origin": "native",
+    "scope": "model",
+    "read": "/v1/models; lecture catalogue fusionnée",
+    "write": "Aucune édition par cette route",
+    "note": "Fusion provider + datasheet selon les règles catalogue; présence et valeur variables.",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 214
+    }
+  },
+  {
+    "id": "model.default_parameters.top_p",
+    "group": "Lecture du modèle · paramètres et raisonnement",
+    "label": "Top-p par défaut",
+    "path": "default_parameters.top_p",
+    "type": "number|null",
+    "origin": "native",
+    "scope": "model",
+    "read": "/v1/models; lecture catalogue fusionnée",
+    "write": "Aucune édition par cette route",
+    "note": "Fusion provider + datasheet selon les règles catalogue; présence et valeur variables.",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 215
+    }
+  },
+  {
+    "id": "model.default_parameters.frequency_penalty",
+    "group": "Lecture du modèle · paramètres et raisonnement",
+    "label": "Pénalité fréquence par défaut",
+    "path": "default_parameters.frequency_penalty",
+    "type": "number|null",
+    "origin": "native",
+    "scope": "model",
+    "read": "/v1/models; lecture catalogue fusionnée",
+    "write": "Aucune édition par cette route",
+    "note": "Fusion provider + datasheet selon les règles catalogue; présence et valeur variables.",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 216
+    }
+  },
+  {
+    "id": "model.reasoning.mandatory",
+    "group": "Lecture du modèle · paramètres et raisonnement",
+    "label": "Raisonnement obligatoire",
+    "path": "reasoning.mandatory",
+    "type": "boolean|null",
+    "origin": "native",
+    "scope": "model",
+    "read": "/v1/models; lecture catalogue fusionnée",
+    "write": "Aucune édition par cette route",
+    "note": "Fusion provider + datasheet selon les règles catalogue; présence et valeur variables.",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 224
+    }
+  },
+  {
+    "id": "model.reasoning.default_enabled",
+    "group": "Lecture du modèle · paramètres et raisonnement",
+    "label": "Raisonnement actif par défaut",
+    "path": "reasoning.default_enabled",
+    "type": "boolean|null",
+    "origin": "native",
+    "scope": "model",
+    "read": "/v1/models; lecture catalogue fusionnée",
+    "write": "Aucune édition par cette route",
+    "note": "Fusion provider + datasheet selon les règles catalogue; présence et valeur variables.",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 225
+    }
+  },
+  {
+    "id": "model.reasoning.supported_efforts",
+    "group": "Lecture du modèle · paramètres et raisonnement",
+    "label": "Niveaux raisonnement",
+    "path": "reasoning.supported_efforts[]",
+    "type": "string[]",
+    "origin": "native",
+    "scope": "model",
+    "read": "/v1/models; lecture catalogue fusionnée",
+    "write": "Aucune édition par cette route",
+    "note": "Fusion provider + datasheet selon les règles catalogue; présence et valeur variables.",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 226
+    }
+  },
+  {
+    "id": "model.reasoning.default_effort",
+    "group": "Lecture du modèle · paramètres et raisonnement",
+    "label": "Niveau raisonnement défaut",
+    "path": "reasoning.default_effort",
+    "type": "string|null",
+    "origin": "native",
+    "scope": "model",
+    "read": "/v1/models; lecture catalogue fusionnée",
+    "write": "Aucune édition par cette route",
+    "note": "Fusion provider + datasheet selon les règles catalogue; présence et valeur variables.",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 227
+    }
+  },
+  {
+    "id": "model.hugging_face_id",
+    "group": "Lecture du modèle · identité",
+    "label": "Identifiant Hugging Face",
+    "path": "hugging_face_id",
+    "type": "string|null",
+    "origin": "native",
+    "scope": "model",
+    "read": "/v1/models; lecture catalogue fusionnée",
+    "write": "Aucune édition par cette route",
+    "note": "Fusion provider + datasheet selon les règles catalogue; présence et valeur variables.",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 167
+    }
+  },
+  {
+    "id": "model.description",
+    "group": "Lecture du modèle · identité",
+    "label": "Description modèle",
+    "path": "description",
+    "type": "string|null",
+    "origin": "native",
+    "scope": "model",
+    "read": "/v1/models; lecture catalogue fusionnée",
+    "write": "Aucune édition par cette route",
+    "note": "Champ natif/provider; ApplyModelInfo ne le complète pas depuis la datasheet.",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 168
+    }
+  },
+  {
+    "id": "model.additional_attributes",
+    "group": "Lecture du modèle · identité",
+    "label": "Attributs éditoriaux",
+    "path": "additional_attributes.*",
+    "type": "string map",
+    "origin": "native",
+    "scope": "model",
+    "read": "/v1/models; lecture catalogue fusionnée",
+    "write": "PUT /api/models/catalog : remplace le dictionnaire sur une ligne de pricing existante ; préserver les entrées tierces.",
+    "note": "Métadonnées locales Bifrost préservées par la synchronisation. Un champ homonyme ne remplace pas une propriété native.",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 173
+    }
+  },
+  {
+    "id": "model.owned_by",
+    "group": "Lecture du modèle · identité",
+    "label": "Éditeur déclaré",
+    "path": "owned_by",
+    "type": "string|null",
+    "origin": "native",
+    "scope": "model",
+    "read": "/v1/models; lecture catalogue fusionnée",
+    "write": "Aucune édition par cette route",
+    "note": "Ne prouve pas à lui seul l’auteur du modèle.",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 175
+    }
+  },
+  {
+    "id": "model.supported_methods",
+    "group": "Lecture du modèle · paramètres et raisonnement",
+    "label": "Méthodes supportées",
+    "path": "supported_methods[]",
+    "type": "string[]",
+    "origin": "native",
+    "scope": "model",
+    "read": "/v1/models; lecture catalogue fusionnée",
+    "write": "Aucune édition par cette route",
+    "note": "Fusion provider + datasheet selon les règles catalogue; présence et valeur variables.",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 176
+    }
+  },
+  {
+    "id": "list.name",
+    "group": "Lecture modèle · accès",
+    "label": "Nom modèle",
+    "path": "models[].name",
+    "type": "string",
+    "origin": "native",
+    "scope": "access",
+    "read": "GET /api/models",
+    "write": "Lecture seule par cette route",
+    "note": "DTO de liste; accessible_by_keys dépend du filtre.",
+    "source": {
+      "path": "transports/bifrost-http/handlers/providers.go",
+      "line": 720
+    }
+  },
+  {
+    "id": "list.provider",
+    "group": "Lecture modèle · accès",
+    "label": "Provider",
+    "path": "models[].provider",
+    "type": "string",
+    "origin": "native",
+    "scope": "access",
+    "read": "GET /api/models",
+    "write": "Lecture seule par cette route",
+    "note": "DTO de liste; accessible_by_keys dépend du filtre.",
+    "source": {
+      "path": "transports/bifrost-http/handlers/providers.go",
+      "line": 721
+    }
+  },
+  {
+    "id": "list.is_deprecated",
+    "group": "Lecture modèle · accès",
+    "label": "Déprécié",
+    "path": "models[].is_deprecated",
+    "type": "boolean",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "GET /api/models",
+    "write": "Lecture seule par cette route",
+    "note": "DTO de liste; accessible_by_keys dépend du filtre.",
+    "source": {
+      "path": "transports/bifrost-http/handlers/providers.go",
+      "line": 722
+    }
+  },
+  {
+    "id": "list.accessible_by_keys",
+    "group": "Lecture modèle · accès",
+    "label": "Clés accessibles",
+    "path": "models[].accessible_by_keys[]",
+    "type": "string[]",
+    "origin": "native",
+    "scope": "access",
+    "read": "GET /api/models",
+    "write": "Lecture seule par cette route",
+    "note": "DTO de liste; accessible_by_keys dépend du filtre.",
+    "source": {
+      "path": "transports/bifrost-http/handlers/providers.go",
+      "line": 723
+    }
+  },
+  {
+    "id": "details.name",
+    "group": "Lecture détaillée · accès et corrections",
+    "label": "Nom modèle",
+    "path": "models[].name",
+    "type": "string",
+    "origin": "native",
+    "scope": "access",
+    "read": "GET /api/models/details",
+    "write": "Lecture seule par cette route",
+    "note": "Prix de base du catalogue; correction tarifaire distincte quand présente.",
+    "source": {
+      "path": "transports/bifrost-http/handlers/providers.go",
+      "line": 734
+    }
+  },
+  {
+    "id": "details.provider",
+    "group": "Lecture détaillée · accès et corrections",
+    "label": "Provider",
+    "path": "models[].provider",
+    "type": "string",
+    "origin": "native",
+    "scope": "access",
+    "read": "GET /api/models/details",
+    "write": "Lecture seule par cette route",
+    "note": "Prix de base du catalogue; correction tarifaire distincte quand présente.",
+    "source": {
+      "path": "transports/bifrost-http/handlers/providers.go",
+      "line": 735
+    }
+  },
+  {
+    "id": "details.context_length",
+    "group": "Lecture détaillée · capacités et tarifs",
+    "label": "Fenêtre contexte",
+    "path": "models[].context_length",
+    "type": "integer|null",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "GET /api/models/details",
+    "write": "Lecture seule par cette route",
+    "note": "Provenance : datasheet catalogue Bifrost; correction tarifaire éventuelle exposée à part.",
+    "source": {
+      "path": "transports/bifrost-http/handlers/providers.go",
+      "line": 736
+    }
+  },
+  {
+    "id": "details.max_input_tokens",
+    "group": "Lecture détaillée · capacités et tarifs",
+    "label": "Tokens entrants max.",
+    "path": "models[].max_input_tokens",
+    "type": "integer|null",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "GET /api/models/details",
+    "write": "Lecture seule par cette route",
+    "note": "Provenance : datasheet catalogue Bifrost; correction tarifaire éventuelle exposée à part.",
+    "source": {
+      "path": "transports/bifrost-http/handlers/providers.go",
+      "line": 737
+    }
+  },
+  {
+    "id": "details.max_output_tokens",
+    "group": "Lecture détaillée · capacités et tarifs",
+    "label": "Tokens sortants max.",
+    "path": "models[].max_output_tokens",
+    "type": "integer|null",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "GET /api/models/details",
+    "write": "Lecture seule par cette route",
+    "note": "Provenance : datasheet catalogue Bifrost; correction tarifaire éventuelle exposée à part.",
+    "source": {
+      "path": "transports/bifrost-http/handlers/providers.go",
+      "line": 738
+    }
+  },
+  {
+    "id": "details.input_cost_per_token",
+    "group": "Lecture détaillée · capacités et tarifs",
+    "label": "Prix entrée/token",
+    "path": "models[].input_cost_per_token",
+    "type": "number|null",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "GET /api/models/details",
+    "write": "Lecture seule par cette route",
+    "note": "Provenance : datasheet catalogue Bifrost; correction tarifaire éventuelle exposée à part.",
+    "source": {
+      "path": "transports/bifrost-http/handlers/providers.go",
+      "line": 739
+    }
+  },
+  {
+    "id": "details.output_cost_per_token",
+    "group": "Lecture détaillée · capacités et tarifs",
+    "label": "Prix sortie/token",
+    "path": "models[].output_cost_per_token",
+    "type": "number|null",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "GET /api/models/details",
+    "write": "Lecture seule par cette route",
+    "note": "Provenance : datasheet catalogue Bifrost; correction tarifaire éventuelle exposée à part.",
+    "source": {
+      "path": "transports/bifrost-http/handlers/providers.go",
+      "line": 740
+    }
+  },
+  {
+    "id": "details.cache_creation_input_token_cost",
+    "group": "Lecture détaillée · capacités et tarifs",
+    "label": "Prix écriture cache",
+    "path": "models[].cache_creation_input_token_cost",
+    "type": "number|null",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "GET /api/models/details",
+    "write": "Lecture seule par cette route",
+    "note": "Provenance : datasheet catalogue Bifrost; correction tarifaire éventuelle exposée à part.",
+    "source": {
+      "path": "transports/bifrost-http/handlers/providers.go",
+      "line": 741
+    }
+  },
+  {
+    "id": "details.cache_read_input_token_cost",
+    "group": "Lecture détaillée · capacités et tarifs",
+    "label": "Prix lecture cache",
+    "path": "models[].cache_read_input_token_cost",
+    "type": "number|null",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "GET /api/models/details",
+    "write": "Lecture seule par cette route",
+    "note": "Provenance : datasheet catalogue Bifrost; correction tarifaire éventuelle exposée à part.",
+    "source": {
+      "path": "transports/bifrost-http/handlers/providers.go",
+      "line": 742
+    }
+  },
+  {
+    "id": "details.architecture.modality",
+    "group": "Lecture détaillée · capacités et tarifs",
+    "label": "Modalité architecture",
+    "path": "models[].architecture.modality",
+    "type": "string|null",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "GET /api/models/details",
+    "write": "Lecture seule par cette route",
+    "note": "Provenance : datasheet catalogue Bifrost; correction tarifaire éventuelle exposée à part.",
+    "source": {
+      "path": "transports/bifrost-http/handlers/providers.go",
+      "line": 184
+    }
+  },
+  {
+    "id": "details.architecture.tokenizer",
+    "group": "Lecture détaillée · capacités et tarifs",
+    "label": "Tokenizer architecture",
+    "path": "models[].architecture.tokenizer",
+    "type": "string|null",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "GET /api/models/details",
+    "write": "Lecture seule par cette route",
+    "note": "Provenance : datasheet catalogue Bifrost; correction tarifaire éventuelle exposée à part.",
+    "source": {
+      "path": "transports/bifrost-http/handlers/providers.go",
+      "line": 185
+    }
+  },
+  {
+    "id": "details.architecture.instruct_type",
+    "group": "Lecture détaillée · capacités et tarifs",
+    "label": "Type instruction architecture",
+    "path": "models[].architecture.instruct_type",
+    "type": "string|null",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "GET /api/models/details",
+    "write": "Lecture seule par cette route",
+    "note": "Provenance : datasheet catalogue Bifrost; correction tarifaire éventuelle exposée à part.",
+    "source": {
+      "path": "transports/bifrost-http/handlers/providers.go",
+      "line": 186
+    }
+  },
+  {
+    "id": "details.architecture.input_modalities",
+    "group": "Lecture détaillée · capacités et tarifs",
+    "label": "Modalités entrantes",
+    "path": "models[].architecture.input_modalities[]",
+    "type": "string[]",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "GET /api/models/details",
+    "write": "Lecture seule par cette route",
+    "note": "Provenance : datasheet catalogue Bifrost; correction tarifaire éventuelle exposée à part.",
+    "source": {
+      "path": "transports/bifrost-http/handlers/providers.go",
+      "line": 187
+    }
+  },
+  {
+    "id": "details.architecture.output_modalities",
+    "group": "Lecture détaillée · capacités et tarifs",
+    "label": "Modalités sortantes",
+    "path": "models[].architecture.output_modalities[]",
+    "type": "string[]",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "GET /api/models/details",
+    "write": "Lecture seule par cette route",
+    "note": "Provenance : datasheet catalogue Bifrost; correction tarifaire éventuelle exposée à part.",
+    "source": {
+      "path": "transports/bifrost-http/handlers/providers.go",
+      "line": 188
+    }
+  },
+  {
+    "id": "details.is_deprecated",
+    "group": "Lecture détaillée · métadonnées locales",
+    "label": "Déprécié",
+    "path": "models[].is_deprecated",
+    "type": "boolean",
+    "origin": "native",
+    "scope": "access",
+    "read": "GET /api/models/details",
+    "write": "Lecture seule par cette route",
+    "note": "Provenance : métadonnée locale du catalogue Bifrost.",
+    "source": {
+      "path": "transports/bifrost-http/handlers/providers.go",
+      "line": 744
+    }
+  },
+  {
+    "id": "details.additional_attributes",
+    "group": "Lecture détaillée · métadonnées locales",
+    "label": "Attributs éditoriaux",
+    "path": "models[].additional_attributes.*",
+    "type": "string map",
+    "origin": "native",
+    "scope": "access",
+    "read": "GET /api/models/details",
+    "write": "PUT /api/models/catalog : remplace le dictionnaire sur une ligne de pricing existante ; préserver les entrées tierces.",
+    "note": "Métadonnées locales Bifrost préservées par la synchronisation. Un champ homonyme ne remplace pas une propriété native.",
+    "source": {
+      "path": "transports/bifrost-http/handlers/providers.go",
+      "line": 745
+    }
+  },
+  {
+    "id": "details.accessible_by_keys",
+    "group": "Lecture détaillée · accès et corrections",
+    "label": "Clés accessibles",
+    "path": "models[].accessible_by_keys[]",
+    "type": "string[]",
+    "origin": "native",
+    "scope": "access",
+    "read": "GET /api/models/details",
+    "write": "Lecture seule par cette route",
+    "note": "Prix de base du catalogue; correction tarifaire distincte quand présente.",
+    "source": {
+      "path": "transports/bifrost-http/handlers/providers.go",
+      "line": 746
+    }
+  },
+  {
+    "id": "details.overridden_pricing.input_cost_per_token",
+    "group": "Lecture détaillée · capacités et tarifs",
+    "label": "Prix entrée corrigé",
+    "path": "models[].overridden_pricing.input_cost_per_token",
+    "type": "number|null",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "GET /api/models/details",
+    "write": "Lecture seule par cette route",
+    "note": "Provenance : datasheet catalogue Bifrost; correction tarifaire éventuelle exposée à part.",
+    "source": {
+      "path": "transports/bifrost-http/handlers/providers.go",
+      "line": 765
+    }
+  },
+  {
+    "id": "details.overridden_pricing.output_cost_per_token",
+    "group": "Lecture détaillée · capacités et tarifs",
+    "label": "Prix sortie corrigé",
+    "path": "models[].overridden_pricing.output_cost_per_token",
+    "type": "number|null",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "GET /api/models/details",
+    "write": "Lecture seule par cette route",
+    "note": "Provenance : datasheet catalogue Bifrost; correction tarifaire éventuelle exposée à part.",
+    "source": {
+      "path": "transports/bifrost-http/handlers/providers.go",
+      "line": 766
+    }
+  },
+  {
+    "id": "details.overridden_pricing.cache_creation_input_token_cost",
+    "group": "Lecture détaillée · capacités et tarifs",
+    "label": "Prix écriture cache corrigé",
+    "path": "models[].overridden_pricing.cache_creation_input_token_cost",
+    "type": "number|null",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "GET /api/models/details",
+    "write": "Lecture seule par cette route",
+    "note": "Provenance : datasheet catalogue Bifrost; correction tarifaire éventuelle exposée à part.",
+    "source": {
+      "path": "transports/bifrost-http/handlers/providers.go",
+      "line": 767
+    }
+  },
+  {
+    "id": "details.overridden_pricing.cache_read_input_token_cost",
+    "group": "Lecture détaillée · capacités et tarifs",
+    "label": "Prix lecture cache corrigé",
+    "path": "models[].overridden_pricing.cache_read_input_token_cost",
+    "type": "number|null",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "GET /api/models/details",
+    "write": "Lecture seule par cette route",
+    "note": "Provenance : datasheet catalogue Bifrost; correction tarifaire éventuelle exposée à part.",
+    "source": {
+      "path": "transports/bifrost-http/handlers/providers.go",
+      "line": 768
+    }
+  },
+  {
+    "id": "details.applied_override_id",
+    "group": "Lecture détaillée · accès et corrections",
+    "label": "Correction appliquée",
+    "path": "models[].applied_override_id",
+    "type": "string",
+    "origin": "native",
+    "scope": "access",
+    "read": "GET /api/models/details",
+    "write": "Lecture seule par cette route",
+    "note": "Prix de base du catalogue; correction tarifaire distincte quand présente.",
+    "source": {
+      "path": "transports/bifrost-http/handlers/providers.go",
+      "line": 754
+    }
+  },
+  {
+    "id": "details.pricing_override_ids",
+    "group": "Lecture détaillée · accès et corrections",
+    "label": "Corrections correspondantes",
+    "path": "models[].pricing_override_ids[]",
+    "type": "string[]",
+    "origin": "native",
+    "scope": "access",
+    "read": "GET /api/models/details",
+    "write": "Lecture seule par cette route",
+    "note": "Prix de base du catalogue; correction tarifaire distincte quand présente.",
+    "source": {
+      "path": "transports/bifrost-http/handlers/providers.go",
+      "line": 759
+    }
+  },
+  {
+    "id": "list.total",
+    "group": "Lecture modèle · accès",
+    "label": "Nombre total",
+    "path": "total",
+    "type": "integer",
+    "origin": "native",
+    "scope": "access",
+    "read": "GET /api/models/details ou GET /api/models",
+    "write": "Lecture seule par ces routes",
+    "note": "Métadonnée de pagination de la réponse.",
+    "source": {
+      "path": "transports/bifrost-http/handlers/providers.go",
+      "line": 729
+    }
+  },
+  {
+    "id": "details.total",
+    "group": "Lecture détaillée · accès et corrections",
+    "label": "Nombre total",
+    "path": "total",
+    "type": "integer",
+    "origin": "native",
+    "scope": "access",
+    "read": "GET /api/models/details ou GET /api/models",
+    "write": "Lecture seule par ces routes",
+    "note": "Métadonnée de pagination de la réponse.",
+    "source": {
+      "path": "transports/bifrost-http/handlers/providers.go",
+      "line": 790
+    }
+  },
+  {
+    "id": "details.override.id",
+    "group": "Lecture détaillée · accès et corrections",
+    "label": "Identifiant correction",
+    "path": "pricing_overrides.*.id",
+    "type": "string",
+    "origin": "native",
+    "scope": "access",
+    "read": "GET /api/models/details ou GET /api/models",
+    "write": "Lecture seule par ces routes",
+    "note": "Index de corrections référencées; valeurs tarifaires hors base.",
+    "source": {
+      "path": "transports/bifrost-http/handlers/providers.go",
+      "line": 774
+    }
+  },
+  {
+    "id": "details.override.name",
+    "group": "Lecture détaillée · accès et corrections",
+    "label": "Nom correction",
+    "path": "pricing_overrides.*.name",
+    "type": "string",
+    "origin": "native",
+    "scope": "access",
+    "read": "GET /api/models/details ou GET /api/models",
+    "write": "Lecture seule par ces routes",
+    "note": "",
+    "source": {
+      "path": "transports/bifrost-http/handlers/providers.go",
+      "line": 775
+    }
+  },
+  {
+    "id": "details.override.scope_kind",
+    "group": "Lecture détaillée · accès et corrections",
+    "label": "Portée correction",
+    "path": "pricing_overrides.*.scope_kind",
+    "type": "enum",
+    "origin": "native",
+    "scope": "access",
+    "read": "GET /api/models/details ou GET /api/models",
+    "write": "Lecture seule par ces routes",
+    "note": "",
+    "source": {
+      "path": "transports/bifrost-http/handlers/providers.go",
+      "line": 776
+    }
+  },
+  {
+    "id": "details.override.user_id",
+    "group": "Lecture détaillée · accès et corrections",
+    "label": "Utilisateur ciblé",
+    "path": "pricing_overrides.*.user_id",
+    "type": "string|null",
+    "origin": "native",
+    "scope": "access",
+    "read": "GET /api/models/details ou GET /api/models",
+    "write": "Lecture seule par ces routes",
+    "note": "",
+    "source": {
+      "path": "transports/bifrost-http/handlers/providers.go",
+      "line": 777
+    }
+  },
+  {
+    "id": "details.override.virtual_key_id",
+    "group": "Lecture détaillée · accès et corrections",
+    "label": "Clé virtuelle ciblée",
+    "path": "pricing_overrides.*.virtual_key_id",
+    "type": "string|null",
+    "origin": "native",
+    "scope": "access",
+    "read": "GET /api/models/details ou GET /api/models",
+    "write": "Lecture seule par ces routes",
+    "note": "",
+    "source": {
+      "path": "transports/bifrost-http/handlers/providers.go",
+      "line": 778
+    }
+  },
+  {
+    "id": "details.override.provider_id",
+    "group": "Lecture détaillée · accès et corrections",
+    "label": "Provider ciblé",
+    "path": "pricing_overrides.*.provider_id",
+    "type": "string|null",
+    "origin": "native",
+    "scope": "access",
+    "read": "GET /api/models/details ou GET /api/models",
+    "write": "Lecture seule par ces routes",
+    "note": "",
+    "source": {
+      "path": "transports/bifrost-http/handlers/providers.go",
+      "line": 779
+    }
+  },
+  {
+    "id": "details.override.provider_key_id",
+    "group": "Lecture détaillée · accès et corrections",
+    "label": "Clé provider ciblée",
+    "path": "pricing_overrides.*.provider_key_id",
+    "type": "string|null",
+    "origin": "native",
+    "scope": "access",
+    "read": "GET /api/models/details ou GET /api/models",
+    "write": "Lecture seule par ces routes",
+    "note": "",
+    "source": {
+      "path": "transports/bifrost-http/handlers/providers.go",
+      "line": 780
+    }
+  },
+  {
+    "id": "details.override.match_type",
+    "group": "Lecture détaillée · accès et corrections",
+    "label": "Type correspondance",
+    "path": "pricing_overrides.*.match_type",
+    "type": "enum",
+    "origin": "native",
+    "scope": "access",
+    "read": "GET /api/models/details ou GET /api/models",
+    "write": "Lecture seule par ces routes",
+    "note": "",
+    "source": {
+      "path": "transports/bifrost-http/handlers/providers.go",
+      "line": 781
+    }
+  },
+  {
+    "id": "details.override.pattern",
+    "group": "Lecture détaillée · accès et corrections",
+    "label": "Motif modèle",
+    "path": "pricing_overrides.*.pattern",
+    "type": "string",
+    "origin": "native",
+    "scope": "access",
+    "read": "GET /api/models/details ou GET /api/models",
+    "write": "Lecture seule par ces routes",
+    "note": "",
+    "source": {
+      "path": "transports/bifrost-http/handlers/providers.go",
+      "line": 782
+    }
+  },
+  {
+    "id": "details.override.request_types",
+    "group": "Lecture détaillée · accès et corrections",
+    "label": "Types requête",
+    "path": "pricing_overrides.*.request_types[]",
+    "type": "enum[]",
+    "origin": "native",
+    "scope": "access",
+    "read": "GET /api/models/details ou GET /api/models",
+    "write": "Lecture seule par ces routes",
+    "note": "",
+    "source": {
+      "path": "transports/bifrost-http/handlers/providers.go",
+      "line": 783
+    }
+  },
+  {
+    "id": "details.override.patch",
+    "group": "Lecture détaillée · accès et corrections",
+    "label": "Patch tarifaire",
+    "path": "pricing_overrides.*.patch.*",
+    "type": "object map",
+    "origin": "native",
+    "scope": "access",
+    "read": "GET /api/models/details ou GET /api/models",
+    "write": "Lecture seule par ces routes",
+    "note": "Patch variadique; tarifs détaillés aussi exposés séparément dans overridden_pricing.",
+    "source": {
+      "path": "transports/bifrost-http/handlers/providers.go",
+      "line": 784
+    }
+  }
+]

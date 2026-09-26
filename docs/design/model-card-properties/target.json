@@ -1,0 +1,1271 @@
+[
+  {
+    "id": "identity-common",
+    "group": "1 · Identité commune",
+    "label": "Identifiant commun appelable",
+    "path": "aliases[<identifiant commun>]",
+    "type": "string",
+    "origin": "native",
+    "scope": "model",
+    "read": "Correspondances Deployments des clés providers liées.",
+    "write": "Candidat : reprendre/créer les alias natifs via l’API des clés ; intégration Registry et routage à qualifier.",
+    "note": "Décision confirmée : une seule identité appelable pour plusieurs accès. La structure de regroupement du plugin reste à définir.",
+    "status": "confirmed",
+    "source": {
+      "path": "core/schemas/account.go",
+      "line": 293
+    },
+    "references": [
+      {
+        "panel": "native",
+        "id": "deployment.alias-key"
+      }
+    ]
+  },
+  {
+    "id": "identity-label",
+    "group": "1 · Identité commune",
+    "label": "Nom affiché",
+    "path": "name / normalized_name",
+    "type": "string",
+    "origin": "mixed",
+    "scope": "model",
+    "read": "Nom renvoyé par le provider et nom normalisé par Bifrost.",
+    "write": "Correspondance du nom éditable et écriture à décider.",
+    "note": "Ne pas confondre le nom lisible et l'identifiant envoyé dans model. Ne pas créer display_name concurrent sans avoir fixé la correspondance.",
+    "status": "pending",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 152
+    },
+    "references": [
+      {
+        "panel": "native",
+        "id": "model.name"
+      },
+      {
+        "panel": "native",
+        "id": "model.normalized_name"
+      }
+    ]
+  },
+  {
+    "id": "identity-base",
+    "group": "1 · Identité commune",
+    "label": "Modèle de base de référence",
+    "path": "base_model",
+    "type": "string",
+    "origin": "datasheet",
+    "scope": "model",
+    "read": "Référence connue des datasheets Bifrost.",
+    "write": "Édition native générique non établie ; mécanisme d'enrichissement à décider.",
+    "note": "Sert au rapprochement ; deux variantes proches ne sont pas fusionnées automatiquement.",
+    "status": "proposed",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 41
+    },
+    "references": [
+      {
+        "panel": "datasheet",
+        "id": "pricing-base-model"
+      },
+      {
+        "panel": "datasheet",
+        "id": "parameters-raw-base_model"
+      }
+    ]
+  },
+  {
+    "id": "identity-description",
+    "group": "1 · Identité commune",
+    "label": "Description du modèle",
+    "path": "description",
+    "type": "string",
+    "origin": "native",
+    "scope": "model",
+    "read": "Description native quand elle est fournie.",
+    "write": "La modification de schemas.Model.description par API générique n'est pas établie.",
+    "note": "La description de l'alias est une note d'accès distincte. Une entrée additional_attributes.description n'écrase pas automatiquement ce champ.",
+    "status": "proposed",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 168
+    },
+    "references": [
+      {
+        "panel": "native",
+        "id": "model.description"
+      }
+    ]
+  },
+  {
+    "id": "identity-creator",
+    "group": "1 · Identité commune",
+    "label": "Créateur du modèle",
+    "path": "Créateur · correspondance à définir",
+    "type": "string",
+    "origin": "registry",
+    "scope": "model",
+    "read": "Source éditoriale ou externe identifiée, si disponible.",
+    "write": "Contrat Registry à définir.",
+    "note": "owned_by n'est pas une preuve du créateur. Ce champ est un enrichissement distinct à justifier, pas une réinterprétation de provider.",
+    "status": "pending",
+    "source": {
+      "path": "registry:docs/design/model-card-bifrost-contract.md",
+      "line": 20
+    },
+    "references": [
+      {
+        "panel": "native",
+        "id": "model.owned_by"
+      }
+    ]
+  },
+  {
+    "id": "identity-series",
+    "group": "1 · Identité commune",
+    "label": "Série commerciale du modèle",
+    "path": "Série · correspondance à définir",
+    "type": "string",
+    "origin": "registry",
+    "scope": "model",
+    "read": "Classification éditoriale à préciser.",
+    "write": "Contrat Registry à définir.",
+    "note": "Exemple de concept : Claude. Le model_family d'un Deployment est une famille technique et ne doit pas être détourné pour cette série.",
+    "status": "pending",
+    "source": {
+      "path": "registry:docs/design/model-card-bifrost-contract.md",
+      "line": 20
+    },
+    "references": [
+      {
+        "panel": "native",
+        "id": "deployment.model_family"
+      }
+    ]
+  },
+  {
+    "id": "identity-deprecated",
+    "group": "1 · Identité commune",
+    "label": "Dépréciation",
+    "path": "is_deprecated / deprecation_date",
+    "type": "boolean / date",
+    "origin": "mixed",
+    "scope": "access",
+    "read": "État provider et données de cycle de vie des datasheets.",
+    "write": "Écriture générique native non établie.",
+    "note": "L'état effectif peut varier selon l'accès ; la fiche commune doit rendre ces différences visibles.",
+    "status": "proposed",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 160
+    },
+    "references": [
+      {
+        "panel": "native",
+        "id": "model.is_deprecated"
+      },
+      {
+        "panel": "datasheet",
+        "id": "pricing-is-deprecated"
+      },
+      {
+        "panel": "datasheet",
+        "id": "parameters-raw-deprecation-date"
+      }
+    ]
+  },
+  {
+    "id": "category",
+    "group": "2 · Catégories et usages",
+    "label": "Catégories du catalogue",
+    "path": "Classement UI dérivé · règle à définir",
+    "type": "liste de catégories",
+    "origin": "registry",
+    "scope": "model",
+    "read": "À construire depuis les usages et les propriétés natives vérifiées.",
+    "write": "Classement de navigation ; stockage éventuel à décider.",
+    "note": "Direction confirmée : Text, Image, Video, Audio, Retrieval, Evaluation, Tools. L'inclusion de chaque modèle dans une catégorie reste à définir.",
+    "status": "confirmed",
+    "source": {
+      "path": "registry:docs/design/model-card-bifrost-contract.md",
+      "line": 20
+    },
+    "references": [
+      {
+        "panel": "datasheet",
+        "id": "parameters-mode"
+      },
+      {
+        "panel": "datasheet",
+        "id": "parameters-supported-endpoints"
+      }
+    ]
+  },
+  {
+    "id": "mode",
+    "group": "2 · Catégories et usages",
+    "label": "Mode déclaré",
+    "path": "mode",
+    "type": "string",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Datasheet du modèle ou de l'accès.",
+    "write": "Source de datasheet ; aucune route générique d'édition vérifiée.",
+    "note": "Réutiliser la valeur native. Ce champ ne résume pas à lui seul les entrées, sorties et capacités.",
+    "status": "proposed",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 91
+    },
+    "references": [
+      {
+        "panel": "datasheet",
+        "id": "parameters-mode"
+      },
+      {
+        "panel": "datasheet",
+        "id": "pricing-mode"
+      }
+    ]
+  },
+  {
+    "id": "endpoints",
+    "group": "2 · Catégories et usages",
+    "label": "Opérations prises en charge",
+    "path": "supported_endpoints",
+    "type": "liste",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Datasheet de paramètres/capacités.",
+    "write": "Enrichissement de la source native à décider.",
+    "note": "L'absence de cette liste signifie inconnu. Choisir une catégorie ne doit pas inventer automatiquement des endpoints.",
+    "status": "proposed",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 95
+    },
+    "references": [
+      {
+        "panel": "datasheet",
+        "id": "parameters-supported-endpoints"
+      }
+    ]
+  },
+  {
+    "id": "input-modalities",
+    "group": "3 · Entrées, sorties et limites",
+    "label": "Modalités d'entrée",
+    "path": "architecture.input_modalities / supported_modalities",
+    "type": "liste",
+    "origin": "mixed",
+    "scope": "access",
+    "read": "Contrat Model enrichi et document de paramètres.",
+    "write": "Fusion et écriture native à décider.",
+    "note": "Représenter la même information une seule fois dans l'UI, avec le chemin source effectif. La sémantique de chaque liste doit rester visible.",
+    "status": "proposed",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 187
+    },
+    "references": [
+      {
+        "panel": "native",
+        "id": "model.architecture.input_modalities"
+      },
+      {
+        "panel": "datasheet",
+        "id": "parameters-raw-supported-modalities"
+      }
+    ]
+  },
+  {
+    "id": "output-modalities",
+    "group": "3 · Entrées, sorties et limites",
+    "label": "Modalités de sortie",
+    "path": "architecture.output_modalities / supported_output_modalities",
+    "type": "liste",
+    "origin": "mixed",
+    "scope": "access",
+    "read": "Contrat Model enrichi et document de paramètres.",
+    "write": "Fusion et écriture native à décider.",
+    "note": "Ne pas déduire une sortie image du seul fait que le modèle accepte des images.",
+    "status": "proposed",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 188
+    },
+    "references": [
+      {
+        "panel": "native",
+        "id": "model.architecture.output_modalities"
+      },
+      {
+        "panel": "datasheet",
+        "id": "parameters-raw-supported-output-modalities"
+      }
+    ]
+  },
+  {
+    "id": "context",
+    "group": "3 · Entrées, sorties et limites",
+    "label": "Fenêtre de contexte",
+    "path": "context_length",
+    "type": "integer · tokens",
+    "origin": "mixed",
+    "scope": "access",
+    "read": "Provider ou catalogue de pricing selon la route Bifrost.",
+    "write": "Pas de route native générale d'édition vérifiée.",
+    "note": "La valeur peut différer selon le provider. Le repli max_input_tokens de certaines réponses Bifrost doit être traçable.",
+    "status": "proposed",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 156
+    },
+    "references": [
+      {
+        "panel": "native",
+        "id": "model.context_length"
+      },
+      {
+        "panel": "datasheet",
+        "id": "pricing-context-length"
+      }
+    ]
+  },
+  {
+    "id": "max-input",
+    "group": "3 · Entrées, sorties et limites",
+    "label": "Limite d'entrée",
+    "path": "max_input_tokens",
+    "type": "integer · tokens",
+    "origin": "mixed",
+    "scope": "access",
+    "read": "Contrats de lecture Bifrost et datasheets.",
+    "write": "Enrichissement natif à définir.",
+    "note": "Réutiliser le champ natif ; afficher inconnu quand absent.",
+    "status": "proposed",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 157
+    },
+    "references": [
+      {
+        "panel": "native",
+        "id": "model.max_input_tokens"
+      },
+      {
+        "panel": "datasheet",
+        "id": "pricing-max-input-tokens"
+      }
+    ]
+  },
+  {
+    "id": "max-output",
+    "group": "3 · Entrées, sorties et limites",
+    "label": "Limite de sortie",
+    "path": "max_output_tokens",
+    "type": "integer · tokens",
+    "origin": "mixed",
+    "scope": "access",
+    "read": "Contrats de lecture Bifrost et datasheets.",
+    "write": "Enrichissement natif à définir.",
+    "note": "Distinct de la valeur max_tokens choisie pour une requête.",
+    "status": "proposed",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 158
+    },
+    "references": [
+      {
+        "panel": "native",
+        "id": "model.max_output_tokens"
+      },
+      {
+        "panel": "datasheet",
+        "id": "pricing-max-output-tokens"
+      },
+      {
+        "panel": "datasheet",
+        "id": "parameters-max-output-tokens"
+      }
+    ]
+  },
+  {
+    "id": "request-limits",
+    "group": "3 · Entrées, sorties et limites",
+    "label": "Limites par requête",
+    "path": "per_request_limits.prompt_tokens / per_request_limits.completion_tokens",
+    "type": "integer · tokens",
+    "origin": "native",
+    "scope": "access",
+    "read": "Contrat schemas.Model lorsque le provider le fournit.",
+    "write": "Pas de route générique d'édition vérifiée.",
+    "note": "Information facultative de l'accès, à ne pas confondre avec les quotas de gouvernance.",
+    "status": "proposed",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 209
+    },
+    "references": [
+      {
+        "panel": "native",
+        "id": "model.per_request_limits.prompt_tokens"
+      },
+      {
+        "panel": "native",
+        "id": "model.per_request_limits.completion_tokens"
+      }
+    ]
+  },
+  {
+    "id": "cap-tools",
+    "group": "4 · Capacités déclarées",
+    "label": "Appels d'outils",
+    "path": "supports_function_calling",
+    "type": "boolean optionnel",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Datasheet de paramètres/capacités Bifrost.",
+    "write": "Enrichissement de la source native à définir.",
+    "note": "Une capacité déclarée n'est pas une preuve de fonctionnement sur CPA.",
+    "status": "proposed",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 77
+    },
+    "references": [
+      {
+        "panel": "datasheet",
+        "id": "parameters-supports-function-calling"
+      }
+    ]
+  },
+  {
+    "id": "cap-parallel-tools",
+    "group": "4 · Capacités déclarées",
+    "label": "Appels d'outils parallèles",
+    "path": "supports_parallel_function_calling",
+    "type": "boolean optionnel",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Datasheet de paramètres/capacités Bifrost.",
+    "write": "Enrichissement de la source native à définir.",
+    "note": "Différent du simple support d'un appel d'outil.",
+    "status": "proposed",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 78
+    },
+    "references": [
+      {
+        "panel": "datasheet",
+        "id": "parameters-supports-parallel-function-calling"
+      }
+    ]
+  },
+  {
+    "id": "cap-reasoning",
+    "group": "4 · Capacités déclarées",
+    "label": "Raisonnement",
+    "path": "supports_reasoning",
+    "type": "boolean optionnel",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Datasheet de paramètres/capacités Bifrost.",
+    "write": "Enrichissement de la source native à définir.",
+    "note": "Les options et budgets de raisonnement sont dans les paramètres dédiés.",
+    "status": "proposed",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 80
+    },
+    "references": [
+      {
+        "panel": "datasheet",
+        "id": "parameters-supports-reasoning"
+      }
+    ]
+  },
+  {
+    "id": "cap-schema",
+    "group": "4 · Capacités déclarées",
+    "label": "Sortie avec schéma",
+    "path": "supports_response_schema",
+    "type": "boolean optionnel",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Datasheet de paramètres/capacités Bifrost.",
+    "write": "Enrichissement de la source native à définir.",
+    "note": "À rapprocher des variantes de sortie structurée sans les assimiler automatiquement.",
+    "status": "proposed",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 81
+    },
+    "references": [
+      {
+        "panel": "datasheet",
+        "id": "parameters-supports-response-schema"
+      }
+    ]
+  },
+  {
+    "id": "cap-caching",
+    "group": "4 · Capacités déclarées",
+    "label": "Cache de prompts",
+    "path": "supports_prompt_caching",
+    "type": "boolean optionnel",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Datasheet de paramètres/capacités Bifrost.",
+    "write": "Enrichissement de la source native à définir.",
+    "note": "Le support et la tarification du cache sont deux informations distinctes.",
+    "status": "proposed",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 85
+    },
+    "references": [
+      {
+        "panel": "datasheet",
+        "id": "parameters-supports-prompt-caching"
+      }
+    ]
+  },
+  {
+    "id": "cap-vision",
+    "group": "4 · Capacités déclarées",
+    "label": "Entrée image / vision",
+    "path": "supports_vision",
+    "type": "boolean optionnel",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Datasheet de paramètres/capacités Bifrost.",
+    "write": "Enrichissement de la source native à définir.",
+    "note": "Complète la lecture des modalités ; ne prouve aucune génération d'image.",
+    "status": "proposed",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/testdata/model-parameters.json",
+      "line": 373
+    },
+    "references": [
+      {
+        "panel": "datasheet",
+        "id": "parameters-raw-supports-vision"
+      }
+    ]
+  },
+  {
+    "id": "cap-web-search",
+    "group": "4 · Capacités déclarées",
+    "label": "Recherche web",
+    "path": "supports_web_search",
+    "type": "boolean optionnel",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Datasheet de paramètres/capacités Bifrost.",
+    "write": "Enrichissement de la source native à définir.",
+    "note": "Distinguer support déclaré et activation dans une requête.",
+    "status": "proposed",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 86
+    },
+    "references": [
+      {
+        "panel": "datasheet",
+        "id": "parameters-supports-web-search"
+      }
+    ]
+  },
+  {
+    "id": "cap-pdf",
+    "group": "4 · Capacités déclarées",
+    "label": "Entrée PDF",
+    "path": "supports_pdf_input",
+    "type": "boolean optionnel",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Datasheet de paramètres/capacités Bifrost.",
+    "write": "Enrichissement de la source native à définir.",
+    "note": "Ne pas transformer cela en support indifférencié de tout type de fichier.",
+    "status": "proposed",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/testdata/model-parameters.json",
+      "line": 367
+    },
+    "references": [
+      {
+        "panel": "datasheet",
+        "id": "parameters-raw-supports-pdf-input"
+      }
+    ]
+  },
+  {
+    "id": "parameters",
+    "group": "5 · Paramètres et raisonnement",
+    "label": "Paramètres utilisables",
+    "path": "model_parameters",
+    "type": "liste de descripteurs extensibles",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Document natif de paramètres.",
+    "write": "Source de datasheet ; édition générique non établie.",
+    "note": "Conserver noms, types, défauts, plages et options du document au lieu d'une liste Registry concurrente.",
+    "status": "proposed",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/testdata/model-parameters.json",
+      "line": 26
+    },
+    "references": [
+      {
+        "panel": "datasheet",
+        "id": "parameters-model-parameters"
+      },
+      {
+        "panel": "datasheet",
+        "id": "parameters-model-parameters-id"
+      }
+    ]
+  },
+  {
+    "id": "supported-parameters",
+    "group": "5 · Paramètres et raisonnement",
+    "label": "Paramètres déclarés par l'API",
+    "path": "supported_parameters",
+    "type": "liste de strings",
+    "origin": "mixed",
+    "scope": "access",
+    "read": "Contrat schemas.Model.",
+    "write": "Écriture générique non établie.",
+    "note": "Cette liste n'a pas forcément le même niveau de détail que model_parameters.",
+    "status": "proposed",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 164
+    },
+    "references": [
+      {
+        "panel": "native",
+        "id": "model.supported_parameters"
+      }
+    ]
+  },
+  {
+    "id": "reasoning-levels",
+    "group": "5 · Paramètres et raisonnement",
+    "label": "Efforts de raisonnement",
+    "path": "reasoning_effort_levels / reasoning.supported_efforts",
+    "type": "liste",
+    "origin": "mixed",
+    "scope": "access",
+    "read": "Datasheet et contrat normalisé Model, quand disponibles.",
+    "write": "Correspondance des contrats à préciser.",
+    "note": "Unifier l'affichage en conservant le nom et la valeur de la source effective.",
+    "status": "proposed",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 165
+    },
+    "references": [
+      {
+        "panel": "datasheet",
+        "id": "parameters-reasoning-effort-levels"
+      },
+      {
+        "panel": "native",
+        "id": "model.reasoning.supported_efforts"
+      }
+    ]
+  },
+  {
+    "id": "reasoning-budget",
+    "group": "5 · Paramètres et raisonnement",
+    "label": "Contraintes du budget de raisonnement",
+    "path": "reasoning_budget",
+    "type": "objet de contraintes",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Datasheet de capacités.",
+    "write": "Enrichissement natif à définir.",
+    "note": "Décrit les contraintes ; ne fixe pas le budget financier de la VK.",
+    "status": "proposed",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 179
+    },
+    "references": [
+      {
+        "panel": "datasheet",
+        "id": "parameters-reasoning-budget"
+      }
+    ]
+  },
+  {
+    "id": "access-links",
+    "group": "6 · Accès et Deployments",
+    "label": "Accès liés à la model card",
+    "path": "Relation model card ↔ accès · contrat Registry à définir",
+    "type": "liste de relations",
+    "origin": "registry",
+    "scope": "model",
+    "read": "Regroupement explicite des accès existants dans Bifrost.",
+    "write": "Registry ; persistance finale à spécifier.",
+    "note": "Décision confirmée : une seule model card peut référencer plusieurs providers.",
+    "status": "confirmed",
+    "source": {
+      "path": "registry:docs/design/model-card-bifrost-contract.md",
+      "line": 20
+    },
+    "references": []
+  },
+  {
+    "id": "access-provider",
+    "group": "6 · Accès et Deployments",
+    "label": "Provider de l'accès",
+    "path": "provider",
+    "type": "string",
+    "origin": "native",
+    "scope": "access",
+    "read": "Inventaire /api/models ou /api/models/details.",
+    "write": "Configuration provider native.",
+    "note": "Le provider de la datasheet peut désigner la source de référence ; il ne remplace pas le provider effectivement connecté, par exemple CPA.",
+    "status": "confirmed",
+    "source": {
+      "path": "transports/bifrost-http/handlers/providers.go",
+      "line": 721
+    },
+    "references": [
+      {
+        "panel": "native",
+        "id": "provider.identity"
+      },
+      {
+        "panel": "native",
+        "id": "details.provider"
+      }
+    ]
+  },
+  {
+    "id": "access-key",
+    "group": "6 · Accès et Deployments",
+    "label": "Clé provider utilisée",
+    "path": "accessible_by_keys / key.id",
+    "type": "identifiant de clé, sans secret",
+    "origin": "native",
+    "scope": "access",
+    "read": "Configuration des clés et inventaire d'accès Bifrost.",
+    "write": "API native de gestion des clés.",
+    "note": "Les secrets ne sont ni une propriété de la model card ni copiés dans Registry.",
+    "status": "confirmed",
+    "source": {
+      "path": "core/schemas/account.go",
+      "line": 136
+    },
+    "references": [
+      {
+        "panel": "native",
+        "id": "key.id"
+      },
+      {
+        "panel": "native",
+        "id": "details.accessible_by_keys"
+      }
+    ]
+  },
+  {
+    "id": "access-wire",
+    "group": "6 · Accès et Deployments",
+    "label": "Identifiant réel chez le provider",
+    "path": "aliases[<nom>].model_id",
+    "type": "string",
+    "origin": "native",
+    "scope": "access",
+    "read": "Ligne Deployments de la clé provider.",
+    "write": "PUT /api/providers/{provider}/keys/{key_id} · aliases.",
+    "note": "C'est le nom effectivement envoyé à ce provider ; il peut différer de l'identifiant commun.",
+    "status": "confirmed",
+    "source": {
+      "path": "core/schemas/account.go",
+      "line": 234
+    },
+    "references": [
+      {
+        "panel": "native",
+        "id": "deployment.model_id"
+      }
+    ]
+  },
+  {
+    "id": "access-canonical",
+    "group": "6 · Accès et Deployments",
+    "label": "Nom canonique de l'accès",
+    "path": "aliases[<nom>].model_name",
+    "type": "string optionnel",
+    "origin": "native",
+    "scope": "access",
+    "read": "Détails de la ligne Deployments.",
+    "write": "API native de la clé · aliases.",
+    "note": "Bifrost l'utilise notamment pour le catalogue, le pricing et les logs. Ce n'est pas seulement le titre visuel de la model card.",
+    "status": "proposed",
+    "source": {
+      "path": "core/schemas/account.go",
+      "line": 235
+    },
+    "references": [
+      {
+        "panel": "native",
+        "id": "deployment.model_name"
+      }
+    ]
+  },
+  {
+    "id": "access-family",
+    "group": "6 · Accès et Deployments",
+    "label": "Famille technique",
+    "path": "aliases[<nom>].model_family",
+    "type": "enum optionnelle",
+    "origin": "native",
+    "scope": "access",
+    "read": "Détails de la ligne Deployments.",
+    "write": "API native de la clé · aliases.",
+    "note": "Valeurs techniques telles que anthropic/openai ; distinct des catégories Text/Audio et de la série commerciale.",
+    "status": "proposed",
+    "source": {
+      "path": "core/schemas/account.go",
+      "line": 236
+    },
+    "references": [
+      {
+        "panel": "native",
+        "id": "deployment.model_family"
+      }
+    ]
+  },
+  {
+    "id": "access-description",
+    "group": "6 · Accès et Deployments",
+    "label": "Note sur l'accès",
+    "path": "aliases[<nom>].description",
+    "type": "string",
+    "origin": "native",
+    "scope": "access",
+    "read": "Détails de la ligne Deployments.",
+    "write": "API native de la clé · aliases.",
+    "note": "Note utilisateur ; ne modifie pas la description générale du modèle.",
+    "status": "proposed",
+    "source": {
+      "path": "core/schemas/account.go",
+      "line": 237
+    },
+    "references": [
+      {
+        "panel": "native",
+        "id": "deployment.description"
+      }
+    ]
+  },
+  {
+    "id": "access-allowed",
+    "group": "6 · Accès et Deployments",
+    "label": "Modèles autorisés sur la clé",
+    "path": "key.models",
+    "type": "liste / règles",
+    "origin": "native",
+    "scope": "access",
+    "read": "Allowed Models de la clé provider.",
+    "write": "API native de la clé.",
+    "note": "Créer un Deployment ne donne pas automatiquement l'autorisation d'appeler son alias ; préserver les autorisations existantes.",
+    "status": "proposed",
+    "source": {
+      "path": "core/schemas/account.go",
+      "line": 139
+    },
+    "references": [
+      {
+        "panel": "native",
+        "id": "key.models"
+      }
+    ]
+  },
+  {
+    "id": "access-blocked",
+    "group": "6 · Accès et Deployments",
+    "label": "Modèles bloqués sur la clé",
+    "path": "key.blacklisted_models",
+    "type": "liste / règles",
+    "origin": "native",
+    "scope": "access",
+    "read": "Blocked Models de la clé provider.",
+    "write": "API native de la clé.",
+    "note": "Un blocage natif reste prioritaire ; la model card ne l'annule pas.",
+    "status": "proposed",
+    "source": {
+      "path": "core/schemas/account.go",
+      "line": 140
+    },
+    "references": [
+      {
+        "panel": "native",
+        "id": "key.blacklisted_models"
+      }
+    ]
+  },
+  {
+    "id": "access-overrides",
+    "group": "6 · Accès et Deployments",
+    "label": "Réglages propres au Deployment",
+    "path": "aliases[<nom>].{region, project_id, …}",
+    "type": "champs optionnels selon provider",
+    "origin": "native",
+    "scope": "access",
+    "read": "AliasConfig natif.",
+    "write": "API native de la clé · aliases.",
+    "note": "Les sous-champs exacts sont dans la fiche Bifrost natif. Leur affichage dans Registry est à décider.",
+    "status": "pending",
+    "source": {
+      "path": "core/schemas/account.go",
+      "line": 238
+    },
+    "references": [
+      {
+        "panel": "native",
+        "id": "deployment.region"
+      },
+      {
+        "panel": "native",
+        "id": "deployment.project_id"
+      },
+      {
+        "panel": "native",
+        "id": "deployment.azure.endpoint"
+      },
+      {
+        "panel": "native",
+        "id": "deployment.use_anthropic_endpoints"
+      }
+    ]
+  },
+  {
+    "id": "price-in",
+    "group": "7 · Prix par accès",
+    "label": "Prix des tokens d'entrée",
+    "path": "input_cost_per_token",
+    "type": "number · coût par token",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Catalogue Bifrost issu de la datasheet de pricing.",
+    "write": "Correction appliquée via pricing-overrides ; ne réécrit pas la datasheet.",
+    "note": "Conserver la portée provider, les conditions tarifaires et l'unité. Un affichage par million est une conversion de présentation.",
+    "status": "proposed",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 99
+    },
+    "references": [
+      {
+        "panel": "datasheet",
+        "id": "pricing-input-cost-per-token"
+      }
+    ]
+  },
+  {
+    "id": "price-out",
+    "group": "7 · Prix par accès",
+    "label": "Prix des tokens de sortie",
+    "path": "output_cost_per_token",
+    "type": "number · coût par token",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Catalogue Bifrost issu de la datasheet de pricing.",
+    "write": "Correction appliquée via pricing-overrides ; ne réécrit pas la datasheet.",
+    "note": "Conserver la portée provider, les conditions tarifaires et l'unité. Un affichage par million est une conversion de présentation.",
+    "status": "proposed",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 100
+    },
+    "references": [
+      {
+        "panel": "datasheet",
+        "id": "pricing-output-cost-per-token"
+      }
+    ]
+  },
+  {
+    "id": "price-cache-read",
+    "group": "7 · Prix par accès",
+    "label": "Prix de lecture du cache",
+    "path": "cache_read_input_token_cost",
+    "type": "number · coût par token",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Catalogue Bifrost issu de la datasheet de pricing.",
+    "write": "Correction appliquée via pricing-overrides ; ne réécrit pas la datasheet.",
+    "note": "Conserver la portée provider, les conditions tarifaires et l'unité. Un affichage par million est une conversion de présentation.",
+    "status": "proposed",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 135
+    },
+    "references": [
+      {
+        "panel": "datasheet",
+        "id": "pricing-cache-read-input-token-cost"
+      }
+    ]
+  },
+  {
+    "id": "price-cache-write",
+    "group": "7 · Prix par accès",
+    "label": "Prix de création du cache",
+    "path": "cache_creation_input_token_cost",
+    "type": "number · coût par token",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Catalogue Bifrost issu de la datasheet de pricing.",
+    "write": "Correction appliquée via pricing-overrides ; ne réécrit pas la datasheet.",
+    "note": "Conserver la portée provider, les conditions tarifaires et l'unité. Un affichage par million est une conversion de présentation.",
+    "status": "proposed",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 134
+    },
+    "references": [
+      {
+        "panel": "datasheet",
+        "id": "pricing-cache-creation-input-token-cost"
+      }
+    ]
+  },
+  {
+    "id": "price-overridden",
+    "group": "7 · Prix par accès",
+    "label": "Correction tarifaire appliquée",
+    "path": "overridden_pricing / applied_override_id / pricing_override_ids",
+    "type": "objets et identifiants",
+    "origin": "native",
+    "scope": "access",
+    "read": "GET /api/models/details et catalogue de corrections.",
+    "write": "API /api/governance/pricing-overrides.",
+    "note": "Afficher séparément le tarif de référence et la correction applicable ; le coût effectif dépend du contexte de requête.",
+    "status": "proposed",
+    "source": {
+      "path": "transports/bifrost-http/handlers/providers.go",
+      "line": 765
+    },
+    "references": [
+      {
+        "panel": "native",
+        "id": "details.overridden_pricing.input_cost_per_token"
+      },
+      {
+        "panel": "native",
+        "id": "details.applied_override_id"
+      },
+      {
+        "panel": "native",
+        "id": "details.pricing_override_ids"
+      }
+    ]
+  },
+  {
+    "id": "attributes",
+    "group": "8 · Provenance et enrichissement",
+    "label": "Annotations natives",
+    "path": "additional_attributes.*",
+    "type": "dictionnaire de strings",
+    "origin": "native",
+    "scope": "access",
+    "read": "Catalogue Bifrost.",
+    "write": "PUT /api/models/catalog pour un couple modèle/provider de pricing existant.",
+    "note": "Préserver les entrées tierces. Une annotation nommée context_length ne change pas le champ natif homonyme.",
+    "status": "proposed",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 173
+    },
+    "references": [
+      {
+        "panel": "native",
+        "id": "model.additional_attributes"
+      },
+      {
+        "panel": "native",
+        "id": "details.additional_attributes"
+      }
+    ]
+  },
+  {
+    "id": "field-provenance",
+    "group": "8 · Provenance et enrichissement",
+    "label": "Origine de chaque valeur",
+    "path": "Provenance par champ · contrat Registry à préciser",
+    "type": "source, date et portée",
+    "origin": "registry",
+    "scope": "model",
+    "read": "Traçage des propriétés effectivement lues et des corrections.",
+    "write": "Registry.",
+    "note": "Une valeur importée dans config.db peut toujours provenir d'une datasheet. Origine et stockage sont deux notions distinctes.",
+    "status": "confirmed",
+    "source": {
+      "path": "registry:docs/design/model-card-bifrost-contract.md",
+      "line": 20
+    },
+    "references": []
+  },
+  {
+    "id": "manual-correction",
+    "group": "8 · Provenance et enrichissement",
+    "label": "Correction et retour à la source",
+    "path": "État de correction · contrat Registry à préciser",
+    "type": "état par propriété",
+    "origin": "registry",
+    "scope": "model",
+    "read": "Valeur retenue et source automatique sous-jacente.",
+    "write": "Registry coordonne l'écriture native lorsque le contrat le permet.",
+    "note": "Conserver les corrections lors des synchronisations ; chemin d'écriture à fixer pour chaque propriété.",
+    "status": "confirmed",
+    "source": {
+      "path": "registry:docs/design/model-card-bifrost-contract.md",
+      "line": 20
+    },
+    "references": []
+  },
+  {
+    "id": "evidence",
+    "group": "8 · Provenance et enrichissement",
+    "label": "Information déclarée ou vérifiée",
+    "path": "Preuve par accès · contrat à préciser",
+    "type": "déclaré / observé / inconnu",
+    "origin": "registry",
+    "scope": "access",
+    "read": "Source déclarative ou résultat d'un test identifié.",
+    "write": "Registry pour l'état de preuve ; exécution des tests hors périmètre de cette fiche.",
+    "note": "Une case supports_* ne suffit pas à afficher « testé ». Le laboratoire demeure différé.",
+    "status": "proposed",
+    "source": {
+      "path": "registry:docs/design/model-card-bifrost-contract.md",
+      "line": 20
+    },
+    "references": []
+  },
+  {
+    "id": "selection-access",
+    "group": "9 · Utilisation de la model card",
+    "label": "Accès activés dans une sélection",
+    "path": "Sélection groupe/VK → accès · contrat à préciser",
+    "type": "ensemble d'accès",
+    "origin": "registry",
+    "scope": "selection",
+    "read": "Sélection du groupe ou de la VK.",
+    "write": "Registry traduit la sélection en configuration native vérifiée.",
+    "note": "Ce réglage appartient à la sélection, pas à la description globale de Sonnet 4.6. Les règles d'héritage restent à préciser.",
+    "status": "confirmed",
+    "source": {
+      "path": "registry:docs/design/model-card-bifrost-contract.md",
+      "line": 20
+    },
+    "references": []
+  },
+  {
+    "id": "selection-groups",
+    "group": "9 · Utilisation de la model card",
+    "label": "Groupes et VK qui utilisent le modèle",
+    "path": "Relations d'utilisation · vue Registry",
+    "type": "liste de références",
+    "origin": "registry",
+    "scope": "selection",
+    "read": "Groupes et sélections Registry.",
+    "write": "Les changements se font dans la sélection concernée.",
+    "note": "Une catégorie Text/Audio/Retrieval n'est pas un groupe de modèles.",
+    "status": "proposed",
+    "source": {
+      "path": "registry:docs/design/model-card-bifrost-contract.md",
+      "line": 20
+    },
+    "references": []
+  },
+  {
+    "id": "selection-routing",
+    "group": "9 · Utilisation de la model card",
+    "label": "Routage entre les accès activés",
+    "path": "Mécanisme natif Bifrost · association à définir",
+    "type": "configuration de routage",
+    "origin": "native",
+    "scope": "selection",
+    "read": "Governance, règles de routage et correspondances Deployments.",
+    "write": "Choix du processus et de sa surface d'édition non encore validé.",
+    "note": "Ne pas présenter un alias seul comme un équilibrage automatique entre providers.",
+    "status": "pending",
+    "source": {
+      "path": "registry:docs/design/model-card-bifrost-contract.md",
+      "line": 20
+    },
+    "references": []
+  },
+  {
+    "id": "advanced-native",
+    "group": "10 · Contrats complets consultables",
+    "label": "Toutes les autres propriétés natives",
+    "path": "Voir la fiche Bifrost natif",
+    "type": "contrats complets",
+    "origin": "native",
+    "scope": "access",
+    "read": "Inventaire complet de la première fiche.",
+    "write": "Selon le chemin natif documenté pour chaque propriété.",
+    "note": "Leur exposition détaillée dans la model card cible n'est pas encore arrêtée ; les champs natifs ne sont pas supprimés de l'inventaire.",
+    "status": "pending",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 150
+    },
+    "references": [
+      {
+        "panel": "native",
+        "id": "model.id"
+      },
+      {
+        "panel": "native",
+        "id": "deployment.alias-key"
+      },
+      {
+        "panel": "native",
+        "id": "details.name"
+      }
+    ]
+  },
+  {
+    "id": "advanced-datasheet",
+    "group": "10 · Contrats complets consultables",
+    "label": "Toutes les autres propriétés des datasheets",
+    "path": "Voir la fiche Datasheets",
+    "type": "documents extensibles",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Inventaire complet de la deuxième fiche.",
+    "write": "Selon le contrat de synchronisation de chaque source.",
+    "note": "Les documents de paramètres peuvent contenir des clés supplémentaires. L'UI cible peut les conserver dans une section technique sans inventer d'équivalent Registry.",
+    "status": "pending",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 41
+    },
+    "references": [
+      {
+        "panel": "datasheet",
+        "id": "pricing-base-model"
+      },
+      {
+        "panel": "datasheet",
+        "id": "parameters-supported-endpoints"
+      },
+      {
+        "panel": "datasheet",
+        "id": "parameters-model-parameters"
+      }
+    ]
+  }
+]

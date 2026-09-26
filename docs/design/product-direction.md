@@ -2,6 +2,12 @@
 
 Source : besoins explicités par Sofian dans cette session. [État du code](../../STATUS.md) · [Vocabulaire](../../CONTEXT.md) · [Recherche Bifrost sourcée](bifrost-integration-research.md).
 
+## Recadrage des fiches — décisions du 26 septembre 2026, implémentation à qualifier
+
+Le [contrat natif et le cadrage des fiches](model-card-bifrost-contract.md) consignent la direction confirmée : une fiche par modèle avec identifiant commun appelable, accès fournisseurs sélectionnables par groupe et par clé virtuelle, activation initiale des accès déjà configurés et autorisés, puis activation explicite des nouveaux accès. Chaque clé compose ses groupes et ses choix individuels ; ses exclusions locales priment sans modifier les autres clés. La création de clé commence par les modèles, avec une vue des groupes complémentaire qui conserve la sélection ; l'origine directe ou héritée reste visible et les réglages fournisseurs avancés sont accessibles à la demande. Le routage visé est celui de Bifrost, restreint aux accès retenus. Le layout précis, la traduction native et le parcours de bout en bout avec deux providers simulés restent à valider. La capture Vercel Gateway sert de référence de présentation. Le choix V1 antérieur de conserver les enrichissements seulement dans Registry ne décrit plus l'objectif produit ; la spec d'implémentation devra être révisée. Aucun changement fonctionnel n'est livré par ce recadrage.
+
+**Précision confirmée :** Models.dev est à réutiliser comme brique ou dépendance **dans le plugin Registry** ; Registry porte l'adaptation et l'application des réglages vers Bifrost. L'[analyse du dépôt et des possibilités de réutilisation](models-dev-reuse-research.md) sépare les fonctions existantes des adaptations restantes. Le mode de paquetage et le parcours d'édition restent à qualifier avant implémentation.
+
 ## Cadrage actif — 24 septembre 2026
 
 La [spec V1](core-v1-spec.md) fixe le comportement du catalogue, des groupes et des clés ; ses anciens critères d'UI native restent historiques. Le candidat final possède un catalogue central enrichi par Bifrost, Models.dev et les données utiles de la première V1, avec provenance par champ, corrections manuelles, dernier état valide, import/export JSON versionné et CSV aplati. L'assistance IA de correspondance est ajoutée au périmètre à la demande de Sofian le 24 septembre : voir [le complément de spécification](catalog-assistance.md). Elle reste facultative et soumise à la revue des propositions ; le laboratoire demeure différé.
