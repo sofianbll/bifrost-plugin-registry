@@ -1,0 +1,4050 @@
+[
+  {
+    "id": "pricing-base-model",
+    "group": "Prix · identité, limites et architecture",
+    "label": "Base model",
+    "path": "base_model",
+    "type": "string",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Contrat Entry du catalogue de pricing; type Go reflète la normalisation interne.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 41
+    }
+  },
+  {
+    "id": "pricing-provider",
+    "group": "Prix · identité, limites et architecture",
+    "label": "Provider",
+    "path": "provider",
+    "type": "string",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Contrat Entry du catalogue de pricing; type Go reflète la normalisation interne.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 42
+    }
+  },
+  {
+    "id": "pricing-mode",
+    "group": "Prix · identité, limites et architecture",
+    "label": "Mode",
+    "path": "mode",
+    "type": "string",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Contrat Entry du catalogue de pricing; type Go reflète la normalisation interne.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 43
+    }
+  },
+  {
+    "id": "pricing-context-length",
+    "group": "Prix · identité, limites et architecture",
+    "label": "Context length",
+    "path": "context_length",
+    "type": "int",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Contrat Entry du catalogue de pricing; type Go reflète la normalisation interne.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 45
+    }
+  },
+  {
+    "id": "pricing-max-input-tokens",
+    "group": "Prix · identité, limites et architecture",
+    "label": "Max input tokens",
+    "path": "max_input_tokens",
+    "type": "int",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Contrat Entry du catalogue de pricing; type Go reflète la normalisation interne.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 46
+    }
+  },
+  {
+    "id": "pricing-max-output-tokens",
+    "group": "Prix · identité, limites et architecture",
+    "label": "Max output tokens",
+    "path": "max_output_tokens",
+    "type": "int",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Contrat Entry du catalogue de pricing; type Go reflète la normalisation interne.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 47
+    }
+  },
+  {
+    "id": "pricing-architecture",
+    "group": "Prix · identité, limites et architecture",
+    "label": "Architecture",
+    "path": "architecture",
+    "type": "schemas.Architecture",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Contrat Entry du catalogue de pricing; type Go reflète la normalisation interne.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 48
+    }
+  },
+  {
+    "id": "pricing-is-deprecated",
+    "group": "Prix · identité, limites et architecture",
+    "label": "Is deprecated",
+    "path": "is_deprecated",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Contrat Entry du catalogue de pricing; type Go reflète la normalisation interne.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 49
+    }
+  },
+  {
+    "id": "pricing-input-cost-per-token",
+    "group": "Prix · texte et paliers de tokens",
+    "label": "Input cost per token",
+    "path": "input_cost_per_token",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 99
+    }
+  },
+  {
+    "id": "pricing-output-cost-per-token",
+    "group": "Prix · texte et paliers de tokens",
+    "label": "Output cost per token",
+    "path": "output_cost_per_token",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 100
+    }
+  },
+  {
+    "id": "pricing-input-cost-per-token-batches",
+    "group": "Prix · texte et paliers de tokens",
+    "label": "Input cost per token batches",
+    "path": "input_cost_per_token_batches",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 101
+    }
+  },
+  {
+    "id": "pricing-output-cost-per-token-batches",
+    "group": "Prix · texte et paliers de tokens",
+    "label": "Output cost per token batches",
+    "path": "output_cost_per_token_batches",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 102
+    }
+  },
+  {
+    "id": "pricing-input-cost-per-token-priority",
+    "group": "Prix · texte et paliers de tokens",
+    "label": "Input cost per token priority",
+    "path": "input_cost_per_token_priority",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 103
+    }
+  },
+  {
+    "id": "pricing-output-cost-per-token-priority",
+    "group": "Prix · texte et paliers de tokens",
+    "label": "Output cost per token priority",
+    "path": "output_cost_per_token_priority",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 104
+    }
+  },
+  {
+    "id": "pricing-input-cost-per-token-ultrafast",
+    "group": "Prix · texte et paliers de tokens",
+    "label": "Input cost per token ultrafast",
+    "path": "input_cost_per_token_ultrafast",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 105
+    }
+  },
+  {
+    "id": "pricing-output-cost-per-token-ultrafast",
+    "group": "Prix · texte et paliers de tokens",
+    "label": "Output cost per token ultrafast",
+    "path": "output_cost_per_token_ultrafast",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 106
+    }
+  },
+  {
+    "id": "pricing-input-cost-per-token-flex",
+    "group": "Prix · texte et paliers de tokens",
+    "label": "Input cost per token flex",
+    "path": "input_cost_per_token_flex",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 107
+    }
+  },
+  {
+    "id": "pricing-output-cost-per-token-flex",
+    "group": "Prix · texte et paliers de tokens",
+    "label": "Output cost per token flex",
+    "path": "output_cost_per_token_flex",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 108
+    }
+  },
+  {
+    "id": "pricing-input-cost-per-token-fast",
+    "group": "Prix · texte et paliers de tokens",
+    "label": "Input cost per token fast",
+    "path": "input_cost_per_token_fast",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 111
+    }
+  },
+  {
+    "id": "pricing-output-cost-per-token-fast",
+    "group": "Prix · texte et paliers de tokens",
+    "label": "Output cost per token fast",
+    "path": "output_cost_per_token_fast",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 112
+    }
+  },
+  {
+    "id": "pricing-input-cost-per-character",
+    "group": "Prix · texte et paliers de tokens",
+    "label": "Input cost per character",
+    "path": "input_cost_per_character",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 113
+    }
+  },
+  {
+    "id": "pricing-input-cost-per-token-above-128k-tokens",
+    "group": "Prix · texte et paliers de tokens",
+    "label": "Input cost per token above 128k tokens",
+    "path": "input_cost_per_token_above_128k_tokens",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 115
+    }
+  },
+  {
+    "id": "pricing-input-cost-per-image-above-128k-tokens",
+    "group": "Prix · images et résolutions",
+    "label": "Input cost per image above 128k tokens",
+    "path": "input_cost_per_image_above_128k_tokens",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 116
+    }
+  },
+  {
+    "id": "pricing-input-cost-per-video-per-second-above-128k-tokens",
+    "group": "Prix · audio et vidéo",
+    "label": "Input cost per video per second above 128k tokens",
+    "path": "input_cost_per_video_per_second_above_128k_tokens",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 117
+    }
+  },
+  {
+    "id": "pricing-input-cost-per-audio-per-second-above-128k-tokens",
+    "group": "Prix · audio et vidéo",
+    "label": "Input cost per audio per second above 128k tokens",
+    "path": "input_cost_per_audio_per_second_above_128k_tokens",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 118
+    }
+  },
+  {
+    "id": "pricing-output-cost-per-token-above-128k-tokens",
+    "group": "Prix · texte et paliers de tokens",
+    "label": "Output cost per token above 128k tokens",
+    "path": "output_cost_per_token_above_128k_tokens",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 119
+    }
+  },
+  {
+    "id": "pricing-input-cost-per-token-above-200k-tokens",
+    "group": "Prix · texte et paliers de tokens",
+    "label": "Input cost per token above 200k tokens",
+    "path": "input_cost_per_token_above_200k_tokens",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 121
+    }
+  },
+  {
+    "id": "pricing-input-cost-per-token-above-200k-tokens-priority",
+    "group": "Prix · texte et paliers de tokens",
+    "label": "Input cost per token above 200k tokens priority",
+    "path": "input_cost_per_token_above_200k_tokens_priority",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 122
+    }
+  },
+  {
+    "id": "pricing-output-cost-per-token-above-200k-tokens",
+    "group": "Prix · texte et paliers de tokens",
+    "label": "Output cost per token above 200k tokens",
+    "path": "output_cost_per_token_above_200k_tokens",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 123
+    }
+  },
+  {
+    "id": "pricing-output-cost-per-token-above-200k-tokens-priority",
+    "group": "Prix · texte et paliers de tokens",
+    "label": "Output cost per token above 200k tokens priority",
+    "path": "output_cost_per_token_above_200k_tokens_priority",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 124
+    }
+  },
+  {
+    "id": "pricing-input-cost-per-token-above-272k-tokens",
+    "group": "Prix · texte et paliers de tokens",
+    "label": "Input cost per token above 272k tokens",
+    "path": "input_cost_per_token_above_272k_tokens",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 126
+    }
+  },
+  {
+    "id": "pricing-input-cost-per-token-above-272k-tokens-priority",
+    "group": "Prix · texte et paliers de tokens",
+    "label": "Input cost per token above 272k tokens priority",
+    "path": "input_cost_per_token_above_272k_tokens_priority",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 127
+    }
+  },
+  {
+    "id": "pricing-input-cost-per-token-flex-above-272k-tokens",
+    "group": "Prix · texte et paliers de tokens",
+    "label": "Input cost per token flex above 272k tokens",
+    "path": "input_cost_per_token_flex_above_272k_tokens",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 128
+    }
+  },
+  {
+    "id": "pricing-output-cost-per-token-above-272k-tokens",
+    "group": "Prix · texte et paliers de tokens",
+    "label": "Output cost per token above 272k tokens",
+    "path": "output_cost_per_token_above_272k_tokens",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 129
+    }
+  },
+  {
+    "id": "pricing-output-cost-per-token-above-272k-tokens-priority",
+    "group": "Prix · texte et paliers de tokens",
+    "label": "Output cost per token above 272k tokens priority",
+    "path": "output_cost_per_token_above_272k_tokens_priority",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 130
+    }
+  },
+  {
+    "id": "pricing-output-cost-per-token-flex-above-272k-tokens",
+    "group": "Prix · texte et paliers de tokens",
+    "label": "Output cost per token flex above 272k tokens",
+    "path": "output_cost_per_token_flex_above_272k_tokens",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 131
+    }
+  },
+  {
+    "id": "pricing-cache-creation-input-token-cost",
+    "group": "Prix · cache",
+    "label": "Cache creation input token cost",
+    "path": "cache_creation_input_token_cost",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 134
+    }
+  },
+  {
+    "id": "pricing-cache-read-input-token-cost",
+    "group": "Prix · cache",
+    "label": "Cache read input token cost",
+    "path": "cache_read_input_token_cost",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 135
+    }
+  },
+  {
+    "id": "pricing-cache-creation-input-token-cost-above-200k-tokens",
+    "group": "Prix · cache",
+    "label": "Cache creation input token cost above 200k tokens",
+    "path": "cache_creation_input_token_cost_above_200k_tokens",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 136
+    }
+  },
+  {
+    "id": "pricing-cache-read-input-token-cost-above-200k-tokens",
+    "group": "Prix · cache",
+    "label": "Cache read input token cost above 200k tokens",
+    "path": "cache_read_input_token_cost_above_200k_tokens",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 137
+    }
+  },
+  {
+    "id": "pricing-cache-read-input-token-cost-above-200k-tokens-priority",
+    "group": "Prix · cache",
+    "label": "Cache read input token cost above 200k tokens priority",
+    "path": "cache_read_input_token_cost_above_200k_tokens_priority",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 138
+    }
+  },
+  {
+    "id": "pricing-cache-creation-input-token-cost-above-1hr",
+    "group": "Prix · cache",
+    "label": "Cache creation input token cost above 1hr",
+    "path": "cache_creation_input_token_cost_above_1hr",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 139
+    }
+  },
+  {
+    "id": "pricing-cache-creation-input-token-cost-above-1hr-above-200k-tokens",
+    "group": "Prix · cache",
+    "label": "Cache creation input token cost above 1hr above 200k tokens",
+    "path": "cache_creation_input_token_cost_above_1hr_above_200k_tokens",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 140
+    }
+  },
+  {
+    "id": "pricing-cache-creation-input-audio-token-cost",
+    "group": "Prix · cache",
+    "label": "Cache creation input audio token cost",
+    "path": "cache_creation_input_audio_token_cost",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 141
+    }
+  },
+  {
+    "id": "pricing-cache-read-input-token-cost-priority",
+    "group": "Prix · cache",
+    "label": "Cache read input token cost priority",
+    "path": "cache_read_input_token_cost_priority",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 142
+    }
+  },
+  {
+    "id": "pricing-cache-read-input-token-cost-ultrafast",
+    "group": "Prix · cache",
+    "label": "Cache read input token cost ultrafast",
+    "path": "cache_read_input_token_cost_ultrafast",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 143
+    }
+  },
+  {
+    "id": "pricing-cache-read-input-token-cost-flex",
+    "group": "Prix · cache",
+    "label": "Cache read input token cost flex",
+    "path": "cache_read_input_token_cost_flex",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 144
+    }
+  },
+  {
+    "id": "pricing-cache-read-input-image-token-cost",
+    "group": "Prix · cache",
+    "label": "Cache read input image token cost",
+    "path": "cache_read_input_image_token_cost",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 145
+    }
+  },
+  {
+    "id": "pricing-cache-read-input-token-cost-above-272k-tokens",
+    "group": "Prix · cache",
+    "label": "Cache read input token cost above 272k tokens",
+    "path": "cache_read_input_token_cost_above_272k_tokens",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 146
+    }
+  },
+  {
+    "id": "pricing-cache-read-input-token-cost-above-272k-tokens-priority",
+    "group": "Prix · cache",
+    "label": "Cache read input token cost above 272k tokens priority",
+    "path": "cache_read_input_token_cost_above_272k_tokens_priority",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 147
+    }
+  },
+  {
+    "id": "pricing-cache-read-input-token-cost-flex-above-272k-tokens",
+    "group": "Prix · cache",
+    "label": "Cache read input token cost flex above 272k tokens",
+    "path": "cache_read_input_token_cost_flex_above_272k_tokens",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 148
+    }
+  },
+  {
+    "id": "pricing-cache-creation-input-token-cost-above-272k-tokens",
+    "group": "Prix · cache",
+    "label": "Cache creation input token cost above 272k tokens",
+    "path": "cache_creation_input_token_cost_above_272k_tokens",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 150
+    }
+  },
+  {
+    "id": "pricing-cache-creation-input-token-cost-flex",
+    "group": "Prix · cache",
+    "label": "Cache creation input token cost flex",
+    "path": "cache_creation_input_token_cost_flex",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 151
+    }
+  },
+  {
+    "id": "pricing-cache-creation-input-token-cost-flex-above-272k-tokens",
+    "group": "Prix · cache",
+    "label": "Cache creation input token cost flex above 272k tokens",
+    "path": "cache_creation_input_token_cost_flex_above_272k_tokens",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 152
+    }
+  },
+  {
+    "id": "pricing-cache-creation-input-token-cost-priority",
+    "group": "Prix · cache",
+    "label": "Cache creation input token cost priority",
+    "path": "cache_creation_input_token_cost_priority",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 153
+    }
+  },
+  {
+    "id": "pricing-cache-creation-input-token-cost-ultrafast",
+    "group": "Prix · cache",
+    "label": "Cache creation input token cost ultrafast",
+    "path": "cache_creation_input_token_cost_ultrafast",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 154
+    }
+  },
+  {
+    "id": "pricing-cache-creation-input-token-cost-fast",
+    "group": "Prix · cache",
+    "label": "Cache creation input token cost fast",
+    "path": "cache_creation_input_token_cost_fast",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 156
+    }
+  },
+  {
+    "id": "pricing-cache-creation-input-token-cost-above-1hr-fast",
+    "group": "Prix · cache",
+    "label": "Cache creation input token cost above 1hr fast",
+    "path": "cache_creation_input_token_cost_above_1hr_fast",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 157
+    }
+  },
+  {
+    "id": "pricing-cache-read-input-token-cost-fast",
+    "group": "Prix · cache",
+    "label": "Cache read input token cost fast",
+    "path": "cache_read_input_token_cost_fast",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 158
+    }
+  },
+  {
+    "id": "pricing-input-cost-per-image",
+    "group": "Prix · images et résolutions",
+    "label": "Input cost per image",
+    "path": "input_cost_per_image",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 161
+    }
+  },
+  {
+    "id": "pricing-input-cost-per-pixel",
+    "group": "Prix · images et résolutions",
+    "label": "Input cost per pixel",
+    "path": "input_cost_per_pixel",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 162
+    }
+  },
+  {
+    "id": "pricing-output-cost-per-image",
+    "group": "Prix · images et résolutions",
+    "label": "Output cost per image",
+    "path": "output_cost_per_image",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 163
+    }
+  },
+  {
+    "id": "pricing-output-cost-per-pixel",
+    "group": "Prix · images et résolutions",
+    "label": "Output cost per pixel",
+    "path": "output_cost_per_pixel",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 164
+    }
+  },
+  {
+    "id": "pricing-output-cost-per-image-premium-image",
+    "group": "Prix · images et résolutions",
+    "label": "Output cost per image premium image",
+    "path": "output_cost_per_image_premium_image",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 165
+    }
+  },
+  {
+    "id": "pricing-output-cost-per-image-above-512-and-512-pixels",
+    "group": "Prix · images et résolutions",
+    "label": "Output cost per image above 512 and 512 pixels",
+    "path": "output_cost_per_image_above_512_and_512_pixels",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 166
+    }
+  },
+  {
+    "id": "pricing-output-cost-per-image-above-512-and-512-pixels-and-premium-image",
+    "group": "Prix · images et résolutions",
+    "label": "Output cost per image above 512 and 512 pixels and premium image",
+    "path": "output_cost_per_image_above_512_and_512_pixels_and_premium_image",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 167
+    }
+  },
+  {
+    "id": "pricing-output-cost-per-image-above-1024-and-1024-pixels",
+    "group": "Prix · images et résolutions",
+    "label": "Output cost per image above 1024 and 1024 pixels",
+    "path": "output_cost_per_image_above_1024_and_1024_pixels",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 168
+    }
+  },
+  {
+    "id": "pricing-output-cost-per-image-above-1024-and-1024-pixels-and-premium-image",
+    "group": "Prix · images et résolutions",
+    "label": "Output cost per image above 1024 and 1024 pixels and premium image",
+    "path": "output_cost_per_image_above_1024_and_1024_pixels_and_premium_image",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 169
+    }
+  },
+  {
+    "id": "pricing-output-cost-per-image-above-1024-and-1536-pixels",
+    "group": "Prix · images et résolutions",
+    "label": "Output cost per image above 1024 and 1536 pixels",
+    "path": "output_cost_per_image_above_1024_and_1536_pixels",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 170
+    }
+  },
+  {
+    "id": "pricing-output-cost-per-image-above-1536-and-1024-pixels",
+    "group": "Prix · images et résolutions",
+    "label": "Output cost per image above 1536 and 1024 pixels",
+    "path": "output_cost_per_image_above_1536_and_1024_pixels",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 171
+    }
+  },
+  {
+    "id": "pricing-output-cost-per-image-above-2048-and-2048-pixels",
+    "group": "Prix · images et résolutions",
+    "label": "Output cost per image above 2048 and 2048 pixels",
+    "path": "output_cost_per_image_above_2048_and_2048_pixels",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 172
+    }
+  },
+  {
+    "id": "pricing-output-cost-per-image-above-4096-and-4096-pixels",
+    "group": "Prix · images et résolutions",
+    "label": "Output cost per image above 4096 and 4096 pixels",
+    "path": "output_cost_per_image_above_4096_and_4096_pixels",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 173
+    }
+  },
+  {
+    "id": "pricing-output-cost-per-image-above-4-megapixels",
+    "group": "Prix · images et résolutions",
+    "label": "Output cost per image above 4 megapixels",
+    "path": "output_cost_per_image_above_4_megapixels",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 174
+    }
+  },
+  {
+    "id": "pricing-output-cost-per-image-above-8-megapixels",
+    "group": "Prix · images et résolutions",
+    "label": "Output cost per image above 8 megapixels",
+    "path": "output_cost_per_image_above_8_megapixels",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 175
+    }
+  },
+  {
+    "id": "pricing-output-cost-per-image-above-16-megapixels",
+    "group": "Prix · images et résolutions",
+    "label": "Output cost per image above 16 megapixels",
+    "path": "output_cost_per_image_above_16_megapixels",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 176
+    }
+  },
+  {
+    "id": "pricing-output-cost-per-image-above-32-megapixels",
+    "group": "Prix · images et résolutions",
+    "label": "Output cost per image above 32 megapixels",
+    "path": "output_cost_per_image_above_32_megapixels",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 177
+    }
+  },
+  {
+    "id": "pricing-output-cost-per-image-above-64-megapixels",
+    "group": "Prix · images et résolutions",
+    "label": "Output cost per image above 64 megapixels",
+    "path": "output_cost_per_image_above_64_megapixels",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 178
+    }
+  },
+  {
+    "id": "pricing-output-cost-per-image-low-quality",
+    "group": "Prix · images et résolutions",
+    "label": "Output cost per image low quality",
+    "path": "output_cost_per_image_low_quality",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 179
+    }
+  },
+  {
+    "id": "pricing-output-cost-per-image-medium-quality",
+    "group": "Prix · images et résolutions",
+    "label": "Output cost per image medium quality",
+    "path": "output_cost_per_image_medium_quality",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 180
+    }
+  },
+  {
+    "id": "pricing-output-cost-per-image-high-quality",
+    "group": "Prix · images et résolutions",
+    "label": "Output cost per image high quality",
+    "path": "output_cost_per_image_high_quality",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 181
+    }
+  },
+  {
+    "id": "pricing-output-cost-per-image-auto-quality",
+    "group": "Prix · images et résolutions",
+    "label": "Output cost per image auto quality",
+    "path": "output_cost_per_image_auto_quality",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 182
+    }
+  },
+  {
+    "id": "pricing-input-cost-per-image-token",
+    "group": "Prix · images et résolutions",
+    "label": "Input cost per image token",
+    "path": "input_cost_per_image_token",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 183
+    }
+  },
+  {
+    "id": "pricing-output-cost-per-image-token",
+    "group": "Prix · images et résolutions",
+    "label": "Output cost per image token",
+    "path": "output_cost_per_image_token",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 184
+    }
+  },
+  {
+    "id": "pricing-output-cost-per-image-above-1024-and-1024-pixels-low-quality",
+    "group": "Prix · images et résolutions",
+    "label": "Output cost per image above 1024 and 1024 pixels low quality",
+    "path": "output_cost_per_image_above_1024_and_1024_pixels_low_quality",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 189
+    }
+  },
+  {
+    "id": "pricing-output-cost-per-image-above-1024-and-1536-pixels-low-quality",
+    "group": "Prix · images et résolutions",
+    "label": "Output cost per image above 1024 and 1536 pixels low quality",
+    "path": "output_cost_per_image_above_1024_and_1536_pixels_low_quality",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 190
+    }
+  },
+  {
+    "id": "pricing-output-cost-per-image-above-1536-and-1024-pixels-low-quality",
+    "group": "Prix · images et résolutions",
+    "label": "Output cost per image above 1536 and 1024 pixels low quality",
+    "path": "output_cost_per_image_above_1536_and_1024_pixels_low_quality",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 191
+    }
+  },
+  {
+    "id": "pricing-output-cost-per-image-above-1024-and-1024-pixels-medium-quality",
+    "group": "Prix · images et résolutions",
+    "label": "Output cost per image above 1024 and 1024 pixels medium quality",
+    "path": "output_cost_per_image_above_1024_and_1024_pixels_medium_quality",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 192
+    }
+  },
+  {
+    "id": "pricing-output-cost-per-image-above-1024-and-1536-pixels-medium-quality",
+    "group": "Prix · images et résolutions",
+    "label": "Output cost per image above 1024 and 1536 pixels medium quality",
+    "path": "output_cost_per_image_above_1024_and_1536_pixels_medium_quality",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 193
+    }
+  },
+  {
+    "id": "pricing-output-cost-per-image-above-1536-and-1024-pixels-medium-quality",
+    "group": "Prix · images et résolutions",
+    "label": "Output cost per image above 1536 and 1024 pixels medium quality",
+    "path": "output_cost_per_image_above_1536_and_1024_pixels_medium_quality",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 194
+    }
+  },
+  {
+    "id": "pricing-output-cost-per-image-above-1024-and-1024-pixels-high-quality",
+    "group": "Prix · images et résolutions",
+    "label": "Output cost per image above 1024 and 1024 pixels high quality",
+    "path": "output_cost_per_image_above_1024_and_1024_pixels_high_quality",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 195
+    }
+  },
+  {
+    "id": "pricing-output-cost-per-image-above-1024-and-1536-pixels-high-quality",
+    "group": "Prix · images et résolutions",
+    "label": "Output cost per image above 1024 and 1536 pixels high quality",
+    "path": "output_cost_per_image_above_1024_and_1536_pixels_high_quality",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 196
+    }
+  },
+  {
+    "id": "pricing-output-cost-per-image-above-1536-and-1024-pixels-high-quality",
+    "group": "Prix · images et résolutions",
+    "label": "Output cost per image above 1536 and 1024 pixels high quality",
+    "path": "output_cost_per_image_above_1536_and_1024_pixels_high_quality",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 197
+    }
+  },
+  {
+    "id": "pricing-output-cost-per-image-above-1024-and-1024-pixels-standard-quality",
+    "group": "Prix · images et résolutions",
+    "label": "Output cost per image above 1024 and 1024 pixels standard quality",
+    "path": "output_cost_per_image_above_1024_and_1024_pixels_standard_quality",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 198
+    }
+  },
+  {
+    "id": "pricing-output-cost-per-image-above-1024-and-1536-pixels-standard-quality",
+    "group": "Prix · images et résolutions",
+    "label": "Output cost per image above 1024 and 1536 pixels standard quality",
+    "path": "output_cost_per_image_above_1024_and_1536_pixels_standard_quality",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 199
+    }
+  },
+  {
+    "id": "pricing-output-cost-per-image-above-1536-and-1024-pixels-standard-quality",
+    "group": "Prix · images et résolutions",
+    "label": "Output cost per image above 1536 and 1024 pixels standard quality",
+    "path": "output_cost_per_image_above_1536_and_1024_pixels_standard_quality",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 200
+    }
+  },
+  {
+    "id": "pricing-input-cost-per-audio-token",
+    "group": "Prix · audio et vidéo",
+    "label": "Input cost per audio token",
+    "path": "input_cost_per_audio_token",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 203
+    }
+  },
+  {
+    "id": "pricing-input-cost-per-audio-per-second",
+    "group": "Prix · audio et vidéo",
+    "label": "Input cost per audio per second",
+    "path": "input_cost_per_audio_per_second",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 204
+    }
+  },
+  {
+    "id": "pricing-input-cost-per-second",
+    "group": "Prix · audio et vidéo",
+    "label": "Input cost per second",
+    "path": "input_cost_per_second",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 205
+    }
+  },
+  {
+    "id": "pricing-input-cost-per-video-per-second",
+    "group": "Prix · audio et vidéo",
+    "label": "Input cost per video per second",
+    "path": "input_cost_per_video_per_second",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 206
+    }
+  },
+  {
+    "id": "pricing-output-cost-per-audio-token",
+    "group": "Prix · audio et vidéo",
+    "label": "Output cost per audio token",
+    "path": "output_cost_per_audio_token",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 207
+    }
+  },
+  {
+    "id": "pricing-output-cost-per-video-per-second",
+    "group": "Prix · audio et vidéo",
+    "label": "Output cost per video per second",
+    "path": "output_cost_per_video_per_second",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 208
+    }
+  },
+  {
+    "id": "pricing-output-cost-per-second",
+    "group": "Prix · audio et vidéo",
+    "label": "Output cost per second",
+    "path": "output_cost_per_second",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 209
+    }
+  },
+  {
+    "id": "pricing-output-cost-per-video-per-second-480p",
+    "group": "Prix · audio et vidéo",
+    "label": "Output cost per video per second 480p",
+    "path": "output_cost_per_video_per_second_480p",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 213
+    }
+  },
+  {
+    "id": "pricing-output-cost-per-video-per-second-720p",
+    "group": "Prix · audio et vidéo",
+    "label": "Output cost per video per second 720p",
+    "path": "output_cost_per_video_per_second_720p",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 214
+    }
+  },
+  {
+    "id": "pricing-output-cost-per-video-per-second-1024p",
+    "group": "Prix · audio et vidéo",
+    "label": "Output cost per video per second 1024p",
+    "path": "output_cost_per_video_per_second_1024p",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 215
+    }
+  },
+  {
+    "id": "pricing-output-cost-per-video-per-second-1080p",
+    "group": "Prix · audio et vidéo",
+    "label": "Output cost per video per second 1080p",
+    "path": "output_cost_per_video_per_second_1080p",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 216
+    }
+  },
+  {
+    "id": "pricing-output-cost-per-video-per-second-4k",
+    "group": "Prix · audio et vidéo",
+    "label": "Output cost per video per second 4k",
+    "path": "output_cost_per_video_per_second_4k",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 217
+    }
+  },
+  {
+    "id": "pricing-search-context-cost-per-query",
+    "group": "Prix · autres unités",
+    "label": "Search context cost per query",
+    "path": "search_context_cost_per_query",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 223
+    }
+  },
+  {
+    "id": "pricing-code-interpreter-cost-per-session",
+    "group": "Prix · autres unités",
+    "label": "Code interpreter cost per session",
+    "path": "code_interpreter_cost_per_session",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 224
+    }
+  },
+  {
+    "id": "pricing-input-cost-per-query",
+    "group": "Prix · autres unités",
+    "label": "Input cost per query",
+    "path": "input_cost_per_query",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 232
+    }
+  },
+  {
+    "id": "pricing-inference-geo-us-multiplier",
+    "group": "Prix · autres unités",
+    "label": "Inference geo us multiplier",
+    "path": "inference_geo_us_multiplier",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 233
+    }
+  },
+  {
+    "id": "pricing-cost-per-request",
+    "group": "Prix · autres unités",
+    "label": "Cost per request",
+    "path": "cost_per_request",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 236
+    }
+  },
+  {
+    "id": "pricing-ocr-cost-per-page",
+    "group": "Prix · autres unités",
+    "label": "Ocr cost per page",
+    "path": "ocr_cost_per_page",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 239
+    }
+  },
+  {
+    "id": "pricing-annotation-cost-per-page",
+    "group": "Prix · autres unités",
+    "label": "Annotation cost per page",
+    "path": "annotation_cost_per_page",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 240
+    }
+  },
+  {
+    "id": "pricing-off-peak-cost-multiplier",
+    "group": "Prix · plages horaires",
+    "label": "Off peak cost multiplier",
+    "path": "off_peak_cost_multiplier",
+    "type": "float64",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Tarif datasheet; champ sérialisé avec le nom JSON exact et absent si non fourni.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 249
+    }
+  },
+  {
+    "id": "pricing-peak-hours",
+    "group": "Prix · plages horaires",
+    "label": "Peak hours",
+    "path": "peak_hours",
+    "type": "PeakHoursSchedule",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Schedule JSON pour les fenêtres peak; documenté ci-dessous via ses propriétés imbriquées.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 250
+    }
+  },
+  {
+    "id": "pricing-peak-hours-timezone",
+    "group": "Prix · plages horaires",
+    "label": "Peak hours.timezone",
+    "path": "peak_hours.timezone",
+    "type": "string",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Sous-structure JSON de pricing, type défini côté stockage configstore puis réutilisé par le datasheet; pas un champ de TableModelPricing.",
+    "source": {
+      "path": "framework/configstore/tables/modelpricing.go",
+      "line": 191
+    }
+  },
+  {
+    "id": "pricing-peak-hours-windows",
+    "group": "Prix · plages horaires",
+    "label": "Peak hours.windows",
+    "path": "peak_hours.windows",
+    "type": "[]PeakHoursWindow",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Sous-structure JSON de pricing, type défini côté stockage configstore puis réutilisé par le datasheet; pas un champ de TableModelPricing.",
+    "source": {
+      "path": "framework/configstore/tables/modelpricing.go",
+      "line": 192
+    }
+  },
+  {
+    "id": "pricing-peak-hours-windows-days",
+    "group": "Prix · plages horaires",
+    "label": "Peak hours item .days",
+    "path": "peak_hours.windows[*].days",
+    "type": "[]int",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Sous-structure JSON de pricing, type défini côté stockage configstore puis réutilisé par le datasheet; pas un champ de TableModelPricing.",
+    "source": {
+      "path": "framework/configstore/tables/modelpricing.go",
+      "line": 201
+    }
+  },
+  {
+    "id": "pricing-peak-hours-windows-start",
+    "group": "Prix · plages horaires",
+    "label": "Peak hours item .start",
+    "path": "peak_hours.windows[*].start",
+    "type": "string",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Sous-structure JSON de pricing, type défini côté stockage configstore puis réutilisé par le datasheet; pas un champ de TableModelPricing.",
+    "source": {
+      "path": "framework/configstore/tables/modelpricing.go",
+      "line": 202
+    }
+  },
+  {
+    "id": "pricing-peak-hours-windows-end",
+    "group": "Prix · plages horaires",
+    "label": "Peak hours item .end",
+    "path": "peak_hours.windows[*].end",
+    "type": "string",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Sous-structure JSON de pricing, type défini côté stockage configstore puis réutilisé par le datasheet; pas un champ de TableModelPricing.",
+    "source": {
+      "path": "framework/configstore/tables/modelpricing.go",
+      "line": 203
+    }
+  },
+  {
+    "id": "parameters-supports-cache-point",
+    "group": "Paramètres · capacités générales",
+    "label": "Supports cache point",
+    "path": "supports_cache_point",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 27
+    }
+  },
+  {
+    "id": "parameters-supports-interleaved-thinking",
+    "group": "Paramètres · capacités générales",
+    "label": "Supports interleaved thinking",
+    "path": "supports_interleaved_thinking",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 28
+    }
+  },
+  {
+    "id": "parameters-supports-skills",
+    "group": "Paramètres · outils et fonctionnalités",
+    "label": "Supports skills",
+    "path": "supports_skills",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 29
+    }
+  },
+  {
+    "id": "parameters-supports-mcp",
+    "group": "Paramètres · outils et fonctionnalités",
+    "label": "Supports mcp",
+    "path": "supports_mcp",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 30
+    }
+  },
+  {
+    "id": "parameters-supports-web-search-dynamic",
+    "group": "Paramètres · outils et fonctionnalités",
+    "label": "Supports web search dynamic",
+    "path": "supports_web_search_dynamic",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 31
+    }
+  },
+  {
+    "id": "parameters-supports-web-fetch",
+    "group": "Paramètres · outils et fonctionnalités",
+    "label": "Supports web fetch",
+    "path": "supports_web_fetch",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 32
+    }
+  },
+  {
+    "id": "parameters-supports-code-execution",
+    "group": "Paramètres · outils et fonctionnalités",
+    "label": "Supports code execution",
+    "path": "supports_code_execution",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 33
+    }
+  },
+  {
+    "id": "parameters-supports-bash-tool",
+    "group": "Paramètres · outils et fonctionnalités",
+    "label": "Supports bash tool",
+    "path": "supports_bash_tool",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 34
+    }
+  },
+  {
+    "id": "parameters-supports-text-editor-tool",
+    "group": "Paramètres · outils et fonctionnalités",
+    "label": "Supports text editor tool",
+    "path": "supports_text_editor_tool",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 35
+    }
+  },
+  {
+    "id": "parameters-supports-computer-toolset",
+    "group": "Paramètres · outils et fonctionnalités",
+    "label": "Supports computer toolset",
+    "path": "supports_computer_toolset",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 36
+    }
+  },
+  {
+    "id": "parameters-supports-memory-tool",
+    "group": "Paramètres · outils et fonctionnalités",
+    "label": "Supports memory tool",
+    "path": "supports_memory_tool",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 37
+    }
+  },
+  {
+    "id": "parameters-supports-tool-search",
+    "group": "Paramètres · outils et fonctionnalités",
+    "label": "Supports tool search",
+    "path": "supports_tool_search",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 38
+    }
+  },
+  {
+    "id": "parameters-tool-name-max-length",
+    "group": "Paramètres · outils et fonctionnalités",
+    "label": "Tool name max length",
+    "path": "tool_name_max_length",
+    "type": "int",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 39
+    }
+  },
+  {
+    "id": "parameters-supports-namespace-tools",
+    "group": "Paramètres · outils et fonctionnalités",
+    "label": "Supports namespace tools",
+    "path": "supports_namespace_tools",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 40
+    }
+  },
+  {
+    "id": "parameters-supports-files-api",
+    "group": "Paramètres · outils et fonctionnalités",
+    "label": "Supports files api",
+    "path": "supports_files_api",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 41
+    }
+  },
+  {
+    "id": "parameters-supports-compaction",
+    "group": "Paramètres · capacités générales",
+    "label": "Supports compaction",
+    "path": "supports_compaction",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 42
+    }
+  },
+  {
+    "id": "parameters-supports-context-editing",
+    "group": "Paramètres · capacités générales",
+    "label": "Supports context editing",
+    "path": "supports_context_editing",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 43
+    }
+  },
+  {
+    "id": "parameters-supports-context-1m",
+    "group": "Paramètres · capacités générales",
+    "label": "Supports context 1m",
+    "path": "supports_context_1m",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 44
+    }
+  },
+  {
+    "id": "parameters-supports-speed",
+    "group": "Paramètres · capacités générales",
+    "label": "Supports speed",
+    "path": "supports_speed",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 45
+    }
+  },
+  {
+    "id": "parameters-supports-adaptive-thinking",
+    "group": "Paramètres · capacités générales",
+    "label": "Supports adaptive thinking",
+    "path": "supports_adaptive_thinking",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 46
+    }
+  },
+  {
+    "id": "parameters-supports-native-effort",
+    "group": "Paramètres · capacités générales",
+    "label": "Supports native effort",
+    "path": "supports_native_effort",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 47
+    }
+  },
+  {
+    "id": "parameters-supports-mid-conversation-system-messages",
+    "group": "Paramètres · capacités générales",
+    "label": "Supports mid conversation system messages",
+    "path": "supports_mid_conversation_system_messages",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 48
+    }
+  },
+  {
+    "id": "parameters-supports-sampling-params",
+    "group": "Paramètres · capacités générales",
+    "label": "Supports sampling params",
+    "path": "supports_sampling_params",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 49
+    }
+  },
+  {
+    "id": "parameters-supports-redact-thinking",
+    "group": "Paramètres · capacités générales",
+    "label": "Supports redact thinking",
+    "path": "supports_redact_thinking",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 50
+    }
+  },
+  {
+    "id": "parameters-supports-task-budgets",
+    "group": "Paramètres · capacités générales",
+    "label": "Supports task budgets",
+    "path": "supports_task_budgets",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 51
+    }
+  },
+  {
+    "id": "parameters-supports-eager-input-streaming",
+    "group": "Paramètres · capacités générales",
+    "label": "Supports eager input streaming",
+    "path": "supports_eager_input_streaming",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 52
+    }
+  },
+  {
+    "id": "parameters-supports-advanced-tool-use",
+    "group": "Paramètres · outils et fonctionnalités",
+    "label": "Supports advanced tool use",
+    "path": "supports_advanced_tool_use",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 53
+    }
+  },
+  {
+    "id": "parameters-supports-input-examples",
+    "group": "Paramètres · outils et fonctionnalités",
+    "label": "Supports input examples",
+    "path": "supports_input_examples",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 54
+    }
+  },
+  {
+    "id": "parameters-supports-advisor-tool",
+    "group": "Paramètres · outils et fonctionnalités",
+    "label": "Supports advisor tool",
+    "path": "supports_advisor_tool",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 55
+    }
+  },
+  {
+    "id": "parameters-supports-inference-geo",
+    "group": "Paramètres · capacités générales",
+    "label": "Supports inference geo",
+    "path": "supports_inference_geo",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 56
+    }
+  },
+  {
+    "id": "parameters-supports-safeguards",
+    "group": "Paramètres · capacités générales",
+    "label": "Supports safeguards",
+    "path": "supports_safeguards",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 57
+    }
+  },
+  {
+    "id": "parameters-supports-prompt-caching-scope",
+    "group": "Paramètres · capacités générales",
+    "label": "Supports prompt caching scope",
+    "path": "supports_prompt_caching_scope",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 58
+    }
+  },
+  {
+    "id": "parameters-supports-extended-cache-ttl",
+    "group": "Paramètres · capacités générales",
+    "label": "Supports extended cache ttl",
+    "path": "supports_extended_cache_ttl",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 59
+    }
+  },
+  {
+    "id": "parameters-supports-prompt-cache-breakpoint",
+    "group": "Paramètres · capacités générales",
+    "label": "Supports prompt cache breakpoint",
+    "path": "supports_prompt_cache_breakpoint",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 60
+    }
+  },
+  {
+    "id": "parameters-supports-reasoning-content-blocks",
+    "group": "Paramètres · raisonnement",
+    "label": "Supports reasoning content blocks",
+    "path": "supports_reasoning_content_blocks",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 61
+    }
+  },
+  {
+    "id": "parameters-supports-multimodal-tool-output",
+    "group": "Paramètres · outils et fonctionnalités",
+    "label": "Supports multimodal tool output",
+    "path": "supports_multimodal_tool_output",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 62
+    }
+  },
+  {
+    "id": "parameters-supports-response-schema-with-tools",
+    "group": "Paramètres · outils et fonctionnalités",
+    "label": "Supports response schema with tools",
+    "path": "supports_response_schema_with_tools",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 63
+    }
+  },
+  {
+    "id": "parameters-supports-forced-tool-choice",
+    "group": "Paramètres · outils et fonctionnalités",
+    "label": "Supports forced tool choice",
+    "path": "supports_forced_tool_choice",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 64
+    }
+  },
+  {
+    "id": "parameters-supports-prompt-cache-breakpoints",
+    "group": "Paramètres · capacités générales",
+    "label": "Supports prompt cache breakpoints",
+    "path": "supports_prompt_cache_breakpoints",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 65
+    }
+  },
+  {
+    "id": "parameters-supports-async-tools",
+    "group": "Paramètres · outils et fonctionnalités",
+    "label": "Supports async tools",
+    "path": "supports_async_tools",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 66
+    }
+  },
+  {
+    "id": "parameters-supports-assistant-prefill",
+    "group": "Paramètres · capacités générales",
+    "label": "Supports assistant prefill",
+    "path": "supports_assistant_prefill",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 75
+    }
+  },
+  {
+    "id": "parameters-supports-system-messages",
+    "group": "Paramètres · capacités générales",
+    "label": "Supports system messages",
+    "path": "supports_system_messages",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 76
+    }
+  },
+  {
+    "id": "parameters-supports-function-calling",
+    "group": "Paramètres · outils et fonctionnalités",
+    "label": "Supports function calling",
+    "path": "supports_function_calling",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 77
+    }
+  },
+  {
+    "id": "parameters-supports-parallel-function-calling",
+    "group": "Paramètres · outils et fonctionnalités",
+    "label": "Supports parallel function calling",
+    "path": "supports_parallel_function_calling",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 78
+    }
+  },
+  {
+    "id": "parameters-supports-tool-choice",
+    "group": "Paramètres · outils et fonctionnalités",
+    "label": "Supports tool choice",
+    "path": "supports_tool_choice",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 79
+    }
+  },
+  {
+    "id": "parameters-supports-reasoning",
+    "group": "Paramètres · raisonnement",
+    "label": "Supports reasoning",
+    "path": "supports_reasoning",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 80
+    }
+  },
+  {
+    "id": "parameters-supports-response-schema",
+    "group": "Paramètres · capacités générales",
+    "label": "Supports response schema",
+    "path": "supports_response_schema",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 81
+    }
+  },
+  {
+    "id": "parameters-supports-reasoning-with-tool-calls",
+    "group": "Paramètres · raisonnement",
+    "label": "Supports reasoning with tool calls",
+    "path": "supports_reasoning_with_tool_calls",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 82
+    }
+  },
+  {
+    "id": "parameters-supports-none-reasoning-effort",
+    "group": "Paramètres · capacités générales",
+    "label": "Supports none reasoning effort",
+    "path": "supports_none_reasoning_effort",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 83
+    }
+  },
+  {
+    "id": "parameters-supports-service-tier",
+    "group": "Paramètres · capacités générales",
+    "label": "Supports service tier",
+    "path": "supports_service_tier",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 84
+    }
+  },
+  {
+    "id": "parameters-supports-prompt-caching",
+    "group": "Paramètres · capacités générales",
+    "label": "Supports prompt caching",
+    "path": "supports_prompt_caching",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 85
+    }
+  },
+  {
+    "id": "parameters-supports-web-search",
+    "group": "Paramètres · outils et fonctionnalités",
+    "label": "Supports web search",
+    "path": "supports_web_search",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 86
+    }
+  },
+  {
+    "id": "parameters-mode",
+    "group": "Paramètres · limites et opérations",
+    "label": "Mode",
+    "path": "mode",
+    "type": "string",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 91
+    }
+  },
+  {
+    "id": "parameters-supported-endpoints",
+    "group": "Paramètres · limites et opérations",
+    "label": "Supported endpoints",
+    "path": "supported_endpoints",
+    "type": "[]string",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 95
+    }
+  },
+  {
+    "id": "parameters-service-tiers",
+    "group": "Paramètres · limites et opérations",
+    "label": "Service tiers",
+    "path": "service_tiers",
+    "type": "[]string",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 102
+    }
+  },
+  {
+    "id": "parameters-model-parameters-id",
+    "group": "Paramètres · champs de requête",
+    "label": "Model parameters item .id",
+    "path": "model_parameters[*].id",
+    "type": "string",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Seul id est typé dans ModelParameterDescriptor. Les descripteurs du playground conservent aussi des champs raw, voir wildcard ci-dessous.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 106
+    }
+  },
+  {
+    "id": "parameters-model-parameters",
+    "group": "Paramètres · champs de requête",
+    "label": "Model parameters item  clé dynamique",
+    "path": "model_parameters[*].*",
+    "type": "raw JSON property",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Sous-clés raw d’un descripteur UI; exemples observés: label, helpText, type, default, range, options, accesorKey. Ce wildcard couvre la forme documentée/exemplifiée, pas tout champ futur arbitraire.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/testdata/model-parameters.json",
+      "line": 26
+    }
+  },
+  {
+    "id": "parameters-model-parameters-range",
+    "group": "Paramètres · champs de requête",
+    "label": "Model parameters item .range clé dynamique",
+    "path": "model_parameters[*].range.*",
+    "type": "raw JSON value",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Clés de range dépendantes du contrôle (ex. min/max/step); forme raw non modélisée par ModelParameterDescriptor.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/testdata/model-parameters.json",
+      "line": 39
+    }
+  },
+  {
+    "id": "parameters-server-tools",
+    "group": "Paramètres · adaptation au provider",
+    "label": "Server tools",
+    "path": "server_tools",
+    "type": "map[string]string",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Dictionnaire à clés dynamiques (wildcard); ne pas développer une ligne par clé. Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 112
+    }
+  },
+  {
+    "id": "parameters-beta-headers",
+    "group": "Paramètres · adaptation au provider",
+    "label": "Beta headers",
+    "path": "beta_headers",
+    "type": "map[string]string",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Dictionnaire à clés dynamiques (wildcard); ne pas développer une ligne par clé. Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 116
+    }
+  },
+  {
+    "id": "parameters-field-names",
+    "group": "Paramètres · adaptation au provider",
+    "label": "Field names",
+    "path": "field_names",
+    "type": "map[string]string",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Dictionnaire à clés dynamiques (wildcard); ne pas développer une ligne par clé. Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 123
+    }
+  },
+  {
+    "id": "parameters-server-tool-auto-injects",
+    "group": "Paramètres · adaptation au provider",
+    "label": "Server tool auto injects",
+    "path": "server_tool_auto_injects",
+    "type": "map[string][]string",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Dictionnaire à clés dynamiques (wildcard); ne pas développer une ligne par clé. Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 127
+    }
+  },
+  {
+    "id": "parameters-server-tool-implicit-betas",
+    "group": "Paramètres · adaptation au provider",
+    "label": "Server tool implicit betas",
+    "path": "server_tool_implicit_betas",
+    "type": "map[string]string",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Dictionnaire à clés dynamiques (wildcard); ne pas développer une ligne par clé. Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 131
+    }
+  },
+  {
+    "id": "parameters-extra-headers",
+    "group": "Paramètres · adaptation au provider",
+    "label": "Extra headers",
+    "path": "extra_headers",
+    "type": "map[string]string",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Dictionnaire à clés dynamiques (wildcard); ne pas développer une ligne par clé. Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 135
+    }
+  },
+  {
+    "id": "parameters-unsupported-fields",
+    "group": "Paramètres · adaptation au provider",
+    "label": "Unsupported fields",
+    "path": "unsupported_fields",
+    "type": "map[string]bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Dictionnaire à clés dynamiques (wildcard); ne pas développer une ligne par clé. Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 144
+    }
+  },
+  {
+    "id": "parameters-conditionally-unsupported-fields",
+    "group": "Paramètres · adaptation au provider",
+    "label": "Conditionally unsupported fields",
+    "path": "conditionally_unsupported_fields",
+    "type": "map[string]string",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Dictionnaire à clés dynamiques (wildcard); ne pas développer une ligne par clé. Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 151
+    }
+  },
+  {
+    "id": "parameters-supports-reasoning-effort",
+    "group": "Paramètres · raisonnement",
+    "label": "Supports reasoning effort",
+    "path": "supports_reasoning_effort",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 162
+    }
+  },
+  {
+    "id": "parameters-reasoning-effort-levels",
+    "group": "Paramètres · raisonnement",
+    "label": "Reasoning effort levels",
+    "path": "reasoning_effort_levels",
+    "type": "[]string",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 165
+    }
+  },
+  {
+    "id": "parameters-reasoning-effort-renames",
+    "group": "Paramètres · raisonnement",
+    "label": "Reasoning effort renames",
+    "path": "reasoning_effort_renames",
+    "type": "map[string]string",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Dictionnaire à clés dynamiques (wildcard); ne pas développer une ligne par clé. Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 169
+    }
+  },
+  {
+    "id": "parameters-supported-reasoning-contexts",
+    "group": "Paramètres · compatibilité des requêtes",
+    "label": "Supported reasoning contexts",
+    "path": "supported_reasoning_contexts",
+    "type": "[]string",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 176
+    }
+  },
+  {
+    "id": "parameters-reasoning-budget",
+    "group": "Paramètres · raisonnement",
+    "label": "Reasoning budget",
+    "path": "reasoning_budget",
+    "type": "BudgetControl",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Objet budget en tokens; bornes min/max déclarées dans BudgetControl.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 179
+    }
+  },
+  {
+    "id": "parameters-supports-reasoning-disable",
+    "group": "Paramètres · raisonnement",
+    "label": "Supports reasoning disable",
+    "path": "supports_reasoning_disable",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 183
+    }
+  },
+  {
+    "id": "parameters-supports-dynamic-reasoning-budget",
+    "group": "Paramètres · capacités générales",
+    "label": "Supports dynamic reasoning budget",
+    "path": "supports_dynamic_reasoning_budget",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 186
+    }
+  },
+  {
+    "id": "parameters-max-output-tokens",
+    "group": "Paramètres · limites et opérations",
+    "label": "Max output tokens",
+    "path": "max_output_tokens",
+    "type": "int",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 192
+    }
+  },
+  {
+    "id": "parameters-default-max-tokens",
+    "group": "Paramètres · limites et opérations",
+    "label": "Default max tokens",
+    "path": "default_max_tokens",
+    "type": "int",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 195
+    }
+  },
+  {
+    "id": "parameters-min-output-tokens",
+    "group": "Paramètres · limites et opérations",
+    "label": "Min output tokens",
+    "path": "min_output_tokens",
+    "type": "int",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 202
+    }
+  },
+  {
+    "id": "parameters-min-reasoning-max-tokens",
+    "group": "Paramètres · raisonnement",
+    "label": "Min reasoning max tokens",
+    "path": "min_reasoning_max_tokens",
+    "type": "int",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 205
+    }
+  },
+  {
+    "id": "parameters-drop-tool-choice-pin",
+    "group": "Paramètres · adaptation au provider",
+    "label": "Drop tool choice pin",
+    "path": "drop_tool_choice_pin",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 208
+    }
+  },
+  {
+    "id": "parameters-synthetic-structured-output-tool-prefix",
+    "group": "Paramètres · adaptation au provider",
+    "label": "Synthetic structured output tool prefix",
+    "path": "synthetic_structured_output_tool_prefix",
+    "type": "string",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 211
+    }
+  },
+  {
+    "id": "parameters-synthetic-so-tool-choice-omitted",
+    "group": "Paramètres · adaptation au provider",
+    "label": "Synthetic so tool choice omitted",
+    "path": "synthetic_so_tool_choice_omitted",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 214
+    }
+  },
+  {
+    "id": "parameters-request-path",
+    "group": "Paramètres · adaptation au provider",
+    "label": "Request path",
+    "path": "request_path",
+    "type": "string",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 220
+    }
+  },
+  {
+    "id": "parameters-outer-anthropic-beta-header-skipped",
+    "group": "Paramètres · adaptation au provider",
+    "label": "Outer anthropic beta header skipped",
+    "path": "outer_anthropic_beta_header_skipped",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 223
+    }
+  },
+  {
+    "id": "parameters-api-version",
+    "group": "Paramètres · adaptation au provider",
+    "label": "Api version",
+    "path": "api_version",
+    "type": "string",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 226
+    }
+  },
+  {
+    "id": "parameters-vertex-multi-region-only",
+    "group": "Paramètres · compatibilité des requêtes",
+    "label": "Vertex multi region only",
+    "path": "vertex_multi_region_only",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 229
+    }
+  },
+  {
+    "id": "parameters-is-reasoning-model",
+    "group": "Paramètres · raisonnement",
+    "label": "Is reasoning model",
+    "path": "is_reasoning_model",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 233
+    }
+  },
+  {
+    "id": "parameters-always-reasoning",
+    "group": "Paramètres · raisonnement",
+    "label": "Always reasoning",
+    "path": "always_reasoning",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 234
+    }
+  },
+  {
+    "id": "parameters-tool-choice-struct-supported",
+    "group": "Paramètres · adaptation au provider",
+    "label": "Tool choice struct supported",
+    "path": "tool_choice_struct_supported",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 240
+    }
+  },
+  {
+    "id": "parameters-tool-choice-any-supported",
+    "group": "Paramètres · adaptation au provider",
+    "label": "Tool choice any supported",
+    "path": "tool_choice_any_supported",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 244
+    }
+  },
+  {
+    "id": "parameters-preserves-prediction",
+    "group": "Paramètres · adaptation au provider",
+    "label": "Preserves prediction",
+    "path": "preserves_prediction",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 247
+    }
+  },
+  {
+    "id": "parameters-reasoning-required",
+    "group": "Paramètres · raisonnement",
+    "label": "Reasoning required",
+    "path": "reasoning_required",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 250
+    }
+  },
+  {
+    "id": "parameters-reserved-tool-namespaces",
+    "group": "Paramètres · adaptation au provider",
+    "label": "Reserved tool namespaces",
+    "path": "reserved_tool_namespaces",
+    "type": "[]string",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 258
+    }
+  },
+  {
+    "id": "parameters-alias-of",
+    "group": "Paramètres · adaptation au provider",
+    "label": "Alias of",
+    "path": "alias_of",
+    "type": "string",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 263
+    }
+  },
+  {
+    "id": "parameters-region-inference-profile",
+    "group": "Paramètres · adaptation au provider",
+    "label": "Region inference profile",
+    "path": "region_inference_profile",
+    "type": "string",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 266
+    }
+  },
+  {
+    "id": "parameters-is-cohere-command-r",
+    "group": "Paramètres · adaptation au provider",
+    "label": "Is cohere command r",
+    "path": "is_cohere_command_r",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 274
+    }
+  },
+  {
+    "id": "parameters-bedrock-apis",
+    "group": "Paramètres · adaptation au provider",
+    "label": "Bedrock apis",
+    "path": "bedrock_apis",
+    "type": "[]BedrockAPI",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 293
+    }
+  },
+  {
+    "id": "parameters-bedrock-reasoning-shape",
+    "group": "Paramètres · adaptation au provider",
+    "label": "Bedrock reasoning shape",
+    "path": "bedrock_reasoning_shape",
+    "type": "BedrockReasoningShape",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 300
+    }
+  },
+  {
+    "id": "parameters-bedrock-mantle-base-path",
+    "group": "Paramètres · adaptation au provider",
+    "label": "Bedrock mantle base path",
+    "path": "bedrock_mantle_base_path",
+    "type": "BedrockMantleBasePath",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 308
+    }
+  },
+  {
+    "id": "parameters-bedrock-requires-signed-reasoning",
+    "group": "Paramètres · adaptation au provider",
+    "label": "Bedrock requires signed reasoning",
+    "path": "bedrock_requires_signed_reasoning",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 319
+    }
+  },
+  {
+    "id": "parameters-supports-converse-tool-result-images",
+    "group": "Paramètres · outils et fonctionnalités",
+    "label": "Supports converse tool result images",
+    "path": "supports_converse_tool_result_images",
+    "type": "bool",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Champ déclaré de ModelCapabilities; valeurs nil/absentes signifient non renseigné, pas nécessairement non supporté.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 325
+    }
+  },
+  {
+    "id": "parameters-reasoning-budget-min",
+    "group": "Paramètres · raisonnement",
+    "label": "Reasoning budget.min",
+    "path": "reasoning_budget.min",
+    "type": "int",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Borne de BudgetControl (tokens); stockage de paramètres conserve aussi le document source JSON.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 435
+    }
+  },
+  {
+    "id": "parameters-reasoning-budget-max",
+    "group": "Paramètres · raisonnement",
+    "label": "Reasoning budget.max",
+    "path": "reasoning_budget.max",
+    "type": "int",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Borne de BudgetControl (tokens); stockage de paramètres conserve aussi le document source JSON.",
+    "source": {
+      "path": "core/schemas/modelcapabilities.go",
+      "line": 436
+    }
+  },
+  {
+    "id": "parameters-model-key",
+    "group": "Document de paramètres · champs supplémentaires",
+    "label": "<model/provider datasheet key>",
+    "path": "<model key>",
+    "type": "string",
+    "origin": "datasheet",
+    "scope": "model",
+    "read": "Entrée de la datasheet Bifrost; les valeurs peuvent être absentes selon modèle/provider.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Clé dynamique du document externe (identifiant de modèle); chaque valeur est conservée comme json.RawMessage et parsée en ModelCapabilities. Ne pas énumérer les modèles comme propriétés.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/params.go",
+      "line": 178
+    }
+  },
+  {
+    "id": "parameters-raw-provider",
+    "group": "Document de paramètres · champs supplémentaires",
+    "label": "Provider",
+    "path": "provider",
+    "type": "string",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Document brut du feed de paramètres conservé en json.RawMessage; exemples fournis dans testdata.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Métadonnée observée dans les objets raw du feed (ex. provider=vertex_ai); non déclarée sur ModelCapabilities.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/testdata/model-parameters.json",
+      "line": 617
+    }
+  },
+  {
+    "id": "parameters-raw-base_model",
+    "group": "Document de paramètres · champs supplémentaires",
+    "label": "Base model",
+    "path": "base_model",
+    "type": "string",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Document brut du feed de paramètres conservé en json.RawMessage; exemples fournis dans testdata.",
+    "write": "Synchronisation de datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Métadonnée observée dans les objets raw du feed; non déclarée sur ModelCapabilities.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/testdata/model-parameters.json",
+      "line": 618
+    }
+  },
+  {
+    "id": "pricing-architecture-modality",
+    "group": "Prix · identité, limites et architecture",
+    "label": "Architecture · modality",
+    "path": "architecture.modality",
+    "type": "string",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "PricingEntry datasheet; valeur facultative et dépendante du modèle/provider.",
+    "write": "Synchronisation datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Sous-champ du type schemas.Architecture, réutilisé par datasheet.Entry.",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 184
+    }
+  },
+  {
+    "id": "pricing-architecture-tokenizer",
+    "group": "Prix · identité, limites et architecture",
+    "label": "Architecture · tokenizer",
+    "path": "architecture.tokenizer",
+    "type": "string",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "PricingEntry datasheet; valeur facultative et dépendante du modèle/provider.",
+    "write": "Synchronisation datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Sous-champ du type schemas.Architecture, réutilisé par datasheet.Entry.",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 185
+    }
+  },
+  {
+    "id": "pricing-architecture-instruct-type",
+    "group": "Prix · identité, limites et architecture",
+    "label": "Architecture · instruct_type",
+    "path": "architecture.instruct_type",
+    "type": "string",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "PricingEntry datasheet; valeur facultative et dépendante du modèle/provider.",
+    "write": "Synchronisation datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Sous-champ du type schemas.Architecture, réutilisé par datasheet.Entry.",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 186
+    }
+  },
+  {
+    "id": "pricing-architecture-input-modalities",
+    "group": "Prix · identité, limites et architecture",
+    "label": "Architecture · input_modalities",
+    "path": "architecture.input_modalities",
+    "type": "array[string]",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "PricingEntry datasheet; valeur facultative et dépendante du modèle/provider.",
+    "write": "Synchronisation datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Sous-champ du type schemas.Architecture, réutilisé par datasheet.Entry.",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 187
+    }
+  },
+  {
+    "id": "pricing-architecture-output-modalities",
+    "group": "Prix · identité, limites et architecture",
+    "label": "Architecture · output_modalities",
+    "path": "architecture.output_modalities",
+    "type": "array[string]",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "PricingEntry datasheet; valeur facultative et dépendante du modèle/provider.",
+    "write": "Synchronisation datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Sous-champ du type schemas.Architecture, réutilisé par datasheet.Entry.",
+    "source": {
+      "path": "core/schemas/models.go",
+      "line": 188
+    }
+  },
+  {
+    "id": "pricing-search-context-search-context-size-low",
+    "group": "Prix · autres unités",
+    "label": "Search context cost per query · search_context_size_low",
+    "path": "search_context_cost_per_query.search_context_size_low",
+    "type": "number",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "PricingEntry datasheet; valeur facultative et dépendante du modèle/provider.",
+    "write": "Synchronisation datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Datasheet wire representation may be an object tiered by search context size. Entry.UnmarshalJSON normalizes it to a single float64, preferring medium, then low, then high.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 68
+    }
+  },
+  {
+    "id": "pricing-search-context-search-context-size-medium",
+    "group": "Prix · autres unités",
+    "label": "Search context cost per query · search_context_size_medium",
+    "path": "search_context_cost_per_query.search_context_size_medium",
+    "type": "number",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "PricingEntry datasheet; valeur facultative et dépendante du modèle/provider.",
+    "write": "Synchronisation datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Datasheet wire representation may be an object tiered by search context size. Entry.UnmarshalJSON normalizes it to a single float64, preferring medium, then low, then high.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 69
+    }
+  },
+  {
+    "id": "pricing-search-context-search-context-size-high",
+    "group": "Prix · autres unités",
+    "label": "Search context cost per query · search_context_size_high",
+    "path": "search_context_cost_per_query.search_context_size_high",
+    "type": "number",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "PricingEntry datasheet; valeur facultative et dépendante du modèle/provider.",
+    "write": "Synchronisation datasheet; aucune édition générique de cette propriété établie.",
+    "note": "Datasheet wire representation may be an object tiered by search context size. Entry.UnmarshalJSON normalizes it to a single float64, preferring medium, then low, then high.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/types.go",
+      "line": 70
+    }
+  },
+  {
+    "id": "parameters-raw-model",
+    "group": "Document de paramètres · champs supplémentaires",
+    "label": "Document raw · model",
+    "path": "model",
+    "type": "string",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Datasheet brute du feed de paramètres; valeur présente dans l’union observée du contrat de test, non normalisée par ModelCapabilities.",
+    "write": "Document synchronisé tel quel; aucune édition générique de cette propriété établie.",
+    "note": "Identifiant déclaré dans le document brut; distinct de la clé de map lorsque cette dernière est qualifiée provider. Ces propriétés documentées ne sont pas garanties pour chaque modèle; le contrat peut ajouter des propriétés futures.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/testdata/model-parameters.json",
+      "line": 2
+    }
+  },
+  {
+    "id": "parameters-raw-provider-specific-entry",
+    "group": "Document de paramètres · champs supplémentaires",
+    "label": "Document raw · provider specific entry",
+    "path": "provider_specific_entry",
+    "type": "JSON · forme non vérifiée dans ce relevé",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Datasheet brute du feed de paramètres; valeur présente dans l’union observée du contrat de test, non normalisée par ModelCapabilities.",
+    "write": "Document synchronisé tel quel; aucune édition générique de cette propriété établie.",
+    "note": "Marqueur raw déclaré dans l’union observée du contrat; absent du struct ModelCapabilities. Ces propriétés documentées ne sont pas garanties pour chaque modèle; le contrat peut ajouter des propriétés futures.",
+    "source": {
+      "path": "registry:docs/design/model-card-bifrost-contract.md",
+      "line": 104
+    }
+  },
+  {
+    "id": "parameters-raw-supported-modalities",
+    "group": "Document de paramètres · champs supplémentaires",
+    "label": "Document raw · supported modalities",
+    "path": "supported_modalities",
+    "type": "array[string]",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Datasheet brute du feed de paramètres; valeur présente dans l’union observée du contrat de test, non normalisée par ModelCapabilities.",
+    "write": "Document synchronisé tel quel; aucune édition générique de cette propriété établie.",
+    "note": "Modalités déclarées raw; distinct de architecture.input_modalities. Ces propriétés documentées ne sont pas garanties pour chaque modèle; le contrat peut ajouter des propriétés futures.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/testdata/model-parameters.json",
+      "line": 357
+    }
+  },
+  {
+    "id": "parameters-raw-supported-output-modalities",
+    "group": "Document de paramètres · champs supplémentaires",
+    "label": "Document raw · supported output modalities",
+    "path": "supported_output_modalities",
+    "type": "array[string]",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Datasheet brute du feed de paramètres; valeur présente dans l’union observée du contrat de test, non normalisée par ModelCapabilities.",
+    "write": "Document synchronisé tel quel; aucune édition générique de cette propriété établie.",
+    "note": "Modalités de sortie déclarées raw; distinct de architecture.output_modalities. Ces propriétés documentées ne sont pas garanties pour chaque modèle; le contrat peut ajouter des propriétés futures.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/testdata/model-parameters.json",
+      "line": 361
+    }
+  },
+  {
+    "id": "parameters-raw-supports-vision",
+    "group": "Document de paramètres · champs supplémentaires",
+    "label": "Document raw · supports vision",
+    "path": "supports_vision",
+    "type": "boolean",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Datasheet brute du feed de paramètres; valeur présente dans l’union observée du contrat de test, non normalisée par ModelCapabilities.",
+    "write": "Document synchronisé tel quel; aucune édition générique de cette propriété établie.",
+    "note": "Indicateur raw observé, non déclaré dans ModelCapabilities. Ces propriétés documentées ne sont pas garanties pour chaque modèle; le contrat peut ajouter des propriétés futures.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/testdata/model-parameters.json",
+      "line": 373
+    }
+  },
+  {
+    "id": "parameters-raw-supports-pdf-input",
+    "group": "Document de paramètres · champs supplémentaires",
+    "label": "Document raw · supports pdf input",
+    "path": "supports_pdf_input",
+    "type": "boolean",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Datasheet brute du feed de paramètres; valeur présente dans l’union observée du contrat de test, non normalisée par ModelCapabilities.",
+    "write": "Document synchronisé tel quel; aucune édition générique de cette propriété établie.",
+    "note": "Indicateur raw observé, non déclaré dans ModelCapabilities. Ces propriétés documentées ne sont pas garanties pour chaque modèle; le contrat peut ajouter des propriétés futures.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/testdata/model-parameters.json",
+      "line": 367
+    }
+  },
+  {
+    "id": "parameters-raw-supports-image-input",
+    "group": "Document de paramètres · champs supplémentaires",
+    "label": "Document raw · supports image input",
+    "path": "supports_image_input",
+    "type": "JSON · forme non vérifiée dans ce relevé",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Datasheet brute du feed de paramètres; valeur présente dans l’union observée du contrat de test, non normalisée par ModelCapabilities.",
+    "write": "Document synchronisé tel quel; aucune édition générique de cette propriété établie.",
+    "note": "Indicateur raw observé, non déclaré dans ModelCapabilities. Ces propriétés documentées ne sont pas garanties pour chaque modèle; le contrat peut ajouter des propriétés futures.",
+    "source": {
+      "path": "registry:docs/design/model-card-bifrost-contract.md",
+      "line": 104
+    }
+  },
+  {
+    "id": "parameters-raw-supports-audio-input",
+    "group": "Document de paramètres · champs supplémentaires",
+    "label": "Document raw · supports audio input",
+    "path": "supports_audio_input",
+    "type": "JSON · forme non vérifiée dans ce relevé",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Datasheet brute du feed de paramètres; valeur présente dans l’union observée du contrat de test, non normalisée par ModelCapabilities.",
+    "write": "Document synchronisé tel quel; aucune édition générique de cette propriété établie.",
+    "note": "Indicateur raw observé, non déclaré dans ModelCapabilities. Ces propriétés documentées ne sont pas garanties pour chaque modèle; le contrat peut ajouter des propriétés futures.",
+    "source": {
+      "path": "registry:docs/design/model-card-bifrost-contract.md",
+      "line": 104
+    }
+  },
+  {
+    "id": "parameters-raw-supports-audio-output",
+    "group": "Document de paramètres · champs supplémentaires",
+    "label": "Document raw · supports audio output",
+    "path": "supports_audio_output",
+    "type": "JSON · forme non vérifiée dans ce relevé",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Datasheet brute du feed de paramètres; valeur présente dans l’union observée du contrat de test, non normalisée par ModelCapabilities.",
+    "write": "Document synchronisé tel quel; aucune édition générique de cette propriété établie.",
+    "note": "Indicateur raw observé, non déclaré dans ModelCapabilities. Ces propriétés documentées ne sont pas garanties pour chaque modèle; le contrat peut ajouter des propriétés futures.",
+    "source": {
+      "path": "registry:docs/design/model-card-bifrost-contract.md",
+      "line": 104
+    }
+  },
+  {
+    "id": "parameters-raw-supports-video-input",
+    "group": "Document de paramètres · champs supplémentaires",
+    "label": "Document raw · supports video input",
+    "path": "supports_video_input",
+    "type": "JSON · forme non vérifiée dans ce relevé",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Datasheet brute du feed de paramètres; valeur présente dans l’union observée du contrat de test, non normalisée par ModelCapabilities.",
+    "write": "Document synchronisé tel quel; aucune édition générique de cette propriété établie.",
+    "note": "Indicateur raw observé, non déclaré dans ModelCapabilities. Ces propriétés documentées ne sont pas garanties pour chaque modèle; le contrat peut ajouter des propriétés futures.",
+    "source": {
+      "path": "registry:docs/design/model-card-bifrost-contract.md",
+      "line": 104
+    }
+  },
+  {
+    "id": "parameters-raw-supports-native-structured-output",
+    "group": "Document de paramètres · champs supplémentaires",
+    "label": "Document raw · supports native structured output",
+    "path": "supports_native_structured_output",
+    "type": "JSON · forme non vérifiée dans ce relevé",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Datasheet brute du feed de paramètres; valeur présente dans l’union observée du contrat de test, non normalisée par ModelCapabilities.",
+    "write": "Document synchronisé tel quel; aucune édition générique de cette propriété établie.",
+    "note": "Indicateur raw observé, non déclaré dans ModelCapabilities. Ces propriétés documentées ne sont pas garanties pour chaque modèle; le contrat peut ajouter des propriétés futures.",
+    "source": {
+      "path": "registry:docs/design/model-card-bifrost-contract.md",
+      "line": 104
+    }
+  },
+  {
+    "id": "parameters-raw-supports-native-streaming",
+    "group": "Document de paramètres · champs supplémentaires",
+    "label": "Document raw · supports native streaming",
+    "path": "supports_native_streaming",
+    "type": "boolean",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Datasheet brute du feed de paramètres; valeur présente dans l’union observée du contrat de test, non normalisée par ModelCapabilities.",
+    "write": "Document synchronisé tel quel; aucune édition générique de cette propriété établie.",
+    "note": "Indicateur raw observé, non déclaré dans ModelCapabilities. Ces propriétés documentées ne sont pas garanties pour chaque modèle; le contrat peut ajouter des propriétés futures.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/testdata/model-parameters.json",
+      "line": 365
+    }
+  },
+  {
+    "id": "parameters-raw-default-reasoning-effort",
+    "group": "Document de paramètres · champs supplémentaires",
+    "label": "Document raw · default reasoning effort",
+    "path": "default_reasoning_effort",
+    "type": "JSON · forme non vérifiée dans ce relevé",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Datasheet brute du feed de paramètres; valeur présente dans l’union observée du contrat de test, non normalisée par ModelCapabilities.",
+    "write": "Document synchronisé tel quel; aucune édition générique de cette propriété établie.",
+    "note": "Valeur raw observée; distinct de reasoning_effort_levels et reasoning_effort_renames. Ces propriétés documentées ne sont pas garanties pour chaque modèle; le contrat peut ajouter des propriétés futures.",
+    "source": {
+      "path": "registry:docs/design/model-card-bifrost-contract.md",
+      "line": 104
+    }
+  },
+  {
+    "id": "parameters-raw-max-tokens",
+    "group": "Document de paramètres · champs supplémentaires",
+    "label": "Document raw · max tokens",
+    "path": "max_tokens",
+    "type": "integer",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Datasheet brute du feed de paramètres; valeur présente dans l’union observée du contrat de test, non normalisée par ModelCapabilities.",
+    "write": "Document synchronisé tel quel; aucune édition générique de cette propriété établie.",
+    "note": "Limite raw distincte de max_output_tokens. Ces propriétés documentées ne sont pas garanties pour chaque modèle; le contrat peut ajouter des propriétés futures.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/testdata/model-parameters.json",
+      "line": 10
+    }
+  },
+  {
+    "id": "parameters-raw-deprecation-date",
+    "group": "Document de paramètres · champs supplémentaires",
+    "label": "Document raw · deprecation date",
+    "path": "deprecation_date",
+    "type": "string (date)",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Datasheet brute du feed de paramètres; valeur présente dans l’union observée du contrat de test, non normalisée par ModelCapabilities.",
+    "write": "Document synchronisé tel quel; aucune édition générique de cette propriété établie.",
+    "note": "Date raw; distincte de is_deprecated. Ces propriétés documentées ne sont pas garanties pour chaque modèle; le contrat peut ajouter des propriétés futures.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/testdata/model-parameters.json",
+      "line": 512
+    }
+  },
+  {
+    "id": "parameters-raw-source",
+    "group": "Document de paramètres · champs supplémentaires",
+    "label": "Document raw · source",
+    "path": "source",
+    "type": "JSON · forme non vérifiée dans ce relevé",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Datasheet brute du feed de paramètres; valeur présente dans l’union observée du contrat de test, non normalisée par ModelCapabilities.",
+    "write": "Document synchronisé tel quel; aucune édition générique de cette propriété établie.",
+    "note": "Provenance raw déclarative; sens et vocabulaire non normalisés dans ModelCapabilities. Ces propriétés documentées ne sont pas garanties pour chaque modèle; le contrat peut ajouter des propriétés futures.",
+    "source": {
+      "path": "registry:docs/design/model-card-bifrost-contract.md",
+      "line": 104
+    }
+  },
+  {
+    "id": "parameters-raw-metadata",
+    "group": "Document de paramètres · champs supplémentaires",
+    "label": "Document raw · metadata",
+    "path": "metadata",
+    "type": "JSON · forme non vérifiée dans ce relevé",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Datasheet brute du feed de paramètres; valeur présente dans l’union observée du contrat de test, non normalisée par ModelCapabilities.",
+    "write": "Document synchronisé tel quel; aucune édition générique de cette propriété établie.",
+    "note": "Objet raw; sous-clés extensibles, ne pas indexer individuellement. Ces propriétés documentées ne sont pas garanties pour chaque modèle; le contrat peut ajouter des propriétés futures.",
+    "source": {
+      "path": "registry:docs/design/model-card-bifrost-contract.md",
+      "line": 104
+    }
+  },
+  {
+    "id": "parameters-raw-rpm",
+    "group": "Document de paramètres · champs supplémentaires",
+    "label": "Document raw · rpm",
+    "path": "rpm",
+    "type": "JSON · forme non vérifiée dans ce relevé",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Datasheet brute du feed de paramètres; valeur présente dans l’union observée du contrat de test, non normalisée par ModelCapabilities.",
+    "write": "Document synchronisé tel quel; aucune édition générique de cette propriété établie.",
+    "note": "Limite de requêtes par minute raw. Ces propriétés documentées ne sont pas garanties pour chaque modèle; le contrat peut ajouter des propriétés futures.",
+    "source": {
+      "path": "registry:docs/design/model-card-bifrost-contract.md",
+      "line": 104
+    }
+  },
+  {
+    "id": "parameters-raw-tpm",
+    "group": "Document de paramètres · champs supplémentaires",
+    "label": "Document raw · tpm",
+    "path": "tpm",
+    "type": "JSON · forme non vérifiée dans ce relevé",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Datasheet brute du feed de paramètres; valeur présente dans l’union observée du contrat de test, non normalisée par ModelCapabilities.",
+    "write": "Document synchronisé tel quel; aucune édition générique de cette propriété établie.",
+    "note": "Limite de tokens par minute raw. Ces propriétés documentées ne sont pas garanties pour chaque modèle; le contrat peut ajouter des propriétés futures.",
+    "source": {
+      "path": "registry:docs/design/model-card-bifrost-contract.md",
+      "line": 104
+    }
+  },
+  {
+    "id": "parameters-raw-wildcard",
+    "group": "Document de paramètres · champs supplémentaires",
+    "label": "Document raw · autres propriétés",
+    "path": "*",
+    "type": "raw JSON value",
+    "origin": "datasheet",
+    "scope": "access",
+    "read": "Champs non déclarés préservés dans la valeur JSON brute de la datasheet; les clés connues listées séparément ne couvrent pas les champs futurs.",
+    "write": "Synchronisation du document brut; aucune édition générique de propriété inconnue établie.",
+    "note": "Wildcard global pour le document extensible; ne pas développer en lignes par clé et ne pas confondre avec les champs interprétés de ModelCapabilities.",
+    "source": {
+      "path": "framework/modelcatalog/datasheet/params.go",
+      "line": 178
+    }
+  }
+]
