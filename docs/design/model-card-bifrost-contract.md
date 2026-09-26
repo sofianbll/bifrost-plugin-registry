@@ -54,9 +54,20 @@ Ces décisions décrivent la cible produit, pas une implémentation livrée. La 
 - Conserver les deux présentations d'un même brouillon : **Basic**, étapes Models → Groups → Review, et **Expert**, composition avec aperçu permanent. Le passage entre modes conserve les choix.
 - Sur mobile, utiliser **Basic uniquement**. La préférence Expert du desktop peut être conservée, mais le contrôle doit représenter le mode effectivement affiché.
 - Garder le sous-menu **Accesses** sur chaque carte pour les réglages d'accès avancés.
-- Placer un petit toggle **Expert** dans le header, près du bouton de thème : vert avec texte blanc lorsque le mode Expert est actif, éteint pour Basic.
+- Placer un petit interrupteur **Expert** dans le header, près du bouton de thème : piste verte et curseur blanc circulaire en mode Expert, piste grise en mode Basic. La précision visuelle du 27 septembre remplace le bouton textuel initial.
 
 Ces choix ont été récupérés dans les messages utilisateur de la session Kimi ; ils remplacent l'attente d'un choix exclusif entre A et B. Ils valident cette direction UX, pas les autres écrans ni une intégration native. Le [bilan de reprise](../reviews/2026-09-26-project-state.md) distingue le prototype récupéré et ses vérifications de l'implémentation produit.
+
+### Présentation du catalogue — retours visuels du 27 septembre
+
+- Reprendre l’organisation des captures Vercel AI Gateway fournies par Sofian pour la vue liste : recherche, catégories de modèles, menus fournisseurs avec recherche et logos, capacités, filtres complémentaires et tri ; colonnes alignées pour comparer les modèles.
+- Afficher les fournisseurs avec leurs logos et les capacités avec des icônes explicites. Un survol ou focus ouvre un tableau lisible de détails, notamment pour le raisonnement. Les données documentaires et leur provenance restent distinctes d’une validation en exécution.
+- Aérer les cartes : nom et créateur en premier, description et informations utiles ensuite, sélection clairement visible. Les identifiants et réglages avancés se consultent à la demande. Le nombre de colonnes dépend de l’espace réellement disponible, y compris à côté du brouillon Expert.
+- Les captures sont une référence de présentation, pas une source de propriétés des modèles. Prix, latence, confidentialité et dates absents des fixtures restent inconnus ; ne pas transformer une absence en valeur nulle, gratuité ou réponse négative.
+
+La ressource **Don’t Make Me Think** fournie par Sofian guide cette itération : action de sélection visible avec le modèle, hiérarchie lisible au balayage, moins de texte répétitif et détails avancés accessibles à la demande. Les contrôles de prototype ne doivent pas concurrencer le parcours principal.
+
+Cette itération concerne le prototype local uniquement. L’appréciation visuelle de Sofian et le raccordement aux données réelles restent distincts des vérifications du prototype.
 
 ## Périmètre vérifié
 

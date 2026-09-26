@@ -7,6 +7,7 @@ import { toast, Toaster } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -76,29 +77,18 @@ export function App() {
       </SidebarMenu></SidebarGroupContent></SidebarGroup></SidebarContent>
     </Sidebar>
     <div className="flex h-dvh w-full min-w-0 flex-col">
-      <header className="flex h-13 w-full shrink-0 items-center gap-2 px-3 pt-1 md:pr-3 md:pl-0">
+      <header className="flex h-13 w-full min-w-0 shrink-0 items-center gap-2 px-3 pt-1 md:pr-3 md:pl-0">
         <SidebarTrigger className="md:hidden" />
-        <h1 className="min-w-0 flex-1 truncate text-sm font-medium text-muted-foreground">{screen === "create" ? <><button onClick={() => setScreen("list")} className="text-muted-foreground hover:text-foreground">Virtual keys</button><span className="mx-2 text-muted-foreground/50">/</span>Create key</> : "Virtual keys"}</h1>
-        <Tooltip><TooltipTrigger asChild><button type="button" aria-label="About this prototype" className="inline-flex rounded-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><CircleHelp className="size-4" /></button></TooltipTrigger><TooltipContent>Prototype of the create-key journey. Use the Expert toggle in the header to switch between Basic (guided steps) and Expert (live tray) modes. Expert mode is available on larger screens.</TooltipContent></Tooltip>
-        <div className="ml-auto flex items-center gap-2">
-          <Badge variant="warning" className="text-[10px]">Prototype · synthetic fixture · no gateway</Badge>
+        <h1 className="hidden min-w-0 flex-1 truncate text-sm font-medium text-muted-foreground sm:block">{screen === "create" ? <><button onClick={() => setScreen("list")} className="text-muted-foreground hover:text-foreground">Virtual keys</button><span className="mx-2 text-muted-foreground/50">/</span>Create key</> : "Virtual keys"}</h1>
+        <Tooltip><TooltipTrigger asChild><button type="button" aria-label="About this prototype" className="inline-flex shrink-0 rounded-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><CircleHelp className="size-4" /></button></TooltipTrigger><TooltipContent>Prototype with synthetic fixtures, no gateway or real keys. Use the Expert toggle in the header to switch between Basic (guided steps) and Expert (live tray) modes. Expert mode is available on larger screens.</TooltipContent></Tooltip>
+        <div className="ml-auto flex shrink-0 items-center gap-2">
+          <Badge variant="warning" className="shrink-0 text-[10px]">Prototype<span className="hidden sm:inline"> · synthetic fixture · no gateway</span></Badge>
           <Tooltip>
             <TooltipTrigger asChild>
-              {isMobile ? (
-                <span className="inline-block">
-                  <Button variant={effectiveMode === "expert" ? "default" : "outline"} size="sm" className="h-7 px-2.5 text-xs" aria-pressed={effectiveMode === "expert"} disabled>Expert</Button>
-                </span>
-              ) : (
-                <Button
-                  variant={mode === "expert" ? "default" : "outline"}
-                  size="sm"
-                  className="h-7 px-2.5 text-xs"
-                  aria-pressed={mode === "expert"}
-                  onClick={() => setMode(mode === "expert" ? "basic" : "expert")}
-                >
-                  Expert
-                </Button>
-              )}
+              <span className="inline-flex items-center gap-2">
+                <label htmlFor="expert-mode" className="text-xs font-medium">Expert</label>
+                <Switch id="expert-mode" size="default" checked={effectiveMode === "expert"} disabled={isMobile} onCheckedChange={checked => setMode(checked ? "expert" : "basic")} className="rounded-full data-[state=checked]:bg-chart-success data-[state=unchecked]:bg-muted-foreground/50 [&>span]:rounded-full [&>span]:bg-white dark:[&>span]:bg-white" />
+              </span>
             </TooltipTrigger>
             <TooltipContent>{isMobile ? "Expert mode is available on larger screens" : mode === "expert" ? "Expert mode — live composition tray. Switch to Basic" : "Basic mode — guided steps. Switch to Expert"}</TooltipContent>
           </Tooltip>
@@ -106,7 +96,7 @@ export function App() {
         </div>
       </header>
       <div className="custom-scrollbar content-container mx-0 min-h-0 min-w-0 flex-1 overflow-auto border bg-background md:mr-3 md:mb-3 md:rounded-md md:px-10">
-        <main className="mx-auto max-w-[1440px] px-4 py-6 md:px-0 md:py-8">
+        <main className="mx-auto max-w-[1440px] px-4 py-6 max-sm:[&_button:not([role=checkbox])]:min-h-11 max-sm:[&_button:not([role=checkbox])]:min-w-11 md:px-0 md:py-8">
           {screen === "list" && <div className="mx-auto max-w-4xl space-y-5 pb-24">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>

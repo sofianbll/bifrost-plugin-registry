@@ -8,10 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import ModelBrowser from "../ModelBrowser";
-import { defaultViewOptions } from "../ViewOptions";
 import { emptyDraft, isSelected, reconcileSelection, resolveDraft, sameDraft, toggleAccess, toggleGroup, toggleModel, type AccessResolution, type ProtoAccess, type ProtoModel } from "./state";
-import { ComposerModelResults, GroupsPanel } from "./cards";
+import { GroupsPanel } from "./cards";
+import { ComposerBrowser } from "./browser";
 import { AccessDetailDialog, DemoBar, type ComposerProps } from "./shared";
 import { DraftSummary, PlannedExposures } from "./summary";
 
@@ -57,16 +56,11 @@ export default function VariantA({ draft, setDraft, models, groups, lateSimulate
 
     {step === 0 && <section className="space-y-4">
       <p className="text-sm text-muted-foreground">Start with model cards. Selecting a card activates its configured and authorized accesses by default; refine them per key in the Accesses menu. Selections survive tab, filter and view changes.</p>
-      <ModelBrowser
+      <ComposerBrowser
         models={models}
         selected={selectedIds}
-        onToggle={id => { const model = models.find(m => m.id === id); if (model) callbacks.onToggleModel(model); }}
         onSetSelected={ids => setDraft(reconcileSelection(draft, ids, groups, models))}
-        preferences={defaultViewOptions}
-        label="Key models"
-        providerFilterLabel="Serving provider"
-        selectionNote="The provider filter only narrows the display. Selecting a card activates its configured accesses by default; refine them in each card's Accesses menu."
-        renderResults={(filtered, view, groupBy) => <ComposerModelResults filtered={filtered as ProtoModel[]} view={view} groupBy={groupBy} draft={draft} groups={groups} resolved={resolvedMap} callbacks={callbacks} />}
+        draft={draft} groups={groups} resolved={resolvedMap} callbacks={callbacks}
       />
     </section>}
 

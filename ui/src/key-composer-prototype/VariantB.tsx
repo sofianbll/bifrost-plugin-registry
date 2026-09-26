@@ -9,11 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import ModelBrowser from "../ModelBrowser";
-import { defaultViewOptions } from "../ViewOptions";
 import { BrandIcon } from "../BrandIcon";
 import { emptyDraft, isSelected, reconcileSelection, resolveDraft, sameDraft, toggleAccess, toggleGroup, toggleModel, type AccessResolution, type ModelResolution, type ProtoAccess, type ProtoModel } from "./state";
-import { ComposerModelResults, GroupsPanel } from "./cards";
+import { GroupsPanel } from "./cards";
+import { ComposerBrowser } from "./browser";
 import { AccessDetailDialog, AccessMenu, DemoBar, type ComposerProps } from "./shared";
 import { PlannedExposures } from "./summary";
 import { WitnessNote } from "./shared";
@@ -70,7 +69,7 @@ export default function VariantB({ draft, setDraft, models, groups, lateSimulate
       <Button variant="outline" onClick={requestCancel}>Discard draft</Button>
     </div>
   </div>;
-  return <div className="grid min-w-0 gap-6 pb-24 xl:grid-cols-[minmax(0,1fr)_minmax(320px,380px)]">
+  return <div className="grid min-w-0 gap-4 pb-24 xl:grid-cols-[minmax(0,1fr)_300px]">
     <div className="min-w-0 space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
@@ -88,16 +87,11 @@ export default function VariantB({ draft, setDraft, models, groups, lateSimulate
         <Button variant="outline" size="sm" className="ml-auto xl:hidden" onClick={() => setTrayOpen(true)}>Draft ({selectedIds.length + resolved.filter(r => r.state === "excluded").length})</Button>
       </div>
       {tab === "models"
-        ? <ModelBrowser
+        ? <ComposerBrowser
             models={models}
             selected={selectedIds}
-            onToggle={id => { const model = models.find(m => m.id === id); if (model) callbacks.onToggleModel(model); }}
             onSetSelected={ids => setDraft(reconcileSelection(draft, ids, groups, models))}
-            preferences={defaultViewOptions}
-            label="Key models"
-            providerFilterLabel="Serving provider"
-            selectionNote="The provider filter only narrows the display. Selecting a card activates its configured accesses by default; refine them in each card's Accesses menu."
-            renderResults={(filtered, view, groupBy) => <ComposerModelResults filtered={filtered as ProtoModel[]} view={view} groupBy={groupBy} draft={draft} groups={groups} resolved={resolvedMap} callbacks={callbacks} />}
+            draft={draft} groups={groups} resolved={resolvedMap} callbacks={callbacks}
           />
         : <GroupsPanel draft={draft} groups={groups} models={models} onToggleGroup={id => setDraft(toggleGroup(draft, id))} />}
     </div>

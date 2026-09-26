@@ -1,6 +1,8 @@
 // Scratch logic check for the key-composer prototype state engine.
 // Run: npm --prefix ui run check:key-composer (from repo root)
 import { emptyDraft, fixtureGroups, fixtureModels, isSelected, lateAccess, plannedExposures, reconcileSelection, resolveDraft, toggleAccess, toggleGroup, toggleModel, witnessDraft, type ProtoModel } from "./state";
+import { emptyModelFilters } from "../demo";
+import { catalogResults } from "./catalog";
 
 let failures = 0;
 const check = (name: string, cond: boolean, detail = "") => { console.log(`${cond ? "PASS" : "FAIL"} ${name}${detail ? " — " + detail : ""}`); if (!cond) failures++; };
@@ -112,6 +114,18 @@ const accessState = (draft: any, modelId: string, accessId: string, ms = models(
   d = toggleAccess(d, resolveDraft(d, groups, ms).find(r => r.model.id === "gpt-5")!.accesses.find(a => a.access.id === "azure/gpt-5")!);
   const ids2 = plannedExposures(d, groups, ms);
   check("Excluded access dropped from plan", ids2.includes("openai/gpt-5") && !ids2.includes("azure/gpt-5"));
+}
+
+// Catalog controls only change visibility/order; they never mutate access selection.
+{
+  const ms = models();
+  const before = JSON.stringify(ms);
+  check("Retrieval includes embedding model", catalogResults(ms, emptyModelFilters, "Retrieval", "all", [], "name").some(m => m.id === "text-embedding-3-large"));
+  check("Video category empty when fixture has no video", catalogResults(ms, emptyModelFilters, "Video", "all", [], "name").length === 0);
+  const azure = catalogResults(ms, { ...emptyModelFilters, provider: "azure" }, "All", "all", [], "name");
+  check("Provider filter narrows display without changing accesses", azure.length === 1 && azure[0].id === "gpt-5" && azure[0].accesses.length === 2 && JSON.stringify(ms) === before);
+  const byAccesses = catalogResults(ms, emptyModelFilters, "All", "all", [], "accesses");
+  check("Access count sort uses known fixture counts", byAccesses[0].accesses.length >= byAccesses.at(-1)!.accesses.length);
 }
 
 console.log(failures ? `\n${failures} FAILURES` : "\nAll scenario checks passed.");

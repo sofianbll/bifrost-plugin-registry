@@ -16,7 +16,7 @@ The September 25 audit in [#16](https://github.com/sofianbll/bifrost-plugin-regi
 
 The September 25–26 model-card work explores reuse of Models.dev inside Registry, a single card with distinct provider accesses, native property application, per-group and per-key access selections, and Bifrost-native routing limited to each key's selected accesses. The [product decisions](docs/design/product-direction.md#recadrage-des-fiches--décisions-du-26-septembre-2026-implémentation-à-qualifier), [native model-card contract](docs/design/model-card-bifrost-contract.md), [Models.dev research](docs/design/models-dev-reuse-research.md) and [project reconciliation](docs/reviews/2026-09-26-project-state.md) separate confirmed direction, existing code, experiments and gaps. This work has no new release or production qualification.
 
-For the key-creation UX, Sofian selected both Basic and Expert variants; mobile uses Basic only. The Accesses menu and a compact Expert toggle beside dark mode, green with white text when active, are approved design choices. Kimi's last reported work was a clickable UI mockup stopped by quota; application integration and final validation are not established.
+For the key-creation UX, Sofian selected both Basic and Expert variants; mobile uses Basic only. The Accesses menu and a compact Expert switch beside dark mode, with a round white thumb and green active track, are approved design choices. Kimi's last reported work was a clickable UI mockup stopped by quota; application integration and final validation are not established.
 
 ## Delivered
 

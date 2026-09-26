@@ -9,7 +9,7 @@ npm --prefix ui run prototype:key-composer
 ```
 
 Open <http://127.0.0.1:8772/key-composer-prototype.html>. Use the compact
-Expert toggle in the header, next to the theme control, to switch modes; the
+Expert switch in the header, next to the theme control, to switch modes; the
 choice is kept in the `?mode=basic|expert` URL parameter and survives reloads. The older
 `?variant=A|B` parameter is still accepted as a fallback (`A` → basic, `B` →
 expert).
@@ -24,6 +24,14 @@ disabled and the journey always uses Basic mode. Returning to a larger screen
 restores the chosen mode and the current draft.
 
 Run the state scenario check with `npm --prefix ui run check:key-composer`.
+
+The September 27 visual iteration adds a round Expert switch, a catalog toolbar
+with category/provider/capability filters, provider logos, and a comparison table.
+Cards use the available container width and disclose technical identity details.
+Capability tooltips distinguish fixture declarations from execution evidence.
+Unavailable price, latency, release and privacy data remain unknown; unsupported
+filters and sorts do not invent these values. Demo controls and advanced ID
+format settings are expandable. The production catalog components are unchanged.
 
 Both modes implement the September 26 selection rules against the synthetic
 fixture: configured accesses activate by default at selection time; a later

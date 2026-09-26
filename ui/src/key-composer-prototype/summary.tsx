@@ -11,13 +11,14 @@ const formats: KeyDraft["naming"][] = ["model", "provider/model", "both"];
 export function PlannedExposures({ draft, groups, models, onNaming }: { draft: KeyDraft; groups: ProtoGroup[]; models: ProtoModel[]; onNaming: (naming: KeyDraft["naming"]) => void }) {
   const planned = plannedExposures(draft, groups, models);
   return <div className="space-y-3 rounded-sm border border-primary/30 bg-primary/5 p-4">
-    <div className="flex flex-wrap items-center justify-between gap-2">
-      <h3 className="text-sm font-semibold">Planned for this draft — {planned.length} ID{planned.length === 1 ? "" : "s"}</h3>
-      <div className="flex flex-wrap gap-1" role="group" aria-label="Exposed name format">
+    <h3 className="text-sm font-semibold">Planned for this draft — {planned.length} ID{planned.length === 1 ? "" : "s"}</h3>
+    <p className="text-xs text-muted-foreground">What this key would expose after creation. <strong>Not published, not verified</strong> — routing stays native Bifrost, restricted to the accesses retained for this key. This demo performs no requests.</p>
+    <details className="text-xs">
+      <summary className="cursor-pointer font-medium">Exposed ID format: {draft.naming} · change</summary>
+      <div className="mt-2 flex flex-wrap gap-1" role="group" aria-label="Exposed name format">
         {formats.map(format => <Button key={format} size="sm" variant={draft.naming === format ? "default" : "outline"} aria-pressed={draft.naming === format} onClick={() => onNaming(format)}>{format}</Button>)}
       </div>
-    </div>
-    <p className="text-xs text-muted-foreground">What this key would expose after creation. <strong>Not published, not verified</strong> — routing stays native Bifrost, restricted to the accesses retained for this key. This demo performs no requests.</p>
+    </details>
     <div className="max-h-44 space-y-1 overflow-auto">
       {planned.map(id => <div key={id} className="break-all rounded-sm border bg-background px-2.5 py-1.5 font-mono text-[11px]">{id}</div>)}
       {!planned.length && <p className="rounded-sm border border-dashed p-4 text-center text-xs text-muted-foreground">No active access: this key would see no models.</p>}

@@ -1,6 +1,6 @@
 // PROTOTYPE — shared primitives for the key-composer modes.
 // Layouts live in VariantA.tsx / VariantB.tsx; these are data-level fragments.
-import { Ban, Eye, Info, Plus, RotateCcw } from "lucide-react";
+import { Ban, Info, Plus, RotateCcw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -96,22 +96,21 @@ export function WitnessNote({ groups, models }: { groups: ProtoGroup[]; models: 
   const witness = resolveDraft(witnessDraft, groups, models);
   const gpt5 = witness.find(r => r.model.id === "gpt-5");
   if (!gpt5) return null;
-  return <div className="rounded-sm border bg-muted/40 p-3 text-xs text-muted-foreground">
-    <p className="font-medium text-foreground">Witness key (inherits Code) — simulated, not editable here</p>
-    <p className="mt-1">Its selection is unaffected by this draft: {gpt5.accesses.filter(a => a.state === "active").map(a => a.access.id).join(", ") || "no active accesses"} remain active. Group definitions are unchanged too.</p>
-  </div>;
+  return <details className="rounded-sm border bg-muted/40 p-3 text-xs text-muted-foreground">
+    <summary className="cursor-pointer font-medium text-foreground">Witness key isolation · synthetic</summary>
+    <p className="mt-2">Witness key (inherits Code) is not editable here. Its selection is unaffected by this draft: {gpt5.accesses.filter(a => a.state === "active").map(a => a.access.id).join(", ") || "no active accesses"} remain active. Group definitions are unchanged too.</p>
+  </details>;
 }
 
 export function DemoBar({ lateSimulated, onSimulateLate, onReset }: { lateSimulated: boolean; onSimulateLate: () => void; onReset: () => void }) {
-  return <div className="flex flex-wrap items-center gap-2 rounded-sm border border-dashed border-primary/40 bg-primary/5 px-3 py-2 text-xs text-muted-foreground">
-    <Eye className="size-3.5 shrink-0" />
-    <span className="font-medium text-foreground">Synthetic fixture</span>
-    <span>No gateway, no real keys; mutations stay in memory.</span>
-    <span className="ml-auto flex flex-wrap gap-2">
+  return <details className="rounded-sm border border-dashed px-3 py-2 text-xs text-muted-foreground">
+    <summary className="cursor-pointer font-medium text-foreground">Demo controls · synthetic fixture{lateSimulated ? " · Azure access added" : ""}</summary>
+    <p className="mt-2">No gateway, no real keys; mutations stay in memory.</p>
+    <div className="mt-2 flex flex-wrap gap-2">
       <Button size="sm" variant="outline" className="h-7" disabled={lateSimulated} onClick={onSimulateLate}>{lateSimulated ? "Azure access added to Kimi K2" : "Simulate: new Azure access appears on Kimi K2"}</Button>
       <Button size="sm" variant="ghost" className="h-7" onClick={onReset}>Reset demo</Button>
-    </span>
-  </div>;
+    </div>
+  </details>;
 }
 
 export type ComposerProps = {

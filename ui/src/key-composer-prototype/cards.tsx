@@ -1,17 +1,29 @@
-// PROTOTYPE — model selection cards rendered inside the real ModelBrowser
-// (search, filters, grouping, select-visible and out-of-filter preservation
-// come from ModelBrowser; only the result rendering is prototype-specific).
-import { Check, RotateCcw } from "lucide-react";
+// PROTOTYPE — card and table results for the synthetic key composer.
+import { AudioLines, BrainCircuit, Check, Code2, Eye, Image, RotateCcw, Sparkles, Wrench } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { BrandIcon } from "../BrandIcon";
 import type { ViewOptions } from "../ViewOptions";
 import { isSelected, type AccessResolution, type KeyDraft, type ModelResolution, type ProtoAccess, type ProtoGroup, type ProtoModel } from "./state";
 import { AccessMenu } from "./shared";
 
-const sizeClass = { small: "min-[560px]:grid-cols-2 xl:grid-cols-4", medium: "min-[560px]:grid-cols-2 xl:grid-cols-3", large: "lg:grid-cols-2" };
+const sizeClass = { small: "[grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr))]", medium: "[grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr))]", large: "[grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr))]" };
+
+const capabilityIcons: Record<string, typeof BrainCircuit> = { Reasoning: BrainCircuit, Vision: Eye, "Tool calling": Wrench, Tools: Wrench, "Image generation": Image, Embeddings: Sparkles, Streaming: AudioLines, "Structured output": Code2, Chat: Sparkles };
+function Capabilities({ model }: { model: ProtoModel }) {
+  const declared = Object.entries(model.capabilities).filter(([, state]) => state === "Declared");
+  const unknown = Object.entries(model.capabilities).filter(([, state]) => state === "Unknown");
+  return <div className="flex flex-wrap items-center gap-1" aria-label="Declared capabilities">
+    {declared.map(([name]) => { const Icon = capabilityIcons[name] || Sparkles; return <Tooltip key={name}><TooltipTrigger asChild><button type="button" aria-label={`${name}: declared in synthetic fixture; not verified by execution`} className="inline-flex size-7 items-center justify-center rounded-sm border bg-background text-foreground/75 hover:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><Icon className="size-3.5" /></button></TooltipTrigger><TooltipContent className="w-72 max-w-[calc(100vw-2rem)] border bg-popover p-3 text-popover-foreground shadow-md"><p className="mb-2 text-sm font-semibold">{name}</p><table className="w-full text-left text-xs"><tbody>{[["Status", "Declared"], ["Source", "Synthetic model fixture"], ["Provider execution", "Not verified"], ...(name === "Reasoning" ? [["Supported efforts", "Unknown"], ["Default effort", "Unknown"], ["Required", "Unknown"]] : [])].map(([label, value]) => <tr key={label} className="border-b last:border-0"><th scope="row" className="py-2 pr-3 font-medium">{label}</th><td className="py-2 text-muted-foreground">{value}</td></tr>)}</tbody></table></TooltipContent></Tooltip>; })}
+    {unknown.length > 0 && <Tooltip><TooltipTrigger asChild><button type="button" aria-label={`${unknown.length} capabilities unknown: ${unknown.map(([name]) => name).join(", ")}`} className="rounded-sm border border-dashed px-1.5 text-xs text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">+{unknown.length} ?</button></TooltipTrigger><TooltipContent className="max-w-64">Unknown: {unknown.map(([name]) => name).join(", ")}. No negative claim or provider test.</TooltipContent></Tooltip>}
+  </div>;
+}
+
+const modalities = (items: string[]) => items.length ? items.join(", ") : "Unknown";
+const accessResolution = (model: ProtoModel, resolution?: ModelResolution): ModelResolution => resolution ?? { model, state: "active", groups: [], direct: false, accesses: model.accesses.map(access => ({ access, state: "off", origins: [] })) };
 
 export type CardCallbacks = {
   onToggleModel: (model: ProtoModel) => void;
@@ -33,7 +45,7 @@ function SelectButton({ model, resolution, draft, groups, onToggleModel }: { mod
   if (resolution?.state === "excluded") {
     return <Button size="sm" variant="outline" onClick={() => onToggleModel(model)}><RotateCcw className="size-3.5" />Restore</Button>;
   }
-  return <Button size="sm" variant={selected ? "secondary" : "outline"} aria-pressed={selected} aria-label={selected ? `Remove ${model.name} from this key` : `Select ${model.name} for this key`} onClick={() => onToggleModel(model)}>{selected && <Check className="size-3.5" />}{selected ? "Selected" : "Select model"}</Button>;
+  return <Button size="sm" className="h-11 sm:h-8" variant={selected ? "secondary" : "outline"} aria-pressed={selected} aria-label={selected ? `Remove ${model.name} from this key` : `Select ${model.name} for this key`} onClick={() => onToggleModel(model)}>{selected && <Check className="size-3.5" />}{selected ? "Selected" : "Select model"}</Button>;
 }
 
 export function ComposerModelResults({ filtered, view, groupBy, draft, groups, resolved, callbacks }: {
@@ -49,21 +61,23 @@ export function ComposerModelResults({ filtered, view, groupBy, draft, groups, r
   const card = (model: ProtoModel) => {
     const resolution = byId(model);
     return <Card key={model.id} className={`gap-0 py-0 transition-colors hover:border-primary/40 ${resolution?.state === "excluded" ? "border-chart-warning/50 bg-chart-warning/5" : isSelected(model.id, draft, groups) ? "border-chart-success/50 bg-chart-success/5" : ""}`}>
-      <CardContent className="space-y-2 p-3">
-        <div className="flex min-w-0 items-start gap-2.5">
+      <CardContent className="flex h-full flex-col gap-3 p-4">
+        <div className="flex min-w-0 items-start gap-3">
           <BrandIcon model={model} mode={view.logo} />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold leading-snug" title={model.name}>{model.name}</p>
-            <p className="text-xs text-muted-foreground">{model.creator} · {model.family}</p>
-            <p className="mt-0.5 break-all font-mono text-[11px] text-muted-foreground" title={`Common ID: ${model.commonId}`}>{model.commonId}</p>
+            <p className="text-base font-semibold leading-snug" title={model.name}>{model.name}</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">{model.creator} · {model.family}</p>
           </div>
         </div>
-        {view.description && <p className="line-clamp-2 text-xs leading-relaxed text-foreground/75">{model.summary}</p>}
-        {view.metadata && <div className="flex flex-wrap gap-1">{model.tasks.map(task => <Badge key={task} variant="secondary">{task}</Badge>)}<Badge variant="outline">{model.inputModalities.join(", ") || "?"} → {model.outputModalities.join(", ") || "?"}</Badge></div>}
+        {view.description && <p className="line-clamp-2 text-sm leading-relaxed text-foreground/75">{model.summary}</p>}
+        {view.metadata && <div className="grid grid-cols-2 gap-x-3 gap-y-2 border-t pt-3 text-xs"><div><p className="text-muted-foreground">Input</p><p className="font-medium">{modalities(model.inputModalities)}</p></div><div><p className="text-muted-foreground">Output</p><p className="font-medium">{modalities(model.outputModalities)}</p></div></div>}
+        {view.providers && <div className="flex items-center gap-2 text-xs text-muted-foreground"><BrandIcon model={model} mode="provider" /><span>{model.accesses.length} serving access{model.accesses.length === 1 ? "" : "es"}</span></div>}
+        {view.evidence && <Capabilities model={model} />}
         {originBadges(resolution)}
-        <div className="flex flex-wrap items-center gap-2">
+        <details className="text-xs text-muted-foreground"><summary className="w-fit cursor-pointer rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Details</summary><p className="mt-1 break-all font-mono">Common ID: {model.commonId}</p><p className="mt-1">{model.tasks.join(", ") || "Usage unknown"}</p><p className="mt-1">Cost, latency, release date: unknown</p></details>
+        <div className="mt-auto flex flex-wrap items-center gap-2 border-t pt-3">
           <SelectButton model={model} resolution={resolution} draft={draft} groups={groups} onToggleModel={callbacks.onToggleModel} />
-          <AccessMenu resolution={resolution ?? { model, state: "active", groups: [], direct: false, accesses: model.accesses.map(access => ({ access, state: "off" as const, origins: [] })) }} locked={!isSelected(model.id, draft, groups)} onToggleAccess={callbacks.onToggleAccess} onShowDetail={callbacks.onShowDetail} />
+          <AccessMenu resolution={accessResolution(model, resolution)} locked={!isSelected(model.id, draft, groups)} onToggleAccess={callbacks.onToggleAccess} onShowDetail={callbacks.onShowDetail} />
         </div>
       </CardContent>
     </Card>;
@@ -71,9 +85,14 @@ export function ComposerModelResults({ filtered, view, groupBy, draft, groups, r
   const row = (model: ProtoModel) => {
     const resolution = byId(model);
     return <TableRow key={model.id} className={resolution?.state === "excluded" ? "bg-chart-warning/10" : isSelected(model.id, draft, groups) ? "bg-chart-success/10" : ""}>
-      <TableCell><div className="flex items-center gap-2"><BrandIcon model={model} mode={view.logo} /><div><p className="text-sm font-semibold">{model.name}</p><p className="font-mono text-[11px] text-muted-foreground">{model.commonId}</p></div></div>{originBadges(resolution)}</TableCell>
-      <TableCell className="text-sm text-muted-foreground">{model.creator} · {model.family}</TableCell>
-      <TableCell><div className="flex flex-wrap items-center justify-end gap-2"><SelectButton model={model} resolution={resolution} draft={draft} groups={groups} onToggleModel={callbacks.onToggleModel} /><AccessMenu resolution={resolution ?? { model, state: "active", groups: [], direct: false, accesses: model.accesses.map(access => ({ access, state: "off" as const, origins: [] })) }} locked={!isSelected(model.id, draft, groups)} onToggleAccess={callbacks.onToggleAccess} onShowDetail={callbacks.onShowDetail} /></div></TableCell>
+      <TableCell className="sticky left-0 z-10 min-w-48 max-w-48 whitespace-normal bg-card shadow-[2px_0_4px_-2px_rgba(0,0,0,.2)]"><div className="flex items-center gap-2"><BrandIcon model={model} mode={view.logo} /><div className="min-w-0"><p className="text-sm font-semibold">{model.name}</p><p className="break-all font-mono text-[11px] text-muted-foreground">{model.commonId}</p></div></div>{originBadges(resolution)}<div className="mt-2"><SelectButton model={model} resolution={resolution} draft={draft} groups={groups} onToggleModel={callbacks.onToggleModel} /></div></TableCell>
+      <TableCell><BrandIcon model={model} mode="provider" /></TableCell>
+      <TableCell><Capabilities model={model} /></TableCell>
+      <TableCell className="min-w-36 text-xs text-muted-foreground">{modalities(model.inputModalities)}<span className="mx-1">→</span>{modalities(model.outputModalities)}</TableCell>
+      <TableCell className="text-xs text-muted-foreground">Unknown<br /><span className="whitespace-nowrap">input / output</span></TableCell>
+      <TableCell className="text-xs text-muted-foreground">Unknown</TableCell>
+      <TableCell className="text-xs text-muted-foreground">Unknown</TableCell>
+      <TableCell className="text-xs text-muted-foreground">Unknown</TableCell><TableCell className="text-xs text-muted-foreground">Unknown</TableCell><TableCell className="text-xs text-muted-foreground">Unknown</TableCell><TableCell><AccessMenu resolution={accessResolution(model, resolution)} locked={!isSelected(model.id, draft, groups)} onToggleAccess={callbacks.onToggleAccess} onShowDetail={callbacks.onShowDetail} /></TableCell>
     </TableRow>;
   };
   const grouped = new Map<string, ProtoModel[]>();
@@ -86,7 +105,7 @@ export function ComposerModelResults({ filtered, view, groupBy, draft, groups, r
     {group && <h3 className="text-base font-semibold">{group} <span className="ml-1 text-sm font-normal text-muted-foreground">{items.length}</span></h3>}
     {view.layout === "grid"
       ? <div className={`grid gap-4 ${sizeClass[view.size]}`}>{items.map(card)}</div>
-      : <div className="overflow-x-auto rounded-sm border bg-card shadow-sm"><Table><TableHeader className="bg-muted/50"><TableRow><TableHead>Model</TableHead><TableHead>Creator / series</TableHead><TableHead className="text-right">Key selection</TableHead></TableRow></TableHeader><TableBody>{items.map(row)}</TableBody></Table></div>}
+      : <div className="min-w-0 max-w-full overflow-x-auto rounded-sm border bg-card shadow-sm"><Table className="min-w-[980px]"><TableHeader className="bg-muted/50"><TableRow><TableHead className="sticky left-0 z-20 bg-muted">Model · select</TableHead><TableHead>Providers</TableHead><TableHead>Capabilities</TableHead><TableHead>Input → output</TableHead><TableHead>Cost</TableHead><TableHead>Latency</TableHead><TableHead>ZDR</TableHead><TableHead>No Training</TableHead><TableHead>Free Tier</TableHead><TableHead>Released</TableHead><TableHead>Accesses</TableHead></TableRow></TableHeader><TableBody>{items.map(row)}</TableBody></Table></div>}
   </section>)}</>;
 }
 
