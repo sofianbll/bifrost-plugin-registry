@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exercise the standard Registry plugin on an isolated dynamic Bifrost 2.2.2 build.
+"""Exercise the standard Registry plugin on an isolated dynamic Bifrost build.
 
 Run inside Docker --network none, except --keep-alive for local browser QA.
 The caller supplies a gateway built from unmodified upstream source and its paired .so.
@@ -21,6 +21,7 @@ import tempfile
 import threading
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 
 from isolated_models import Stub, digest
@@ -37,9 +38,12 @@ def main():
     parser.add_argument('--gateway', type=Path, required=True)
     parser.add_argument('--plugin', type=Path, required=True)
     parser.add_argument('--out', type=Path, required=True)
+    parser.add_argument('--expected-version', default='2.2.2')
     parser.add_argument('--keep-alive', action='store_true', help='Leave disposable browser fixture on 8080 and 8099')
     parser.add_argument('--hermes-fixture', action='store_true',
                         help='Allow one synthetic chat after the proof; requires --keep-alive')
+    parser.add_argument('--assistant-fixture', action='store_true',
+                        help='Qualify AI, key reveal and workspace mapping with a synthetic provider; --keep-alive also serves browser QA')
     args = parser.parse_args()
     if args.hermes_fixture and not args.keep_alive:
         parser.error('--hermes-fixture requires --keep-alive')
@@ -53,8 +57,9 @@ def main():
     args.out.mkdir(parents=True)
     report_path = args.out / 'report.json'
     report = {
-        'scope': 'local paired dynamic Bifrost candidate; synthetic provider; no inference',
-        'source_provenance': 'caller must verify unmodified official 2.2.2 source',
+        'scope': ('local paired dynamic Bifrost candidate; synthetic AI inference only' if args.assistant_fixture
+                  else 'local paired dynamic Bifrost candidate; synthetic provider; no inference'),
+        'source_provenance': f'caller must verify unmodified official {args.expected_version} source',
         'started_at_utc': datetime.now(timezone.utc).isoformat(),
         'network_interfaces': interfaces,
         'artifacts': {'gateway': {'path': str(args.gateway), 'sha256': digest(args.gateway)},
@@ -158,6 +163,7 @@ def main():
         enabled = False
         post_hits = []
         reply = 'registry-hermes-fixture-ok'
+        suggestion = '{"fields":{"name":"Fixture AI suggestion","tool_call":true}}'
 
         def do_POST(self):
             path = self.path.split('?', 1)[0]
@@ -175,16 +181,34 @@ def main():
                 self.send_error(400)
                 return
             model_id = body.get('model') if isinstance(body, dict) else None
-            HermesStub.post_hits.append({'path': path, 'model': model_id})
-            if path not in ('/chat/completions', '/v1/chat/completions'):
+            HermesStub.post_hits.append({
+                'path': path, 'model': model_id,
+                'safe_prompt': all(secret not in json.dumps(body) for secret in (key_secret, password, panel_token, basic) if secret),
+                'no_vk_provider_auth': self.headers.get('Authorization') != 'Bearer ' + key_secret,
+            })
+            chat = path in ('/chat/completions', '/v1/chat/completions')
+            responses = path in ('/responses', '/v1/responses') and args.assistant_fixture
+            if not (chat or responses):
                 self.send_error(405)
                 return
-            payload = json.dumps({'id': 'chatcmpl-registry-fixture', 'object': 'chat.completion',
-                                  'created': 0, 'model': model_id,
-                                  'choices': [{'index': 0, 'message': {'role': 'assistant',
-                                               'content': HermesStub.reply}, 'finish_reason': 'stop'}],
-                                  'usage': {'prompt_tokens': 1, 'completion_tokens': 1,
-                                            'total_tokens': 2}}).encode()
+            if responses:
+                payload = {'id': 'resp-registry-fixture', 'object': 'response', 'model': model_id,
+                           'output': [{'id': 'msg-registry-fixture', 'type': 'message', 'role': 'assistant',
+                                       'status': 'completed', 'content': [{'type': 'output_text',
+                                                                          'text': HermesStub.suggestion}]}],
+                           'status': 'completed', 'usage': {'input_tokens': 1, 'output_tokens': 1, 'total_tokens': 2}}
+            else:
+                messages = body.get('messages', []) if isinstance(body, dict) else []
+                assistant_chat = args.assistant_fixture and (not args.hermes_fixture or any(
+                    message.get('role') == 'system' for message in messages or []
+                    if isinstance(message, dict)))
+                content = HermesStub.suggestion if assistant_chat else HermesStub.reply
+                payload = {'id': 'chatcmpl-registry-fixture', 'object': 'chat.completion',
+                           'created': 0, 'model': model_id,
+                           'choices': [{'index': 0, 'message': {'role': 'assistant', 'content': content},
+                                        'finish_reason': 'stop'}],
+                           'usage': {'prompt_tokens': 1, 'completion_tokens': 1, 'total_tokens': 2}}
+            payload = json.dumps(payload).encode()
             self.send_response(200)
             self.send_header('Content-Type', 'application/json')
             self.send_header('Content-Length', str(len(payload)))
@@ -198,7 +222,7 @@ def main():
             registry_file = app / registry_rel
             (app / 'pricing.json').write_text('{}')
             (app / 'parameters.json').write_text('{}')
-            stub_port = serve(HermesStub if args.hermes_fixture else Stub)
+            stub_port = serve(HermesStub if args.hermes_fixture or args.assistant_fixture else Stub)
             asset_path = '/sha256-' + report['artifacts']['plugin']['sha256'] + '.so'
             asset_port = serve(Asset)
             asset_url = f'http://127.0.0.1:{asset_port}{asset_path}'
@@ -258,6 +282,11 @@ def main():
                                         'bifrost_auth_env': 'BIFROST_ADMIN_AUTH'}}
             try:
                 start()
+                if args.expected_version != '2.2.2':
+                    version_status, native_version, _ = native('/api/version')
+                    check('native gateway reports expected Bifrost version',
+                          version_status == 200 and native_version == 'v' + args.expected_version,
+                          status=version_status, observed=native_version)
                 check('registry starts absent', not registry_file.exists())
                 status, _, _ = native('/api/plugins', 'POST', plugin_config)
                 check('plugin installed from URL', status == 201, status=status)
@@ -414,6 +443,12 @@ def main():
                 model = copy.deepcopy(ws['discovery'][0])
                 model.update(tasks=['Chat'], inputModalities=['Text'], outputModalities=['Text'], kind='Chat')
                 ws['data']['models'].append(model)
+                if args.assistant_fixture:
+                    blank_model = copy.deepcopy(next(m for m in ws['discovery'] if m['id'] != model['id']))
+                    blank_model.update(kind='Chat', creator='Fixture Creator', family='Fixture Series',
+                                       tasks=[], inputModalities=[], outputModalities=[], capabilities={})
+                    blank_model['accesses'][0]['referenceId'] = reference_id
+                    ws['data']['models'].append(blank_model)
                 ws['data']['groups'].append({'id': 'persisted-proof', 'name': 'Persisted proof',
                                              'description': 'Standalone URL integration',
                                              'members': [model['id']]})
@@ -428,6 +463,15 @@ def main():
                       and any(m['id'] == model['id'] for m in fresh.get('data', {}).get('models', []))
                       and any(g['id'] == 'persisted-proof' for g in fresh.get('data', {}).get('groups', [])),
                       status=status)
+                if args.assistant_fixture:
+                    saved_models = fresh['data']['models']
+                    saved_blank = next(m for m in saved_models if m['id'] == blank_model['id'])
+                    check('workspace Save keeps empty taxonomy arrays and capabilities object',
+                          all(isinstance(m.get(field), list) for m in saved_models
+                              for field in ('tasks', 'inputModalities', 'outputModalities'))
+                          and all(isinstance(m.get('capabilities'), dict) for m in saved_models)
+                          and saved_blank['tasks'] == saved_blank['inputModalities'] == saved_blank['outputModalities'] == []
+                          and saved_blank['accesses'][0].get('referenceId') == reference_id)
                 status, created, _ = admin('/api/keys', 'POST', {'name': 'Isolated proof key', 'client': 'Fixture'})
                 check('native virtual key created', status == 201 and isinstance(created, dict)
                       and 'workspace' in created and bool(created.get('created', {}).get('secret')), status=status)
@@ -452,6 +496,95 @@ def main():
                 check('native /v1/models matches published policy', status == 200
                       and ids == publication['expected'], status=status, exposed_ids=ids)
 
+                if args.assistant_fixture:
+                    secret_path = '/api/keys/' + urllib.parse.quote(key_id, safe='') + '/secret'
+                    status, _, _ = admin(secret_path, 'POST', token=None)
+                    check('existing key secret requires Registry admin', status == 401, status=status)
+                    status, revealed, headers = admin(secret_path, 'POST')
+                    check('existing native key revealed only on demand', status == 200
+                          and revealed == {'secret': key_secret}
+                          and headers.get('cache-control') == 'no-store', status=status)
+                    status, _, _ = admin('/api/keys/missing-fixture-key/secret', 'POST')
+                    check('unknown native key secret rejected', status == 404, status=status)
+                    status, config_view, _ = admin('/api/config')
+                    status_snapshot, snapshot_view, _ = admin('/api/snapshot')
+                    check('key secret absent from config and export', status == status_snapshot == 200
+                          and key_secret not in json.dumps(config_view)
+                          and key_secret not in json.dumps(snapshot_view))
+
+                    HermesStub.enabled = True
+                    status, _, _ = admin('/api/assistant/models', token=None)
+                    check('AI model choices require Registry admin', status == 401, status=status)
+                    status, choices, _ = admin('/api/assistant/models?virtualKeyId=' + urllib.parse.quote(key_id, safe=''))
+                    selected_model = publication['expected'][0]
+                    check('AI choices come from selected VK /v1/models', status == 200
+                          and any(m.get('id') == selected_model for m in choices.get('models', []))
+                          and any(k.get('id') == key_id for k in choices.get('virtualKeys', []))
+                          and key_secret not in json.dumps(choices), status=status)
+                    status, _, _ = admin('/api/assistant/models?virtualKeyId=missing-fixture-key')
+                    check('AI choices reject unknown VK', status == 422, status=status)
+                    status, initial_settings, headers = admin('/api/assistant/settings')
+                    check('AI settings start without credentials', status == 200
+                          and initial_settings.get('settings', {}).get('model', '') == ''
+                          and key_secret not in json.dumps(initial_settings), status=status)
+                    settings = {'model': selected_model, 'endpoint': 'chat_completions', 'virtualKeyId': key_id}
+                    status, saved_settings, _ = admin('/api/assistant/settings', 'PUT', settings,
+                                                      {'If-Match': headers['etag']})
+                    check('AI settings accept VK-scoped published model', status == 200
+                          and saved_settings.get('settings') == settings, status=status)
+                    draft = {'draft': {'id': model['id'], 'name': model['name'],
+                                       'provider': model['accesses'][0]['provider'],
+                                       'nativeModel': model['accesses'][0]['nativeModel']}}
+                    revision_before = saved_settings['revision']
+                    posts_before = len(HermesStub.post_hits)
+                    status, suggestion, _ = admin('/api/assistant/suggest', 'POST', draft)
+                    check('synthetic chat returns reviewable proposal without save', status == 200
+                          and suggestion.get('source') == 'ai'
+                          and suggestion.get('proposal', {}).get('fields', {}).get('name') == 'Fixture AI suggestion'
+                          and admin('/api/assistant/settings')[1].get('revision') == revision_before
+                          and len(HermesStub.post_hits) == posts_before + 1
+                          and HermesStub.post_hits[-1]['safe_prompt']
+                          and HermesStub.post_hits[-1]['no_vk_provider_auth']
+                          and key_secret not in json.dumps(suggestion), status=status)
+                    settings['endpoint'] = 'responses'
+                    status, saved_settings, _ = admin('/api/assistant/settings', 'PUT', settings,
+                                                      {'If-Match': revision_before})
+                    check('AI endpoint switch preserves native key selection', status == 200
+                          and saved_settings.get('settings') == settings, status=status)
+                    revision_before = saved_settings['revision']
+                    status, suggestion, _ = admin('/api/assistant/suggest', 'POST', draft)
+                    check('synthetic responses returns proposal without save', status == 200
+                          and suggestion.get('proposal', {}).get('fields', {}).get('tool_call') is True
+                          and admin('/api/assistant/settings')[1].get('revision') == revision_before
+                          and len(HermesStub.post_hits) == posts_before + 2
+                          and HermesStub.post_hits[-1]['safe_prompt']
+                          and HermesStub.post_hits[-1]['no_vk_provider_auth']
+                          and key_secret not in json.dumps(suggestion), status=status)
+
+                    status, mapping_workspace, _ = admin('/api/workspace')
+                    mapped = copy.deepcopy(mapping_workspace['data'])
+                    mapped_model = next(m for m in mapped['models'] if m['id'] == model['id'])
+                    native_access = copy.deepcopy(mapped_model['accesses'][0])
+                    mapped_model['accesses'][0]['referenceId'] = 'missing-fixture-reference'
+                    status, _, _ = admin('/api/workspace', 'PUT', {'data': mapped},
+                                         {'If-Match': mapping_workspace['revision']})
+                    check('workspace rejects unknown reference mapping', status == 422, status=status)
+                    mapped_model['accesses'][0]['referenceId'] = reference_id
+                    status, mapping_saved, _ = admin('/api/workspace', 'PUT', {'data': mapped},
+                                                     {'If-Match': mapping_workspace['revision']})
+                    status_read, mapping_read, _ = admin('/api/workspace')
+                    mapped_access = next(m for m in mapping_read['data']['models'] if m['id'] == model['id'])['accesses'][0]
+                    check('workspace Save persists reference mapping without changing native access',
+                          status == status_read == 200
+                          and mapped_access.get('referenceId') == reference_id
+                          and all(mapped_access.get(field) == native_access.get(field)
+                                  for field in ('id', 'provider', 'nativeModel'))
+                          and key_secret not in json.dumps(mapping_saved), status=status)
+                    status, after_mapping_settings, _ = admin('/api/assistant/settings')
+                    check('workspace Save preserves AI settings', status == 200
+                          and after_mapping_settings.get('settings') == settings
+                          and key_secret not in json.dumps(after_mapping_settings), status=status)
+
                 stop()
                 start()
                 api_status, loaded_status, row, names = plugin_state()
@@ -465,6 +598,13 @@ def main():
                       and any(g['id'] == 'persisted-proof' for g in fresh.get('data', {}).get('groups', []))
                       and any(k['id'] == key_id and k['policy']['groups'] == ['persisted-proof']
                               for k in fresh.get('data', {}).get('keys', [])), status=status)
+                if args.assistant_fixture:
+                    mapped_access = next(m for m in fresh['data']['models'] if m['id'] == model['id'])['accesses'][0]
+                    settings_status, persisted_settings, _ = admin('/api/assistant/settings')
+                    check('AI settings and reference mapping survive gateway restart',
+                          settings_status == 200 and persisted_settings.get('settings') == settings
+                          and mapped_access.get('referenceId') == reference_id
+                          and key_secret not in json.dumps(fresh))
                 status, restarted_catalog, _ = admin('/api/catalog')
                 restarted_ref = next((r for r in restarted_catalog.get('references', []) if r.get('id') == reference_id), {})
                 check('imported reference survives gateway restart', status == 200
@@ -506,12 +646,19 @@ def main():
                       and publication['state'] == 'verified'
                       and publication['actual'] == publication['expected']
                       and len(publication['actual']) == 1)
-                check('provider received no inference', all(hit['method'] == 'GET' for hit in Stub.hits))
+                if args.assistant_fixture:
+                    check('provider received only two safe synthetic AI calls',
+                          len(HermesStub.post_hits) == 2
+                          and all(hit['safe_prompt'] and hit['no_vk_provider_auth']
+                                  for hit in HermesStub.post_hits))
+                else:
+                    check('provider received no inference', all(hit['method'] == 'GET' for hit in Stub.hits))
                 report['asset_downloads'] = Asset.gets
                 report['passed'] = True
                 if args.keep_alive:
-                    if args.hermes_fixture:
+                    if args.hermes_fixture or args.assistant_fixture:
                         HermesStub.enabled = True
+                    hermes_baseline = len(HermesStub.post_hits)
                     private = args.out / 'browser-auth.json'
                     descriptor = os.open(private, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
                     with os.fdopen(descriptor, 'w') as stream:
@@ -519,7 +666,9 @@ def main():
                                    'password': password,
                                    **({'api_key': key_secret, 'model': publication['expected'][0],
                                        'expected_reply': HermesStub.reply,
-                                       'gateway_url': gateway + '/v1'} if args.hermes_fixture else {})}, stream)
+                                       'gateway_url': gateway + '/v1'} if args.hermes_fixture else {}),
+                                   **({'assistant_model': publication['expected'][0],
+                                       'assistant_expected_name': 'Fixture AI suggestion'} if args.assistant_fixture else {})}, stream)
                     report_path.write_text(json.dumps(report, indent=2) + '\n')
                     print('Disposable browser fixture ready on ports 8080 and 8099.', flush=True)
                     assertion_path = args.out / 'hermes-fixture-report.json'
@@ -535,13 +684,13 @@ def main():
                                                             'stream': False},
                                                            auth='Bearer ' + key_secret)
                                 assertion = {'scope': 'Hermes synthetic fixture only; no real provider',
-                                             'client_provider_posts': before,
-                                             'provider_models': [hit['model'] for hit in HermesStub.post_hits],
+                                             'client_provider_posts': before - hermes_baseline,
+                                             'provider_models': [hit['model'] for hit in HermesStub.post_hits[hermes_baseline:]],
                                              'denied_model_status': denied_status,
                                              'denied_reached_provider': len(HermesStub.post_hits) != before}
-                                assertion['passed'] = (before == 1
+                                assertion['passed'] = (before == hermes_baseline + 1
                                                        and all(hit['path'] in ('/chat/completions', '/v1/chat/completions')
-                                                               for hit in HermesStub.post_hits)
+                                                               for hit in HermesStub.post_hits[hermes_baseline:])
                                                        and denied_status == 403
                                                        and not assertion['denied_reached_provider'])
                             except Exception as error:

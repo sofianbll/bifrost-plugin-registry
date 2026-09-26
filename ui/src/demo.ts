@@ -1,5 +1,5 @@
 export type Capability = "Declared" | "Observed in simulated campaign" | "Unknown";
-export type Access = { provider: string; id: string; route: string; status: "Configured" | "Unknown"; nativeModel?: string };
+export type Access = { provider: string; id: string; route: string; status: "Configured" | "Unknown"; nativeModel?: string; referenceId?: string };
 export type Model = {
   id: string;
   name: string;

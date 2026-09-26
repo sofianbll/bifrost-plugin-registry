@@ -64,6 +64,8 @@ Depuis ce paquet :
 ./scripts/build-with-bifrost.sh /chemin/absolu/bifrost-build ./dist/native
 ```
 
+Le script utilise le tag exact du checkout pour injecter la version réelle dans le gateway. Pour une archive sans métadonnées Git ou une référence personnalisée, vérifier la source puis définir `BIFROST_VERSION=vX.Y.Z` avant la compilation.
+
 Le répertoire de sortie doit être nouveau. Le script :
 
 1. vérifie les préconditions, compile l'UI Registry avec `npm ci` et `npm run build`, puis copie temporairement le plugin et les assets React dans `transports/registry-plugin` ;

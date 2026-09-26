@@ -4,6 +4,14 @@ Current release: **[v0.2.0-rc.1](https://github.com/sofianbll/bifrost-plugin-reg
 
 Registry V1 is implemented and published as a release candidate. It uses an unmodified Bifrost 2.2.2 gateway compiled with dynamic loading, distributed separately from the Registry `.so`. The plugin embeds the React UI and serves its own admin port, `8099`.
 
+## Implemented after the release — unreleased
+
+[#14](https://github.com/sofianbll/bifrost-plugin-registry/issues/14), delivered in [PR #15](https://github.com/sofianbll/bifrost-plugin-registry/pull/15), adds searchable model/creator/series selectors with custom values, explicit reference mapping, reviewed AI assistance and on-demand key copy. These changes are not in the published `v0.2.0-rc.1` artifacts. See the [scope and usage](docs/design/catalog-assistance.md).
+
+The exact `e25de3d` gateway/plugin pair passes native ABI checks and **133/133 HTTP checks** (42 models, 72 standalone/assistant, 19 adoption) on **Bifrost 2.2.3, Linux ARM64/musl**, using synthetic providers. Browser checks cover selection, mapping, reviewed suggestions, key copy and responsive layout. [Qualification and artifact hashes](reports/bifrost-2.2.3/README.md) · [2.2.3 compatibility review](docs/design/bifrost-2.2.3-compatibility.md). AMD64 2.2.3 and real-provider inference remain unqualified; the existing local pilot and published release are unchanged.
+
+The September 25 audit in [#16](https://github.com/sofianbll/bifrost-plugin-registry/issues/16), also delivered in PR #15, repairs draft protection, provider access setup, catalog pagination/fallback, key selection origins and publication state, mobile editors, clipboard recovery and assistant key-detail lookup. The corrected candidate passes `make check`, **18/18 browser journeys**, and a freshly compiled **133/133 native HTTP qualification** on Bifrost 2.2.3 ARM64/musl. The [audit report](docs/reviews/2026-09-25-ux-audit.md) records the final source snapshot, binary hashes, visual review and synthetic scope; the previous `e25de3d` evidence above remains historical. These corrections are unreleased.
+
 ## Delivered
 
 - Reference catalog and distinct provider accesses; Bifrost/Models.dev sources, provenance, protected corrections and explicit matching.

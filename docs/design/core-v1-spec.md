@@ -8,6 +8,10 @@ Suivi : [GitHub #1](https://github.com/sofianbll/bifrost-plugin-registry/issues/
 
 **Limites de distribution :** l'[image officielle 2.2.2 Linux ARM64 testée](../../reports/stock-v2.2.2-plugin-install/README.md) télécharge le `.so` puis refuse son chargement (`Dynamic loading not supported`). Notre image Bifrost à liaison dynamique et le `.so` séparé ont leurs preuves locales finales ; leur [procédure de release](../RELEASE.md) décrit les artefacts versionnés. Après désactivation, une réactivation par URL sans redémarrage échoue avec `plugin already loaded` ; le redémarrage restaure le panneau et les données. Le mode autonome ne dépend pas d'un contrat d'extension UI de Bifrost.
 
+## Follow-up requested on September 24
+
+The [catalog setup and assistance addendum](catalog-assistance.md) tracks the missing searchable selectors, explicit reference mapping, visible capabilities, on-demand virtual-key copy, and newly requested AI assistance. Its AI scope supersedes the original deferral below; the published `v0.2.0-rc.1` remains a historical artifact. Bifrost 2.2.3 needs separate native qualification.
+
 ## Problem Statement
 
 Sofian veut un catalogue fiable pour composer les accès des clés virtuelles Bifrost. Les informations sont dispersées entre modèles découverts, prix, paramètres, métadonnées externes et anciennes données V1. Une fiche incomplète ou contradictoire rend la sélection difficile ; un aperçu ne dit pas à lui seul ce que recevra Hermes. Le plugin doit s’installer par URL sur notre image Bifrost compilée avec chargement dynamique, sans patch des sources Bifrost et sans actifs UI à déployer séparément.

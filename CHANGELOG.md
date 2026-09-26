@@ -4,12 +4,18 @@ Release downloads and their exact source commits are listed in [GitHub Releases]
 
 ## Unreleased
 
+- Searchable Model ID, Creator and series selectors with custom values, known metadata/access prefill and atomic reference matching.
+- Optional AI suggestions through a selected native virtual key, with field-by-field review before saving; Chat Completions and Responses supported.
+- On-demand native virtual-key reveal/copy, visible unknown capabilities and a scrollable model editor.
+- Empty model taxonomies now remain arrays after catalogue enrichment, avoiding a crash after Save.
+- The panel reads the gateway version; paired builds record and inject an explicit upstream version.
+
 - English and French project landing pages; separate current guides and historical notes.
 - Production React source moved to `ui/`; matching build paths updated without changing runtime behavior.
 - Source CI, contribution instructions, issue forms and pull request template.
 - Clear license attribution and private vulnerability reporting instructions.
 
-The published `v0.2.0-rc.1` binaries are unchanged by this repository cleanup.
+The published `v0.2.0-rc.1` binaries are unchanged; these additions require a newly compiled compatible plugin.
 
 ## [0.2.0-rc.1] — 2026-09-24
 

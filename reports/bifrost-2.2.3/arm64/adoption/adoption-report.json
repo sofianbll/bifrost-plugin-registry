@@ -1,0 +1,113 @@
+{
+  "scope": "disposable loopback fixture; no provider inference",
+  "gateway": "http://127.0.0.1:8080",
+  "panel": "http://127.0.0.1:8099",
+  "timestamp": "2026-09-24T21:11:06.516301+00:00",
+  "checks": [
+    {
+      "name": "workspace available",
+      "passed": true,
+      "status": 200
+    },
+    {
+      "name": "configured direct native access exists",
+      "passed": true,
+      "count": 1
+    },
+    {
+      "name": "native enabled provider key available",
+      "passed": true,
+      "status": 200
+    },
+    {
+      "name": "direct model has enabled native key",
+      "passed": true,
+      "status": 200
+    },
+    {
+      "name": "dedicated native key created",
+      "passed": true,
+      "status": 200
+    },
+    {
+      "name": "native permissions readable",
+      "passed": true,
+      "status": 200
+    },
+    {
+      "name": "native baseline is exactly one configured route",
+      "passed": true,
+      "status": 200,
+      "routes": [
+        "openai/upstream-alpha"
+      ]
+    },
+    {
+      "name": "native key is unmanaged before adoption",
+      "passed": true,
+      "status": 200
+    },
+    {
+      "name": "adoption preview is bounded by native baseline",
+      "passed": true,
+      "status": 200
+    },
+    {
+      "name": "stale adoption revision refused",
+      "passed": true,
+      "status": 409
+    },
+    {
+      "name": "adoption applied at preview revision",
+      "passed": true,
+      "status": 200
+    },
+    {
+      "name": "native model access unchanged after adoption",
+      "passed": true,
+      "status": 200,
+      "routes": [
+        "openai/upstream-alpha"
+      ]
+    },
+    {
+      "name": "native VK permissions unchanged without native PUT",
+      "passed": true,
+      "status": 200
+    },
+    {
+      "name": "Registry config read",
+      "passed": true,
+      "status": 200
+    },
+    {
+      "name": "Registry route selection cannot exceed native access",
+      "passed": true,
+      "status": 200,
+      "routes": [
+        "openai/upstream-alpha"
+      ]
+    },
+    {
+      "name": "workspace marks adopted key managed",
+      "passed": true,
+      "status": 200
+    },
+    {
+      "name": "unchanged native binding cannot rebind",
+      "passed": true,
+      "status": 200
+    },
+    {
+      "name": "dedicated Registry policy removed",
+      "passed": true,
+      "status": 200
+    },
+    {
+      "name": "dedicated native key removed",
+      "passed": true,
+      "status": 200
+    }
+  ],
+  "passed": true
+}

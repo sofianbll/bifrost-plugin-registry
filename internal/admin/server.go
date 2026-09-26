@@ -160,6 +160,8 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request, embedded bool) {
 		s.snapshotHandler(w, r)
 	case "/api/catalog", "/api/catalog/refresh", "/api/catalog/override", "/api/catalog/match", "/api/catalog/reference":
 		s.catalogHandler(w, r)
+	case "/api/assistant/settings", "/api/assistant/models", "/api/assistant/suggest":
+		s.assistantHandler(w, r)
 	case "/api/workspace", "/api/keys", "/api/keys/adopt":
 		s.liveHandler(w, r)
 	case "/api/status":

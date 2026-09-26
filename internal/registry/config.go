@@ -20,12 +20,20 @@ const MaxConfigBytes = 4 << 20
 const MaxBodyBytes = 32 << 20
 
 type Config struct {
-	SchemaVersion int      `json:"schema_version"`
-	DefaultNaming string   `json:"default_naming"`
-	Models        []Model  `json:"models"`
-	Groups        []Group  `json:"groups"`
-	Policies      []Policy `json:"policies"`
-	Catalog       *Catalog `json:"catalog,omitempty"`
+	SchemaVersion int                `json:"schema_version"`
+	DefaultNaming string             `json:"default_naming"`
+	Models        []Model            `json:"models"`
+	Groups        []Group            `json:"groups"`
+	Policies      []Policy           `json:"policies"`
+	Catalog       *Catalog           `json:"catalog,omitempty"`
+	Assistant     *AssistantSettings `json:"assistant,omitempty"`
+}
+
+// AssistantSettings contains only references to native Bifrost resources, never credentials.
+type AssistantSettings struct {
+	Model        string `json:"model"`
+	Endpoint     string `json:"endpoint"`
+	VirtualKeyID string `json:"virtualKeyId"`
 }
 
 type Model struct {
@@ -275,6 +283,14 @@ func Compile(c Config) (*Snapshot, error) {
 	}
 	if err := validateCatalog(c.Catalog); err != nil {
 		return nil, err
+	}
+	if c.Assistant != nil {
+		a := c.Assistant
+		if a.Model == "" && a.Endpoint == "" && a.VirtualKeyID == "" {
+			c.Assistant = nil
+		} else if a.Model == "" || len(a.Model) > 512 || strings.TrimSpace(a.Model) != a.Model || !noControls(a.Model) || (a.Endpoint != "chat_completions" && a.Endpoint != "responses") || a.VirtualKeyID == "" || len(a.VirtualKeyID) > 200 || strings.TrimSpace(a.VirtualKeyID) != a.VirtualKeyID || !noControls(a.VirtualKeyID) {
+			return nil, errors.New("invalid assistant settings")
+		}
 	}
 	if len(c.Models) > 10000 || len(c.Groups) > 1000 || len(c.Policies) > 1000 {
 		return nil, errors.New("registry size limit exceeded")

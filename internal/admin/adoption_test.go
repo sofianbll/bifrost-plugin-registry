@@ -43,6 +43,8 @@ func newAdoptionHarness(t *testing.T) *adoptionHarness {
 			t.Fatalf("adoption modified native state: %s %s", r.Method, r.URL.Path)
 		}
 		switch r.URL.Path {
+		case "/api/version":
+			return nativeResponse(200, `"2.2.3"`), nil
 		case "/api/governance/virtual-keys":
 			if !h.present {
 				return nativeResponse(200, `{"virtual_keys":[],"total_count":0}`), nil
