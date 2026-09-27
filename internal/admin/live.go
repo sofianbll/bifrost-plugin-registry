@@ -94,6 +94,12 @@ type publication struct {
 	Unexpected       []string `json:"unexpected"`
 	Error            string   `json:"error,omitempty"`
 }
+type pricingProofDTO struct {
+	Access    string `json:"access"`
+	State     string `json:"state"`
+	Error     string `json:"error,omitempty"`
+	CheckedAt string `json:"checkedAt"`
+}
 type keyDTO struct {
 	ID          string      `json:"id"`
 	Name        string      `json:"name"`
@@ -113,10 +119,11 @@ type demoDTO struct {
 	Campaigns []any      `json:"campaigns"`
 }
 type workspace struct {
-	Revision   string     `json:"revision"`
-	Data       demoDTO    `json:"data"`
-	Discovery  []modelDTO `json:"discovery"`
-	Connection struct {
+	Revision      string            `json:"revision"`
+	Data          demoDTO           `json:"data"`
+	Discovery     []modelDTO        `json:"discovery"`
+	PricingProofs []pricingProofDTO `json:"pricingProofs"`
+	Connection    struct {
 		Connected bool   `json:"connected"`
 		Version   string `json:"version"`
 	} `json:"connection"`
@@ -500,6 +507,18 @@ func (s *Server) workspace(ctx context.Context) (workspace, error) {
 	}
 	sort.Slice(dto.Keys, func(i, j int) bool { return dto.Keys[i].Name < dto.Keys[j].Name })
 	ws := workspace{Revision: snap.Revision(), Data: dto, Discovery: discovered}
+	for name, proof := range s.live.proofs {
+		if !strings.HasPrefix(name, "registry/") {
+			continue
+		}
+		parts := strings.Split(name, "/")
+		access := name
+		if len(parts) >= 4 {
+			access = parts[1] + "/" + parts[3]
+		}
+		ws.PricingProofs = append(ws.PricingProofs, pricingProofDTO{Access: access, State: proof.State, Error: proof.Error, CheckedAt: proof.CheckedAt})
+	}
+	sort.Slice(ws.PricingProofs, func(i, j int) bool { return ws.PricingProofs[i].Access < ws.PricingProofs[j].Access })
 	ws.Connection.Connected = true
 	ws.Connection.Version = "unknown"
 	var version string

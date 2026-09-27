@@ -1,10 +1,11 @@
-import type { Demo, Model, Publication } from "../domain/registry";
+import type { Demo, Model, PricingProof, Publication } from "../domain/registry";
 import type { CatalogOverride } from "../features/catalog/model-card-fields";
 
 export type Workspace = {
   revision: string;
   data: Demo;
   discovery: Model[];
+  pricingProofs: PricingProof[];
   connection: { connected: true; version: string; mode?: "snapshot"; source?: string; capturedAt?: string; partial?: boolean };
 };
 

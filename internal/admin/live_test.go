@@ -785,4 +785,18 @@ func TestPricingOverridesIdempotentSync(t *testing.T) {
 	if proof.Error == "" {
 		t.Fatal("readback mismatch not recorded in proofs")
 	}
+
+	wsFinal := readWorkspace()
+	found := false
+	for _, p := range wsFinal.PricingProofs {
+		if p.Access == "CLI PROXY/gpt-6-sol" {
+			found = true
+			if p.State != "not_verified" || p.Error == "" {
+				t.Fatalf("pricing proof in workspace missing error state: %+v", p)
+			}
+		}
+	}
+	if !found {
+		t.Fatalf("pricing proof not exposed in workspace DTO: %+v", wsFinal.PricingProofs)
+	}
 }
