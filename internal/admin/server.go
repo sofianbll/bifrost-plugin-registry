@@ -29,7 +29,6 @@ type Server struct {
 	tokenHash    [32]byte
 	allowedHosts map[string]bool
 	live         liveState
-	catalogHTTP  *http.Client
 	uiDir        string
 	uiAssets     fs.FS
 }

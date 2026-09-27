@@ -86,6 +86,7 @@ licenses.mkdir()
 shutil.copyfile(ui / "LICENSE", licenses / "BIFROST-UI-APACHE-2.0.txt")
 shutil.copyfile(ui / "PROVENANCE.md", licenses / "BIFROST-UI-PROVENANCE.md")
 shutil.copyfile(ui / "public/static/fonts/OFL.txt", licenses / "GEIST-OFL-1.1.txt")
+shutil.copyfile(root / "internal/admin/data/MODELSDEV-LICENSE", licenses / "MODELSDEV-MIT.txt")
 
 # The dependency closure covers code bundled by Vite; Tailwind also contributes generated CSS.
 pending = [f"node_modules/{name}" for name in packages[""]["dependencies"]]
@@ -123,6 +124,7 @@ lines = [
     "The plugin embeds the compiled Registry UI. Its own code is under the [Registry MIT license](LICENSE).",
     "Vendored Bifrost UI code and assets are under the [Apache 2.0 license](licenses/BIFROST-UI-APACHE-2.0.txt); [source provenance](licenses/BIFROST-UI-PROVENANCE.md) identifies the copied files.",
     "The bundled Geist fonts are under the [SIL Open Font License 1.1](licenses/GEIST-OFL-1.1.txt).",
+    "The embedded Models.dev snapshot is under the [MIT license](licenses/MODELSDEV-MIT.txt); its source commit and date are recorded in the snapshot and catalog source status.",
     "",
     "## npm packages",
     "",

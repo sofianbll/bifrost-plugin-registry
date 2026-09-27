@@ -361,7 +361,7 @@ func TestFallbacksAndNaming(t *testing.T) {
 	}
 }
 func TestEndpointPaths(t *testing.T) {
-	for _, path := range []string{"/v1/models", "/openai/v1/models", "/openai/models", "/v1/audio/speech", "/v1/images/generations"} {
+	for _, path := range []string{"/v1/models", "/openai/v1/models", "/openai/models", "/v1/audio/speech", "/v1/images/generations", "/v1/decisions", "/v1/rerank", "/v1/ocr"} {
 		if _, ok := Endpoint(path); !ok {
 			t.Fatal(path)
 		}
@@ -370,6 +370,30 @@ func TestEndpointPaths(t *testing.T) {
 		if _, ok := Endpoint(path); ok {
 			t.Fatal(path)
 		}
+	}
+}
+
+func TestEndpointOperationsAreAuthorizedPerAccess(t *testing.T) {
+	c := fixture()
+	c.Models[0].Endpoints = []string{"responses", "decisions", "rerank", "ocr"}
+	s := mustCompile(t, c)
+	for _, endpoint := range []string{"decisions", "rerank", "ocr"} {
+		t.Run(endpoint, func(t *testing.T) {
+			r := req(`{"model":"alpha/smart"}`)
+			r.Path = "/v1/" + endpoint
+			session := mustPrepare(t, s, r)
+			if session.CheckAttempt("alpha", "smart") != nil {
+				t.Fatal("selected provider access was denied")
+			}
+			if session.CheckAttempt("beta", "smart") == nil {
+				t.Fatal("provider access without this operation was allowed")
+			}
+		})
+	}
+	r := req(`{"model":"alpha/smart"}`)
+	r.Path = "/v1/completions"
+	if _, failure := s.Prepare(r); failure == nil || failure.Code != "registry_endpoint_unverified" {
+		t.Fatalf("unselected operation was allowed: %#v", failure)
 	}
 }
 func TestProjectionIntersectionAndPrivacy(t *testing.T) {

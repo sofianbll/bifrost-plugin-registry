@@ -57,6 +57,10 @@ _Avoid_ : groupe de modèles
 **Capacité** :
 Comportement précis, comme les appels d'outils, le raisonnement, le streaming ou les sorties structurées. Sa prise en charge peut être déclarée, observée sur un accès précis ou inconnue.
 
+**Opération exposée** :
+Type de requête que Registry autorise pour un accès modèle, choisi explicitement par l'administrateur. Deux accès d'une même fiche peuvent exposer des opérations différentes ; ce choix ne prouve pas leur prise en charge par le fournisseur.
+_Avoid_ : modalité, capacité vérifiée
+
 **Groupe de modèles** :
 Sélection partagée de fiches modèles avec leurs choix d'accès fournisseurs. Une modification du groupe s'applique aux clés qui en héritent.
 _Avoid_ : catégorie, provider

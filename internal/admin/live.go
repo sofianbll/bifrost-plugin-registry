@@ -30,13 +30,31 @@ type liveState struct {
 	proofs map[string]publication
 }
 type accessDTO struct {
-	Provider    string  `json:"provider"`
-	ID          string  `json:"id"`
-	Route       string  `json:"route"`
-	Status      string  `json:"status"`
-	NativeModel string  `json:"nativeModel,omitempty"`
-	ReferenceID *string `json:"referenceId,omitempty"`
+	Provider      string   `json:"provider"`
+	ID            string   `json:"id"`
+	Route         string   `json:"route"`
+	Status        string   `json:"status"`
+	NativeModel   string   `json:"nativeModel,omitempty"`
+	Endpoints     []string `json:"endpoints"`
+	ReferenceID   *string  `json:"referenceId,omitempty"`
+	endpointsNull bool
 }
+
+func (a *accessDTO) UnmarshalJSON(data []byte) error {
+	type alias accessDTO
+	var decoded alias
+	if err := registry.StrictJSON(data, &decoded, true); err != nil {
+		return err
+	}
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(data, &fields); err != nil {
+		return err
+	}
+	*a = accessDTO(decoded)
+	a.endpointsNull = bytes.Equal(bytes.TrimSpace(fields["endpoints"]), []byte("null")) && fields["endpoints"] != nil
+	return nil
+}
+
 type modelDTO struct {
 	ID               string            `json:"id"`
 	Name             string            `json:"name"`
@@ -379,7 +397,7 @@ func nativeToDiscovery(rows []nativeModel) []modelDTO {
 			byName[row.Name] = i
 			models = append(models, modelDTO{ID: id, Name: row.Name, Creator: "Unknown", Family: "Unknown", InputModalities: []string{}, OutputModalities: []string{}, Tasks: []string{}, Kind: "Unknown", Summary: "", Context: "Unknown", Capabilities: map[string]string{}, Accesses: []accessDTO{}})
 		}
-		a := accessDTO{Provider: row.Provider, ID: row.Provider + "/" + id, Route: "Direct provider", Status: "Configured", NativeModel: row.Name}
+		a := accessDTO{Provider: row.Provider, ID: row.Provider + "/" + id, Route: "Direct provider", Status: "Configured", NativeModel: row.Name, Endpoints: []string{}}
 		models[i].Accesses = append(models[i].Accesses, a)
 	}
 	sort.Slice(models, func(i, j int) bool { return models[i].ID < models[j].ID })
@@ -411,14 +429,14 @@ func (s *Server) workspace(ctx context.Context) (workspace, error) {
 			_ = json.Unmarshal(raw, &ui)
 		}
 		if ui.ID == "" {
-			ui = modelDTO{ID: m.Alias, Creator: m.Creator, Family: m.Family, Context: "Unknown", Kind: "Chat"}
+			ui = modelDTO{ID: m.Alias, Creator: m.Creator, Family: m.Family, Context: "Unknown", Kind: "Unknown"}
 		}
 		catalogModelFields(&ui, catalogFieldsForAccess(config.Catalog, m.Provider, m.UpstreamModel))
 		ui = sanitizeLiveModel(ui)
 		if ui.Name == "" {
 			ui.Name = m.Alias
 		}
-		a := accessDTO{Provider: m.Provider, ID: m.Provider + "/" + m.Alias, NativeModel: m.UpstreamModel, Route: "Direct provider", Status: "Configured", ReferenceID: workspaceReferenceID(config.Catalog, m.Provider, m.UpstreamModel)}
+		a := accessDTO{Provider: m.Provider, ID: m.Provider + "/" + m.Alias, NativeModel: m.UpstreamModel, Route: "Direct provider", Status: "Configured", Endpoints: append([]string{}, m.Endpoints...), ReferenceID: workspaceReferenceID(config.Catalog, m.Provider, m.UpstreamModel)}
 		if i, ok := index[ui.ID]; ok {
 			dto.Models[i].Accesses = append(dto.Models[i].Accesses, a)
 		} else {
@@ -537,6 +555,16 @@ func (s *Server) putWorkspace(w http.ResponseWriter, r *http.Request) {
 		nativeByID[v.ID] = v
 	}
 	old := s.Store.Load().Config()
+	oldEndpoints := map[string][]string{}
+	ambiguousOldEndpoints := map[string]bool{}
+	for _, m := range old.Models {
+		key := m.Provider + "\x00" + m.UpstreamModel
+		if _, exists := oldEndpoints[key]; exists {
+			ambiguousOldEndpoints[key] = true
+		} else {
+			oldEndpoints[key] = m.Endpoints
+		}
+	}
 	oldPolicy := map[string]registry.Policy{}
 	for _, p := range old.Policies {
 		oldPolicy[p.VirtualKeyID] = p
@@ -603,12 +631,25 @@ func (s *Server) putWorkspace(w http.ResponseWriter, r *http.Request) {
 			persisted := sanitizeLiveModel(m)
 			stripCatalogAutofill(&persisted, catalogFieldsForAccess(cfg.Catalog, a.Provider, raw))
 			metadata, _ := json.Marshal(persisted)
-			endpoints := selectedEndpoints(m.Kind)
-			if len(endpoints) == 0 {
-				reply(w, 422, map[string]string{"error": "Select a supported endpoint type before publishing"})
+			endpoints := a.Endpoints
+			if a.endpointsNull {
+				reply(w, 422, map[string]string{"error": "Endpoints must be omitted or provided as a nonempty list"})
 				return
 			}
-			cfg.Models = append(cfg.Models, registry.Model{ID: id, Alias: m.ID, Provider: a.Provider, ProviderKeyIDs: native.AccessibleByKeys, UpstreamModel: raw, Creator: cleanUnknown(m.Creator), Family: cleanUnknown(m.Family), Endpoints: endpoints, Enabled: true, Configured: true, Evidence: "Configured in Bifrost native model catalog; inference not observed", Metadata: map[string]json.RawMessage{"ui": metadata}})
+			if endpoints == nil {
+				key := a.Provider + "\x00" + raw
+				prior, exists := oldEndpoints[key]
+				if !exists || ambiguousOldEndpoints[key] {
+					reply(w, 422, map[string]string{"error": "Choose endpoints for each new provider access"})
+					return
+				}
+				endpoints = prior
+			}
+			if len(endpoints) == 0 {
+				reply(w, 422, map[string]string{"error": "Choose at least one endpoint for each provider access"})
+				return
+			}
+			cfg.Models = append(cfg.Models, registry.Model{ID: id, Alias: m.ID, Provider: a.Provider, ProviderKeyIDs: native.AccessibleByKeys, UpstreamModel: raw, Creator: cleanUnknown(m.Creator), Family: cleanUnknown(m.Family), Endpoints: append([]string{}, endpoints...), Enabled: true, Configured: true, Evidence: "Configured in Bifrost native model catalog; inference not observed", Metadata: map[string]json.RawMessage{"ui": metadata}})
 			byLogical[m.ID] = append(byLogical[m.ID], id)
 		}
 	}
@@ -764,18 +805,6 @@ func sanitizeLiveModel(m modelDTO) modelDTO {
 		}
 	}
 	return m
-}
-func selectedEndpoints(kind string) []string {
-	switch kind {
-	case "Chat", "Vision":
-		return []string{"chat/completions", "responses"}
-	case "Embedding":
-		return []string{"embeddings"}
-	case "Image":
-		return []string{"images/generations"}
-	default:
-		return nil
-	}
 }
 func logicalRefs(ids []string, by map[string][]string) ([]string, error) {
 	out := []string{}

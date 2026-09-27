@@ -54,11 +54,43 @@ Ces décisions décrivent la cible produit, pas une implémentation livrée. La 
 - Conserver les deux présentations d'un même brouillon : **Basic**, étapes Models → Groups → Review, et **Expert**, composition avec aperçu permanent. Le passage entre modes conserve les choix.
 - Sur mobile, utiliser **Basic uniquement**. La préférence Expert du desktop peut être conservée, mais le contrôle doit représenter le mode effectivement affiché.
 - Garder le sous-menu **Accesses** sur chaque carte pour les réglages d'accès avancés.
-- Placer un petit toggle **Expert** dans le header, près du bouton de thème : vert avec texte blanc lorsque le mode Expert est actif, éteint pour Basic.
+- Placer un petit interrupteur **Expert** dans le header, près du bouton de thème : piste verte et curseur blanc circulaire en mode Expert, piste grise en mode Basic. La précision visuelle du 27 septembre remplace le bouton textuel initial.
 
 Ces choix ont été récupérés dans les messages utilisateur de la session Kimi ; ils remplacent l'attente d'un choix exclusif entre A et B. Ils valident cette direction UX, pas les autres écrans ni une intégration native. Le [bilan de reprise](../reviews/2026-09-26-project-state.md) distingue le prototype récupéré et ses vérifications de l'implémentation produit.
 
+### Présentation du catalogue — retours visuels du 27 septembre
+
+- Reprendre l’organisation des captures Vercel AI Gateway fournies par Sofian pour la vue liste : recherche, catégories de modèles, menus fournisseurs avec recherche et logos, capacités, filtres complémentaires et tri ; colonnes alignées pour comparer les modèles.
+- Afficher les fournisseurs avec leurs logos et les capacités avec des icônes explicites. Un survol ou focus ouvre un tableau lisible de détails, notamment pour le raisonnement. Les données documentaires et leur provenance restent distinctes d’une validation en exécution.
+- Aérer les cartes : nom et créateur en premier, description et informations utiles ensuite, sélection clairement visible. Les identifiants et réglages avancés se consultent à la demande. Le nombre de colonnes dépend de l’espace réellement disponible, y compris à côté du brouillon Expert.
+- Les captures sont une référence de présentation, pas une source de propriétés des modèles. Prix, latence, confidentialité et dates absents des fixtures restent inconnus ; ne pas transformer une absence en valeur nulle, gratuité ou réponse négative.
+
+La ressource **Don’t Make Me Think** fournie par Sofian guide cette itération : action de sélection visible avec le modèle, hiérarchie lisible au balayage, moins de texte répétitif et détails avancés accessibles à la demande. Les contrôles de prototype ne doivent pas concurrencer le parcours principal.
+
+Cette itération concerne le prototype local uniquement. L’appréciation visuelle de Sofian et le raccordement aux données réelles restent distincts des vérifications du prototype.
+
 ## Périmètre vérifié
+
+### Reprise Models.dev et opérations — 27 septembre 2026
+
+Suivi : [GitHub #17](https://github.com/sofianbll/bifrost-plugin-registry/issues/17).
+
+**Décision confirmée par Sofian :** choisir les opérations explicitement **par accès fournisseur**, avec Chat Completions et Responses indépendants, sans déduction depuis les modalités Models.dev. Une relecture puis sauvegarde doit conserver exactement les opérations déjà enregistrées. La classification historique `kind` ne doit plus déterminer les droits de requête.
+
+Tranche locale implémentée et vérifiée :
+
+- [x] Vérifier les imports et consommateurs, ainsi que les routes de Bifrost 2.2.3 au commit `411d62b28b03b03bd3b4025b2cfab50af45f05f4`.
+- [x] Générer un snapshot autonome avec le cœur Models.dev épinglé à `6a0b12bc9c66e1ab4fe44232d592a32df09a77e0`, en conservant liens canoniques, champs propres aux offres et omissions avant aplatissement.
+- [x] Brancher ce snapshot sur le catalogue Registry et exposer sa provenance ; préserver correspondances manuelles, corrections et dernier état valide.
+- [x] Sauvegarder et relire les opérations de chaque accès, sans élargissement implicite des configurations existantes.
+- [x] Proposer les neuf opérations JSON couvertes : `chat/completions`, `responses`, `completions`, `embeddings`, `images/generations`, `audio/speech`, `decisions`, `rerank`, `ocr`.
+- [x] Vérifier import, corrections, omissions, sauvegarde/relecture multi-accès, refus de routes non autorisées et rendu du formulaire sur la capture locale datée.
+
+
+Preuves : tests source Go (race et vet), contrôles UI et compilation, génération déterministe du snapshot, audits Luna et [vérification dans le navigateur](../reviews/2026-09-27-ui-repair-checklist.md#modelsdev-and-per-access-endpoints). La compatibilité native et l’inférence ne sont pas établies par ces contrôles.
+La liste ci-dessus est celle de la tranche Registry, pas l'inventaire exhaustif de Bifrost ni une certification fournisseur. Transcription audio et variations d'images utilisent multipart ; les éditions d'images ont plusieurs formats ; vidéos, ressources Responses, fichiers, lots et conteneurs demandent des contrats supplémentaires. Les clés natives non gérées conservent leur traitement natif. Les propriétés `provider.api`, `npm` et `shape` de Models.dev ne deviennent ni des permissions ni des endpoints par déduction.
+
+L'intégration des données locales ne qualifie pas l'application native des limites/prix, la sélection d'accès par clé, le routage natif, l'ABI du plugin ou l'inférence réelle. Aucun déploiement ni changement de production n'est autorisé par cette tranche.
 
 Sources Bifrost au commit `411d62b28b03b03bd3b4025b2cfab50af45f05f4`, tag `transports/v2.2.3`, présentes dans `dist/source-223-sparse/`. Gateway local isolé : `GET /api/version` renvoie `v2.2.3`. Vérifications en lecture seule, sans inférence, sans écriture de configuration ni exposition de secrets.
 

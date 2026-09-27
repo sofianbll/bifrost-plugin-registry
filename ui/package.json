@@ -6,8 +6,10 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "prototype:model-card": "vite --host 127.0.0.1 --port 8771 --strictPort",
+    "prototype:key-composer": "vite --host 127.0.0.1 --port 8772 --strictPort",
+    "check:key-composer": "node --import tsx src/experiments/key-composer-prototype/state.test.ts && node --import tsx src/experiments/key-composer-prototype/key-state.test.ts",
     "build": "tsc --noEmit && vite build",
-    "check": "node --import tsx src/demo.test.ts && node --import tsx src/lab.test.ts && node --import tsx src/harness.test.ts && node --import tsx src/harness-targets.test.ts && node --import tsx src/api.test.ts && node --import tsx src/reference-groups.test.ts && node --import tsx src/model-editor-data.test.ts && node --import tsx src/model-card-fields.test.ts && node --import tsx src/assistant-proposal.test.ts"
+    "check": "node --import tsx src/domain/registry.test.ts && node --import tsx src/features/laboratory/lab.test.ts && node --import tsx src/features/laboratory/harness.test.ts && node --import tsx src/features/laboratory/harness-targets.test.ts && node --import tsx src/data/api.test.ts && node --import tsx src/features/catalog/reference-groups.test.ts && node --import tsx src/features/catalog/model-editor-data.test.ts && node --import tsx src/features/catalog/model-card-fields.test.ts && node --import tsx src/features/assistant/assistant-proposal.test.ts && node --import tsx src/components/registry/model-capabilities.test.tsx && node --import tsx src/features/keys/KeyComposer.state.test.ts && node --import tsx src/features/keys/key-library-state.test.ts && node --import tsx src/features/keys/KeyLibrary.test.tsx && node --import tsx src/features/settings/provider-appearance.test.ts"
   },
   "dependencies": {
     "@radix-ui/react-checkbox": "1.3.3",
@@ -19,6 +21,8 @@
     "@radix-ui/react-separator": "1.1.7",
     "@radix-ui/react-slot": "1.2.3",
     "@radix-ui/react-switch": "1.2.6",
+    "@radix-ui/react-toggle": "1.1.18",
+    "@radix-ui/react-toggle-group": "1.1.19",
     "@radix-ui/react-tooltip": "1.2.8",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",

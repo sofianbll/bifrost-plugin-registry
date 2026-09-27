@@ -3,6 +3,7 @@ import { ArrowLeftFromLineIcon, ArrowRightFromLineIcon, XIcon } from "lucide-rea
 import * as React from "react";
 import { createContext, useContext, useState } from "react";
 
+import { useCopy } from "@/lib/locale";
 import { cn } from "@/lib/utils";
 
 // Context to share expanded state between SheetContent and SheetHeader
@@ -11,6 +12,8 @@ type SheetContextValue = {
 	setExpanded: (expanded: boolean) => void;
 	side: "top" | "right" | "bottom" | "left";
 	expandable: boolean;
+	width: number;
+	setWidth: (width: number) => void;
 };
 
 const SheetContext = createContext<SheetContextValue | null>(null);
@@ -57,12 +60,14 @@ function SheetContent({
 	onPointerDownOutside,
 	onInteractOutside,
 	onOpenAutoFocus,
+	style,
 	...props
 }: React.ComponentProps<typeof SheetPrimitive.Content> & {
 	side?: "top" | "right" | "bottom" | "left";
 	expandable?: boolean;
 }) {
 	const [expanded, setExpanded] = useState(false);
+	const [width, setWidth] = useState(75);
 
 	// Check if the target is a portaled element (like react-select menu)
 	const isPortaledElement = (target: HTMLElement | null): boolean => {
@@ -97,7 +102,7 @@ function SheetContent({
 	};
 
 	return (
-		<SheetContext.Provider value={{ expanded, setExpanded, side, expandable }}>
+		<SheetContext.Provider value={{ expanded, setExpanded, side, expandable, width, setWidth }}>
 			<SheetPortal>
 				<SheetOverlay />
 				<SheetPrimitive.Content
@@ -106,7 +111,7 @@ function SheetContent({
 					onInteractOutside={handleInteractOutside}
 						onOpenAutoFocus={onOpenAutoFocus}
 					className={cn(
-							"bg-card data-[state=open]:animate-in data-[state=closed]:animate-out custom-scrollbar fixed z-50 flex min-h-0 flex-col shadow-lg transition-all ease-in-out overscroll-none data-[state=closed]:duration-100 data-[state=open]:duration-100",
+							"bg-card data-[state=open]:animate-in data-[state=closed]:animate-out overflow-hidden fixed z-50 flex min-h-0 flex-col shadow-lg transition-all ease-in-out overscroll-none data-[state=closed]:duration-100 data-[state=open]:duration-100",
 						side === "right" &&
 								"data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right top-2 right-2 bottom-2 h-auto w-full max-w-[calc(100vw-1rem)] rounded-sm border sm:w-3/4",
 						side === "right" && (!expandable || !expanded) && "sm:max-w-2xl",
@@ -117,7 +122,9 @@ function SheetContent({
 						side === "bottom" &&
 							"data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom inset-x-0 bottom-2 h-auto border",
 						className,
+						expandable && side === "right" && "w-[calc(100vw-1rem)] sm:w-[var(--sheet-width)] sm:max-w-[calc(100vw-1rem)]",
 					)}
+					style={{ ...style, ...(expandable && side === "right" ? { "--sheet-width": expanded ? "calc(100vw - 1rem)" : `min(calc(100vw - 1rem), max(20rem, ${width}vw))`, maxWidth: "calc(100vw - 1rem)" } as React.CSSProperties : {}) }}
 					{...props}
 				>
 					{children}
@@ -135,6 +142,7 @@ function SheetHeader({
 	...props
 }: React.ComponentProps<"div"> & { showCloseButton?: boolean; headerClassName?: string }) {
 	const sheetContext = useSheetContext();
+	const copy = useCopy();
 
 	return (
 		<div
@@ -146,20 +154,21 @@ function SheetHeader({
 				<button
 					type="button"
 					onClick={() => sheetContext?.setExpanded(!sheetContext?.expanded)}
-					className="-ml-5 shrink-0 cursor-pointer opacity-70 transition-opacity hover:scale-105 hover:opacity-100"
+					className="shrink-0 cursor-pointer rounded-sm p-2 opacity-70 hover:bg-accent hover:opacity-100 focus-visible:ring-2 focus-visible:ring-ring"
 				>
 					{sheetContext?.expanded ? <ArrowRightFromLineIcon className="size-4" /> : <ArrowLeftFromLineIcon className="size-4" />}
-					<span className="sr-only">{sheetContext?.expanded ? "Collapse" : "Expand"}</span>
+					<span className="sr-only">{sheetContext?.expanded ? copy("Restore panel size", "Rétablir la taille du panneau") : copy("Expand panel to full screen", "Agrandir le panneau en plein écran")}</span>
 				</button>
 			)}
 
 			<div className={cn("flex h-full min-w-0 flex-1 flex-col items-start gap-1.5", sheetContext?.expandable && "ml-1", className)}>
 				{children}
 			</div>
+			{sheetContext?.expandable && sheetContext.side === "right" && !sheetContext.expanded && <input type="range" min={40} max={100} step={1} value={sheetContext.width} aria-label={copy("Panel width", "Largeur du panneau")} aria-valuetext={`${sheetContext.width}%`} title={copy("Adjust panel width", "Ajuster la largeur du panneau")} className="hidden h-4 w-20 shrink-0 accent-primary sm:block" onChange={event => sheetContext.setWidth(Number(event.currentTarget.value))} />}
 			{showCloseButton && (
 				<SheetPrimitive.Close className="hover:bg-accent shrink-0 cursor-pointer rounded-md p-2 opacity-70 transition-opacity hover:opacity-100">
 					<XIcon className="size-4" />
-					<span className="sr-only">Close</span>
+					<span className="sr-only">{copy("Close", "Fermer")}</span>
 				</SheetPrimitive.Close>
 			)}
 		</div>

@@ -1,5 +1,7 @@
 # Documentation
 
+- [User guide](USER-GUIDE.md): model registration, sources, groups, keys and local snapshot limitations.
+
 Start with [current status](../STATUS.md) for the release, merged changes and local development, then the [September 26 reconciliation](reviews/2026-09-26-project-state.md) for evidence and gaps. Use [installation](INSTALL.md) for the published release or [contributing](../CONTRIBUTING.md) for source work.
 
 ## Use Registry

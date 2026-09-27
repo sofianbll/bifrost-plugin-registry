@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -122,6 +123,7 @@ func TestLiveWorkspacePublishAndReadback(t *testing.T) {
 	failVersion = false
 	model := ws.Discovery[0]
 	model.Kind = "Chat"
+	model.Accesses[0].Endpoints = []string{"chat/completions"}
 	model.Tasks = []string{"Chat"}
 	model.InputModalities = []string{"Text"}
 	model.OutputModalities = []string{"Text"}
@@ -208,6 +210,158 @@ func TestLiveWorkspacePublishAndReadback(t *testing.T) {
 	_ = json.Unmarshal(get.Body.Bytes(), &checked)
 	if checked.Data.Keys[0].Publication.State != "not_verified" || checked.Data.Keys[0].Publication.Revision != checked.Revision {
 		t.Fatal("partial native failure retained stale proof", get.Body.String())
+	}
+}
+
+func TestWorkspacePreservesPerAccessEndpointsAndRequiresExplicitChoices(t *testing.T) {
+	s := setup(t)
+	initial, err := registry.Compile(registry.Config{SchemaVersion: 1, DefaultNaming: "provider/model", Models: []registry.Model{
+		{ID: "access-alpha", Alias: "shared", Provider: "alpha", ProviderKeyIDs: []string{"key-alpha"}, UpstreamModel: "native-alpha", Endpoints: []string{"responses"}, Enabled: true, Configured: true},
+		{ID: "access-beta", Alias: "shared", Provider: "beta", ProviderKeyIDs: []string{"key-beta"}, UpstreamModel: "native-beta", Endpoints: []string{"chat/completions", "decisions"}, Enabled: true, Configured: true},
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.Store.Save(initial.JSON(), s.Store.Load().Revision()); err != nil {
+		t.Fatal(err)
+	}
+	s.ConnectBifrost("http://bifrost.local", "Bearer native-admin")
+	nativeWrites := 0
+	s.live.client.http.Transport = nativeRoundTrip(func(r *http.Request) (*http.Response, error) {
+		if r.Method != http.MethodGet {
+			nativeWrites++
+		}
+		switch r.URL.Path {
+		case "/api/providers":
+			return nativeResponse(200, `{"providers":[{"name":"alpha"},{"name":"beta"},{"name":"gamma"}]}`), nil
+		case "/api/providers/alpha/keys":
+			return nativeResponse(200, `{"keys":[{"id":"key-alpha"}]}`), nil
+		case "/api/providers/beta/keys":
+			return nativeResponse(200, `{"keys":[{"id":"key-beta"}]}`), nil
+		case "/api/providers/gamma/keys":
+			return nativeResponse(200, `{"keys":[{"id":"key-gamma"}]}`), nil
+		case "/api/models":
+			models := map[string]string{"alpha": `{"name":"native-alpha","provider":"alpha","accessible_by_keys":["key-alpha"]}`, "beta": `{"name":"native-beta","provider":"beta","accessible_by_keys":["key-beta"]}`, "gamma": `{"name":"native-gamma","provider":"gamma","accessible_by_keys":["key-gamma"]}`}
+			return nativeResponse(200, `{"models":[`+models[r.URL.Query().Get("provider")]+`] ,"total":1}`), nil
+		case "/api/governance/virtual-keys":
+			return nativeResponse(200, `{"virtual_keys":[],"total_count":0}`), nil
+		case "/api/version":
+			return nativeResponse(200, `"2.2.3"`), nil
+		default:
+			if strings.HasPrefix(r.URL.Path, "/api/providers/") && strings.Contains(r.URL.Path, "/keys/") {
+				if r.Method == http.MethodGet {
+					return nativeResponse(200, `{"aliases":{}}`), nil
+				}
+				if r.Method == http.MethodPut {
+					return nativeResponse(200, `{}`), nil
+				}
+			}
+			t.Fatalf("unexpected native route %s", r.URL.Path)
+			return nil, nil
+		}
+	})
+
+	read := perform(s, "GET", "/api/workspace", "", authorized())
+	var ws workspace
+	if read.Code != 200 || json.Unmarshal(read.Body.Bytes(), &ws) != nil || len(ws.Data.Models) != 1 {
+		t.Fatalf("workspace read: %d %s", read.Code, read.Body.String())
+	}
+	model := ws.Data.Models[0]
+	if model.Kind != "Unknown" || len(model.Accesses) != 2 {
+		t.Fatalf("legacy model reconstruction: %#v", model)
+	}
+	for i := range model.Accesses {
+		switch model.Accesses[i].Provider {
+		case "alpha":
+			if strings.Join(model.Accesses[i].Endpoints, ",") != "responses" {
+				t.Fatalf("alpha endpoints: %#v", model.Accesses[i].Endpoints)
+			}
+			model.Accesses[i].Endpoints = nil
+		case "beta":
+			if strings.Join(model.Accesses[i].Endpoints, ",") != "chat/completions,decisions" {
+				t.Fatalf("beta endpoints: %#v", model.Accesses[i].Endpoints)
+			}
+			model.Accesses[i].Endpoints = nil
+		}
+	}
+	ws.Data.Models = []modelDTO{model}
+	putWorkspaceBody := func(body []byte, revision string) *httptest.ResponseRecorder {
+		h := authorized()
+		h["If-Match"] = revision
+		return perform(s, "PUT", "/api/workspace", string(body), h)
+	}
+	legacyBody, _ := json.Marshal(map[string]any{"data": ws.Data})
+	var legacyPayload map[string]any
+	_ = json.Unmarshal(legacyBody, &legacyPayload)
+	legacyModels := legacyPayload["data"].(map[string]any)["models"].([]any)
+	legacyAccesses := legacyModels[0].(map[string]any)["accesses"].([]any)
+	for _, access := range legacyAccesses {
+		delete(access.(map[string]any), "endpoints")
+	}
+	legacyBody, _ = json.Marshal(legacyPayload)
+	put := putWorkspaceBody(legacyBody, ws.Revision)
+	if put.Code != 200 {
+		t.Fatalf("legacy round trip: %d %s", put.Code, put.Body.String())
+	}
+	var saved workspace
+	if json.Unmarshal(put.Body.Bytes(), &saved) != nil {
+		t.Fatal("invalid saved workspace")
+	}
+	got := map[string][]string{}
+	for _, access := range saved.Data.Models[0].Accesses {
+		got[access.Provider] = access.Endpoints
+	}
+	if strings.Join(got["alpha"], ",") != "responses" || strings.Join(got["beta"], ",") != "chat/completions,decisions" {
+		t.Fatalf("per-access endpoints changed: %#v", got)
+	}
+
+	before := saved.Revision
+	nativeWrites = 0
+	ws.Revision = before
+	for name, endpoints := range map[string][]string{"empty": {}, "unknown": {"decisions-typo"}, "duplicate": {"responses", "responses"}} {
+		t.Run(name, func(t *testing.T) {
+			candidate := saved
+			candidate.Data.Models = append([]modelDTO(nil), saved.Data.Models...)
+			candidate.Data.Models[0].Accesses = append([]accessDTO(nil), saved.Data.Models[0].Accesses...)
+			candidate.Data.Models[0].Accesses[0].Endpoints = endpoints
+			body, _ := json.Marshal(map[string]any{"data": candidate.Data})
+			invalid := putWorkspaceBody(body, ws.Revision)
+			if invalid.Code != 422 || s.Store.Load().Revision() != before || nativeWrites != 0 {
+				t.Fatalf("invalid selection mutated Registry: %d %s", invalid.Code, invalid.Body.String())
+			}
+		})
+	}
+	var nullPayload map[string]any
+	_ = json.Unmarshal(legacyBody, &nullPayload)
+	models := nullPayload["data"].(map[string]any)["models"].([]any)
+	accesses := models[0].(map[string]any)["accesses"].([]any)
+	accesses[0].(map[string]any)["endpoints"] = nil
+	nullBody, _ := json.Marshal(nullPayload)
+	if invalid := putWorkspaceBody(nullBody, ws.Revision); invalid.Code != 422 || s.Store.Load().Revision() != before || nativeWrites != 0 {
+		t.Fatalf("explicit null endpoints accepted: %d %s", invalid.Code, invalid.Body.String())
+	}
+	var unknownPayload map[string]any
+	_ = json.Unmarshal(legacyBody, &unknownPayload)
+	unknownModels := unknownPayload["data"].(map[string]any)["models"].([]any)
+	unknownAccesses := unknownModels[0].(map[string]any)["accesses"].([]any)
+	unknownAccesses[0].(map[string]any)["unexpected"] = true
+	unknownBody, _ := json.Marshal(unknownPayload)
+	if invalid := putWorkspaceBody(unknownBody, ws.Revision); invalid.Code != 400 || s.Store.Load().Revision() != before || nativeWrites != 0 {
+		t.Fatalf("unknown access field accepted: %d %s", invalid.Code, invalid.Body.String())
+	}
+	newAccess := saved
+	newAccess.Data.Models = append([]modelDTO(nil), saved.Data.Models...)
+	newAccess.Data.Models[0].Accesses = append([]accessDTO(nil), saved.Data.Models[0].Accesses...)
+	newAccess.Data.Models[0].Accesses = append(newAccess.Data.Models[0].Accesses, accessDTO{Provider: "gamma", ID: "gamma/shared", NativeModel: "native-gamma", Route: "Direct provider", Status: "Configured"})
+	newAccessBody, _ := json.Marshal(map[string]any{"data": newAccess.Data})
+	var newAccessPayload map[string]any
+	_ = json.Unmarshal(newAccessBody, &newAccessPayload)
+	newModels := newAccessPayload["data"].(map[string]any)["models"].([]any)
+	newAccesses := newModels[0].(map[string]any)["accesses"].([]any)
+	delete(newAccesses[2].(map[string]any), "endpoints")
+	newAccessBody, _ = json.Marshal(newAccessPayload)
+	if invalid := putWorkspaceBody(newAccessBody, ws.Revision); invalid.Code != 422 || s.Store.Load().Revision() != before || nativeWrites != 0 {
+		t.Fatalf("new access without endpoints accepted: %d %s", invalid.Code, invalid.Body.String())
 	}
 }
 

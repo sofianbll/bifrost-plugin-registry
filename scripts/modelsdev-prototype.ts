@@ -1,5 +1,5 @@
 // Models.dev source and core generator: MIT, Copyright (c) 2025 models.dev.
-// License notice: ui/src/model-card-prototype/README.md.
+// License notice: ui/src/experiments/model-card-prototype/README.md.
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -15,7 +15,7 @@ const offers = [
   { providerId: "openrouter", modelId: "anthropic/claude-sonnet-4.6" },
   { providerId: "amazon-bedrock", modelId: "us.anthropic.claude-sonnet-4-6" },
 ];
-const output = path.join(root, "ui/src/model-card-prototype/catalog.json");
+const output = path.join(root, "ui/src/experiments/model-card-prototype/catalog.json");
 
 assert.equal(execFileSync("git", ["-C", upstream, "rev-parse", "HEAD"], { encoding: "utf8" }).trim(), commit);
 assert.ok(existsSync(path.join(upstream, modelPath)), `Missing ${modelPath}`);

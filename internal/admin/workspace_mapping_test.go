@@ -100,6 +100,7 @@ func TestWorkspaceModelSaveMapsReferenceInSameRevision(t *testing.T) {
 	ws := read()
 	model := ws.Discovery[0]
 	model.Kind = "Chat"
+	model.Accesses[0].Endpoints = []string{"chat/completions"}
 	ws.Data.Models = []modelDTO{model}
 	if code := write(ws); code != 200 {
 		t.Fatalf("custom model save: %d", code)

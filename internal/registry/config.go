@@ -128,7 +128,7 @@ var slug = regexp.MustCompile(`^[a-z0-9][a-z0-9._-]{0,127}$`)
 // providers; leading/trailing whitespace, slashes and controls stay rejected.
 var slugProvider = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._ -]{0,127}$`)
 var nativeFamilies = map[string]bool{"anthropic": true, "openai": true, "mistral": true, "cohere": true, "gemini": true, "gemma": true, "llama": true, "imagen": true, "veo": true, "nova": true, "titan": true}
-var endpoints = map[string]bool{"chat/completions": true, "responses": true, "completions": true, "embeddings": true, "images/generations": true, "audio/speech": true}
+var endpoints = map[string]bool{"chat/completions": true, "responses": true, "completions": true, "embeddings": true, "images/generations": true, "audio/speech": true, "decisions": true, "rerank": true, "ocr": true}
 
 func NamingValid(s string) bool { return s == "model" || s == "provider/model" || s == "both" }
 func TokenHash(s string) string { h := sha256.Sum256([]byte(s)); return hex.EncodeToString(h[:]) }

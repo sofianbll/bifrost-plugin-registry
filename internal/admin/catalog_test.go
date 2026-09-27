@@ -11,7 +11,7 @@ import (
 	"bifrost-registry/internal/registry"
 )
 
-func TestCatalogRefreshOverrideFailureAndRestart(t *testing.T) {
+func TestCatalogRefreshOverrideAndRestart(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "registry.json")
 	if err := os.WriteFile(path, []byte(`{"schema_version":1,"default_naming":"model","models":[],"groups":[],"policies":[]}`), 0600); err != nil {
 		t.Fatal(err)
@@ -50,28 +50,6 @@ func TestCatalogRefreshOverrideFailureAndRestart(t *testing.T) {
 			return nil, nil
 		}
 	})
-	failExternal := false
-	emptyExternal := false
-	s.catalogHTTP = &http.Client{Transport: nativeRoundTrip(func(r *http.Request) (*http.Response, error) {
-		if r.URL.Host != "models.dev" || r.Header.Get("Authorization") != "" || r.URL.Query().Get("type") != "all" {
-			t.Fatal("external request leaked credentials or wrong URL", r.URL.String())
-		}
-		if failExternal {
-			return nativeResponse(503, `{}`), nil
-		}
-		if emptyExternal {
-			return nativeResponse(200, `{}`), nil
-		}
-		switch r.URL.Path {
-		case "/models.json":
-			return nativeResponse(200, `{"openai/gpt-5":{"name":"GPT-5","family":"gpt","limit":{"context":400000},"modalities":{"input":["text","image"],"output":["text"]},"tool_call":true},"openai/unmatched":{"name":"Unmatched"}}`), nil
-		case "/api.json":
-			return nativeResponse(200, `{"openai":{"models":{"gpt-5":{"base_model":"openai/gpt-5","cost":{"input":1.25,"output":10,"cache_read":0.125}}}}}`), nil
-		default:
-			t.Fatal("unexpected Models.dev URL", r.URL.String())
-			return nil, nil
-		}
-	})}
 	get := perform(s, "GET", "/api/catalog", "", authorized())
 	if get.Code != 200 {
 		t.Fatal(get.Code, get.Body.String())
@@ -86,11 +64,11 @@ func TestCatalogRefreshOverrideFailureAndRestart(t *testing.T) {
 	if err := json.Unmarshal(refreshed.Body.Bytes(), &first); err != nil {
 		t.Fatal(err)
 	}
-	if len(first.References) != 2 || len(first.Accesses) != 1 || !first.Accesses[0].Configured || first.Accesses[0].ReferenceID != "openai/gpt-5" {
-		t.Fatalf("wrong catalogue: %+v", first)
+	if len(first.References) < 400 || len(first.Accesses) != 1 || !first.Accesses[0].Configured || first.Accesses[0].ReferenceID != "openai/gpt-5" {
+		t.Fatalf("wrong snapshot catalogue: refs=%d accesses=%+v", len(first.References), first.Accesses)
 	}
-	if string(first.Accesses[0].Fields["input_cost_usd_per_million"].Value) != "1.5" || string(first.Accesses[0].Fields["cache_read_cost_usd_per_million"].Value) != "0.25" {
-		t.Fatal("price units/source precedence wrong", refreshed.Body.String())
+	if first.Sources[1].Repository != "https://github.com/anomalyco/models.dev" || first.Sources[1].Commit != "6a0b12bc9c66e1ab4fe44232d592a32df09a77e0" || first.Sources[1].SourceAt == "" {
+		t.Fatal("snapshot source provenance missing", first.Sources)
 	}
 	if first.Accesses[0].Fields["input_cost_usd_per_million"].Source != "bifrost" || first.References[0].Fields["tool_call"].Kind != "declared" {
 		t.Fatal("source/evidence wrong")
@@ -108,35 +86,28 @@ func TestCatalogRefreshOverrideFailureAndRestart(t *testing.T) {
 	if string(second.Accesses[0].Fields["context_length"].Value) != "8192" || second.Accesses[0].Fields["context_length"].Source != "manual" {
 		t.Fatal("override not effective")
 	}
-	failExternal = true
 	headers["If-Match"] = overridden.Header().Get("ETag")
-	failed := perform(s, "POST", "/api/catalog/refresh", `{"sources":["models.dev"]}`, headers)
-	if failed.Code != 200 {
-		t.Fatal(failed.Code, failed.Body.String())
-	}
+	refreshedAgain := perform(s, "POST", "/api/catalog/refresh", `{"sources":["models.dev"]}`, headers)
 	var third catalogDTO
-	_ = json.Unmarshal(failed.Body.Bytes(), &third)
-	if len(third.References) != 2 || third.Sources[1].Error == "" || third.Sources[1].LastSuccess == "" || string(third.Accesses[0].Fields["context_length"].Value) != "8192" {
-		t.Fatal("failed refresh lost snapshot/override", failed.Body.String())
-	}
-	failExternal = false
-	emptyExternal = true
-	headers["If-Match"] = failed.Header().Get("ETag")
-	empty := perform(s, "POST", "/api/catalog/refresh", `{"sources":["models.dev"]}`, headers)
-	var afterEmpty catalogDTO
-	_ = json.Unmarshal(empty.Body.Bytes(), &afterEmpty)
-	if empty.Code != 200 || len(afterEmpty.References) != 2 || afterEmpty.Sources[1].Error == "" || afterEmpty.Sources[1].LastSuccess != third.Sources[1].LastSuccess || string(afterEmpty.Accesses[0].Fields["context_length"].Value) != "8192" {
-		t.Fatal("empty 200 response erased last good catalogue", empty.Code, empty.Body.String())
+	_ = json.Unmarshal(refreshedAgain.Body.Bytes(), &third)
+	if refreshedAgain.Code != 200 || len(third.References) < 400 || third.Sources[1].Error != "" || string(third.Accesses[0].Fields["context_length"].Value) != "8192" {
+		t.Fatal("local refresh lost snapshot/override", refreshedAgain.Code)
 	}
 	reopened, err := registry.OpenStore(path)
 	if err != nil {
 		t.Fatal(err)
 	}
 	restarted := catalogView(reopened.Load())
-	if len(restarted.References) != 2 || string(restarted.Accesses[0].Fields["context_length"].Value) != "8192" {
+	var persistedContext json.RawMessage
+	for _, access := range restarted.Accesses {
+		if access.ID == "openai/gpt-5" {
+			persistedContext = access.Fields["context_length"].Value
+		}
+	}
+	if len(restarted.References) < 400 || string(persistedContext) != "8192" {
 		t.Fatal("catalogue not durable")
 	}
-	headers["If-Match"] = empty.Header().Get("ETag")
+	headers["If-Match"] = refreshedAgain.Header().Get("ETag")
 	reset := perform(s, "PUT", "/api/catalog/override", `{"target":"access","id":"openai/gpt-5","field":"context_length","value":null}`, headers)
 	if reset.Code != 200 || !strings.Contains(reset.Body.String(), `"context_length":{"value":128000`) {
 		t.Fatal("automatic value not restored", reset.Code, reset.Body.String())
@@ -146,8 +117,6 @@ func TestCatalogRefreshOverrideFailureAndRestart(t *testing.T) {
 	if unlinked.Code != 200 {
 		t.Fatal("explicit unlink failed", unlinked.Code, unlinked.Body.String())
 	}
-	failExternal = false
-	emptyExternal = false
 	headers["If-Match"] = unlinked.Header().Get("ETag")
 	again := perform(s, "POST", "/api/catalog/refresh", `{"sources":["models.dev"]}`, headers)
 	var fourth catalogDTO
@@ -166,5 +135,120 @@ func TestCatalogRefreshOverrideFailureAndRestart(t *testing.T) {
 	stale := perform(s, "PUT", "/api/catalog/reference", `{"id":"local/stale","fields":{"name":"Stale"}}`, headers)
 	if stale.Code != 409 {
 		t.Fatal("stale mutation did not conflict", stale.Code, stale.Body.String())
+	}
+}
+
+func TestModelsDevRefreshUsesEmbeddedSnapshotWithoutNetwork(t *testing.T) {
+	snapBytes, err := embeddedModelsDevSnapshot()
+	if err != nil {
+		t.Fatal(err)
+	}
+	snapshot, err := parseModelsDevSnapshot(snapBytes)
+	if err != nil {
+		t.Fatal(err)
+	}
+	offers := 0
+	for _, provider := range snapshot.Providers {
+		offers += len(provider.Models)
+	}
+	if len(snapshot.Models) != 428 || len(snapshot.Providers) != 223 || offers != 8185 {
+		t.Fatalf("unexpected embedded snapshot counts: models=%d providers=%d offers=%d", len(snapshot.Models), len(snapshot.Providers), offers)
+	}
+
+	current := &registry.Catalog{Accesses: []registry.CatalogAccess{
+		{ID: "anthropic/claude-sonnet-4-6", Provider: "anthropic", Model: "claude-sonnet-4-6", Configured: true},
+		{ID: "amazon-bedrock/anthropic.claude-sonnet-4-6", Provider: "amazon-bedrock", Model: "anthropic.claude-sonnet-4-6", Configured: true},
+		{ID: "custom/claude-sonnet-4-6", Provider: "custom", Model: "claude-sonnet-4-6", Configured: true},
+		{ID: "anthropic/claude-opus-4-6", Provider: "anthropic", Model: "claude-opus-4-6", Configured: false},
+	}}
+	refs, accesses, err := modelsDevRows(current, snapshot.Source.SourceAt, snapshot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(accesses) != 2 {
+		t.Fatalf("matched non-exact or unconfigured access: %d", len(accesses))
+	}
+	if len(refs) < 400 {
+		t.Fatal("canonical refs missing")
+	}
+	byID := map[string]registry.CatalogAccess{}
+	for _, a := range accesses {
+		byID[a.ID] = a
+	}
+	if byID["amazon-bedrock/anthropic.claude-sonnet-4-6"].ReferenceID != "anthropic/claude-sonnet-4-6" {
+		t.Fatal("exact authored base_model mapping missing", byID)
+	}
+	for _, field := range []string{"context_length"} {
+		if _, exists := byID["amazon-bedrock/anthropic.claude-sonnet-4-6"].Candidates[field]; exists {
+			t.Fatalf("inherited field %s copied as access value", field)
+		}
+	}
+}
+
+func TestModelsDevSnapshotRejectsInvalidSnapshotAndSize(t *testing.T) {
+	if _, err := parseModelsDevSnapshot([]byte(`{"schemaVersion":2}`)); err == nil {
+		t.Fatal("invalid snapshot accepted")
+	}
+	if _, err := parseModelsDevSnapshot(make([]byte, maxModelsDevSnapshotBytes+1)); err == nil {
+		t.Fatal("oversize snapshot accepted")
+	}
+}
+
+func TestModelsDevOmissionsAndNormalizedSnapshotFitConfig(t *testing.T) {
+	body, err := embeddedModelsDevSnapshot()
+	if err != nil {
+		t.Fatal(err)
+	}
+	snapshot, err := parseModelsDevSnapshot(body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	current := &registry.Catalog{}
+	var offerID, providerID, modelID string
+	for p, provider := range snapshot.Providers {
+		for id, offer := range provider.Models {
+			var omitted []string
+			_ = json.Unmarshal(offer.Authored["base_model_omit"], &omitted)
+			for _, path := range omitted {
+				if path == "limit.input" {
+					providerID, modelID, offerID = p, id, path
+					break
+				}
+			}
+			if providerID != "" {
+				break
+			}
+		}
+		if providerID != "" {
+			break
+		}
+	}
+	if providerID == "" {
+		t.Fatal("snapshot lacks authored base_model_omit example")
+	}
+	offer := snapshot.Providers[providerID].Models[modelID]
+	var base string
+	_ = json.Unmarshal(offer.Authored["base_model"], &base)
+	if _, exists := snapshot.Models[base]; !exists {
+		t.Fatalf("omit fixture has no exact canonical base %q", base)
+	}
+	current.Accesses = []registry.CatalogAccess{{ID: providerID + "/" + modelID, Provider: providerID, Model: modelID, Configured: true}}
+	refs, accesses, err := modelsDevRows(current, snapshot.Source.SourceAt, snapshot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var catalog registry.Catalog
+	catalog.References, catalog.Accesses = refs, accesses
+	compiled, err := registry.Compile(registry.Config{SchemaVersion: 1, DefaultNaming: "model", Models: []registry.Model{}, Groups: []registry.Group{}, Policies: []registry.Policy{}, Catalog: &catalog})
+	if err != nil {
+		t.Fatalf("embedded normalized snapshot exceeds config constraints: %v", err)
+	}
+	if len(compiled.JSON()) > registry.MaxConfigBytes {
+		t.Fatalf("snapshot catalog exceeds config cap: %d", len(compiled.JSON()))
+	}
+	fields := registry.EffectiveAccessCatalogFields(&catalog, accesses[0])
+	field := map[string]string{"limit.input": "max_input_tokens"}[offerID]
+	if _, exists := fields[field]; exists {
+		t.Fatalf("authored omission %s survived access composition", offerID)
 	}
 }
