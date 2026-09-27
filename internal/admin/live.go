@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"net/url"
 	"sort"
@@ -572,12 +573,16 @@ func (s *Server) putWorkspace(w http.ResponseWriter, r *http.Request) {
 	cfg := registry.Config{SchemaVersion: 1, DefaultNaming: old.DefaultNaming, Models: []registry.Model{}, Groups: []registry.Group{}, Policies: []registry.Policy{}, Catalog: old.Catalog, Assistant: old.Assistant}
 	seenOverrides := map[string]bool{}
 	for _, override := range input.CatalogOverrides {
-		if override.Field != "context_length" && override.Field != "max_output_tokens" && override.Field != "tool_call" && override.Field != "structured_output" {
+		if override.Field != "context_length" && override.Field != "max_output_tokens" && override.Field != "tool_call" && override.Field != "structured_output" && override.Field != "input_cost_usd_per_million" && override.Field != "output_cost_usd_per_million" {
 			reply(w, 422, map[string]string{"error": "Unsupported model card property"})
 			return
 		}
 		if (override.Field == "context_length" || override.Field == "max_output_tokens") && !validCardTokenCount(override.Value) {
 			reply(w, 422, map[string]string{"error": "Model card token count must be a safe non-negative integer"})
+			return
+		}
+		if (override.Field == "input_cost_usd_per_million" || override.Field == "output_cost_usd_per_million") && !validCardCost(override.Value) {
+			reply(w, 422, map[string]string{"error": "Model card cost must be a safe non-negative number"})
 			return
 		}
 		key := override.Target + "\x00" + override.ID + "\x00" + override.Field
@@ -746,6 +751,7 @@ func (s *Server) putWorkspace(w http.ResponseWriter, r *http.Request) {
 		reply(w, 502, map[string]string{"error": e.Error(), "phase": "aliases", "revision": saved.Revision()})
 		return
 	}
+	s.applyPricingOverrides(r.Context(), saved)
 	for _, pp := range plan.VirtualKeys {
 		if oldPolicy[pp.VirtualKeyID].Adopted {
 			// Adoption only binds an existing native key. Registry edits may narrow
@@ -785,6 +791,13 @@ func cleanUnknown(v string) string {
 func validCardTokenCount(raw json.RawMessage) bool {
 	var n int64
 	return json.Unmarshal(raw, &n) == nil && n >= 0 && n <= 9007199254740991
+}
+func validCardCost(raw json.RawMessage) bool {
+	var f float64
+	if json.Unmarshal(raw, &f) != nil {
+		return false
+	}
+	return f >= 0 && !math.IsNaN(f) && !math.IsInf(f, 0)
 }
 func sanitizeLiveModel(m modelDTO) modelDTO {
 	if m.Tasks == nil {

@@ -58,6 +58,8 @@ func TestWorkspaceModelSaveMapsReferenceInSameRevision(t *testing.T) {
 			return nativeResponse(200, `{"models":[{"name":"gpt-6-sol","provider":"CLI PROXY","accessible_by_keys":["provider-key"]}],"total":1}`), nil
 		case "/api/governance/virtual-keys":
 			return nativeResponse(200, `{"virtual_keys":[],"total_count":0}`), nil
+		case "/api/governance/pricing-overrides":
+			return nativeResponse(200, `{"pricing_overrides":[]}`), nil
 		default:
 			t.Fatalf("unexpected native read: %s", r.URL.Path)
 			return nil, nil

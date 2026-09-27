@@ -3,12 +3,16 @@ package admin
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
+	"sync"
 	"testing"
 
 	"bifrost-registry/internal/registry"
@@ -54,6 +58,8 @@ func TestLiveWorkspacePublishAndReadback(t *testing.T) {
 				t.Fatal("incorrect native model filter", r.URL.String())
 			}
 			return nativeResponse(200, `{"models":[{"name":"gpt-6-sol","provider":"CLI PROXY","accessible_by_keys":["provider-key"]}],"total":1}`), nil
+		case "/api/governance/pricing-overrides":
+			return nativeResponse(200, `{"pricing_overrides":[]}`), nil
 		case "/api/governance/virtual-keys":
 			if r.Method == "POST" {
 				var input map[string]any
@@ -245,6 +251,8 @@ func TestWorkspacePreservesPerAccessEndpointsAndRequiresExplicitChoices(t *testi
 			return nativeResponse(200, `{"models":[`+models[r.URL.Query().Get("provider")]+`] ,"total":1}`), nil
 		case "/api/governance/virtual-keys":
 			return nativeResponse(200, `{"virtual_keys":[],"total_count":0}`), nil
+		case "/api/governance/pricing-overrides":
+			return nativeResponse(200, `{"pricing_overrides":[]}`), nil
 		case "/api/version":
 			return nativeResponse(200, `"2.2.3"`), nil
 		default:
@@ -475,5 +483,306 @@ func TestKeySecretReturnedAfterPartialCreate(t *testing.T) {
 				t.Fatal("missing refresh state", out.Body.String())
 			}
 		})
+	}
+}
+
+
+func TestPricingOverridesIdempotentSync(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "registry.json")
+	initial, err := registry.Compile(registry.Config{
+		SchemaVersion: 1, DefaultNaming: "provider/model",
+		Catalog: &registry.Catalog{
+			Accesses: []registry.CatalogAccess{{
+				ID: "CLI PROXY/gpt-6-sol", Provider: "CLI PROXY", Model: "gpt-6-sol", Configured: true,
+			}},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, initial.JSON(), 0600); err != nil {
+		t.Fatal(err)
+	}
+	store, err := registry.OpenStore(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s, err := New(store, adminToken, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.ConnectBifrost("http://bifrost.local", "Bearer native-admin"); err != nil {
+		t.Fatal(err)
+	}
+
+	type overrideState struct {
+		sync.Mutex
+		overrides map[string]nativePricingOverride
+		nextID    int
+		calls     []string
+		mismatch  bool
+	}
+	state := &overrideState{overrides: map[string]nativePricingOverride{}, nextID: 1}
+
+	s.live.client.http.Transport = nativeRoundTrip(func(r *http.Request) (*http.Response, error) {
+		state.Lock()
+		defer state.Unlock()
+
+		if r.Header.Get("Authorization") != "Bearer native-admin" {
+			t.Fatal("missing native admin authorization")
+		}
+
+		record := func(method, path string) {
+			state.calls = append(state.calls, method+" "+path)
+		}
+
+		switch {
+		case r.URL.Path == "/api/version":
+			return nativeResponse(200, `"2.2.3"`), nil
+		case r.URL.Path == "/api/providers":
+			return nativeResponse(200, `{"providers":[{"name":"CLI PROXY"}]}`), nil
+		case r.URL.Path == "/api/providers/CLI PROXY/keys":
+			return nativeResponse(200, `{"keys":[{"id":"provider-key","enabled":true}]}`), nil
+		case r.URL.Path == "/api/models":
+			return nativeResponse(200, `{"models":[{"name":"gpt-6-sol","provider":"CLI PROXY","accessible_by_keys":["provider-key"]}],"total":1}`), nil
+		case r.URL.Path == "/api/governance/virtual-keys":
+			return nativeResponse(200, `{"virtual_keys":[],"total_count":0}`), nil
+		case strings.HasPrefix(r.URL.Path, "/api/governance/pricing-overrides"):
+			record(r.Method, r.URL.Path)
+			switch r.Method {
+			case http.MethodGet:
+				provider := r.URL.Query().Get("provider_id")
+				out := []nativePricingOverride{}
+				for _, o := range state.overrides {
+					if o.Provider == provider {
+						out = append(out, o)
+					}
+				}
+				sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
+				body, _ := json.Marshal(map[string]any{"pricing_overrides": out})
+				return nativeResponse(200, string(body)), nil
+			case http.MethodPost:
+				var body nativePricingOverride
+				_ = json.NewDecoder(r.Body).Decode(&body)
+				body.ID = fmt.Sprintf("po-%d", state.nextID)
+				state.nextID++
+				if state.mismatch {
+					body.Patch = map[string]any{"input_cost_per_token": 0.0, "output_cost_per_token": 0.0}
+				}
+				state.overrides[body.Name] = body
+				resp, _ := json.Marshal(map[string]any{"pricing_override": body})
+				return nativeResponse(200, string(resp)), nil
+			case http.MethodPut:
+				id := strings.TrimPrefix(r.URL.Path, "/api/governance/pricing-overrides/")
+				var body nativePricingOverride
+				_ = json.NewDecoder(r.Body).Decode(&body)
+				for name, o := range state.overrides {
+					if o.ID == id {
+						o.Name = body.Name
+						o.ScopeKind = body.ScopeKind
+						o.Provider = body.Provider
+						o.KeyID = body.KeyID
+						o.MatchType = body.MatchType
+						o.Pattern = body.Pattern
+						o.Patch = body.Patch
+						if state.mismatch {
+							o.Patch = map[string]any{"input_cost_per_token": 0.0, "output_cost_per_token": 0.0}
+						}
+						state.overrides[name] = o
+						resp, _ := json.Marshal(map[string]any{"pricing_override": o})
+						return nativeResponse(200, string(resp)), nil
+					}
+				}
+				return nativeResponse(404, `{}`), nil
+			case http.MethodDelete:
+				id := strings.TrimPrefix(r.URL.Path, "/api/governance/pricing-overrides/")
+				for name, o := range state.overrides {
+					if o.ID == id {
+						delete(state.overrides, name)
+						return nativeResponse(200, `{}`), nil
+					}
+				}
+				return nativeResponse(404, `{}`), nil
+			}
+		}
+		t.Fatal("unexpected native route", r.URL.String())
+		return nil, nil
+	})
+
+	seedExternalOverride := func() {
+		state.Lock()
+		state.overrides["external/custom"] = nativePricingOverride{
+			ID: "po-external", Name: "external/custom", ScopeKind: "provider_key",
+			Provider: "CLI PROXY", KeyID: "provider-key", MatchType: "exact",
+			Pattern: "gpt-6-sol", Patch: map[string]any{"input_cost_per_token": 9e-6},
+		}
+		state.Unlock()
+	}
+
+	wsGet := perform(s, "GET", "/api/workspace", "", authorized())
+	if wsGet.Code != 200 {
+		t.Fatal(wsGet.Code, wsGet.Body.String())
+	}
+	var ws workspace
+	if err := json.Unmarshal(wsGet.Body.Bytes(), &ws); err != nil {
+		t.Fatal(err)
+	}
+	model := ws.Discovery[0]
+	model.Kind = "Chat"
+	model.Accesses[0].Endpoints = []string{"chat/completions"}
+	ws.Data.Models = []modelDTO{model}
+
+	putWorkspace := func(ws workspace, overrides []catalogOverrideInput) *httptest.ResponseRecorder {
+		t.Helper()
+		body := map[string]any{"data": ws.Data}
+		if overrides != nil {
+			body["catalogOverrides"] = overrides
+		}
+		raw, _ := json.Marshal(body)
+		headers := authorized()
+		headers["If-Match"] = ws.Revision
+		return perform(s, "PUT", "/api/workspace", string(raw), headers)
+	}
+	readWorkspace := func() workspace {
+		t.Helper()
+		res := perform(s, "GET", "/api/workspace", "", authorized())
+		if res.Code != 200 {
+			t.Fatal("workspace GET:", res.Code, res.Body.String())
+		}
+		var out workspace
+		if err := json.Unmarshal(res.Body.Bytes(), &out); err != nil {
+			t.Fatal(err)
+		}
+		return out
+	}
+
+	seedExternalOverride()
+	res := putWorkspace(ws, []catalogOverrideInput{
+		{Target: "access", ID: "CLI PROXY/gpt-6-sol", Field: "input_cost_usd_per_million", Value: json.RawMessage(`1.5`)},
+		{Target: "access", ID: "CLI PROXY/gpt-6-sol", Field: "output_cost_usd_per_million", Value: json.RawMessage(`3`)},
+	})
+	if res.Code != 200 {
+		t.Fatal("first pricing override save failed", res.Code, res.Body.String())
+	}
+
+	state.Lock()
+	if len(state.overrides) != 2 {
+		t.Fatalf("expected 2 overrides (1 external + 1 registry), got %+v", state.overrides)
+	}
+	po := state.overrides["registry/CLI PROXY/provider-key/gpt-6-sol"]
+	state.Unlock()
+	if po.Name != "registry/CLI PROXY/provider-key/gpt-6-sol" || po.Provider != "CLI PROXY" || po.KeyID != "provider-key" || po.Pattern != "gpt-6-sol" || po.ScopeKind != "provider_key" || po.MatchType != "exact" {
+		t.Fatalf("unexpected override shape: %+v", po)
+	}
+	in, _ := po.Patch["input_cost_per_token"].(float64)
+	out, _ := po.Patch["output_cost_per_token"].(float64)
+	if math.Abs(in-0.0000015) > 1e-12 || math.Abs(out-0.000003) > 1e-12 {
+		t.Fatalf("unexpected patch values: %+v", po.Patch)
+	}
+
+	ws2 := readWorkspace()
+	res = putWorkspace(ws2, nil)
+	if res.Code != 200 {
+		t.Fatal("unchanged save failed", res.Code, res.Body.String())
+	}
+	state.Lock()
+	if len(state.calls) < 2 || !strings.HasPrefix(state.calls[len(state.calls)-2], "PUT /api/governance/pricing-overrides/") || !strings.HasPrefix(state.calls[len(state.calls)-1], "GET /api/governance/pricing-overrides") {
+		t.Fatalf("expected PUT then GET on unchanged save, got calls %v", state.calls)
+	}
+	postCount := 0
+	for _, c := range state.calls {
+		if strings.HasPrefix(c, "POST /api/governance/pricing-overrides") {
+			postCount++
+		}
+	}
+	if postCount != 1 {
+		t.Fatalf("expected exactly one POST, got calls %v", state.calls)
+	}
+	state.Unlock()
+
+	catHeaders := authorized()
+	catHeaders["If-Match"] = res.Header().Get("ETag")
+	res = perform(s, "PUT", "/api/catalog/override", `{"target":"access","id":"CLI PROXY/gpt-6-sol","field":"input_cost_usd_per_million","value":null}`, catHeaders)
+	if res.Code != 200 {
+		t.Fatal("failed to remove input price override", res.Code, res.Body.String())
+	}
+	ws3 := readWorkspace()
+	state.Lock()
+	state.calls = nil
+	state.Unlock()
+	res = putWorkspace(ws3, nil)
+	if res.Code != 200 {
+		t.Fatal("save after removing input override failed", res.Code, res.Body.String())
+	}
+	state.Lock()
+	po, ok := state.overrides["registry/CLI PROXY/provider-key/gpt-6-sol"]
+	if !ok {
+		t.Fatal("registry override was deleted while output price correction remains")
+	}
+	if _, ok := po.Patch["input_cost_per_token"]; ok {
+		t.Fatal("input price patch was not removed")
+	}
+	if _, ok := po.Patch["output_cost_per_token"]; !ok {
+		t.Fatal("output price patch missing")
+	}
+	if _, ok := state.overrides["external/custom"]; !ok {
+		t.Fatal("external override was touched")
+	}
+	state.Unlock()
+
+	catHeaders["If-Match"] = res.Header().Get("ETag")
+	res = perform(s, "PUT", "/api/catalog/override", `{"target":"access","id":"CLI PROXY/gpt-6-sol","field":"output_cost_usd_per_million","value":null}`, catHeaders)
+	if res.Code != 200 {
+		t.Fatal("failed to remove output price override", res.Code, res.Body.String())
+	}
+	ws4 := readWorkspace()
+	state.Lock()
+	state.calls = nil
+	state.Unlock()
+	res = putWorkspace(ws4, nil)
+	if res.Code != 200 {
+		t.Fatal("save after removing all price overrides failed", res.Code, res.Body.String())
+	}
+	state.Lock()
+	if _, ok := state.overrides["registry/CLI PROXY/provider-key/gpt-6-sol"]; ok {
+		t.Fatal("registry override was not deleted after all price corrections removed")
+	}
+	if _, ok := state.overrides["external/custom"]; !ok {
+		t.Fatal("external override was touched")
+	}
+	state.Unlock()
+
+	ws5 := readWorkspace()
+	for _, bad := range []json.RawMessage{json.RawMessage(`-1`), json.RawMessage(`"NaN"`)} {
+		state.Lock()
+		state.calls = nil
+		state.Unlock()
+		res = putWorkspace(ws5, []catalogOverrideInput{{Target: "access", ID: "CLI PROXY/gpt-6-sol", Field: "input_cost_usd_per_million", Value: bad}})
+		if res.Code != 422 {
+			t.Fatalf("invalid cost %q should be rejected, got %d", bad, res.Code)
+		}
+		state.Lock()
+		for _, c := range state.calls {
+			if strings.Contains(c, "/api/governance/pricing-overrides") {
+				t.Fatalf("invalid cost triggered native pricing call: %s", c)
+			}
+		}
+		state.Unlock()
+	}
+
+	ws6 := readWorkspace()
+	state.Lock()
+	state.mismatch = true
+	state.calls = nil
+	state.Unlock()
+	res = putWorkspace(ws6, []catalogOverrideInput{
+		{Target: "access", ID: "CLI PROXY/gpt-6-sol", Field: "input_cost_usd_per_million", Value: json.RawMessage(`1.5`)},
+	})
+	if res.Code != 200 {
+		t.Fatal("save with readback mismatch should not fail", res.Code, res.Body.String())
+	}
+	proof := s.live.proofs["registry/CLI PROXY/provider-key/gpt-6-sol"]
+	if proof.Error == "" {
+		t.Fatal("readback mismatch not recorded in proofs")
 	}
 }

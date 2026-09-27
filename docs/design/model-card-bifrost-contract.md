@@ -274,3 +274,18 @@ Proposition UX à examiner : choisir dans la fiche « Modèle » ou un accès pr
 Le code existant compose déjà les valeurs de référence puis celles de l'accès dans [catalogFieldsForAccess](../../internal/admin/catalog.go#L20). La réutilisation concerne donc aussi ce travail existant ; l'éditeur et l'application native restent à aligner avec les contrats retenus.
 
 L'[audit du dépôt Models.dev](models-dev-reuse-research.md), fixé au commit `6a0b12bc9c66e1ab4fe44232d592a32df09a77e0`, détaille les fonctionnalités déjà réutilisables. Il distingue le moteur de catalogue, le SDK publié et le site : leur interface regroupe déjà les fournisseurs d'un modèle en relisant les liens `base_model` des sources, liens absents des JSON publics. Ce constat corrige l'analyse antérieure limitée à l'import de données ; il ne constitue pas une intégration livrée.
+
+### Tranche (b) — application native des prix : décision de périmètre (27 septembre 2026)
+
+Vérifié dans les sources Bifrost 2.2.3 épinglées (`dist/source-223-sparse`, commit `411d62b`) :
+
+- `POST /api/governance/pricing-overrides` accepte `{name, scope_kind, user_id?, virtual_key_id?, provider_id?, provider_key_id?, match_type: exact|wildcard, pattern, request_types?, patch}` ; le `patch` est le `Options` de `framework/modelcatalog/datasheet/types.go` (coûts par token : `input_cost_per_token`, `output_cost_per_token`, paliers, etc.). Portées reconnues : `global`, `provider`, `provider_key`, `virtual_key`, `virtual_key_provider`, `virtual_key_provider_key`, `user`, `user_provider`, `user_provider_key` (`types.go:306-323`). `PUT` fusionne, `DELETE` supprime, `GET` liste avec filtres.
+- Une correction de prix d'un accès Registry correspond nativement à une override de portée `provider_key` (clé du provider) avec `match_type: exact` et `pattern` = identifiant natif du modèle. Les tarifs Models.dev (USD par million de tokens) se convertissent en coût par token.
+
+Décisions de périmètre pour cette tranche :
+
+1. Les corrections de prix (`input_cost_usd_per_million`, `output_cost_usd_per_million`) deviennent des overrides natives idempotentes, nommées et suivies par Registry (création/mise à jour/suppression selon l'état du catalogue). La suppression d'une correction supprime l'override native ; la valeur héritée reprend alors seule.
+2. Les limites descriptives (`context_length`, `max_output_tokens`) restent des corrections de catalogue Registry : aucune route native d'édition de fiche n'existe (§4), et écrire dans `additional_attributes` ne modifierait pas les champs natifs. L'UI affiche leur origine sans les présenter comme appliquées nativement.
+3. Les budgets/réutilisations (`/api/governance/model-configs`) sont de la gouvernance, pas des propriétés de fiche : hors périmètre de cette tranche.
+4. L'état « appliqué » exige une relecture native (`GET /api/governance/pricing-overrides` et/ou `overridden_pricing` de `/api/models/details`) ; un échec ou un champ non applicable reste visible dans l'UI, conformément à la précision de Sofian ci-dessus.
+5. Une correction locale d'un accès n'écrit que l'override de cet accès ; les autres accès ne sont jamais modifiés implicitement.
