@@ -152,7 +152,7 @@ func (s *Server) applyPricingOverrides(ctx context.Context, snap *registry.Snaps
 				s.setPricingProof(po.Provider, po.KeyID, po.Pattern, "Pricing override read-back mismatch")
 				continue
 			}
-			s.clearPricingProof(po.Provider, po.KeyID, po.Pattern)
+			s.setPricingProofVerified(po.Provider, po.KeyID, po.Pattern)
 		}
 
 		for name, o := range existingByName {
@@ -161,6 +161,8 @@ func (s *Server) applyPricingOverrides(ctx context.Context, snap *registry.Snaps
 			}
 			if err := s.live.client.call(ctx, "DELETE", "/api/governance/pricing-overrides/"+url.PathEscape(o.ID), nil, nil); err != nil {
 				s.setPricingProof(o.Provider, o.KeyID, o.Pattern, "Failed to delete stale pricing override: "+err.Error())
+			} else {
+				delete(s.live.proofs, pricingOverrideName(o.Provider, o.KeyID, o.Pattern))
 			}
 		}
 	}
@@ -264,6 +266,8 @@ func (s *Server) setPricingProof(provider, keyID, model, msg string) {
 	s.live.proofs[name] = publication{State: "not_verified", Revision: "", CheckedAt: now, Error: msg}
 }
 
-func (s *Server) clearPricingProof(provider, keyID, model string) {
-	delete(s.live.proofs, pricingOverrideName(provider, keyID, model))
+func (s *Server) setPricingProofVerified(provider, keyID, model string) {
+	name := pricingOverrideName(provider, keyID, model)
+	now := time.Now().UTC().Format(time.RFC3339)
+	s.live.proofs[name] = publication{State: "verified", Revision: "", CheckedAt: now}
 }

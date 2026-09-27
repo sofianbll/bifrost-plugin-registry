@@ -30,9 +30,12 @@ equal(costStaged.length, 1);
 equal(stageCatalogOverride(costStaged, { target: "access", id: "p/m", field: "input_cost_usd_per_million", value: 1.5 }, 1.5).length, 0);
 
 const access = { provider: "p", nativeModel: "m" };
-const proof: PricingProof = { access: "p/m", state: "not_verified", checkedAt: "2026-09-27T00:00:00Z", error: "Native write failed" };
+const errorProof: PricingProof = { access: "p/m", state: "not_verified", checkedAt: "2026-09-27T00:00:00Z", error: "Native write failed" };
+const verifiedProof: PricingProof = { access: "p/m", state: "verified", checkedAt: "2026-09-27T00:00:00Z" };
 equal(pricingApplicationState([], access, "input_cost_usd_per_million"), null);
-equal(pricingApplicationState([], access, "input_cost_usd_per_million", "manual"), "applied");
-equal(pricingApplicationState([proof], access, "input_cost_usd_per_million", "manual"), { error: "Native write failed" });
-equal(pricingApplicationState([proof], access, "context_length"), null);
+equal(pricingApplicationState([], access, "input_cost_usd_per_million", "manual"), "pending");
+equal(pricingApplicationState([verifiedProof], access, "input_cost_usd_per_million", "manual"), "applied");
+equal(pricingApplicationState([errorProof], access, "input_cost_usd_per_million", "manual"), { error: "Native write failed" });
+equal(pricingApplicationState([verifiedProof, errorProof], access, "input_cost_usd_per_million", "manual"), { error: "Native write failed" });
+equal(pricingApplicationState([errorProof], access, "context_length"), null);
 console.log("Model card property checks passed");

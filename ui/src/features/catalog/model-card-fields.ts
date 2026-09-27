@@ -2,7 +2,7 @@ import type { PricingProof } from "../../domain/registry";
 
 export type EditableProperty = "context_length" | "max_output_tokens" | "tool_call" | "structured_output" | "input_cost_usd_per_million" | "output_cost_usd_per_million";
 export type CatalogOverride = { target: "reference" | "access"; id: string; field: EditableProperty; value: number | boolean };
-export type PricingApplicationState = "applied" | { error: string } | null;
+export type PricingApplicationState = "applied" | "pending" | { error: string } | null;
 
 export function stageCatalogOverride(current: CatalogOverride[], next: CatalogOverride, original: unknown): CatalogOverride[] {
   const other = current.filter(item => item.target !== next.target || item.id !== next.id || item.field !== next.field);
@@ -45,11 +45,10 @@ export function pricingApplicationState(
   source?: string,
 ): PricingApplicationState {
   if (field !== "input_cost_usd_per_million" && field !== "output_cost_usd_per_million") return null;
-  const errors = proofs
-    .filter(proof => proof.access === `${access.provider}/${access.nativeModel}`)
-    .map(proof => proof.error)
-    .filter((error): error is string => Boolean(error));
+  const matches = proofs.filter(proof => proof.access === `${access.provider}/${access.nativeModel}`);
+  const errors = matches.map(proof => proof.error).filter((error): error is string => Boolean(error));
   if (errors.length) return { error: errors.join(" ; ") };
-  if (source === "manual") return "applied";
+  if (matches.some(proof => proof.state === "verified")) return "applied";
+  if (source === "manual") return "pending";
   return null;
 }

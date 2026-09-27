@@ -680,6 +680,24 @@ func TestPricingOverridesIdempotentSync(t *testing.T) {
 		t.Fatalf("unexpected patch values: %+v", po.Patch)
 	}
 
+	verified := s.live.proofs["registry/CLI PROXY/provider-key/gpt-6-sol"]
+	if verified.State != "verified" || verified.Error != "" {
+		t.Fatalf("successful pricing sync should leave a verified proof, got %+v", verified)
+	}
+	wsVerified := readWorkspace()
+	foundVerified := false
+	for _, p := range wsVerified.PricingProofs {
+		if p.Access == "CLI PROXY/gpt-6-sol" {
+			foundVerified = true
+			if p.State != "verified" {
+				t.Fatalf("workspace should expose verified pricing proof, got %+v", p)
+			}
+		}
+	}
+	if !foundVerified {
+		t.Fatalf("verified pricing proof missing from workspace DTO: %+v", wsVerified.PricingProofs)
+	}
+
 	ws2 := readWorkspace()
 	res = putWorkspace(ws2, nil)
 	if res.Code != 200 {
