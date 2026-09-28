@@ -502,7 +502,7 @@ function RegistryApp({ language, onLanguageChange }: { language: Language; onLan
 }
 
 export function App() {
-  const [language, setLanguage] = useState<Language>(() => new URLSearchParams(location.search).get("lang") === "en" ? "en" : "fr");
+  const [language, setLanguage] = useState<Language>(() => new URLSearchParams(location.search).get("lang") === "fr" ? "fr" : "en");
   const changeLanguage = (next: Language) => {
     const params = new URLSearchParams(location.search);
     params.set("lang", next);
