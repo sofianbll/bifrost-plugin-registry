@@ -971,7 +971,11 @@ func (s *Server) installAliases(ctx context.Context, snap *registry.Snapshot) er
 			b, _ := json.Marshal(a)
 			existing[name] = b
 		}
-		if e := s.live.client.call(ctx, "PUT", path, map[string]any{"aliases": existing}, nil); e != nil {
+		// Bifrost 2.2.3 updateProviderKey replaces the key with the payload
+		// (only masked secrets are restored), so the full key read-back must be
+		// reposted; sending only aliases clears the value and is rejected.
+		key["aliases"], _ = json.Marshal(existing)
+		if e := s.live.client.call(ctx, "PUT", path, key, nil); e != nil {
 			return e
 		}
 	}

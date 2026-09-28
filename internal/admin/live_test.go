@@ -486,6 +486,45 @@ func TestKeySecretReturnedAfterPartialCreate(t *testing.T) {
 	}
 }
 
+func TestInstallAliasesRepostsFullNativeKey(t *testing.T) {
+	s := setup(t)
+	if err := s.ConnectBifrost("http://bifrost.local", "Bearer native-admin"); err != nil {
+		t.Fatal(err)
+	}
+	snap, err := registry.Compile(registry.Config{SchemaVersion: 1, DefaultNaming: "provider/model",
+		Models: []registry.Model{
+			{ID: "access-alpha", Alias: "shared", Provider: "alpha", ProviderKeyIDs: []string{"key-alpha"},
+				UpstreamModel: "native-alpha", Endpoints: []string{"chat/completions"}, Enabled: true, Configured: true},
+		}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var putBody string
+	s.live.client.http.Transport = nativeRoundTrip(func(r *http.Request) (*http.Response, error) {
+		if r.URL.Path != "/api/providers/alpha/keys/key-alpha" {
+			t.Fatalf("unexpected native route %s", r.URL.Path)
+		}
+		if r.Method == http.MethodGet {
+			return nativeResponse(200, `{"id":"key-alpha","name":"Alpha","value":"masked-preview","models":["*"],"aliases":{"legacy":"old-model"}}`), nil
+		}
+		if r.Method == http.MethodPut {
+			body, _ := io.ReadAll(r.Body)
+			putBody = string(body)
+			return nativeResponse(200, `{}`), nil
+		}
+		t.Fatalf("unexpected native method %s", r.Method)
+		return nil, nil
+	})
+	if err := s.installAliases(context.Background(), snap); err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{`"value":"masked-preview"`, `"name":"Alpha"`, `"legacy"`, `"shared"`, `"model_id":"native-alpha"`} {
+		if !strings.Contains(putBody, want) {
+			t.Fatalf("alias PUT lost %s: %s", want, putBody)
+		}
+	}
+}
+
 func TestPricingOverridesIdempotentSync(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "registry.json")
 	initial, err := registry.Compile(registry.Config{
