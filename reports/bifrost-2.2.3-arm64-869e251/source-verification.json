@@ -1,0 +1,12 @@
+{
+  "tag": "transports/v2.2.3",
+  "commit": "411d62b28b03b03bd3b4025b2cfab50af45f05f4",
+  "platform": "linux/arm64 musl",
+  "go": "go1.27.1",
+  "official_prebuilt_image": false,
+  "after_compilation_modified_tracked_files": [],
+  "verified_files": 2745,
+  "mismatches": [],
+  "tree_digest": "87663767c6a42eae8ad78c8c17413e021636f01a025105567cdfc14a5ab7dcfa",
+  "scope": "v0.3.0-rc.4 qualification (registry d588a9f)"
+}

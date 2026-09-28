@@ -9,7 +9,7 @@
 Organize every model once, then decide exactly what each virtual key can reach — through an embedded interface that runs beside your existing Bifrost gateway.
 
 [![CI](https://github.com/sofianbll/bifrost-plugin-registry/actions/workflows/ci.yml/badge.svg)](https://github.com/sofianbll/bifrost-plugin-registry/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/release-v0.3.0--rc.2-blue)](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.3.0-rc.2)
+[![Release](https://img.shields.io/badge/release-v0.3.0--rc.4-blue)](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.3.0-rc.4)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 English · [Français](README.fr.md)
@@ -37,7 +37,7 @@ docker load -i bifrost-dynamic-2.2.3-linux-arm64.tar.gz
 # 2. Provide the two admin credentials and a persistent volume at /app/data
 export REGISTRY_ADMIN_TOKEN=…  REGISTRY_BIFROST_AUTH='Basic …'
 # 3. Add the matching .so by direct URL in Bifrost's plugin settings
-#    https://github.com/sofianbll/bifrost-plugin-registry/releases/download/v0.3.0-rc.2/bifrost-registry-v0.3.0-rc.2-linux-arm64.so
+#    https://github.com/sofianbll/bifrost-plugin-registry/releases/download/v0.3.0-rc.4/bifrost-registry-v0.3.0-rc.4-linux-arm64.so
 # 4. Open the panel
 open http://127.0.0.1:8099/model-registry
 ```
@@ -71,19 +71,19 @@ Independent project, not an official Maxim/Bifrost product.
 
 ## Runtime & qualification
 
-The current release **v0.3.0-rc.2** is an ARM64 Bifrost 2.2.3 pair (final commit `f097f74`) built from the unmodified `transports/v2.2.3` source. All suites use synthetic providers.
+The current release **v0.3.0-rc.4** is an ARM64 Bifrost 2.2.3 pair (final commit `d588a9f`; English-first interface) — it supersedes rc.1–rc.3 built from the unmodified `transports/v2.2.3` source. All suites use synthetic providers.
 
 | Check | Result |
 | --- | --- |
 | Gateway `bifrost-http` | `80d17483…` (reproducible build) |
-| Plugin `bifrost-registry.so` | `09485d28…` |
+| Plugin `bifrost-registry.so` | `ff21df8f…` |
 | Per-key `/v1/models` isolation | 42/42 |
 | Standalone install, restart, disable | 55/55 |
 | Standalone + synthetic assistant | 72/72 |
 | Native-key adoption | 19/19 |
 | Per-access capabilities (prices, restricted VK, shared alias) | 34/34 assertions |
 
-[ARM64 qualification report](reports/bifrost-2.2.3-arm64-f097f74/README.md) · [Final audit](docs/reviews/2026-09-28-final-audit.md)
+[ARM64 qualification report](reports/bifrost-2.2.3-arm64-869e251/README.md) · [Final audit](docs/reviews/2026-09-28-final-audit.md)
 
 **Honest limits.** ARM64 only — AMD64 2.2.3 and the prebuilt official image remain unqualified, and the download image is qualified separately from the `.so`. All suites ran against synthetic providers with **no real inference**. The adoption suite runs its fixture over bridge networking bound to loopback; the other suites use `--network none`. No production deployment was performed, and native sidebar integration is deferred.
 
