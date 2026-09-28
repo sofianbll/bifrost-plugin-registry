@@ -8,22 +8,23 @@ type Props = {
   onStepChange: (step: number) => boolean | void;
   expert: boolean;
   onExpertChange: (expert: boolean) => void;
+  canExpert?: boolean;
   children: ReactNode;
   expertContent?: ReactNode;
   summary: ReactNode;
   footer: ReactNode;
 };
 
-export function EditorJourney({ labels, step, onStepChange, expert, onExpertChange, children, expertContent, summary, footer }: Props) {
+export function EditorJourney({ labels, step, onStepChange, expert, onExpertChange, canExpert = true, children, expertContent, summary, footer }: Props) {
   const copy = useCopy();
   return <div className="flex min-h-0 flex-1 flex-col">
     <header className="shrink-0 space-y-3 border-b pb-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <nav aria-label={copy("Steps", "Étapes")}><ol className="flex flex-wrap gap-1">{labels.map((label, index) => <li key={label}><Button type="button" size="sm" variant={step === index ? "default" : "ghost"} aria-current={step === index ? "step" : undefined} onClick={() => { const accepted = onStepChange(index); if (expert && accepted !== false) (document.getElementById(`editor-journey-step-${index}`) ?? (index === labels.length - 1 ? document.getElementById("editor-journey-summary") : null))?.scrollIntoView({ block: "start", behavior: "smooth" }); }}>{index + 1}. {label}</Button></li>)}</ol></nav>
-        <div className="hidden min-[1280px]:flex gap-1" role="group" aria-label={copy("Editor detail", "Détail de l’éditeur")}>
+        {canExpert && <div className="flex gap-1" role="group" aria-label={copy("Editor detail", "Détail de l’éditeur")}>
           <Button type="button" size="sm" variant={!expert ? "secondary" : "ghost"} aria-pressed={!expert} onClick={() => onExpertChange(false)}>{copy("Basic", "Simple")}</Button>
           <Button type="button" size="sm" variant={expert ? "secondary" : "ghost"} aria-pressed={expert} onClick={() => onExpertChange(true)}>{copy("Expert", "Expert")}</Button>
-        </div>
+        </div>}
       </div>
     </header>
     <div className="@container/journey custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain py-4 pr-1">

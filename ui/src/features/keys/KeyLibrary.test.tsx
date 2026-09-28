@@ -17,3 +17,12 @@ for (const shape of ["rectangle", "square"] as const) {
   if (!html.includes(`data-format="${expectedFormat}"`)) throw new Error(`shape ${shape}: expected format ${expectedFormat}`);
   if (!html.includes(`xl:grid-cols-${gridColumns(view.size)}`)) throw new Error(`shape ${shape}: expected ${gridColumns(view.size)} columns`);
 }
+
+// The keys list keeps the density control in grid and hides it in table, like the catalog and groups.
+for (const layout of ["grid", "table"] as const) {
+  const html = renderToStaticMarkup(<LanguageContext.Provider value="fr"><KeyLibrary keys={[native]} groups={fixture.groups} models={fixture.models} search="" onSearch={() => {}} view={{ ...defaultViewOptions, layout }} onViewChange={() => {}} onResetView={() => {}} busy={false} snapshotMode onCreate={() => {}} onOpen={() => {}} /></LanguageContext.Provider>);
+  const density = html.includes('aria-label="Densité de la grille"');
+  if (layout === "grid" && !density) throw new Error("grid layout must keep the density control");
+  if (layout === "table" && density) throw new Error("table layout must hide the density control");
+  if (!html.includes('aria-label="Grille"') || !html.includes('aria-label="Tableau"')) throw new Error(`${layout}: icon-only view toggles must keep explicit names`);
+}

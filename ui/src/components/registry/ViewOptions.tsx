@@ -56,7 +56,7 @@ export function ViewControls({ value, onChange, onReset, scope, fields = ["descr
   const setDensity = (size: ViewOptions["size"]) => onChange({ ...value, size });
 
   if (catalogFormats) {
-    return <div className="flex flex-wrap items-center gap-3" aria-label={`${scope || "List"} view options`}>
+    return <div className="flex flex-wrap items-center gap-3" aria-label={copy(`${scope || "List"} view options`, `Options d’affichage · ${scope || "liste"}`)}>
       <div className="space-y-1">
         <p className="text-xs font-medium text-muted-foreground">{copy("View", "Vue")}</p>
         <ToggleGroup type="single" value={value.layout} onValueChange={layout => layout && onChange({ ...value, layout: layout as ViewOptions["layout"] })} aria-label={copy("View", "Vue")}>
@@ -71,7 +71,7 @@ export function ViewControls({ value, onChange, onReset, scope, fields = ["descr
           <ToggleGroupItem value="square" aria-label={copy("Square", "Carré")}><Square className="size-4" /><span className="hidden sm:inline">{copy("Square", "Carré")}</span></ToggleGroupItem>
         </ToggleGroup>
       </div>}
-      <div className="space-y-1">
+      {value.layout === "grid" && <div className="space-y-1">
         <p className="text-xs font-medium text-muted-foreground">{copy("Density", "Densité")}</p>
         <ToggleGroup type="single" value={density} onValueChange={size => size && setDensity(size as ViewOptions["size"])} aria-label={copy("Grid density", "Densité de la grille")}>
           {(["small", "medium", "large"] as ViewOptions["size"][]).map(size => {
@@ -82,7 +82,7 @@ export function ViewControls({ value, onChange, onReset, scope, fields = ["descr
             </ToggleGroupItem>;
           })}
         </ToggleGroup>
-      </div>
+      </div>}
       <Popover open={open} onOpenChange={setOpen}><PopoverTrigger asChild><Button size="sm" variant="outline" aria-label={copy("View options", "Options d’affichage")}>{copy("View options", "Options")}</Button></PopoverTrigger><PopoverContent align="end" className="w-64 space-y-4">
         <h3 className="border-b pb-3 text-base font-semibold">{scope === "Models" ? copy("Model view options", "Options d’affichage des modèles") : copy(`${scope || "View"} options`, `${scope || "Vue"} · options`)}</h3>
         <div className="space-y-3"><p className="text-xs font-medium text-muted-foreground">{copy("Visible details", "Informations visibles")}</p>{fields.map(field => { const id = `${baseId}-${field}`; return <label key={field} htmlFor={id} className="flex cursor-pointer items-center gap-2 text-sm"><Checkbox id={id} checked={value[field]} onCheckedChange={checked => onChange({ ...value, [field]: checked === true })} />{field === "description" ? copy("Description", "Description") : field === "metadata" ? copy("Model ID / metadata", "Identifiant / métadonnées") : field === "providers" ? copy("Provider accesses", "Accès fournisseurs") : field === "modalities" ? copy("Input / output modalities", "Modalités entrée / sortie") : copy("Capabilities", "Capacités")}</label>; })}</div>
@@ -98,7 +98,7 @@ export function ViewControls({ value, onChange, onReset, scope, fields = ["descr
     else if (next === "compact") onChange({ ...value, layout: "grid", shape: "rectangle", size: "small" });
     else if (next === "square") onChange({ ...value, layout: "grid", shape: "square", size: "medium" });
   };
-  return <div className="flex flex-wrap items-center gap-1" aria-label={`${scope || "List"} view options`}>
+  return <div className="flex flex-wrap items-center gap-1" aria-label={copy(`${scope || "List"} view options`, `Options d’affichage · ${scope || "liste"}`)}>
     <ToggleGroup type="single" value={format} onValueChange={chooseFormat} aria-label={copy("Catalog display format", "Format du catalogue")} className="h-9 rounded-sm border p-0.5">
       {([["compact", LayoutGrid, "Grid", "Grille"], ["square", Square, "Square", "Carré"], ["table", List, "Table", "Tableau"]] as const).map(([id, Icon, en, fr]) => <ToggleGroupItem key={id} value={id} aria-label={copy(en, fr)} title={copy(en, fr)} className="size-8 rounded-sm px-0 data-[state=on]:bg-secondary"><Icon className="size-4" /></ToggleGroupItem>)}
     </ToggleGroup>

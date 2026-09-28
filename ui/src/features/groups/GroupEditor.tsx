@@ -21,13 +21,14 @@ type Props = {
   preferences: ViewOptions;
   expert?: boolean;
   onExpertChange?: (expert: boolean) => void;
+  canExpert?: boolean;
   onChange: (group: Group) => void;
   onSave: () => void;
   onCancel: () => void;
   onDelete: () => void;
 };
 
-export function GroupEditor({ group, groups, models, keys, snapshotMode, busy, preferences, expert = false, onExpertChange, onChange, onSave, onCancel, onDelete }: Props) {
+export function GroupEditor({ group, groups, models, keys, snapshotMode, busy, preferences, expert = false, onExpertChange, canExpert, onChange, onSave, onCancel, onDelete }: Props) {
   const copy = useCopy();
   const [selectionView, setSelectionView] = useState<"cards" | "tree">("cards");
   const [step, setStep] = useState(0);
@@ -62,5 +63,5 @@ export function GroupEditor({ group, groups, models, keys, snapshotMode, busy, p
   };
   const labels = [copy("Details", "Détails"), copy("Models", "Modèles"), copy("Review", "Vérifier")];
   const footer = <div className="flex flex-wrap items-center justify-between gap-2"><div>{existing && <Button type="button" variant="ghost" className="text-destructive" disabled={busy} onClick={onDelete}>{copy("Delete group", "Supprimer le groupe")}</Button>}</div><div className="ml-auto flex flex-wrap gap-2"><Button type="button" variant="outline" disabled={busy} onClick={onCancel}>{copy("Cancel", "Annuler")}</Button>{!expert && step > 0 && <Button type="button" variant="outline" onClick={() => setStep(step - 1)}><ArrowLeft className="size-3.5" />{copy("Previous", "Précédent")}</Button>}{!expert && step < 2 ? <Button type="button" disabled={step === 0 ? !group.name.trim() : !group.members.length} onClick={() => changeStep(step + 1)}>{copy("Continue", "Continuer")}<ArrowRight className="size-3.5" /></Button> : <Button type="button" disabled={busy || !group.name.trim() || !group.members.length} onClick={onSave}>{snapshotMode ? copy("Save locally", "Enregistrer localement") : copy("Publish group", "Publier le groupe")}</Button>}</div></div>;
-  return <EditorJourney labels={labels} step={step} onStepChange={changeStep} expert={expert} onExpertChange={value => onExpertChange?.(value)} expertContent={<><section id="editor-journey-step-0">{details}</section><section id="editor-journey-step-1">{browser}</section></>} summary={summary} footer={footer}><div className="space-y-4">{step === 0 && details}{step === 1 && browser}{step === 2 && summary}</div></EditorJourney>;
+  return <EditorJourney labels={labels} step={step} onStepChange={changeStep} expert={expert} onExpertChange={value => onExpertChange?.(value)} canExpert={canExpert} expertContent={<><section id="editor-journey-step-0">{details}</section><section id="editor-journey-step-1">{browser}</section></>} summary={summary} footer={footer}><div className="space-y-4">{step === 0 && details}{step === 1 && browser}{step === 2 && summary}</div></EditorJourney>;
 }

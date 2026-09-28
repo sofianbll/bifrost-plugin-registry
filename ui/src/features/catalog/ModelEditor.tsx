@@ -103,7 +103,7 @@ function EndpointChoices({ access, invalid, onChange }: { access: Access; invali
 
 type EditSection = "identity" | "details" | "capabilities" | "access" | null;
 
-export default function ModelEditor({ draft, onChange, creating, workspace, pricingProofs, baseline, error, busy, snapshotMode = false, expert = false, onExpertChange, onSave, onOverridesChange, onCancel, onDelete, onUnauthorized, actionSlot }: {
+export default function ModelEditor({ draft, onChange, creating, workspace, pricingProofs, baseline, error, busy, snapshotMode = false, expert = false, onExpertChange, canExpert, onSave, onOverridesChange, onCancel, onDelete, onUnauthorized, actionSlot }: {
   draft: Model;
   onChange: (draft: Model) => void;
   creating: boolean;
@@ -115,6 +115,7 @@ export default function ModelEditor({ draft, onChange, creating, workspace, pric
   snapshotMode?: boolean;
   expert?: boolean;
   onExpertChange?: (expert: boolean) => void;
+  canExpert?: boolean;
   onSave: (overrides: CatalogOverride[]) => void;
   onOverridesChange?: (overrides: CatalogOverride[]) => void;
   onCancel: () => void;
@@ -307,7 +308,7 @@ export default function ModelEditor({ draft, onChange, creating, workspace, pric
 
   return <SheetContent inert={busy} expandable className="min-h-0 max-w-[calc(100vw-1rem)] p-4 sm:max-w-5xl sm:p-6">
     <SheetHeader className="shrink-0 border-b pb-4"><SheetTitle className="text-xl">{creating ? copy("Save model", "Enregistrer un modèle") : draft.name}</SheetTitle><SheetDescription>{creating ? copy("Choose accesses, review the model card, then verify the save.", "Choisir les accès, lire la fiche, puis vérifier l’enregistrement.") : copy("Model card and provider accesses.", "Fiche du modèle et accès fournisseurs enregistrés.")}</SheetDescription></SheetHeader>
-    <EditorJourney labels={stepLabels} step={currentStep} onStepChange={changeStep} expert={expert} onExpertChange={value => onExpertChange?.(value)} summary={modelSummary} footer={editorFooter}>
+    <EditorJourney labels={stepLabels} step={currentStep} onStepChange={changeStep} expert={expert} onExpertChange={value => onExpertChange?.(value)} canExpert={canExpert} summary={modelSummary} footer={editorFooter}>
       {catalogError && <p role="status" className="rounded-sm border p-3 text-xs text-muted-foreground">{copy("Reference data unavailable", "Données de référence indisponibles")} : {catalogError}. {copy("Existing accesses remain visible.", "Les accès déjà présents restent visibles.")}</p>}
       {propertyNotice && <p role="status" className="rounded-sm border bg-primary/5 p-3 text-sm">{propertyNotice}</p>}
       {registrationIssue && <p role="alert" className="rounded-sm border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{registrationIssue === "id" ? copy("Enter a valid common model ID.", "Saisissez un identifiant commun valide.") : registrationIssue === "name" ? copy("A display name is required.", "Le nom affiché est obligatoire.") : registrationIssue === "operations" ? copy("Choose at least one Registry endpoint for every provider access.", "Choisissez au moins un endpoint Registry pour chaque accès fournisseur.") : copy("Complete each provider access: provider, native model ID, and matching Registry ID.", "Complétez chaque accès fournisseur : fournisseur, ID natif et ID Registry correspondant.")}</p>}

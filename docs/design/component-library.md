@@ -410,3 +410,17 @@ La revue réelle utilise le serveur existant `cmd/registry-review` sur `127.0.0.
 Sofian approved independent endpoint checkboxes on each provider access. Chat Completions and Responses are separate choices. Existing choices survive edit/save unchanged; new accesses require at least one explicit supported operation. Model modalities, historical `kind`, and Models.dev provider metadata never select permissions. The shared editor, review and save validation use this same rule.
 
 Models.dev provenance distinguishes the pinned source date/commit from the time the local catalog was refreshed. Access-specific values take priority; upstream omissions suppress inherited reference values unless explicitly overridden for that access. The source catalog does not create provider permissions. Browser and source evidence is recorded in the [repair checklist](../reviews/2026-09-27-ui-repair-checklist.md#modelsdev-and-per-access-endpoints).
+
+## Corrections de rendu et de parcours — 28 septembre 2026
+
+Audit de rendu réel de la paire native qualifiée (`dist/qual-223-arm64-73a8b29`). Corrections appliquées sans changer les données ni les chiffres affichés :
+
+- **Un seul état Expert.** L'en-tête porte le sélecteur près du thème et reste la seule source (`canUseExpert`, 1280 px). Les panneaux modaux (fiche modèle, groupe) affichent le même état parce que l'en-tête y est inatteignable : leur contrôle Simple/Expert reflète et pilote le même booléen, via la même option `canExpert` transmise par l'application au lieu d'un second point de rupture CSS. Aucun éditeur ne conserve d'état local.
+- **Densité liée à la grille.** Petit/Moyen/Grand et leur nombre de colonnes n'apparaissent qu'en vue Grille ; la vue Tableau les masque comme elle masque déjà Forme.
+- **Validation de la création de clé alignée sur le formulaire de groupe.** Marqueur `*`, `aria-required`, `aria-invalid`, message inline sous le champ (nom vide ou déjà utilisé) et action de création bloquée. Le toast global d'erreur de nom disparaît.
+- **Pluriel des clés.** `1 clé` / `N clés` sur les cartes de groupe et dans le tableau, comme le reste de l'interface.
+- **Vocabulaire des totaux du catalogue.** Les compteurs sont nommés : « accès natifs Bifrost » pour les entrées fournisseurs configurées dans le gateway, « fiches modèle Registry » pour les modèles logiques enregistrés, avec une infobulle qui explique les deux unités. Les nombres ne changent pas.
+- **Libellés de filtres tronqués.** Sous 400 px, les déclencheurs de filtre coupent proprement avec une ellipse et exposent le libellé complet en infobulle ; les bascules de vue en icônes seuls conservent leurs noms accessibles explicites.
+- **Chaînes du parcours clé localisées.** Création, secret affiché une fois, publication, activation/désactivation, relecture et messages du formulaire de groupe suivent désormais FR/EN comme le reste de l'interface.
+
+Preuves : `npm --prefix ui run check` et `npm --prefix ui run build` passent (avertissement de taille de bundle inchangé) ; les vérifications de rendu des contrôles et du pluriel échouent sans ces correctifs. Les flux modèles (suppression, enregistrement de fiche) conservent leurs libellés anglais et restent à localiser.
