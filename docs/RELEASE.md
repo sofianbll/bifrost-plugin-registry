@@ -2,6 +2,8 @@
 
 [English](INSTALL.md) · Français
 
+> **Release courante : [v0.3.0-rc.4](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.3.0-rc.4)** — Bifrost **2.2.3**, **ARM64/musl** uniquement : `bifrost-dynamic-2.2.3-linux-arm64.tar.gz`, `bifrost-registry-v0.3.0-rc.4-linux-arm64.so`, `SHA256SUMS`, `manifest.json`. Interface anglaise par défaut, français à un clic ou `?lang=fr`. Preuves : [`reports/bifrost-2.2.3-arm64-869e251`](../reports/bifrost-2.2.3-arm64-869e251/README.md) (42/42, 55/55, 72/72, 19/19, 34/34 assertions). Le reste de ce document décrit la livraison historique v0.2.0-rc.1/2.2.2 ; la procédure (téléchargement, installation par URL, mise à jour, retour arrière) est identique, seuls noms et versions changent.
+
 La [prérelease `v0.2.0-rc.1`](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.2.0-rc.1) distribue les fichiers ci-dessous. Vérifier leurs empreintes avec le fichier `SHA256SUMS` joint à la release. L'image contient Bifrost **compilé avec liaison dynamique** pour charger les plugins Go. Le `.so` Registry est un artefact séparé et n'est pas dans l'image. La production et l'ancien pilote sur `8082` n'ont pas été modifiés.
 
 ## Télécharger la paire correspondant à l'hôte

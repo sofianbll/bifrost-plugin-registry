@@ -2,11 +2,13 @@
 
 English · [Français](RELEASE.md)
 
-This guide targets **[v0.2.0-rc.1](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.2.0-rc.1)** with Bifrost 2.2.2. Use a staging instance before migrating an existing deployment.
+> **Current release: [v0.3.0-rc.4](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.3.0-rc.4)** — Bifrost **2.2.3**, **Linux ARM64/musl** only. Download `bifrost-dynamic-2.2.3-linux-arm64.tar.gz` and `bifrost-registry-v0.3.0-rc.4-linux-arm64.so` from that release, verify `SHA256SUMS`, then follow the steps below (the image tag is `bifrost-dynamic:2.2.3-go1.27.1-arm64`). The interface starts in English; French is one toggle or `?lang=fr` away. AMD64 2.2.3 is not qualified yet — the older `v0.2.0-rc.1` (Bifrost 2.2.2, ARM64 + AMD64) remains available for that pair.
+
+This guide's detailed walkthrough below still targets **[v0.2.0-rc.1](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.2.0-rc.1)** with Bifrost 2.2.2; its steps apply unchanged to the current release, only the file names, image tag and version differ. Use a staging instance before migrating an existing deployment.
 
 ## 1. Download the matching pair
 
-Choose `amd64` for an x86_64 Linux host or `arm64` for an ARM64 Linux host. The release provides:
+Choose `amd64` for an x86_64 Linux host or `arm64` for an ARM64 Linux host (the current 2.2.3 release ships **arm64 only**). The release provides:
 
 - `bifrost-dynamic-2.2.2-linux-{arch}.tar.gz`: a Docker image containing the complete Bifrost gateway compiled with dynamic loading, **without the Registry plugin**.
 - `bifrost-registry-v0.2.0-rc.1-linux-{arch}.so`: the separately installed Registry plugin, including its interface.

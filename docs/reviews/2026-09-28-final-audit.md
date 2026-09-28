@@ -6,12 +6,12 @@ Périmètre : branche `codex/prototype-model-card-modelsdev`, commits `12ea32c` 
 
 ## Qualification native — paire finale
 
-Paire compilée ensemble depuis le checkout Bifrost épinglé `transports/v2.2.3` (= `411d62b28b03b03bd3b4025b2cfab50af45f05f4`, arbre propre, 2 745 fichiers suivis revérifiés) et le plugin au commit `f097f74`, Linux ARM64/musl, Go 1.27.1, `GOWORK=off`, `CGO_ENABLED=1`, sans patch upstream. Sonde ABI : passée.
+Paire compilée ensemble depuis le checkout Bifrost épinglé `transports/v2.2.3` (= `411d62b28b03b03bd3b4025b2cfab50af45f05f4`, arbre propre, 2 745 fichiers suivis revérifiés) et le plugin au commit `d588a9f`, Linux ARM64/musl, Go 1.27.1, `GOWORK=off`, `CGO_ENABLED=1`, sans patch upstream. Sonde ABI : passée.
 
 | Artefact | SHA-256 |
 | --- | --- |
 | `bifrost-http` | `80d17483d6b693340b5b6f742710873a0a3ebfa96c1b419dc5352b76cb3bd6d0` (identique aux paires 2.2.3 précédentes : build reproductible) |
-| `bifrost-registry.so` | `09485d28a458bc7485504fe64bbb94a52480fc9a634f47b68edfd6f3dfd708e9` (paire requalifiée après la clôture UX `f097f74`) |
+| `bifrost-registry.so` | `ff21df8f65756fb5d5e9c00175dbe675fa1b0d7cf2855a987fa374fe62d6b498` (paire requalifiée : interface anglaise par défaut `d13ac01`, dernières localisations `869e251`) |
 
 | Suite (fournisseurs synthétiques) | Checks | Verdict |
 | --- | --- | --- |
@@ -21,7 +21,7 @@ Paire compilée ensemble depuis le checkout Bifrost épinglé `transports/v2.2.3
 | Plugin autonome + assistant IA synthétique (network none) | 72 | 72/72 |
 | Adoption de clés natives (fixture bridge, ports hôte liés à `127.0.0.1`) | 19 | 19/19 |
 
-Preuves versionnées : [`reports/bifrost-2.2.3-arm64-f097f74/`](../../reports/bifrost-2.2.3-arm64-f097f74/README.md) (la paire intermédiaire `2003e3e` reste consignée dans [`reports/bifrost-2.2.3-arm64-2003e3e/`](../../reports/bifrost-2.2.3-arm64-2003e3e/README.md)). Outillage : `./scripts/test.sh` (vet + `go test -race ./...`), `make script-check` et `make check` passent ; release publiée : [`v0.3.0-rc.2`](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.3.0-rc.2).
+Preuves versionnées : [`reports/bifrost-2.2.3-arm64-869e251/`](../../reports/bifrost-2.2.3-arm64-869e251/README.md) (les paires intermédiaires `2003e3e`, `f097f74` restent consignées dans leurs dossiers datés). Outillage : `./scripts/test.sh` (vet + `go test -race ./...`), `make script-check` et `make check` passent ; release publiée : [`v0.3.0-rc.2`](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.3.0-rc.2).
 
 ## Bugs produit trouvés par la qualification (corrigés)
 
@@ -50,7 +50,7 @@ Les trois défauts ouverts à l'issue de l'audit ont été corrigés et re-véri
 - Infobulles des totaux catalogue et des filtres → remplacées par l'infobulle partagée (survol **et** focus clavier, contenu enveloppé), vérifiées à 1452 px et 400 px ; libellés de filtres affichés en entier.
 - Dialogue de création de clé → exercé au rendu (fixture `tests/ui-fixture`, port 4174) : marqueur `*`, message inline (vide puis doublon), bouton bloqué puis création réelle, Échap, 400 px.
 
-La paire finale a été reconstruite et requalifiée sur ces changements (`.so` ci-dessus) ; la release [`v0.3.0-rc.2`](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.3.0-rc.2) supersède la rc.1.
+La paire finale a été reconstruite et requalifiée sur ces changements (`.so` ci-dessus) ; la release [`v0.3.0-rc.4`](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.3.0-rc.4) supersède la rc.1 à rc.3.
 
 ## Limites (assumées, pas des défauts)
 
