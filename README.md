@@ -16,7 +16,7 @@ English · [Français](README.fr.md)
 
 </div>
 
-![Registry catalogue grid](docs/images/catalogue-grid.png)
+![Registry catalogue grid](docs/images/en/catalogue-grid.png)
 
 *One searchable catalogue of Models.dev and Bifrost references, with provenance and reviewable corrections.*
 
@@ -48,10 +48,9 @@ open http://127.0.0.1:8099/model-registry
 
 | | |
 | --- | --- |
-| ![Catalogue grid](docs/images/catalogue-grid.png)<br>**Grid** — equal-height cards with per-field provenance | ![Catalogue table](docs/images/catalogue-table.png)<br>**Table** — dense comparison across creators and families |
-| ![Display options](docs/images/display-options.png)<br>**Display options** — grid, square and table densities | ![Model card](docs/images/model-card.png)<br>**Model card** — one model, distinct provider accesses |
-| ![Key composer](docs/images/key-composer.png)<br>**Key composer** — basic and expert access policies | ![Settings](docs/images/settings.png)<br>**Settings** — sources, status and preferences |
-| ![Mobile layout](docs/images/mobile.png)<br>**Mobile** — the same journeys at 400 px | ![Dark theme](docs/images/dark-theme.png)<br>**Dark theme** — full light and dark support |
+| ![Catalogue grid](docs/images/en/catalogue-grid.png)<br>**Grid** — equal-height cards with per-field provenance | ![Catalogue table](docs/images/en/catalogue-table.png)<br>**Table** — dense comparison across creators and families |
+| ![Display options](docs/images/en/display-options.png)<br>**Display options** — grid, square and table densities | ![Model card](docs/images/en/model-card.png)<br>**Model card** — one model, distinct provider accesses |
+| ![Key composer](docs/images/en/key-composer.png)<br>**Key composer** — basic and expert access policies | ![Mobile layout](docs/images/en/mobile.png)<br>**Mobile** — the same journeys at 400 px |
 
 ## The why
 
