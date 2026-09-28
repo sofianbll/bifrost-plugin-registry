@@ -81,6 +81,7 @@ type policyDTO struct {
 	Added           []string                           `json:"added"`
 	Excluded        []string                           `json:"excluded"`
 	Naming          string                             `json:"naming"`
+	Prefer          map[string]string                  `json:"prefer,omitempty"`
 	AccessSelection map[string]registry.AccessSelector `json:"accessSelection,omitempty"`
 }
 type publication struct {
@@ -479,7 +480,7 @@ func (s *Server) workspace(ctx context.Context) (workspace, error) {
 		active := vk.IsActive == nil || *vk.IsActive
 		key := keyDTO{ID: vk.ID, Name: vk.Name, Client: vk.Description, Active: active, Managed: managed, Policy: policyDTO{Groups: []string{}, Added: []string{}, Excluded: []string{}, Naming: config.DefaultNaming}, Publication: publication{State: "not_verified", Revision: snap.Revision(), Expected: []string{}, Missing: []string{}, Unexpected: []string{}}, Revision: 1}
 		if managed {
-			key.Policy = policyDTO{Groups: p.Groups, Added: refsToAliases(p.Added, refs), Excluded: refsToAliases(p.Excluded, refs), Naming: p.Naming, AccessSelection: accessSelectionToDTO(p.AccessSelection, config.Models)}
+			key.Policy = policyDTO{Groups: p.Groups, Added: refsToAliases(p.Added, refs), Excluded: refsToAliases(p.Excluded, refs), Naming: p.Naming, Prefer: p.Prefer, AccessSelection: accessSelectionToDTO(p.AccessSelection, config.Models)}
 			if key.Policy.Naming == "" {
 				key.Policy.Naming = config.DefaultNaming
 			}
@@ -764,6 +765,7 @@ func (s *Server) putWorkspace(w http.ResponseWriter, r *http.Request) {
 		oldp.Added = added
 		oldp.Excluded = excluded
 		oldp.Naming = k.Policy.Naming
+		oldp.Prefer = k.Policy.Prefer
 		oldp.AccessSelection = accessSelection
 		cfg.Policies = append(cfg.Policies, oldp)
 	}

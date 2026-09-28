@@ -301,3 +301,14 @@ S'appuie sur le processus candidat du §7 et les conditions natives établies (l
 5. **Exclusions locales** : une exclusion d'accès d'une clé prime sur ses groupes et ne modifie aucune autre clé. Les clés adoptées ne sont jamais réécrites (leur configuration native reste intacte).
 6. **UI** : sous-menu « Accesses » par carte modèle dans le compositeur de clé (cases à cocher, logos provider, badges d'origine hérité/ajouté/exclu), selon le contrat UI ; le brouillon liste accès retenus et exclusions locales.
 7. **Preuves** : tests de compilation (cas du plan §5) ; la qualification native à deux providers simulés reste à la tranche (f), comme le routage effectif entre accès admissibles (tranche d).
+
+### Tranche (d) — routage natif restreint : décision de périmètre (28 septembre 2026)
+
+Prolonge la tranche (c) selon le §7 : distinguer la liste des accès activés pour un modèle de la règle choisissant l'accès d'une requête. La règle par défaut devient **native** ; le `Prefer` statique devient un épinglage explicite, non plus une obligation.
+
+1. **Règle par défaut native** : quand une politique retient plusieurs accès d'un même alias court et n'établit pas de `Prefer`, l'alias devient un alias partagé natif — la vue expose le nom court une seule fois, et `Plan()` ajoute l'alias aux `AllowedModels` de chaque provider des accès retenus. La gouvernance Bifrost (`LoadBalanceProvider`, §7) choisit parmi les providers autorisés ; secours natifs selon configuration.
+2. **Épinglage explicite** : avec `Prefer`, comportement actuel conservé (un seul provider autorisé sur le nom court = règle fixe). Le format `provider/model` et les routes qualifiées sont inchangés ; mono-accès inchangé.
+3. **Représentation** : marqueur `Shared` sur `Route` (+ providers partagés), sérialisé en `omitempty` — les snapshots et exports existants restent valides sans le marqueur.
+4. **Mode standalone** : la résolution Registry ne réécrit pas le nom court vers un provider particulier ; la liste publiée `/v1/models` reste unique par nom court.
+5. **UI** : badge « routage natif entre N accès » vs « épinglé » dans le compositeur de clé, sans nouvel endpoint.
+6. **Preuves** : la qualification réelle du choix natif (deux providers simulés, identifiant effectivement transmis) reste à la tranche (f) ; cette tranche prouve la compilation, le plan natif et la publication.

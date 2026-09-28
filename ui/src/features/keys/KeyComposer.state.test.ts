@@ -1,6 +1,6 @@
 import { fixture } from "../../dev/fixtures/registry";
 import { emptyModelFilters, exposed, filterModels, members, type Policy } from "../../domain/registry";
-import { accessOrigin, keyComposition, modelOrigin, preserveAdoptionDraft, toggleAccess, toggleVisibleModels } from "./KeyComposer.state";
+import { accessOrigin, aliasStatus, keyComposition, modelOrigin, preserveAdoptionDraft, toggleAccess, toggleVisibleModels } from "./KeyComposer.state";
 
 const groups = fixture.groups.slice(0, 2);
 const models = fixture.models;
@@ -56,5 +56,25 @@ const unknownComposition = keyComposition(unknownPolicy, groups, models);
 const unknownState = unknownComposition.byModel.get("gpt-5");
 if (!unknownState || unknownState.unknown.length !== 1 || unknownState.unknown[0] !== "unknown/access") throw new Error("Unknown added access not exposed");
 if (exposed(unknownPolicy, groups, models).includes("unknown/access")) throw new Error("Unknown access must not be exposed");
+
+// Alias status: shared when several retained accesses share an alias without Prefer, pinned with Prefer, mono otherwise.
+const gpt5Group = { id: "gpt5-group", name: "GPT-5", description: "", members: ["gpt-5"] };
+const sharedPolicy: Policy = { groups: [gpt5Group.id], added: [], excluded: [], naming: "model" };
+if (aliasStatus(sharedPolicy, [gpt5Group], models)["gpt-5"].status !== "shared") throw new Error("Expected shared alias status for gpt-5");
+const pinnedPolicy: Policy = { ...sharedPolicy, prefer: { "gpt-5": "gpt-5" } };
+if (aliasStatus(pinnedPolicy, [gpt5Group], models)["gpt-5"].status !== "pinned") throw new Error("Expected pinned alias status");
+const monoPolicy: Policy = { groups: [gpt5Group.id], added: [], excluded: [], naming: "model", accessSelection: { "gpt-5": { added: [gpt5.accesses[0].id], excluded: [gpt5.accesses[1].id] } } };
+if (aliasStatus(monoPolicy, [gpt5Group], models)["gpt-5"].status !== "mono") throw new Error("Expected mono alias status");
+if (Object.keys(aliasStatus({ ...sharedPolicy, naming: "provider/model" }, [gpt5Group], models)).length !== 0) throw new Error("Provider/model naming should not report alias status");
+
+// Prefer and status keys must be the public alias, not the internal model id.
+const aliasedModel = { ...gpt5, id: "registry-gpt-5", alias: "gpt-5" };
+const aliasedModels = models.map(m => m.id === "gpt-5" ? aliasedModel : m);
+const aliasedGroup = { ...gpt5Group, members: ["registry-gpt-5"] };
+const aliasedPinned: Policy = { ...sharedPolicy, groups: [aliasedGroup.id], prefer: { "gpt-5": "registry-gpt-5" } };
+const aliasedStatus = aliasStatus(aliasedPinned, [aliasedGroup], aliasedModels)["gpt-5"];
+if (aliasedStatus?.status !== "pinned" || aliasedStatus?.count !== 2) throw new Error("Expected pinned status keyed by alias when internal id differs");
+const aliasedShared = aliasStatus({ ...sharedPolicy, groups: [aliasedGroup.id] }, [aliasedGroup], aliasedModels)["gpt-5"];
+if (aliasedShared?.status !== "shared" || aliasedShared?.count !== 2) throw new Error("Expected shared status keyed by alias when internal id differs");
 
 console.log("Key composer state checks passed");

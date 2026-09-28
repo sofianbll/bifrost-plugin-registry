@@ -76,7 +76,14 @@ func (s *Session) CheckAttempt(provider, model string) *Failure {
 			r, ok = nr, true
 		}
 	}
-	if !ok || !Has(r.Endpoints, s.endpoint) {
+	if !ok {
+		return fail(403, "registry_route_denied", "The selected provider/model is outside this request's registry routes")
+	}
+	if r.Shared {
+		if !Has(r.SharedProviders, provider) || !Has(r.SharedEndpoints[provider], s.endpoint) {
+			return fail(403, "registry_route_denied", "The selected provider/model is outside this request's registry routes")
+		}
+	} else if !Has(r.Endpoints, s.endpoint) {
 		return fail(403, "registry_route_denied", "The selected provider/model is outside this request's registry routes")
 	}
 	return nil
@@ -220,9 +227,15 @@ func (s *Snapshot) Prepare(req *Request) (*Session, *Failure) {
 		if !Has(r.Endpoints, endpoint) {
 			return Route{}, fail(400, "registry_endpoint_unverified", "This endpoint has not been enabled for the selected model")
 		}
-		session.allowed[r.NativeID()] = r
-		for _, t := range r.RoutingTargets {
-			session.allowed[t] = r
+		if r.Shared {
+			for _, provider := range r.SharedProviders {
+				session.allowed[provider+"/"+r.Alias] = r
+			}
+		} else {
+			session.allowed[r.NativeID()] = r
+			for _, t := range r.RoutingTargets {
+				session.allowed[t] = r
+			}
 		}
 		return r, nil
 	}
@@ -230,7 +243,7 @@ func (s *Snapshot) Prepare(req *Request) (*Session, *Failure) {
 	if f != nil {
 		return nil, f
 	}
-	if !route.Passthrough {
+	if !route.Passthrough && !route.Shared {
 		body["model"], _ = json.Marshal(route.NativeID())
 	}
 	// Reject alternate raw routing fields rather than silently overriding them.
@@ -255,9 +268,10 @@ func (s *Snapshot) Prepare(req *Request) (*Session, *Failure) {
 				return nil, f
 			}
 			outID := r.NativeID()
-			if r.Passthrough {
-				// Routing aliases keep their bare name so Bifrost routing rules
-				// evaluate them; native rewrite would bypass the CEL match.
+			if r.Passthrough || r.Shared {
+				// Routing aliases and shared native aliases keep their bare name so
+				// Bifrost routing rules evaluate them; native rewrite would bypass
+				// the CEL match or provider selection.
 				outID = name
 			}
 			if !seen[outID] {

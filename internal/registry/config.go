@@ -99,17 +99,25 @@ type Policy struct {
 }
 
 type Route struct {
-	ExposedID      string   `json:"exposed_id"`
-	RegistryID     string   `json:"registry_id"`
-	Provider       string   `json:"provider"`
-	Alias          string   `json:"alias"`
-	UpstreamModel  string   `json:"upstream_model"`
-	Endpoints      []string `json:"endpoints"`
-	Passthrough    bool     `json:"passthrough,omitempty"`
-	RoutingTargets []string `json:"routing_targets,omitempty"`
+	ExposedID       string              `json:"exposed_id"`
+	RegistryID      string              `json:"registry_id"`
+	Provider        string              `json:"provider"`
+	Alias           string              `json:"alias"`
+	UpstreamModel   string              `json:"upstream_model"`
+	Endpoints       []string            `json:"endpoints"`
+	Shared          bool                `json:"shared,omitempty"`
+	SharedProviders []string            `json:"shared_providers,omitempty"`
+	SharedEndpoints map[string][]string `json:"shared_endpoints,omitempty"`
+	Passthrough     bool                `json:"passthrough,omitempty"`
+	RoutingTargets  []string            `json:"routing_targets,omitempty"`
 }
 
-func (r Route) NativeID() string { return r.Provider + "/" + r.Alias }
+func (r Route) NativeID() string {
+	if r.Shared {
+		return r.Alias
+	}
+	return r.Provider + "/" + r.Alias
+}
 
 type View struct {
 	Policy Policy  `json:"policy"`
@@ -547,12 +555,46 @@ func Compile(c Config) (*Snapshot, error) {
 		}
 		v := &View{Policy: p, Routes: []Route{}, index: map[string]Route{}, native: map[string]Route{}}
 		add := func(m Model, name string) {
-			r := Route{name, m.ID, m.Provider, m.Alias, m.UpstreamModel, append([]string{}, m.Endpoints...), m.Passthrough, append([]string{}, m.RoutingTargets...)}
+			r := Route{ExposedID: name, RegistryID: m.ID, Provider: m.Provider, Alias: m.Alias, UpstreamModel: m.UpstreamModel, Endpoints: append([]string{}, m.Endpoints...), Passthrough: m.Passthrough, RoutingTargets: append([]string{}, m.RoutingTargets...)}
 			v.Routes = append(v.Routes, r)
 			v.index[name] = r
 			if !m.Passthrough {
 				v.native[r.NativeID()] = r
 			}
+		}
+		addShared := func(alias string, ms []Model) {
+			providers := []string{}
+			endpointSet := map[string]bool{}
+			sharedEndpoints := map[string]map[string]bool{}
+			for _, m := range ms {
+				providers = append(providers, m.Provider)
+				if sharedEndpoints[m.Provider] == nil {
+					sharedEndpoints[m.Provider] = map[string]bool{}
+				}
+				for _, e := range m.Endpoints {
+					endpointSet[e] = true
+					sharedEndpoints[m.Provider][e] = true
+				}
+			}
+			sort.Strings(providers)
+			endpoints := []string{}
+			for e := range endpointSet {
+				endpoints = append(endpoints, e)
+			}
+			sort.Strings(endpoints)
+			providerEndpoints := map[string][]string{}
+			for _, provider := range providers {
+				list := []string{}
+				for e := range sharedEndpoints[provider] {
+					list = append(list, e)
+				}
+				sort.Strings(list)
+				providerEndpoints[provider] = list
+			}
+			r := Route{ExposedID: alias, Alias: alias, Shared: true, SharedProviders: providers, Endpoints: endpoints, SharedEndpoints: providerEndpoints}
+			v.Routes = append(v.Routes, r)
+			v.index[alias] = r
+			v.native[r.NativeID()] = r
 		}
 		if p.Enabled {
 			for alias, ms := range byAlias {
@@ -571,7 +613,8 @@ func Compile(c Config) (*Snapshot, error) {
 					if len(ms) > 1 {
 						preferred := p.Prefer[alias]
 						if preferred == "" {
-							return nil, fmt.Errorf("policy %s: ambiguous bare alias %s; select a preferred route or provider/model", p.VirtualKeyID, alias)
+							addShared(alias, ms)
+							continue
 						}
 						chosen = eligible[preferred]
 					}

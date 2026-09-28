@@ -3,6 +3,7 @@ export type Access = { provider: string; id: string; route: string; status: "Con
 export const registryEndpoints = ["chat/completions", "responses", "completions", "embeddings", "images/generations", "audio/speech", "decisions", "rerank", "ocr"] as const;
 export type Model = {
   id: string;
+  alias?: string;
   name: string;
   creator: string;
   family: string;
@@ -17,7 +18,7 @@ export type Model = {
 };
 export type AccessSelector = { added: string[]; excluded: string[] };
 export type Group = { id: string; name: string; description: string; members: string[] };
-export type Policy = { groups: string[]; added: string[]; excluded: string[]; naming: "model" | "provider/model" | "both"; accessSelection?: Record<string, AccessSelector> };
+export type Policy = { groups: string[]; added: string[]; excluded: string[]; naming: "model" | "provider/model" | "both"; prefer?: Record<string, string>; accessSelection?: Record<string, AccessSelector> };
 export type Publication = { state: "verified" | "drift" | "not_verified"; revision: string; checkedAt: string; observedAt?: string; observedRevision?: string; expected: string[]; actual: string[] | null; missing: string[]; unexpected: string[]; error?: string };
 export type PricingProof = { access: string; state: string; checkedAt: string; error?: string };
 export type Key = { id: string; name: string; client: string; active: boolean; policy: Policy; observed: string[] | null; readError: boolean; revision: number; managed?: boolean; publication?: Publication };

@@ -60,6 +60,36 @@ export function toggleAccess(policy: Policy, modelId: string, accessId: string, 
   return next;
 }
 
+export type AliasStatus = "shared" | "pinned" | "mono";
+
+export type AliasBadge = { status: AliasStatus; count: number };
+
+export function aliasStatus(policy: Policy, groups: Group[], models: Model[]): Record<string, AliasBadge> {
+  if (policy.naming === "provider/model") return {};
+  const byAlias = new Map<string, { count: number; pinned: boolean }>();
+  for (const id of members(policy, groups)) {
+    const model = models.find(m => m.id === id);
+    if (!model) continue;
+    const alias = model.alias ?? model.id;
+    const { known } = retainedAccesses(model, policy);
+    const current = byAlias.get(alias) ?? { count: 0, pinned: false };
+    current.count += known.length;
+    current.pinned ||= !!policy.prefer?.[alias];
+    byAlias.set(alias, current);
+  }
+  const status: Record<string, AliasBadge> = {};
+  for (const [alias, info] of byAlias.entries()) {
+    if (info.pinned) {
+      status[alias] = { status: "pinned", count: info.count };
+    } else if (info.count > 1) {
+      status[alias] = { status: "shared", count: info.count };
+    } else {
+      status[alias] = { status: "mono", count: info.count };
+    }
+  }
+  return status;
+}
+
 export function keyComposition(policy: Policy, groups: Group[], models: Model[]) {
   const selected = members(policy, groups);
   const inherited = new Set(policy.groups.flatMap(id => groups.find(group => group.id === id)?.members || []));
@@ -88,9 +118,11 @@ export function keyComposition(policy: Policy, groups: Group[], models: Model[])
     inherited: selected.filter(id => inherited.has(id)),
     direct: policy.added.filter(id => !inherited.has(id)),
     ids: exposed(policy, groups, models),
+    aliases: aliasStatus(policy, groups, models),
     byModel,
   };
 }
+
 
 export function preserveAdoptionDraft(adopted: Policy, draft: Policy): Policy {
   return {

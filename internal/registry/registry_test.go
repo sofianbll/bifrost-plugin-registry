@@ -70,7 +70,8 @@ func TestNaming(t *testing.T) {
 		{"provider/model", nil, []string{"alpha/fast", "alpha/smart", "beta/smart"}, false},
 		{"model", map[string]string{"smart": "b"}, []string{"fast", "smart"}, false},
 		{"both", map[string]string{"smart": "a"}, []string{"alpha/fast", "alpha/smart", "beta/smart", "fast", "smart"}, false},
-		{"model", nil, nil, true}, {"both", nil, nil, true},
+		{"model", nil, []string{"fast", "smart"}, false},
+		{"both", nil, []string{"alpha/fast", "alpha/smart", "beta/smart", "fast", "smart"}, false},
 	} {
 		t.Run(fmt.Sprintf("%s_prefer_%v", tc.name, tc.prefer), func(t *testing.T) {
 			c := fixture()
@@ -214,8 +215,8 @@ func TestPolicyLocalSelections(t *testing.T) {
 	c.Policies[0].Naming = "both"
 	c.Policies[0].Sources = nil
 	c.Models[2].Verified = true
-	if _, err := Compile(c); err == nil || !strings.Contains(err.Error(), "ambiguous") {
-		t.Fatalf("bare alias collision through additions accepted: %v", err)
+	if got := names(t, mustCompile(t, c)); !reflect.DeepEqual(got, []string{"alpha/fast", "alpha/smart", "beta/smart", "fast", "smart"}) {
+		t.Fatalf("bare alias collision through additions should become shared: %v", got)
 	}
 	c.Policies[0].Prefer = map[string]string{"smart": "b"}
 	c.Policies[0].Excluded = []string{"b"}
@@ -246,13 +247,25 @@ func TestAccessSelection(t *testing.T) {
 			t.Fatalf("expected alpha routes only, got %v", got)
 		}
 	})
-	// (b) key allowing both accesses keeps the ambiguity requirement.
-	t.Run("both_accesses_require_prefer", func(t *testing.T) {
+	// (b) key allowing both accesses makes the bare alias a shared native alias.
+	t.Run("both_accesses_shared", func(t *testing.T) {
 		c := fixture()
 		c.Policies[0].Naming = "model"
 		c.Policies[0].AccessSelection = map[string]AccessSelector{"smart": {Added: []string{"a", "b"}}}
-		if _, err := Compile(c); err == nil || !strings.Contains(err.Error(), "ambiguous") {
-			t.Fatalf("expected ambiguity error, got %v", err)
+		s := mustCompile(t, c)
+		got := names(t, s)
+		if !reflect.DeepEqual(got, []string{"fast", "smart"}) {
+			t.Fatalf("expected shared bare alias, got %v", got)
+		}
+		view, _ := s.View("vk-1")
+		var shared Route
+		for _, r := range view.Routes {
+			if r.ExposedID == "smart" {
+				shared = r
+			}
+		}
+		if !shared.Shared || !reflect.DeepEqual(shared.SharedProviders, []string{"alpha", "beta"}) {
+			t.Fatalf("shared route missing or wrong providers: %+v", shared)
 		}
 	})
 	t.Run("both_accesses_provider_model_ok", func(t *testing.T) {
@@ -841,5 +854,135 @@ func TestPassthroughValidation(t *testing.T) {
 	c.Models[3].RoutingTargets = []string{"no-provider-separator"}
 	if _, e := Compile(c); e == nil || !strings.Contains(e.Error(), "routing target") {
 		t.Fatalf("malformed routing target accepted: %v", e)
+	}
+}
+
+func TestSharedNativeAlias(t *testing.T) {
+	c := fixture()
+	c.Policies[0].Naming = "model"
+	s := mustCompile(t, c)
+	view, _ := s.View("vk-1")
+	var shared Route
+	for _, r := range view.Routes {
+		if r.ExposedID == "smart" {
+			shared = r
+		}
+	}
+	if !shared.Shared || !reflect.DeepEqual(shared.SharedProviders, []string{"alpha", "beta"}) {
+		t.Fatalf("shared route missing or wrong providers: %+v", shared)
+	}
+	if shared.NativeID() != "smart" {
+		t.Fatalf("shared native id should be bare alias: %s", shared.NativeID())
+	}
+	p := s.Plan()
+	if len(p.VirtualKeys) != 1 {
+		t.Fatal("missing virtual key plan")
+	}
+	allowed := p.VirtualKeys[0].AllowedModels
+	if !reflect.DeepEqual(allowed["alpha"], []string{"fast", "smart"}) || !reflect.DeepEqual(allowed["beta"], []string{"smart"}) {
+		t.Fatalf("shared alias not allowed on every provider: %v", allowed)
+	}
+	keyIDs := p.VirtualKeys[0].ProviderKeyIDs
+	if !reflect.DeepEqual(keyIDs["alpha"], []string{"key-a"}) || !reflect.DeepEqual(keyIDs["beta"], []string{"key-b"}) {
+		t.Fatalf("shared provider key ids wrong: %v", keyIDs)
+	}
+	// Requesting the shared bare alias leaves the model untouched and pre-authorizes every provider.
+	r := req(`{"model":"smart"}`)
+	session := mustPrepare(t, s, r)
+	var body map[string]json.RawMessage
+	json.Unmarshal(r.Body, &body)
+	if string(body["model"]) != `"smart"` {
+		t.Fatalf("shared alias was rewritten: %s", r.Body)
+	}
+	if session.CheckAttempt("alpha", "smart") != nil || session.CheckAttempt("beta", "smart") != nil {
+		t.Fatal("shared provider attempt denied")
+	}
+	if session.CheckAttempt("intruder", "smart") == nil {
+		t.Fatal("non-shared provider attempt accepted")
+	}
+	// Projection exposes the shared alias when Bifrost advertises it.
+	proj, f := session.Project([]byte(`{"data":[{"id":"smart","created":1,"owned_by":"alpha"},{"id":"fast","created":2,"owned_by":"alpha"}]}`), "vk-1")
+	if f != nil {
+		t.Fatal(f)
+	}
+	if !strings.Contains(string(proj), `"id":"smart"`) {
+		t.Fatalf("shared alias not projected: %s", proj)
+	}
+}
+
+func TestPinnedAliasKeepsCurrentBehavior(t *testing.T) {
+	c := fixture()
+	c.Policies[0].Naming = "model"
+	c.Policies[0].Prefer = map[string]string{"smart": "b"}
+	s := mustCompile(t, c)
+	if got := names(t, s); !reflect.DeepEqual(got, []string{"fast", "smart"}) {
+		t.Fatalf("pinned alias produced wrong ids: %v", got)
+	}
+	r := req(`{"model":"smart"}`)
+	mustPrepare(t, s, r)
+	var body map[string]json.RawMessage
+	json.Unmarshal(r.Body, &body)
+	if string(body["model"]) != `"beta/smart"` {
+		t.Fatalf("pinned alias not rewritten to preferred provider: %s", r.Body)
+	}
+}
+
+func TestSharedMonoAccessUnchanged(t *testing.T) {
+	c := fixture()
+	c.Policies[0].AccessSelection = map[string]AccessSelector{"smart": {Added: []string{"a"}, Excluded: []string{"b"}}}
+	c.Policies[0].Naming = "model"
+	s := mustCompile(t, c)
+	if got := names(t, s); !reflect.DeepEqual(got, []string{"fast", "smart"}) {
+		t.Fatalf("mono-access alias changed: %v", got)
+	}
+	r := req(`{"model":"smart"}`)
+	mustPrepare(t, s, r)
+	var body map[string]json.RawMessage
+	json.Unmarshal(r.Body, &body)
+	if string(body["model"]) != `"alpha/smart"` {
+		t.Fatalf("mono-access alias was not rewritten: %s", r.Body)
+	}
+}
+
+func TestSharedEndpointSubset(t *testing.T) {
+	c := fixture()
+	c.Policies[0].Naming = "model"
+	c.Models[0].Endpoints = []string{"chat/completions", "responses"}
+	c.Models[1].Endpoints = []string{"chat/completions"}
+	s := mustCompile(t, c)
+	view, _ := s.View("vk-1")
+	var shared Route
+	for _, r := range view.Routes {
+		if r.ExposedID == "smart" {
+			shared = r
+		}
+	}
+	if !shared.Shared {
+		t.Fatalf("expected shared route, got %+v", shared)
+	}
+	if !reflect.DeepEqual(shared.SharedEndpoints["alpha"], []string{"chat/completions", "responses"}) || !reflect.DeepEqual(shared.SharedEndpoints["beta"], []string{"chat/completions"}) {
+		t.Fatalf("wrong per-provider endpoints: %+v", shared.SharedEndpoints)
+	}
+	// Common endpoint is authorized for both providers.
+	r := req(`{"model":"smart"}`)
+	session := mustPrepare(t, s, r)
+	if session.CheckAttempt("alpha", "smart") != nil || session.CheckAttempt("beta", "smart") != nil {
+		t.Fatal("common endpoint denied for shared provider")
+	}
+	// Provider-specific endpoint must be rejected for the provider that does not support it.
+	r2 := req(`{"model":"smart"}`)
+	r2.Path = "/v1/responses"
+	session2, f := s.Prepare(r2)
+	if f != nil {
+		t.Fatal(f)
+	}
+	if session2.CheckAttempt("alpha", "smart") != nil {
+		t.Fatal("responses denied for alpha")
+	}
+	if session2.CheckAttempt("beta", "smart") == nil {
+		t.Fatal("responses allowed for beta")
+	}
+	if session2.CheckAttempt("intruder", "smart") == nil {
+		t.Fatal("non-shared provider allowed")
 	}
 }

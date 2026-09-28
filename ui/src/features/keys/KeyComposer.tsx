@@ -12,7 +12,7 @@ import { ProviderMark } from "../../components/registry/BrandIcon";
 import type { ViewOptions } from "../../components/registry/ViewOptions";
 import { delta, exposed, members, origin, same, toggleModel, type Group, type Key, type Model, type Policy, type Publication } from "../../domain/registry";
 import { useCopy } from "../../lib/locale";
-import { accessOrigin, keyComposition, modelOrigin, toggleAccess, toggleVisibleModels, type AccessOrigin } from "./KeyComposer.state";
+import { accessOrigin, keyComposition, modelOrigin, toggleAccess, toggleVisibleModels, type AccessOrigin, type AliasBadge, type AliasStatus } from "./KeyComposer.state";
 
 type Props = {
   virtualKey: Key;
@@ -59,6 +59,16 @@ export default function KeyComposer({ virtualKey, draft, onDraftChange, models, 
         ? state.inherited.length ? copy("Restore for this key", "Rétablir pour cette clé") : copy("Add to this key", "Ajouter à cette clé")
         : state.inherited.length ? copy("Exclude from this key", "Exclure de cette clé") : state.added ? copy("Remove from this key", "Retirer de cette clé") : copy("Add to this key", "Ajouter à cette clé"),
     };
+  };
+
+  const aliasBadge = (badge: AliasBadge) => {
+    const labels: Record<AliasStatus, string> = {
+      shared: copy("Native routing among ", "Routage natif entre ") + badge.count + copy(" accesses", " accès"),
+      pinned: copy("Pinned alias", "Alias épinglé"),
+      mono: copy("Single access", "Accès unique"),
+    };
+    const variants: Record<AliasStatus, "default" | "secondary" | "warning"> = { shared: "warning", pinned: "default", mono: "secondary" };
+    return <Badge variant={variants[badge.status]}>{labels[badge.status]}</Badge>;
   };
 
   const modelList = (ids: string[]) => ids.map(id => {
@@ -133,7 +143,11 @@ export default function KeyComposer({ virtualKey, draft, onDraftChange, models, 
     <div className="flex flex-wrap items-baseline justify-between gap-2"><h3 className="text-sm font-semibold">{copy("IDs offered to applications", "Identifiants proposés aux applications")}</h3><span className="text-xs text-muted-foreground">{composition.ids.length} {copy("planned IDs", "ID prévus")}</span></div>
     <p className="text-xs text-muted-foreground">{copy("Draft preview only · not published or verified.", "Aperçu du brouillon · ni publié ni vérifié.")} {copy("The format changes model IDs; provider routing remains controlled by Bifrost.", "Le format modifie les ID modèle ; Bifrost garde le contrôle du routage fournisseur.")}</p>
     <div className="flex flex-wrap gap-1" role="group" aria-label={copy("ID format", "Format des ID")}>{formats.map(format => <Button key={format} type="button" size="sm" variant={draft.naming === format ? "default" : "outline"} aria-pressed={draft.naming === format} disabled={busy} onClick={() => onDraftChange({ ...draft, naming: format })}>{format === "both" ? copy("Both", "Les deux") : format === "model" ? copy("Model", "Modèle") : copy("Provider / model", "Fournisseur / modèle")}</Button>)}</div>
-    <div className="max-h-40 overflow-auto rounded-sm border bg-card px-3" aria-live="polite">{composition.ids.map((id, index) => <div key={`${id}-${index}`} className="break-all border-b py-1.5 font-mono text-xs last:border-0">{id}</div>)}{!composition.ids.length && <p className="py-3 text-xs text-muted-foreground">{copy("No selected models produce IDs yet.", "Aucun modèle sélectionné ne produit d’ID pour le moment.")}</p>}</div>
+    <div className="max-h-40 overflow-auto rounded-sm border bg-card px-3" aria-live="polite">{composition.ids.map((id, index) => {
+      const alias = models.find(m => m.id === id || m.alias === id)?.alias ?? (id.includes("/") ? id.split("/")[1] : id);
+      const badge = composition.aliases[alias];
+      return <div key={`${id}-${index}`} className="flex flex-wrap items-center justify-between gap-2 break-all border-b py-1.5 font-mono text-xs last:border-0"><span>{id}</span>{badge && aliasBadge(badge)}</div>;
+    })}{!composition.ids.length && <p className="py-3 text-xs text-muted-foreground">{copy("No selected models produce IDs yet.", "Aucun modèle sélectionné ne produit d’ID pour le moment.")}</p>}</div>
     <Button type="button" size="sm" variant="outline" disabled={!composition.ids.length} onClick={() => void copyIds(composition.ids.join("\n"))}><Clipboard className="size-3.5" />{copy("Copy planned IDs", "Copier les ID prévus")}</Button>
   </section>;
   const { copy: copyIds } = useCopyToClipboard({ successMessage: copy("Planned IDs copied", "ID prévus copiés"), errorMessage: copy("Could not copy IDs", "Impossible de copier les ID") });

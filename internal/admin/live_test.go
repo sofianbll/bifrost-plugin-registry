@@ -486,7 +486,6 @@ func TestKeySecretReturnedAfterPartialCreate(t *testing.T) {
 	}
 }
 
-
 func TestPricingOverridesIdempotentSync(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "registry.json")
 	initial, err := registry.Compile(registry.Config{
