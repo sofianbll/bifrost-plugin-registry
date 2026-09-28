@@ -6,6 +6,27 @@
 
 La [prérelease `v0.2.0-rc.1`](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.2.0-rc.1) distribue les fichiers ci-dessous. Vérifier leurs empreintes avec le fichier `SHA256SUMS` joint à la release. L'image contient Bifrost **compilé avec liaison dynamique** pour charger les plugins Go. Le `.so` Registry est un artefact séparé et n'est pas dans l'image. La production et l'ancien pilote sur `8082` n'ont pas été modifiés.
 
+## Deux modes d'installation
+
+**Mode A — image Registry + plugin (recommandé).** Exécuter l'image Bifrost **2.2.3 dynamique** publiée (`docker load`, volume sur `/app/data`, les deux variables d'identifiants) et installer le `.so` par **URL directe** dans les réglages plugin de Bifrost. L'image contient un Bifrost non modifié compilé avec chargement dynamique, **sans plugin** ; Registry reste un artefact séparé et versionné.
+
+**Mode B — plugin seul, sur un gateway déjà en place.** Tout Bifrost **compilé avec chargement dynamique** peut héberger le `.so` Registry : télécharger le `.so` correspondant, vérifier son empreinte, puis le rendre accessible au gateway soit par **chemin de fichier local** (`path: "/plugins/bifrost-registry.so"`, lisible par le processus Bifrost) soit par **URL http(s)** (Bifrost le télécharge au démarrage). Exigences : même architecture, chaîne Go, versions de dépendances, OS et libc que la compilation du gateway ; la paire qualifiée est Linux ARM64/musl, Go 1.27.1. L'image officielle précompilée statique refuse les plugins dynamiques (`Dynamic loading not supported`) — voir Dépannage.
+
+## Dépannage
+
+**`failed to create temporary file: open /tmp/bifrost-plugin-*.so: permission denied`** à l'ajout d'un plugin par URL. Bifrost télécharge le `.so` dans son répertoire temporaire avant de le charger (`os.TempDir()` — `/tmp`, ou `$TMPDIR` s'il est défini ; source : `framework/plugins/utils.go` de l'arbre Bifrost épinglé). Le processus Bifrost doit donc disposer d'un répertoire temporaire **accessible en écriture (et exécutable)**. Cela échoue sur les conteneurs durcis : système de fichiers racine en lecture seule, `/tmp` absent, ou `$TMPDIR` appartenant à un autre utilisateur. Correctifs :
+
+- Docker : monter un tmpfs accessible en écriture, ex. `--tmpfs /tmp:rw,exec,nosuid,size=128m`, ou pointer le temp vers le volume de données : `-e TMPDIR=/app/data/tmp` en créant `/app/data/tmp` accessible à l'utilisateur d'exécution du conteneur.
+- Kubernetes : ajouter un volume `emptyDir` sur `/tmp` quand `readOnlyRootFilesystem` est activé.
+- Service systemd : vérifier les options `PrivateTmp`/durcissement et `Environment=TMPDIR=…` vers un répertoire accessible en écriture.
+- Vérification rapide depuis l'hôte : `docker exec <conteneur> sh -c 'id; touch /tmp/write-test && rm /tmp/write-test'` doit réussir en tant qu'utilisateur Bifrost.
+
+**`Dynamic loading not supported` (image officielle précompilée).** L'image officielle statique télécharge le `.so` puis refuse de le charger. Utiliser l'image dynamique publiée (mode A) ou compiler son propre gateway avec chargement dynamique correspondant à sa chaîne Go, son architecture et sa libc ([compilation native](BUILD.md)).
+
+**`plugin already loaded` en réactivant sans redémarrage.** La réactivation à chaud d'un plugin Go n'est pas prise en charge ; redémarrer le gateway (le panneau, les données et la relecture sont restaurés).
+
+**Le plugin se télécharge mais échoue à s'activer.** Vérifier l'empreinte contre `SHA256SUMS`, et que l'image et le `.so` partagent architecture, version Go, dépendances et libc. Consulter `GET /api/plugins` et les journaux du gateway pour l'erreur d'activation.
+
 ## Télécharger la paire correspondant à l'hôte
 
 Choisir **une seule** architecture, `amd64` ou `arm64`. Pour chacune, la release fournit :
