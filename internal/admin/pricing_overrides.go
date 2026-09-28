@@ -25,12 +25,42 @@ type nativePricingOverride struct {
 }
 
 type pricingOverride struct {
-	Name       string
-	Provider   string
-	KeyID      string
-	Pattern    string
-	InputCost  *float64
-	OutputCost *float64
+	Name         string
+	Provider     string
+	KeyID        string
+	Pattern      string
+	RequestTypes []string
+	InputCost    *float64
+	OutputCost   *float64
+}
+
+// requestTypesForEndpoints maps Registry endpoint selections to the base
+// native request types Bifrost requires on a pricing override. Base types
+// cover their streaming variants.
+func requestTypesForEndpoints(endpoints []string) []string {
+	mapping := map[string]string{
+		"chat/completions":   "chat_completion",
+		"completions":        "text_completion",
+		"responses":          "responses",
+		"embeddings":         "embedding",
+		"images/generations": "image_generation",
+		"audio/speech":       "speech",
+		"decisions":          "decisions",
+		"rerank":             "rerank",
+		"ocr":                "ocr",
+	}
+	types := []string{}
+	seen := map[string]bool{}
+	for _, endpoint := range endpoints {
+		requestType, ok := mapping[endpoint]
+		if !ok || seen[requestType] {
+			continue
+		}
+		seen[requestType] = true
+		types = append(types, requestType)
+	}
+	sort.Strings(types)
+	return types
 }
 
 // applyPricingOverrides idempotently syncs manual price corrections to Bifrost
@@ -67,10 +97,15 @@ func (s *Server) applyPricingOverrides(ctx context.Context, snap *registry.Snaps
 				continue
 			}
 			po := pricingOverride{
-				Name:     pricingOverrideName(m.Provider, kp.KeyID, m.UpstreamModel),
-				Provider: m.Provider,
-				KeyID:    kp.KeyID,
-				Pattern:  m.UpstreamModel,
+				Name:         pricingOverrideName(m.Provider, kp.KeyID, m.UpstreamModel),
+				Provider:     m.Provider,
+				KeyID:        kp.KeyID,
+				Pattern:      m.UpstreamModel,
+				RequestTypes: requestTypesForEndpoints(m.Endpoints),
+			}
+			if len(po.RequestTypes) == 0 {
+				s.setPricingProof(m.Provider, kp.KeyID, m.UpstreamModel, "No native request type for the selected endpoints")
+				continue
 			}
 			if hasIn {
 				v := in / 1e6
@@ -126,6 +161,7 @@ func (s *Server) applyPricingOverrides(ctx context.Context, snap *registry.Snaps
 				"provider_key_id": po.KeyID,
 				"match_type":      "exact",
 				"pattern":         po.Pattern,
+				"request_types":   po.RequestTypes,
 				"patch":           pricingPatch(po),
 			}
 			existingPO, ok := existingByName[name]
