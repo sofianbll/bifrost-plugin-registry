@@ -24,6 +24,43 @@ type nativePricingOverride struct {
 	Patch     map[string]any `json:"patch"`
 }
 
+// UnmarshalJSON reads the override list item. Bifrost serialises the patch as the
+// JSON string "pricing_patch"; /api/models/details re-exposes the same values as a
+// "patch" object. Both shapes are accepted so read-back cannot silently see an
+// empty patch and report a false drift.
+func (o *nativePricingOverride) UnmarshalJSON(data []byte) error {
+	var wire struct {
+		ID           string          `json:"id"`
+		Name         string          `json:"name"`
+		ScopeKind    string          `json:"scope_kind"`
+		Provider     string          `json:"provider_id"`
+		KeyID        string          `json:"provider_key_id"`
+		MatchType    string          `json:"match_type"`
+		Pattern      string          `json:"pattern"`
+		PricingPatch json.RawMessage `json:"pricing_patch"`
+		Patch        json.RawMessage `json:"patch"`
+	}
+	if err := json.Unmarshal(data, &wire); err != nil {
+		return err
+	}
+	o.ID, o.Name, o.ScopeKind = wire.ID, wire.Name, wire.ScopeKind
+	o.Provider, o.KeyID, o.MatchType, o.Pattern = wire.Provider, wire.KeyID, wire.MatchType, wire.Pattern
+	raw := wire.PricingPatch
+	if len(raw) == 0 || string(raw) == "null" {
+		raw = wire.Patch
+	}
+	var text string
+	if len(raw) > 0 && json.Unmarshal(raw, &text) == nil {
+		raw = []byte(text)
+	}
+	if len(raw) > 0 && string(raw) != "null" {
+		if err := json.Unmarshal(raw, &o.Patch); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 type pricingOverride struct {
 	Name         string
 	Provider     string

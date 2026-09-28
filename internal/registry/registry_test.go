@@ -908,6 +908,24 @@ func TestSharedNativeAlias(t *testing.T) {
 	if !strings.Contains(string(proj), `"id":"smart"`) {
 		t.Fatalf("shared alias not projected: %s", proj)
 	}
+	// A restricted allowlist makes Bifrost advertise the model provider-prefixed on
+	// every provider it is allowed on; the shared route must project once, not zero
+	// times, and must not emit a duplicate entry per provider.
+	proj, f = session.Project([]byte(`{"data":[{"id":"alpha/smart","created":1,"owned_by":"alpha"},{"id":"beta/smart","created":2,"owned_by":"beta"}]}`), "vk-1")
+	if f != nil {
+		t.Fatal(f)
+	}
+	var projected struct {
+		Data []struct {
+			ID string `json:"id"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(proj, &projected); err != nil {
+		t.Fatal(err)
+	}
+	if len(projected.Data) != 1 || projected.Data[0].ID != "smart" {
+		t.Fatalf("provider-prefixed shared aliases not collapsed to one route: %s", proj)
+	}
 }
 
 func TestPinnedAliasKeepsCurrentBehavior(t *testing.T) {

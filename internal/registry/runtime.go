@@ -325,18 +325,41 @@ func (s *Session) Project(body []byte, authenticatedID string) ([]byte, *Failure
 	}
 	out := []map[string]any{}
 	for _, r := range s.view.Routes {
-		m, ok := native[r.NativeID()]
-		if !ok {
+		// A restricted allowlist makes Bifrost advertise the model provider-prefixed
+		// ("provider-a/shared"), so a shared route over several providers matches any
+		// of their native entries and is projected once. A bare alias is still tried
+		// first: routing rules and unrestricted keys advertise it that way.
+		candidates := []string{r.NativeID()}
+		if r.Shared {
+			for _, provider := range r.SharedProviders {
+				candidates = append(candidates, provider+"/"+r.Alias)
+			}
+		}
+		var m map[string]json.RawMessage
+		owner := r.Provider
+		for _, id := range candidates {
+			entry, ok := native[id]
+			if !ok {
+				continue
+			}
+			m = entry
+			if r.Shared && id != r.Alias && strings.HasSuffix(id, "/"+r.Alias) {
+				owner = strings.TrimSuffix(id, "/"+r.Alias)
+			}
+			break
+		}
+		if m == nil {
 			continue
 		}
 		var created int64
-		var owner string
 		if raw, ok := m["created"]; ok && json.Unmarshal(raw, &created) != nil {
 			return nil, fail(502, "registry_invalid_models", "Invalid native model timestamp")
 		}
-		_ = json.Unmarshal(m["owned_by"], &owner)
-		if owner == "" {
-			owner = r.Provider
+		if raw, ok := m["owned_by"]; ok {
+			var nativeOwner string
+			if json.Unmarshal(raw, &nativeOwner) == nil && nativeOwner != "" {
+				owner = nativeOwner
+			}
 		}
 		item := map[string]any{"id": r.ExposedID, "object": "model", "created": created, "owned_by": owner}
 		if raw, ok := m["shutdown_date"]; ok {
