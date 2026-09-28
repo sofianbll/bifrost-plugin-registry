@@ -4,8 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -32,18 +30,7 @@ func catalogFieldsForAccess(c *registry.Catalog, provider, model string) map[str
 	if access == nil {
 		return fields
 	}
-	for _, ref := range c.References {
-		if ref.ID == access.ReferenceID {
-			for key, v := range registry.EffectiveCatalogFields(ref.CatalogRecord) {
-				fields[key] = v
-			}
-			break
-		}
-	}
-	for key, v := range registry.EffectiveCatalogFields(access.CatalogRecord) {
-		fields[key] = v
-	}
-	return fields
+	return registry.EffectiveAccessCatalogFields(c, *access)
 }
 
 func catalogModelFields(m *modelDTO, fields map[string]registry.CatalogValue) {
@@ -141,6 +128,7 @@ type catalogAccessDTO struct {
 	ReferenceID   string                           `json:"referenceId,omitempty"`
 	MappingManual bool                             `json:"mappingManual,omitempty"`
 	MatchConflict string                           `json:"matchConflict,omitempty"`
+	OmittedFields []string                         `json:"omittedFields,omitempty"`
 	Fields        map[string]registry.CatalogValue `json:"fields"`
 	Overrides     map[string]json.RawMessage       `json:"overrides"`
 }
@@ -149,6 +137,38 @@ type catalogDTO struct {
 	References []catalogReferenceDTO    `json:"references"`
 	Accesses   []catalogAccessDTO       `json:"accesses"`
 	Sources    []registry.CatalogSource `json:"sources"`
+}
+
+type catalogOverrideInput struct {
+	Target string          `json:"target"`
+	ID     string          `json:"id"`
+	Field  string          `json:"field"`
+	Value  json.RawMessage `json:"value"`
+}
+
+func applyCatalogOverride(c *registry.Catalog, input catalogOverrideInput) int {
+	if !registry.CatalogFieldAllowed(input.Field) || len(input.Value) == 0 || !json.Valid(input.Value) {
+		return http.StatusBadRequest
+	}
+	if c == nil {
+		return http.StatusNotFound
+	}
+	record := catalogRecord(c, input.Target, input.ID)
+	if record == nil {
+		return http.StatusNotFound
+	}
+	if string(input.Value) == "null" {
+		delete(record.Overrides, input.Field)
+		return 0
+	}
+	if !registry.CatalogValueValid(input.Field, input.Value) {
+		return http.StatusUnprocessableEntity
+	}
+	if record.Overrides == nil {
+		record.Overrides = map[string]registry.CatalogValue{}
+	}
+	record.Overrides[input.Field] = registry.CatalogValue{Value: input.Value, Source: "manual", UpdatedAt: time.Now().UTC().Format(time.RFC3339), Kind: "declared"}
+	return 0
 }
 
 func catalogView(snap *registry.Snapshot) catalogDTO {
@@ -161,7 +181,7 @@ func catalogView(snap *registry.Snapshot) catalogDTO {
 		out.References = append(out.References, catalogReferenceDTO{r.ID, registry.EffectiveCatalogFields(r.CatalogRecord), rawOverrides(r.Overrides)})
 	}
 	for _, a := range cfg.Catalog.Accesses {
-		out.Accesses = append(out.Accesses, catalogAccessDTO{a.ID, a.Provider, a.Model, a.Configured, a.ReferenceID, a.MappingManual, a.MatchConflict, registry.EffectiveCatalogFields(a.CatalogRecord), rawOverrides(a.Overrides)})
+		out.Accesses = append(out.Accesses, catalogAccessDTO{a.ID, a.Provider, a.Model, a.Configured, a.ReferenceID, a.MappingManual, a.MatchConflict, a.OmittedFields, registry.EffectiveCatalogFields(a.CatalogRecord), rawOverrides(a.Overrides)})
 	}
 	out.Sources = cfg.Catalog.Sources
 	return out
@@ -251,28 +271,14 @@ func (s *Server) catalogHandler(w http.ResponseWriter, r *http.Request) {
 		cfg.Catalog.References = append(cfg.Catalog.References, ref)
 		sort.Slice(cfg.Catalog.References, func(i, j int) bool { return cfg.Catalog.References[i].ID < cfg.Catalog.References[j].ID })
 	case "/api/catalog/override":
-		var input struct {
-			Target string          `json:"target"`
-			ID     string          `json:"id"`
-			Field  string          `json:"field"`
-			Value  json.RawMessage `json:"value"`
-		}
-		if registry.StrictJSON(b, &input, true) != nil || !registry.CatalogFieldAllowed(input.Field) || len(input.Value) == 0 || !json.Valid(input.Value) {
+		var input catalogOverrideInput
+		if registry.StrictJSON(b, &input, true) != nil {
 			reply(w, 400, map[string]string{"error": "Invalid catalogue override"})
 			return
 		}
-		record := catalogRecord(cfg.Catalog, input.Target, input.ID)
-		if record == nil {
-			reply(w, 404, map[string]string{"error": "Unknown catalogue target"})
+		if status := applyCatalogOverride(cfg.Catalog, input); status != 0 {
+			reply(w, status, map[string]string{"error": "Invalid or unknown catalogue override"})
 			return
-		}
-		if string(input.Value) == "null" {
-			delete(record.Overrides, input.Field)
-		} else {
-			if record.Overrides == nil {
-				record.Overrides = map[string]registry.CatalogValue{}
-			}
-			record.Overrides[input.Field] = registry.CatalogValue{Value: input.Value, Source: "manual", UpdatedAt: time.Now().UTC().Format(time.RFC3339), Kind: "declared"}
 		}
 	case "/api/catalog/match":
 		var input struct {
@@ -536,104 +542,20 @@ func bifrostCatalogue(ctx context.Context, client *liveClient, at string) ([]reg
 	return out, nil
 }
 
-func (s *Server) modelsDevCatalogue(ctx context.Context, current *registry.Catalog, at string) ([]registry.CatalogReference, []registry.CatalogAccess, error) {
-	client := s.catalogHTTP
-	if client == nil {
-		client = &http.Client{Timeout: 12 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
-	}
-	read := func(path string) ([]byte, error) {
-		req, _ := http.NewRequestWithContext(ctx, http.MethodGet, "https://models.dev/"+path+"?type=all", nil)
-		resp, err := client.Do(req)
-		if err != nil {
-			return nil, errors.New("Models.dev request failed")
-		}
-		defer resp.Body.Close()
-		if resp.StatusCode != 200 {
-			return nil, fmt.Errorf("Models.dev returned HTTP %d", resp.StatusCode)
-		}
-		body, err := io.ReadAll(io.LimitReader(resp.Body, 12<<20+1))
-		if err != nil || len(body) > 12<<20 {
-			return nil, errors.New("Models.dev response is unavailable or too large")
-		}
-		return body, nil
-	}
-	modelsBody, err := read("models.json")
+func (s *Server) modelsDevCatalogue(_ context.Context, current *registry.Catalog, _ string) ([]registry.CatalogReference, []registry.CatalogAccess, error) {
+	body, err := embeddedModelsDevSnapshot()
 	if err != nil {
 		return nil, nil, err
 	}
-	apiBody, err := read("api.json")
+	snapshot, err := parseModelsDevSnapshot(body)
 	if err != nil {
 		return nil, nil, err
 	}
-	var models map[string]map[string]json.RawMessage
-	if json.Unmarshal(modelsBody, &models) != nil || len(models) == 0 {
-		return nil, nil, errors.New("Invalid Models.dev models.json")
+	refs, accesses, err := modelsDevRows(current, snapshot.Source.SourceAt, snapshot)
+	if err != nil {
+		return nil, nil, err
 	}
-	var providers map[string]struct {
-		Models map[string]map[string]json.RawMessage `json:"models"`
-	}
-	if json.Unmarshal(apiBody, &providers) != nil || len(providers) == 0 {
-		return nil, nil, errors.New("Invalid Models.dev api.json")
-	}
-	providerRows := 0
-	for _, provider := range providers {
-		providerRows += len(provider.Models)
-	}
-	if providerRows == 0 {
-		return nil, nil, errors.New("Models.dev provider catalogue is empty")
-	}
-	refs := make([]registry.CatalogReference, 0, len(models))
-	refIDs := map[string]bool{}
-	for id, row := range models {
-		if id == "" || len(id) > 512 || !registry.CatalogValueValid("name", row["name"]) {
-			continue
-		}
-		refIDs[id] = true
-		ref := registry.CatalogReference{ID: id}
-		putMapped(&ref.CatalogRecord, "models.dev", at, row, map[string]string{"name": "name", "family": "family", "attachment": "attachment", "reasoning": "reasoning", "tool_call": "tool_call", "structured_output": "structured_output", "temperature": "temperature"})
-		limits := object(row["limit"])
-		putMapped(&ref.CatalogRecord, "models.dev", at, limits, map[string]string{"context": "context_length", "input": "max_input_tokens", "output": "max_output_tokens"})
-		modalities := object(row["modalities"])
-		putMapped(&ref.CatalogRecord, "models.dev", at, modalities, map[string]string{"input": "input_modalities", "output": "output_modalities"})
-		refs = append(refs, ref)
-	}
-	if len(refs) == 0 {
-		return nil, nil, errors.New("Models.dev reference catalogue is empty")
-	}
-	// Provider pricing enriches only already configured Bifrost access IDs.
-	accesses := []registry.CatalogAccess{}
-	for _, old := range current.Accesses {
-		if !old.Configured {
-			continue
-		}
-		provider, ok := providers[old.Provider]
-		if !ok {
-			continue
-		}
-		row, ok := provider.Models[old.Model]
-		if !ok {
-			continue
-		}
-		a := registry.CatalogAccess{ID: old.ID, Provider: old.Provider, Model: old.Model}
-		var base string
-		_ = json.Unmarshal(row["base_model"], &base)
-		if refIDs[base] {
-			a.ReferenceID = base
-		} else if refIDs[a.ID] {
-			a.ReferenceID = a.ID
-		}
-		putMapped(&a.CatalogRecord, "models.dev", at, row, map[string]string{"name": "name", "attachment": "attachment", "reasoning": "reasoning", "tool_call": "tool_call", "structured_output": "structured_output", "temperature": "temperature"})
-		limits := object(row["limit"])
-		putMapped(&a.CatalogRecord, "models.dev", at, limits, map[string]string{"context": "context_length", "input": "max_input_tokens", "output": "max_output_tokens"})
-		modalities := object(row["modalities"])
-		putMapped(&a.CatalogRecord, "models.dev", at, modalities, map[string]string{"input": "input_modalities", "output": "output_modalities"})
-		costs := object(row["cost"])
-		for from, to := range map[string]string{"input": "input_cost_usd_per_million", "output": "output_cost_usd_per_million", "cache_read": "cache_read_cost_usd_per_million", "cache_write": "cache_write_cost_usd_per_million"} {
-			if price, ok := costPerMillion(costs[from], false); ok {
-				putField(&a.CatalogRecord, "models.dev", at, to, price)
-			}
-		}
-		accesses = append(accesses, a)
-	}
+	source := current.Source("models.dev")
+	source.Repository, source.Commit, source.SourceAt = snapshot.Source.Repository, snapshot.Source.Commit, snapshot.Source.SourceAt
 	return refs, accesses, nil
 }

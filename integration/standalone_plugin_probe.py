@@ -442,12 +442,15 @@ def main():
                       and ws.get('revision') == applied['revision'], status=status)
                 model = copy.deepcopy(ws['discovery'][0])
                 model.update(tasks=['Chat'], inputModalities=['Text'], outputModalities=['Text'], kind='Chat')
+                for access in model['accesses']:
+                    access['endpoints'] = ['chat/completions', 'responses']
                 ws['data']['models'].append(model)
                 if args.assistant_fixture:
                     blank_model = copy.deepcopy(next(m for m in ws['discovery'] if m['id'] != model['id']))
                     blank_model.update(kind='Chat', creator='Fixture Creator', family='Fixture Series',
                                        tasks=[], inputModalities=[], outputModalities=[], capabilities={})
                     blank_model['accesses'][0]['referenceId'] = reference_id
+                    blank_model['accesses'][0]['endpoints'] = ['chat/completions', 'responses']
                     ws['data']['models'].append(blank_model)
                 ws['data']['groups'].append({'id': 'persisted-proof', 'name': 'Persisted proof',
                                              'description': 'Standalone URL integration',

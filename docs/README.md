@@ -1,6 +1,8 @@
 # Documentation
 
-Start with [installation](INSTALL.md) or [contributing](../CONTRIBUTING.md). The [current status](../STATUS.md) records what is delivered and what remains deferred.
+- [User guide](USER-GUIDE.md): model registration, sources, groups, keys and local snapshot limitations.
+
+Start with [current status](../STATUS.md) for the release, merged changes and local development, then the [September 26 reconciliation](reviews/2026-09-26-project-state.md) for evidence and gaps. Use [installation](INSTALL.md) for the published release or [contributing](../CONTRIBUTING.md) for source work.
 
 ## Use Registry
 
@@ -24,6 +26,6 @@ Start with [installation](INSTALL.md) or [contributing](../CONTRIBUTING.md). The
 
 ## Design and history
 
-[Domain vocabulary](../CONTEXT.md), [V1 specification](design/core-v1-spec.md), [product decisions](design/product-direction.md) and [future Bifrost fork strategy](design/bifrost-fork-strategy.md) capture the project's decisions.
+[Domain vocabulary](../CONTEXT.md), [V1 release specification](design/core-v1-spec.md), [current product decisions](design/product-direction.md), [native model-card contract](design/model-card-bifrost-contract.md), [Models.dev research](design/models-dev-reuse-research.md) and [future Bifrost fork strategy](design/bifrost-fork-strategy.md) capture the project's scope and decisions.
 
 Historical material is preserved in [archive/](archive/), the dated design notes and [reports/](../reports/README.md). These records are useful evidence, not current installation instructions.

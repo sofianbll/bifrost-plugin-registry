@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"net/url"
 	"sort"
@@ -30,13 +31,31 @@ type liveState struct {
 	proofs map[string]publication
 }
 type accessDTO struct {
-	Provider    string  `json:"provider"`
-	ID          string  `json:"id"`
-	Route       string  `json:"route"`
-	Status      string  `json:"status"`
-	NativeModel string  `json:"nativeModel,omitempty"`
-	ReferenceID *string `json:"referenceId,omitempty"`
+	Provider      string   `json:"provider"`
+	ID            string   `json:"id"`
+	Route         string   `json:"route"`
+	Status        string   `json:"status"`
+	NativeModel   string   `json:"nativeModel,omitempty"`
+	Endpoints     []string `json:"endpoints"`
+	ReferenceID   *string  `json:"referenceId,omitempty"`
+	endpointsNull bool
 }
+
+func (a *accessDTO) UnmarshalJSON(data []byte) error {
+	type alias accessDTO
+	var decoded alias
+	if err := registry.StrictJSON(data, &decoded, true); err != nil {
+		return err
+	}
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(data, &fields); err != nil {
+		return err
+	}
+	*a = accessDTO(decoded)
+	a.endpointsNull = bytes.Equal(bytes.TrimSpace(fields["endpoints"]), []byte("null")) && fields["endpoints"] != nil
+	return nil
+}
+
 type modelDTO struct {
 	ID               string            `json:"id"`
 	Name             string            `json:"name"`
@@ -58,10 +77,12 @@ type groupDTO struct {
 	Members     []string `json:"members"`
 }
 type policyDTO struct {
-	Groups   []string `json:"groups"`
-	Added    []string `json:"added"`
-	Excluded []string `json:"excluded"`
-	Naming   string   `json:"naming"`
+	Groups          []string                           `json:"groups"`
+	Added           []string                           `json:"added"`
+	Excluded        []string                           `json:"excluded"`
+	Naming          string                             `json:"naming"`
+	Prefer          map[string]string                  `json:"prefer,omitempty"`
+	AccessSelection map[string]registry.AccessSelector `json:"accessSelection,omitempty"`
 }
 type publication struct {
 	State            string   `json:"state"`
@@ -74,6 +95,12 @@ type publication struct {
 	Missing          []string `json:"missing"`
 	Unexpected       []string `json:"unexpected"`
 	Error            string   `json:"error,omitempty"`
+}
+type pricingProofDTO struct {
+	Access    string `json:"access"`
+	State     string `json:"state"`
+	Error     string `json:"error,omitempty"`
+	CheckedAt string `json:"checkedAt"`
 }
 type keyDTO struct {
 	ID          string      `json:"id"`
@@ -94,10 +121,11 @@ type demoDTO struct {
 	Campaigns []any      `json:"campaigns"`
 }
 type workspace struct {
-	Revision   string     `json:"revision"`
-	Data       demoDTO    `json:"data"`
-	Discovery  []modelDTO `json:"discovery"`
-	Connection struct {
+	Revision      string            `json:"revision"`
+	Data          demoDTO           `json:"data"`
+	Discovery     []modelDTO        `json:"discovery"`
+	PricingProofs []pricingProofDTO `json:"pricingProofs"`
+	Connection    struct {
 		Connected bool   `json:"connected"`
 		Version   string `json:"version"`
 	} `json:"connection"`
@@ -379,7 +407,7 @@ func nativeToDiscovery(rows []nativeModel) []modelDTO {
 			byName[row.Name] = i
 			models = append(models, modelDTO{ID: id, Name: row.Name, Creator: "Unknown", Family: "Unknown", InputModalities: []string{}, OutputModalities: []string{}, Tasks: []string{}, Kind: "Unknown", Summary: "", Context: "Unknown", Capabilities: map[string]string{}, Accesses: []accessDTO{}})
 		}
-		a := accessDTO{Provider: row.Provider, ID: row.Provider + "/" + id, Route: "Direct provider", Status: "Configured", NativeModel: row.Name}
+		a := accessDTO{Provider: row.Provider, ID: row.Provider + "/" + id, Route: "Direct provider", Status: "Configured", NativeModel: row.Name, Endpoints: []string{}}
 		models[i].Accesses = append(models[i].Accesses, a)
 	}
 	sort.Slice(models, func(i, j int) bool { return models[i].ID < models[j].ID })
@@ -411,14 +439,14 @@ func (s *Server) workspace(ctx context.Context) (workspace, error) {
 			_ = json.Unmarshal(raw, &ui)
 		}
 		if ui.ID == "" {
-			ui = modelDTO{ID: m.Alias, Creator: m.Creator, Family: m.Family, Context: "Unknown", Kind: "Chat"}
+			ui = modelDTO{ID: m.Alias, Creator: m.Creator, Family: m.Family, Context: "Unknown", Kind: "Unknown"}
 		}
 		catalogModelFields(&ui, catalogFieldsForAccess(config.Catalog, m.Provider, m.UpstreamModel))
 		ui = sanitizeLiveModel(ui)
 		if ui.Name == "" {
 			ui.Name = m.Alias
 		}
-		a := accessDTO{Provider: m.Provider, ID: m.Provider + "/" + m.Alias, NativeModel: m.UpstreamModel, Route: "Direct provider", Status: "Configured", ReferenceID: workspaceReferenceID(config.Catalog, m.Provider, m.UpstreamModel)}
+		a := accessDTO{Provider: m.Provider, ID: m.Provider + "/" + m.Alias, NativeModel: m.UpstreamModel, Route: "Direct provider", Status: "Configured", Endpoints: append([]string{}, m.Endpoints...), ReferenceID: workspaceReferenceID(config.Catalog, m.Provider, m.UpstreamModel)}
 		if i, ok := index[ui.ID]; ok {
 			dto.Models[i].Accesses = append(dto.Models[i].Accesses, a)
 		} else {
@@ -452,7 +480,7 @@ func (s *Server) workspace(ctx context.Context) (workspace, error) {
 		active := vk.IsActive == nil || *vk.IsActive
 		key := keyDTO{ID: vk.ID, Name: vk.Name, Client: vk.Description, Active: active, Managed: managed, Policy: policyDTO{Groups: []string{}, Added: []string{}, Excluded: []string{}, Naming: config.DefaultNaming}, Publication: publication{State: "not_verified", Revision: snap.Revision(), Expected: []string{}, Missing: []string{}, Unexpected: []string{}}, Revision: 1}
 		if managed {
-			key.Policy = policyDTO{p.Groups, refsToAliases(p.Added, refs), refsToAliases(p.Excluded, refs), p.Naming}
+			key.Policy = policyDTO{Groups: p.Groups, Added: refsToAliases(p.Added, refs), Excluded: refsToAliases(p.Excluded, refs), Naming: p.Naming, Prefer: p.Prefer, AccessSelection: accessSelectionToDTO(p.AccessSelection, config.Models)}
 			if key.Policy.Naming == "" {
 				key.Policy.Naming = config.DefaultNaming
 			}
@@ -481,6 +509,18 @@ func (s *Server) workspace(ctx context.Context) (workspace, error) {
 	}
 	sort.Slice(dto.Keys, func(i, j int) bool { return dto.Keys[i].Name < dto.Keys[j].Name })
 	ws := workspace{Revision: snap.Revision(), Data: dto, Discovery: discovered}
+	for name, proof := range s.live.proofs {
+		if !strings.HasPrefix(name, "registry/") {
+			continue
+		}
+		parts := strings.Split(name, "/")
+		access := name
+		if len(parts) >= 4 {
+			access = parts[1] + "/" + parts[3]
+		}
+		ws.PricingProofs = append(ws.PricingProofs, pricingProofDTO{Access: access, State: proof.State, Error: proof.Error, CheckedAt: proof.CheckedAt})
+	}
+	sort.Slice(ws.PricingProofs, func(i, j int) bool { return ws.PricingProofs[i].Access < ws.PricingProofs[j].Access })
 	ws.Connection.Connected = true
 	ws.Connection.Version = "unknown"
 	var version string
@@ -500,6 +540,37 @@ func refsToAliases(ids []string, refs map[string]string) []string {
 	}
 	return out
 }
+
+func accessSelectionToDTO(sel map[string]registry.AccessSelector, models []registry.Model) map[string]registry.AccessSelector {
+	if len(sel) == 0 {
+		return nil
+	}
+	idToAccess := map[string]string{}
+	for _, m := range models {
+		idToAccess[m.ID] = m.Provider + "/" + m.Alias
+	}
+	out := map[string]registry.AccessSelector{}
+	for alias, s := range sel {
+		dto := registry.AccessSelector{}
+		for _, id := range s.Added {
+			if access := idToAccess[id]; access != "" {
+				dto.Added = append(dto.Added, access)
+			}
+		}
+		for _, id := range s.Excluded {
+			if access := idToAccess[id]; access != "" {
+				dto.Excluded = append(dto.Excluded, access)
+			}
+		}
+		if len(dto.Added)+len(dto.Excluded) > 0 {
+			out[alias] = dto
+		}
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
 func (s *Server) putWorkspace(w http.ResponseWriter, r *http.Request) {
 	expected := strings.Trim(r.Header.Get("If-Match"), `"`)
 	if expected == "" {
@@ -515,7 +586,8 @@ func (s *Server) putWorkspace(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var input struct {
-		Data demoDTO `json:"data"`
+		Data             demoDTO                `json:"data"`
+		CatalogOverrides []catalogOverrideInput `json:"catalogOverrides,omitempty"`
 	}
 	if e = registry.StrictJSON(b, &input, true); e != nil {
 		reply(w, 400, map[string]string{"error": "Invalid workspace JSON"})
@@ -536,16 +608,56 @@ func (s *Server) putWorkspace(w http.ResponseWriter, r *http.Request) {
 		nativeByID[v.ID] = v
 	}
 	old := s.Store.Load().Config()
+	oldEndpoints := map[string][]string{}
+	ambiguousOldEndpoints := map[string]bool{}
+	for _, m := range old.Models {
+		key := m.Provider + "\x00" + m.UpstreamModel
+		if _, exists := oldEndpoints[key]; exists {
+			ambiguousOldEndpoints[key] = true
+		} else {
+			oldEndpoints[key] = m.Endpoints
+		}
+	}
 	oldPolicy := map[string]registry.Policy{}
 	for _, p := range old.Policies {
 		oldPolicy[p.VirtualKeyID] = p
 	}
 	cfg := registry.Config{SchemaVersion: 1, DefaultNaming: old.DefaultNaming, Models: []registry.Model{}, Groups: []registry.Group{}, Policies: []registry.Policy{}, Catalog: old.Catalog, Assistant: old.Assistant}
+	seenOverrides := map[string]bool{}
+	for _, override := range input.CatalogOverrides {
+		if override.Field != "context_length" && override.Field != "max_output_tokens" && override.Field != "tool_call" && override.Field != "structured_output" && override.Field != "input_cost_usd_per_million" && override.Field != "output_cost_usd_per_million" {
+			reply(w, 422, map[string]string{"error": "Unsupported model card property"})
+			return
+		}
+		if (override.Field == "context_length" || override.Field == "max_output_tokens") && !validCardTokenCount(override.Value) {
+			reply(w, 422, map[string]string{"error": "Model card token count must be a safe non-negative integer"})
+			return
+		}
+		if (override.Field == "input_cost_usd_per_million" || override.Field == "output_cost_usd_per_million") && !validCardCost(override.Value) {
+			reply(w, 422, map[string]string{"error": "Model card cost must be a safe non-negative number"})
+			return
+		}
+		key := override.Target + "\x00" + override.ID + "\x00" + override.Field
+		if seenOverrides[key] {
+			reply(w, 422, map[string]string{"error": "Duplicate catalogue override"})
+			return
+		}
+		seenOverrides[key] = true
+		if string(override.Value) == "null" {
+			reply(w, 422, map[string]string{"error": "Invalid catalogue override"})
+			return
+		}
+		if status := applyCatalogOverride(cfg.Catalog, override); status != 0 {
+			reply(w, 422, map[string]string{"error": "Invalid or unknown catalogue override"})
+			return
+		}
+	}
 	nativeAccess := map[string]nativeModel{}
 	for _, n := range nativeRows {
 		nativeAccess[n.Provider+"/"+n.Name] = n
 	}
 	byLogical := map[string][]string{}
+	accessToRegistry := map[string]string{}
 	seenRegistry := map[string]bool{}
 	seenLogical := map[string]bool{}
 	for _, m := range input.Data.Models {
@@ -577,13 +689,27 @@ func (s *Server) putWorkspace(w http.ResponseWriter, r *http.Request) {
 			persisted := sanitizeLiveModel(m)
 			stripCatalogAutofill(&persisted, catalogFieldsForAccess(cfg.Catalog, a.Provider, raw))
 			metadata, _ := json.Marshal(persisted)
-			endpoints := selectedEndpoints(m.Kind)
-			if len(endpoints) == 0 {
-				reply(w, 422, map[string]string{"error": "Select a supported endpoint type before publishing"})
+			endpoints := a.Endpoints
+			if a.endpointsNull {
+				reply(w, 422, map[string]string{"error": "Endpoints must be omitted or provided as a nonempty list"})
 				return
 			}
-			cfg.Models = append(cfg.Models, registry.Model{ID: id, Alias: m.ID, Provider: a.Provider, ProviderKeyIDs: native.AccessibleByKeys, UpstreamModel: raw, Creator: cleanUnknown(m.Creator), Family: cleanUnknown(m.Family), Endpoints: endpoints, Enabled: true, Configured: true, Evidence: "Configured in Bifrost native model catalog; inference not observed", Metadata: map[string]json.RawMessage{"ui": metadata}})
+			if endpoints == nil {
+				key := a.Provider + "\x00" + raw
+				prior, exists := oldEndpoints[key]
+				if !exists || ambiguousOldEndpoints[key] {
+					reply(w, 422, map[string]string{"error": "Choose endpoints for each new provider access"})
+					return
+				}
+				endpoints = prior
+			}
+			if len(endpoints) == 0 {
+				reply(w, 422, map[string]string{"error": "Choose at least one endpoint for each provider access"})
+				return
+			}
+			cfg.Models = append(cfg.Models, registry.Model{ID: id, Alias: m.ID, Provider: a.Provider, ProviderKeyIDs: native.AccessibleByKeys, UpstreamModel: raw, Creator: cleanUnknown(m.Creator), Family: cleanUnknown(m.Family), Endpoints: append([]string{}, endpoints...), Enabled: true, Configured: true, Evidence: "Configured in Bifrost native model catalog; inference not observed", Metadata: map[string]json.RawMessage{"ui": metadata}})
 			byLogical[m.ID] = append(byLogical[m.ID], id)
+			accessToRegistry[a.ID] = id
 		}
 	}
 	for _, g := range input.Data.Groups {
@@ -628,12 +754,19 @@ func (s *Server) putWorkspace(w http.ResponseWriter, r *http.Request) {
 			reply(w, 422, map[string]string{"error": e.Error()})
 			return
 		}
+		accessSelection, err := logicalAccessSelection(k.Policy.AccessSelection, byLogical, accessToRegistry)
+		if err != nil {
+			reply(w, 422, map[string]string{"error": err.Error()})
+			return
+		}
 		oldp.Name = k.Name
 		oldp.Enabled = k.Active
 		oldp.Groups = k.Policy.Groups
 		oldp.Added = added
 		oldp.Excluded = excluded
 		oldp.Naming = k.Policy.Naming
+		oldp.Prefer = k.Policy.Prefer
+		oldp.AccessSelection = accessSelection
 		cfg.Policies = append(cfg.Policies, oldp)
 	}
 	for id := range oldPolicy {
@@ -679,6 +812,7 @@ func (s *Server) putWorkspace(w http.ResponseWriter, r *http.Request) {
 		reply(w, 502, map[string]string{"error": e.Error(), "phase": "aliases", "revision": saved.Revision()})
 		return
 	}
+	s.applyPricingOverrides(r.Context(), saved)
 	for _, pp := range plan.VirtualKeys {
 		if oldPolicy[pp.VirtualKeyID].Adopted {
 			// Adoption only binds an existing native key. Registry edits may narrow
@@ -715,6 +849,17 @@ func cleanUnknown(v string) string {
 	}
 	return v
 }
+func validCardTokenCount(raw json.RawMessage) bool {
+	var n int64
+	return json.Unmarshal(raw, &n) == nil && n >= 0 && n <= 9007199254740991
+}
+func validCardCost(raw json.RawMessage) bool {
+	var f float64
+	if json.Unmarshal(raw, &f) != nil {
+		return false
+	}
+	return f >= 0 && !math.IsNaN(f) && !math.IsInf(f, 0)
+}
 func sanitizeLiveModel(m modelDTO) modelDTO {
 	if m.Tasks == nil {
 		m.Tasks = []string{}
@@ -735,18 +880,6 @@ func sanitizeLiveModel(m modelDTO) modelDTO {
 	}
 	return m
 }
-func selectedEndpoints(kind string) []string {
-	switch kind {
-	case "Chat", "Vision":
-		return []string{"chat/completions", "responses"}
-	case "Embedding":
-		return []string{"embeddings"}
-	case "Image":
-		return []string{"images/generations"}
-	default:
-		return nil
-	}
-}
 func logicalRefs(ids []string, by map[string][]string) ([]string, error) {
 	out := []string{}
 	for _, id := range ids {
@@ -755,6 +888,52 @@ func logicalRefs(ids []string, by map[string][]string) ([]string, error) {
 			return nil, errors.New("Key references an unknown model")
 		}
 		out = append(out, r...)
+	}
+	return out, nil
+}
+
+func logicalAccessSelection(sel map[string]registry.AccessSelector, byLogical map[string][]string, accessToRegistry map[string]string) (map[string]registry.AccessSelector, error) {
+	if len(sel) == 0 {
+		return nil, nil
+	}
+	out := map[string]registry.AccessSelector{}
+	for alias, s := range sel {
+		registryIDs, ok := byLogical[alias]
+		if !ok {
+			return nil, fmt.Errorf("access selection references unknown model %s", alias)
+		}
+		valid := map[string]bool{}
+		for _, id := range registryIDs {
+			valid[id] = true
+		}
+		dto := registry.AccessSelector{}
+		for _, access := range s.Added {
+			id, ok := accessToRegistry[access]
+			if !ok {
+				return nil, fmt.Errorf("access selection for %s references unknown access %s", alias, access)
+			}
+			if !valid[id] {
+				return nil, fmt.Errorf("access selection for %s: access %s does not belong to model", alias, access)
+			}
+			dto.Added = append(dto.Added, id)
+		}
+		for _, access := range s.Excluded {
+			id, ok := accessToRegistry[access]
+			if !ok {
+				return nil, fmt.Errorf("access selection for %s references unknown access %s", alias, access)
+			}
+			if !valid[id] {
+				return nil, fmt.Errorf("access selection for %s: access %s does not belong to model", alias, access)
+			}
+			dto.Excluded = append(dto.Excluded, id)
+		}
+		if len(dto.Added)+len(dto.Excluded) == 0 {
+			continue
+		}
+		out[alias] = dto
+	}
+	if len(out) == 0 {
+		return nil, nil
 	}
 	return out, nil
 }
@@ -780,19 +959,50 @@ func (s *Server) installAliases(ctx context.Context, snap *registry.Snapshot) er
 				return errors.New("Invalid native aliases")
 			}
 		}
+		// Native aliases decode from either wire shape: the legacy string form
+		// ("model-upstream") or the rich object. Bifrost re-emits rich entries
+		// that carry only model_id in the legacy string form, so comparisons
+		// must be semantic, not byte-wise.
+		decodeAlias := func(raw json.RawMessage) (registry.Alias, error) {
+			var shorthand string
+			if json.Unmarshal(raw, &shorthand) == nil {
+				return registry.Alias{ModelID: shorthand}, nil
+			}
+			var decoded registry.Alias
+			if err := json.Unmarshal(raw, &decoded); err != nil {
+				return registry.Alias{}, err
+			}
+			return decoded, nil
+		}
 		for name, a := range aliases {
+			matched := false
 			for old, raw := range existing {
-				if strings.EqualFold(name, old) {
-					b, _ := json.Marshal(a)
-					if old != name || !bytes.Equal(bytes.TrimSpace(raw), b) {
-						return errors.New("Native alias conflict")
-					}
+				if !strings.EqualFold(name, old) {
+					continue
+				}
+				prev, err := decodeAlias(raw)
+				if err != nil {
+					return errors.New("Invalid native aliases")
+				}
+				if prev != a {
+					return errors.New("Native alias conflict")
+				}
+				matched = true
+				if old != name {
+					delete(existing, old)
+					existing[name] = raw
 				}
 			}
-			b, _ := json.Marshal(a)
-			existing[name] = b
+			if !matched {
+				b, _ := json.Marshal(a)
+				existing[name] = b
+			}
 		}
-		if e := s.live.client.call(ctx, "PUT", path, map[string]any{"aliases": existing}, nil); e != nil {
+		// Bifrost 2.2.3 updateProviderKey replaces the key with the payload
+		// (only masked secrets are restored), so the full key read-back must be
+		// reposted; sending only aliases clears the value and is rejected.
+		key["aliases"], _ = json.Marshal(existing)
+		if e := s.live.client.call(ctx, "PUT", path, key, nil); e != nil {
 			return e
 		}
 	}

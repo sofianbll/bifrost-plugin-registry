@@ -76,7 +76,14 @@ func (s *Session) CheckAttempt(provider, model string) *Failure {
 			r, ok = nr, true
 		}
 	}
-	if !ok || !Has(r.Endpoints, s.endpoint) {
+	if !ok {
+		return fail(403, "registry_route_denied", "The selected provider/model is outside this request's registry routes")
+	}
+	if r.Shared {
+		if !Has(r.SharedProviders, provider) || !Has(r.SharedEndpoints[provider], s.endpoint) {
+			return fail(403, "registry_route_denied", "The selected provider/model is outside this request's registry routes")
+		}
+	} else if !Has(r.Endpoints, s.endpoint) {
 		return fail(403, "registry_route_denied", "The selected provider/model is outside this request's registry routes")
 	}
 	return nil
@@ -220,9 +227,15 @@ func (s *Snapshot) Prepare(req *Request) (*Session, *Failure) {
 		if !Has(r.Endpoints, endpoint) {
 			return Route{}, fail(400, "registry_endpoint_unverified", "This endpoint has not been enabled for the selected model")
 		}
-		session.allowed[r.NativeID()] = r
-		for _, t := range r.RoutingTargets {
-			session.allowed[t] = r
+		if r.Shared {
+			for _, provider := range r.SharedProviders {
+				session.allowed[provider+"/"+r.Alias] = r
+			}
+		} else {
+			session.allowed[r.NativeID()] = r
+			for _, t := range r.RoutingTargets {
+				session.allowed[t] = r
+			}
 		}
 		return r, nil
 	}
@@ -230,7 +243,7 @@ func (s *Snapshot) Prepare(req *Request) (*Session, *Failure) {
 	if f != nil {
 		return nil, f
 	}
-	if !route.Passthrough {
+	if !route.Passthrough && !route.Shared {
 		body["model"], _ = json.Marshal(route.NativeID())
 	}
 	// Reject alternate raw routing fields rather than silently overriding them.
@@ -255,9 +268,10 @@ func (s *Snapshot) Prepare(req *Request) (*Session, *Failure) {
 				return nil, f
 			}
 			outID := r.NativeID()
-			if r.Passthrough {
-				// Routing aliases keep their bare name so Bifrost routing rules
-				// evaluate them; native rewrite would bypass the CEL match.
+			if r.Passthrough || r.Shared {
+				// Routing aliases and shared native aliases keep their bare name so
+				// Bifrost routing rules evaluate them; native rewrite would bypass
+				// the CEL match or provider selection.
 				outID = name
 			}
 			if !seen[outID] {
@@ -311,18 +325,41 @@ func (s *Session) Project(body []byte, authenticatedID string) ([]byte, *Failure
 	}
 	out := []map[string]any{}
 	for _, r := range s.view.Routes {
-		m, ok := native[r.NativeID()]
-		if !ok {
+		// A restricted allowlist makes Bifrost advertise the model provider-prefixed
+		// ("provider-a/shared"), so a shared route over several providers matches any
+		// of their native entries and is projected once. A bare alias is still tried
+		// first: routing rules and unrestricted keys advertise it that way.
+		candidates := []string{r.NativeID()}
+		if r.Shared {
+			for _, provider := range r.SharedProviders {
+				candidates = append(candidates, provider+"/"+r.Alias)
+			}
+		}
+		var m map[string]json.RawMessage
+		owner := r.Provider
+		for _, id := range candidates {
+			entry, ok := native[id]
+			if !ok {
+				continue
+			}
+			m = entry
+			if r.Shared && id != r.Alias && strings.HasSuffix(id, "/"+r.Alias) {
+				owner = strings.TrimSuffix(id, "/"+r.Alias)
+			}
+			break
+		}
+		if m == nil {
 			continue
 		}
 		var created int64
-		var owner string
 		if raw, ok := m["created"]; ok && json.Unmarshal(raw, &created) != nil {
 			return nil, fail(502, "registry_invalid_models", "Invalid native model timestamp")
 		}
-		_ = json.Unmarshal(m["owned_by"], &owner)
-		if owner == "" {
-			owner = r.Provider
+		if raw, ok := m["owned_by"]; ok {
+			var nativeOwner string
+			if json.Unmarshal(raw, &nativeOwner) == nil && nativeOwner != "" {
+				owner = nativeOwner
+			}
 		}
 		item := map[string]any{"id": r.ExposedID, "object": "model", "created": created, "owned_by": owner}
 		if raw, ok := m["shutdown_date"]; ok {

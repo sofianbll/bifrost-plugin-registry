@@ -72,6 +72,28 @@
       "evidence": "FIXTURE DE DÉMONSTRATION UNIQUEMENT. Aucun accès amont ou support endpoint vérifié. Ne pas utiliser en production."
     },
     {
+      "id": "codex-fast",
+      "alias": "fast",
+      "provider": "demo-codex",
+      "provider_key_ids": [
+        "DEMO-demo-codex-key-id"
+      ],
+      "upstream_model": "DEMO-upstream-codex-fast",
+      "creator": "OpenAI",
+      "family": "GPT",
+      "capabilities": [
+        "text",
+        "tools"
+      ],
+      "endpoints": [
+        "chat/completions",
+        "responses"
+      ],
+      "enabled": true,
+      "verified": true,
+      "evidence": "FIXTURE DE DÉMONSTRATION UNIQUEMENT. Aucun accès amont ou support endpoint vérifié. Ne pas utiliser en production."
+    },
+    {
       "id": "mistral-text",
       "alias": "mistral-text",
       "provider": "demo-mistral",
@@ -137,6 +159,14 @@
           "reasoning"
         ]
       }
+    },
+    {
+      "id": "shared-demo",
+      "name": "Partagé",
+      "model_ids": [
+        "ag-fast",
+        "codex-fast"
+      ]
     }
   ],
   "policies": [
@@ -151,6 +181,14 @@
       "prefer": {
         "reasoning": "codex-reasoning"
       },
+      "access_selection": {
+        "reasoning": {
+          "added": [
+            "codex-reasoning",
+            "ag-reasoning"
+          ]
+        }
+      },
       "enabled": true
     },
     {
@@ -161,6 +199,32 @@
       "groups": [
         "reasoning-demo"
       ],
+      "access_selection": {
+        "reasoning": {
+          "added": [
+            "codex-reasoning",
+            "ag-reasoning"
+          ]
+        }
+      },
+      "enabled": true
+    },
+    {
+      "virtual_key_id": "DEMO-vk-shared",
+      "name": "Partagé · DÉMO",
+      "token_sha256": "7c4a692d264d2e9d20b51d1f20fc1993c4a61b6b6a7b34b0671e3ec26938ed68",
+      "naming": "model",
+      "groups": [
+        "shared-demo"
+      ],
+      "access_selection": {
+        "fast": {
+          "added": [
+            "ag-fast",
+            "codex-fast"
+          ]
+        }
+      },
       "enabled": true
     }
   ]

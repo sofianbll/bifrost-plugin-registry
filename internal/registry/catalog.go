@@ -7,6 +7,7 @@ import (
 	"math"
 	"sort"
 	"strings"
+	"time"
 )
 
 // Catalog is reference data. Only Config.Models and native Bifrost keys grant access.
@@ -36,18 +37,22 @@ type CatalogReference struct {
 }
 
 type CatalogAccess struct {
-	ID            string `json:"id"`
-	Provider      string `json:"provider"`
-	Model         string `json:"model"`
-	Configured    bool   `json:"configured"`
-	ReferenceID   string `json:"referenceId,omitempty"`
-	MappingManual bool   `json:"mappingManual,omitempty"`
-	MatchConflict string `json:"matchConflict,omitempty"`
+	ID            string   `json:"id"`
+	Provider      string   `json:"provider"`
+	Model         string   `json:"model"`
+	Configured    bool     `json:"configured"`
+	ReferenceID   string   `json:"referenceId,omitempty"`
+	MappingManual bool     `json:"mappingManual,omitempty"`
+	MatchConflict string   `json:"matchConflict,omitempty"`
+	OmittedFields []string `json:"omittedFields,omitempty"`
 	CatalogRecord
 }
 
 type CatalogSource struct {
 	ID          string `json:"id"`
+	Repository  string `json:"repository,omitempty"`
+	Commit      string `json:"commit,omitempty"`
+	SourceAt    string `json:"sourceAt,omitempty"`
 	LastSuccess string `json:"lastSuccess,omitempty"`
 	LastAttempt string `json:"lastAttempt,omitempty"`
 	Error       string `json:"error,omitempty"`
@@ -71,6 +76,15 @@ func CatalogValueValid(field string, value json.RawMessage) bool {
 
 func validCatalogID(id string) bool {
 	return id != "" && len(id) <= 512 && strings.TrimSpace(id) == id && noControls(id)
+}
+
+func isHex(value string) bool {
+	for _, r := range value {
+		if !((r >= '0' && r <= '9') || (r >= 'a' && r <= 'f') || (r >= 'A' && r <= 'F')) {
+			return false
+		}
+	}
+	return true
 }
 
 func validateCatalog(c *Catalog) error {
@@ -100,6 +114,16 @@ func validateCatalog(c *Catalog) error {
 		if a.ReferenceID != "" && !refs[a.ReferenceID] {
 			return fmt.Errorf("access %q: unknown reference %q", a.ID, a.ReferenceID)
 		}
+		if len(a.OmittedFields) > 32 {
+			return fmt.Errorf("access %q: too many omitted fields", a.ID)
+		}
+		seenOmitted := map[string]bool{}
+		for _, field := range a.OmittedFields {
+			if !CatalogFieldAllowed(field) || seenOmitted[field] {
+				return fmt.Errorf("access %q: invalid omitted field %q", a.ID, field)
+			}
+			seenOmitted[field] = true
+		}
 		if err := validateCatalogRecord(a.CatalogRecord); err != nil {
 			return fmt.Errorf("access %q: %w", a.ID, err)
 		}
@@ -109,9 +133,23 @@ func validateCatalog(c *Catalog) error {
 		if (s.ID != "bifrost" && s.ID != "models.dev") || seen[s.ID] || len(s.Error) > 500 {
 			return fmt.Errorf("invalid catalogue source %q", s.ID)
 		}
+		if s.ID == "models.dev" && !validModelsDevProvenance(s) {
+			return errors.New("invalid Models.dev source provenance")
+		}
 		seen[s.ID] = true
 	}
 	return nil
+}
+
+func validModelsDevProvenance(source CatalogSource) bool {
+	if len(source.Repository) > 512 || (source.Commit != "" && (len(source.Commit) != 40 || !isHex(source.Commit))) || len(source.SourceAt) > 40 {
+		return false
+	}
+	if source.SourceAt != "" {
+		_, err := time.Parse(time.RFC3339, source.SourceAt)
+		return err == nil
+	}
+	return true
 }
 
 func validateCatalogRecord(r CatalogRecord) error {
@@ -247,6 +285,8 @@ func ReplaceCatalogSource(c *Catalog, source, at string, refs []CatalogReference
 		removeSource(&c.Accesses[i].CatalogRecord, source)
 		if source == "bifrost" {
 			c.Accesses[i].Configured = false
+		} else if source == "models.dev" {
+			c.Accesses[i].OmittedFields = nil
 		}
 	}
 	for _, next := range accesses {
@@ -261,6 +301,7 @@ func ReplaceCatalogSource(c *Catalog, source, at string, refs []CatalogReference
 			a.Configured = next.Configured
 		}
 		if source == "models.dev" {
+			a.OmittedFields = append([]string(nil), next.OmittedFields...)
 			a.MatchConflict = ""
 			if next.ReferenceID != "" {
 				if presentRefs[next.ReferenceID] {
@@ -291,6 +332,31 @@ func ReplaceCatalogSource(c *Catalog, source, at string, refs []CatalogReference
 	sort.Slice(c.References, func(i, j int) bool { return c.References[i].ID < c.References[j].ID })
 	sort.Slice(c.Accesses, func(i, j int) bool { return c.Accesses[i].ID < c.Accesses[j].ID })
 	sort.Slice(c.Sources, func(i, j int) bool { return c.Sources[i].ID < c.Sources[j].ID })
+}
+
+// EffectiveAccessCatalogFields composes only fields present on this exact access over its mapped reference.
+func EffectiveAccessCatalogFields(c *Catalog, access CatalogAccess) map[string]CatalogValue {
+	out := make(map[string]CatalogValue)
+	omitted := make(map[string]bool, len(access.OmittedFields))
+	for _, field := range access.OmittedFields {
+		omitted[field] = true
+	}
+	if c != nil && access.ReferenceID != "" {
+		for _, ref := range c.References {
+			if ref.ID == access.ReferenceID {
+				for field, value := range EffectiveCatalogFields(ref.CatalogRecord) {
+					if !omitted[field] {
+						out[field] = value
+					}
+				}
+				break
+			}
+		}
+	}
+	for field, value := range EffectiveCatalogFields(access.CatalogRecord) {
+		out[field] = value
+	}
+	return out
 }
 
 func removeSource(r *CatalogRecord, source string) {

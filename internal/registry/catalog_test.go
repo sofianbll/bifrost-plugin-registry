@@ -45,3 +45,19 @@ func TestCatalogReferenceOnlyAndCapacity(t *testing.T) {
 		t.Fatal("reference data created permission")
 	}
 }
+
+func TestCatalogRejectsInvalidOmittedFields(t *testing.T) {
+	c := &Catalog{References: []CatalogReference{{ID: "lab/model"}}, Accesses: []CatalogAccess{{ID: "p/m", Provider: "p", Model: "m", OmittedFields: []string{"not-a-field"}}}}
+	if err := validateCatalog(c); err == nil {
+		t.Fatal("invalid omitted field accepted")
+	}
+}
+
+func TestCatalogReferenceOverrideComposesIntoMappedAccess(t *testing.T) {
+	raw, _ := json.Marshal(8192)
+	c := &Catalog{References: []CatalogReference{{ID: "anthropic/sonnet", CatalogRecord: CatalogRecord{Overrides: map[string]CatalogValue{"context_length": {Value: raw, Source: "manual", Kind: "declared"}}}}}, Accesses: []CatalogAccess{{ID: "bedrock/sonnet", Provider: "bedrock", Model: "sonnet", ReferenceID: "anthropic/sonnet"}}}
+	fields := EffectiveAccessCatalogFields(c, c.Accesses[0])
+	if string(fields["context_length"].Value) != "8192" || fields["context_length"].Source != "manual" {
+		t.Fatal("canonical override did not compose into exact mapped access", fields)
+	}
+}

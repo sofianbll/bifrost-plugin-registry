@@ -64,6 +64,23 @@ func (s *Snapshot) Plan() NativePlan {
 	for _, v := range s.views {
 		pp := PolicyPlan{v.Policy.VirtualKeyID, map[string][]string{}, map[string][]string{}}
 		for _, r := range v.Routes {
+			if r.Shared {
+				for _, provider := range r.SharedProviders {
+					if !Has(pp.AllowedModels[provider], r.Alias) {
+						pp.AllowedModels[provider] = append(pp.AllowedModels[provider], r.Alias)
+					}
+					for _, m := range modelMap {
+						if m.Alias == r.Alias && m.Provider == provider {
+							for _, id := range m.ProviderKeyIDs {
+								if !Has(pp.ProviderKeyIDs[provider], id) {
+									pp.ProviderKeyIDs[provider] = append(pp.ProviderKeyIDs[provider], id)
+								}
+							}
+						}
+					}
+				}
+				continue
+			}
 			if !Has(pp.AllowedModels[r.Provider], r.Alias) {
 				pp.AllowedModels[r.Provider] = append(pp.AllowedModels[r.Provider], r.Alias)
 			}
