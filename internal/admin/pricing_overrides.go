@@ -156,10 +156,6 @@ func (s *Server) applyPricingOverrides(ctx context.Context, snap *registry.Snaps
 		}
 	}
 
-	providers := map[string]bool{}
-	for _, po := range expected {
-		providers[po.Provider] = true
-	}
 	keysToSync := map[string]string{}
 	for _, m := range cfg.Models {
 		if !m.Enabled || !m.Configured {

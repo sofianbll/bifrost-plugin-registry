@@ -38,10 +38,13 @@ API-path assumptions (verified from this repository)
   and ui/src/data/api.ts:37-41); inner fields are "added" / "excluded"
   (internal/registry/config.go:80-83).
 - Native pricing overrides are managed in internal/admin/pricing_overrides.go:
-  - GET /api/governance/pricing-overrides?provider_id=...
+  - GET /api/governance/pricing-overrides?provider_key_id=<keyID> (a
+    provider_key scope carries no provider_id, only the key id)
   - POST/PUT /api/governance/pricing-overrides
   - DELETE /api/governance/pricing-overrides/<id>
-  - Name format line 171-173: registry/<provider>/<keyID>/<upstream_model>.
+  - List responses serialise the patch as the JSON string "pricing_patch";
+    /api/models/details re-exposes it as a "patch" object.
+  - Name format: registry/<provider>/<keyID>/<upstream_model>.
 - Native model details are read from /api/models/details (internal/admin/catalog.go:488).
 """
 import argparse
@@ -736,8 +739,9 @@ def main():
                                          {"data": ws["data"]}, {"If-Match": ws["revision"]})
             check(report, "workspace save triggers pricing override deletion", status == 200, True)
 
+            # A provider_key scope is identified by its key id, not by provider_id.
             status, overrides_after, _ = http_request(
-                base + f"/api/governance/pricing-overrides?provider_id={provider_a}",
+                base + f"/api/governance/pricing-overrides?provider_key_id={key_a_id}",
                 None, "GET", headers={"Authorization": basic})
             overrides = overrides_after.get("pricing_overrides", []) if isinstance(overrides_after, dict) else []
             override_gone = next((o for o in overrides if o.get("name") == override_name), None) is None
