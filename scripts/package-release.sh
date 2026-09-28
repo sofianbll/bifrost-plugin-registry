@@ -16,10 +16,17 @@ command -v python3 >/dev/null || fail "Python 3 is required"
 command -v sha256sum >/dev/null || fail "sha256sum is required"
 [[ -d $ROOT/ui/node_modules ]] || fail "UI dependencies are required for license notices; run npm --prefix ui ci"
 
+# Provenance of the packaged gateway. Defaults describe the 2.2.2 release path;
+# override every value together to package another verified (tag, commit, Go) build.
+BIFROST_SOURCE_TAG=${BIFROST_SOURCE_TAG:-transports/v2.2.2}
+BIFROST_SOURCE_COMMIT=${BIFROST_SOURCE_COMMIT:-fdeef8e3f31a3b18a61666ba49247d07bae3600a}
+BIFROST_GO_VERSION=${BIFROST_GO_VERSION:-go1.27.1}
+REGISTRY_SOURCE_COMMIT=${REGISTRY_SOURCE_COMMIT:-}
+
 PAIR=${PAIR_DIR:-"$ROOT/dist/standalone-v1"}
 REPORT=${PROOF_DIR:-"$ROOT/reports/plugin-standalone"}
-SOURCE="$ROOT/dist/source-standalone-222"
-LICENSE_SOURCE="$ROOT/dist/source-native-ui"
+SOURCE=${SOURCE_DIR:-"$ROOT/dist/source-standalone-222"}
+LICENSE_SOURCE=${LICENSE_SOURCE:-"$ROOT/dist/source-native-ui"}
 for file in "$PAIR/bifrost-http" "$PAIR/bifrost-registry.so" "$PAIR/SHA256SUMS" "$PAIR/build-environment.txt" \
   "$PAIR/gateway-build-info.txt" "$PAIR/plugin-build-info.txt" \
   "$REPORT/SHA256SUMS" "$REPORT/build-environment.txt" "$REPORT/source-verification.json" \
@@ -30,11 +37,12 @@ done
 cmp -s "$PAIR/SHA256SUMS" "$REPORT/SHA256SUMS" || fail "paired SHA256 reports differ"
 cmp -s "$PAIR/build-environment.txt" "$REPORT/build-environment.txt" || fail "paired build environments differ"
 (cd "$PAIR" && sha256sum -c SHA256SUMS >/dev/null) || fail "verified pair checksum failed"
-ARCH=$(python3 - "$PAIR" "$REPORT" <<'PY'
+ARCH=$(python3 - "$PAIR" "$REPORT" "$BIFROST_SOURCE_TAG" "$BIFROST_SOURCE_COMMIT" "$BIFROST_GO_VERSION" <<'PY'
 import json, pathlib, sys
-pair, report = map(pathlib.Path, sys.argv[1:])
+pair, report = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])
+tag, commit, go = sys.argv[3], sys.argv[4], sys.argv[5]
 provenance = json.loads((report / "source-verification.json").read_text())
-expected = {"tag": "transports/v2.2.2", "commit": "fdeef8e3f31a3b18a61666ba49247d07bae3600a", "go": "go1.27.1", "official_prebuilt_image": False, "after_compilation_modified_tracked_files": []}
+expected = {"tag": tag, "commit": commit, "go": go, "official_prebuilt_image": False, "after_compilation_modified_tracked_files": []}
 if not all(provenance.get(k) == v for k, v in expected.items()):
     sys.exit("unexpected source provenance")
 platform = provenance.get("platform")
@@ -42,11 +50,11 @@ if platform not in ("linux/arm64 musl", "linux/amd64 musl"):
     sys.exit("unsupported platform")
 arch = platform.split("/")[1].split()[0]
 env = (pair / "build-environment.txt").read_text()
-if f"Go: go version go1.27.1 linux/{arch}\n" not in env:
+if f"Go: go version {go} linux/{arch}\n" not in env:
     sys.exit("build environment differs from provenance")
 for name, mode in (("gateway", "exe"), ("plugin", "plugin")):
     info = (pair / f"{name}-build-info.txt").read_text()
-    if not info.splitlines()[0].endswith(": go1.27.1"):
+    if not info.splitlines()[0].endswith(": " + go):
         sys.exit(f"{name} Go version differs")
     for field in (f"-buildmode={mode}", "CGO_ENABLED=1", f"GOARCH={arch}", "GOOS=linux", "-tags=bifrost"):
         if f"\tbuild\t{field}" not in info:
@@ -133,6 +141,9 @@ lines = [
     "| Package | Version | Declared license | Distributed license text |",
     "| --- | --- | --- | --- |",
 ]
+# Two lockfile paths can resolve to the same package@version (a nested duplicate
+# dependency); the inventory names each package once.
+seen_destinations = set()
 for key in sorted(selected):
     name = key.rsplit("node_modules/", 1)[1]
     if not re.fullmatch(r"(?:@[-\w.]+/)?[-\w.]+", name):
@@ -148,6 +159,9 @@ for key in sorted(selected):
     if not isinstance(license_id, str):
         raise SystemExit(f"missing declared license: {key}")
     destination = licenses / "npm" / name / version
+    if destination in seen_destinations:
+        continue
+    seen_destinations.add(destination)
     destination.mkdir(parents=True)
     files = sorted(p for p in source.iterdir() if p.is_file() and re.match(r"^(?:licen[sc]e|copying|notice)(?:[.-]|$)|^copyright", p.name, re.I))
     links = []
@@ -170,16 +184,21 @@ cp "$PAIR/SHA256SUMS" "$PAIR/build-environment.txt" "$PAIR/gateway-build-info.tx
   cd "$OUT/plugin"
   sha256sum "bifrost-registry-${RELEASE_ID}-linux-${ARCH}.so" > SHA256SUMS
 )
-python3 - "$OUT" "$RELEASE_ID" "$IMAGE_TAG" "$ARCH" <<'PY'
+python3 - "$OUT" "$RELEASE_ID" "$IMAGE_TAG" "$ARCH" \
+  "$BIFROST_SOURCE_TAG" "$BIFROST_SOURCE_COMMIT" "$BIFROST_GO_VERSION" "$REGISTRY_SOURCE_COMMIT" <<'PY'
 import hashlib, json, pathlib, sys
 out, release, tag, arch = pathlib.Path(sys.argv[1]), sys.argv[2], sys.argv[3], sys.argv[4]
+source_tag, source_commit, go, registry_commit = sys.argv[5:9]
 sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
 manifest = {
     "release_id": release,
+    "arch": arch,
     "image_tag": tag,
     "platform": f"linux/{arch} musl",
-    "bifrost_source_commit": "fdeef8e3f31a3b18a61666ba49247d07bae3600a",
-    "go": "go1.27.1",
+    "bifrost_source_tag": source_tag,
+    "bifrost_source_commit": source_commit,
+    "registry_source_commit": registry_commit or None,
+    "go": go,
     "gateway_sha256": sha(out / "image-context/main"),
     "plugin_file": f"bifrost-registry-{release}-linux-{arch}.so",
     "plugin_sha256": sha(out / "plugin" / f"bifrost-registry-{release}-linux-{arch}.so"),
