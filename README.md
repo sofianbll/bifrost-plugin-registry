@@ -1,77 +1,109 @@
+<div align="center">
+
+<img src="ui/public/bifrost-logo.webp" alt="Bifrost Registry" width="200">
+
 # Bifrost Registry
 
-**A model catalog and access policies for Bifrost virtual keys.**
+**A trustworthy model catalog and per-key access composition for Bifrost virtual keys.**
+
+Organize every model once, then decide exactly what each virtual key can reach — through an embedded interface that runs beside your existing Bifrost gateway.
 
 [![CI](https://github.com/sofianbll/bifrost-plugin-registry/actions/workflows/ci.yml/badge.svg)](https://github.com/sofianbll/bifrost-plugin-registry/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/release-v0.2.0--rc.1-blue)](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.2.0-rc.1)
+[![Release](https://img.shields.io/badge/release-v0.3.0--rc.2-blue)](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.3.0-rc.2)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 English · [Français](README.fr.md)
 
-Organize models into reusable groups, choose what each virtual key can access, and compare the published catalog with the actual `/v1/models` response. Registry adds a management interface to [Bifrost](https://github.com/maximhq/bifrost); Bifrost continues to handle inference, credentials, routing and budgets.
+</div>
 
-> **Release candidate.** `v0.2.0-rc.1` is qualified with Bifrost 2.2.2 on Linux ARM64 and AMD64/musl. Provider capability certification and production deployment are outside those checks. This is an independent project, not an official Maxim/Bifrost product.
+![Registry catalogue grid](docs/images/catalogue-grid.png)
+
+*One searchable catalogue of Models.dev and Bifrost references, with provenance and reviewable corrections.*
 
 ## What it does
 
-- **Catalog:** reference models and provider accesses, Bifrost/Models.dev metadata, field provenance and manual corrections that survive refreshes.
-- **Groups and keys:** shared selections, additions and exclusions per key, naming formats, preview, publication and independent readback.
-- **Native coexistence:** existing Bifrost keys retain their behavior until explicitly adopted; Registry cannot expand their native permissions.
-- **Import and export:** versioned JSON snapshots with preview and backup, flat CSV export and an offline legacy datasheet converter.
-- **Administration:** embedded React interface, light/dark themes, a separate admin token and persistent configuration.
+- **Embedded Models.dev catalogue** — a versioned, reproducible reference snapshot with per-field provenance, canonical links and manual corrections that survive refreshes.
+- **Endpoints per access** — each provider access selects its exposed operations independently (Chat Completions and Responses are separate choices).
+- **Access selection per key** — choose what each virtual key can reach; exclusions and additions are reviewed before publication.
+- **Native prices and limits** — apply pricing overrides and restricted per-key access through Bifrost's own governance, not a parallel layer.
+- **Restricted native routing** — publish shared aliases that route only within each key's selected accesses.
+- **Embedded UI plus import/export** — a React panel on its own port, versioned JSON snapshots with preview and backup, and flat CSV export.
 
-## Install
-
-The release contains **two separate artifacts** for each architecture:
-
-| Artifact | Purpose |
-| --- | --- |
-| Bifrost Docker image archive | The complete Bifrost 2.2.2 gateway compiled with dynamic loading from unmodified upstream sources. **No Registry plugin inside.** |
-| Registry `.so` | Install through its direct, versioned URL in Bifrost. Includes the UI and serves it on port `8099`. |
-
-1. Download the matching image archive from [Releases](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.2.0-rc.1), verify its checksum and load it with `docker load -i <archive.tar.gz>`.
-2. Configure persistent storage and the two admin credentials, then add the matching `.so` URL through Bifrost's plugin settings.
-3. Open the Registry panel on `http://127.0.0.1:8099/model-registry`.
-
-**[Installation, configuration and rollback →](docs/INSTALL.md)**
-
-The published `.so` requires the compatible gateway build. It is not a drop-in plugin for the tested static official image. Plugin updates require a gateway restart; native sidebar integration is deferred.
-
-## Develop
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for requirements and the full check command. Start with:
+## Quickstart
 
 ```bash
-git clone https://github.com/sofianbll/bifrost-plugin-registry.git
-cd bifrost-plugin-registry
-make check
+# 1. Load the published dynamic Bifrost 2.2.3 image (Linux ARM64)
+docker load -i bifrost-dynamic-2.2.3-linux-arm64.tar.gz
+# 2. Provide the two admin credentials and a persistent volume at /app/data
+export REGISTRY_ADMIN_TOKEN=…  REGISTRY_BIFROST_AUTH='Basic …'
+# 3. Add the matching .so by direct URL in Bifrost's plugin settings
+#    https://github.com/sofianbll/bifrost-plugin-registry/releases/download/v0.3.0-rc.2/bifrost-registry-v0.3.0-rc.2-linux-arm64.so
+# 4. Open the panel
+open http://127.0.0.1:8099/model-registry
 ```
 
-The standalone Go CLI is a separate configuration tool. Compiling the native `.so` requires a matching Bifrost checkout and Go/C toolchain; follow [the native build guide](docs/BUILD.md).
+**[Full installation, configuration and rollback →](docs/INSTALL.md)**
 
-```text
-cmd/registry/      Standalone administration CLI
-internal/          Registry engine, persistence and admin API
-native/            Bifrost plugin hooks
-ui/                React interface and its upstream attribution
-configs/           Empty configuration, synthetic example and plugin fragment
-integration/       Native HTTP, image and client probes
-packaging/         Gateway image recipe
-scripts/           Build, test, import and packaging commands
-docs/              Guides, design decisions and historical notes
-reports/           Dated validation evidence
-```
+## Screenshots
 
-## Documentation and validation
+| | |
+| --- | --- |
+| ![Catalogue grid](docs/images/catalogue-grid.png)<br>**Grid** — equal-height cards with per-field provenance | ![Catalogue table](docs/images/catalogue-table.png)<br>**Table** — dense comparison across creators and families |
+| ![Display options](docs/images/display-options.png)<br>**Display options** — grid, square and table densities | ![Model card](docs/images/model-card.png)<br>**Model card** — one model, distinct provider accesses |
+| ![Key composer](docs/images/key-composer.png)<br>**Key composer** — basic and expert access policies | ![Settings](docs/images/settings.png)<br>**Settings** — sources, status and preferences |
+| ![Mobile layout](docs/images/mobile.png)<br>**Mobile** — the same journeys at 400 px | ![Dark theme](docs/images/dark-theme.png)<br>**Dark theme** — full light and dark support |
 
-[Documentation index](docs/README.md) · [Current status](STATUS.md) · [Changelog](CHANGELOG.md) · [Security](SECURITY.md)
+## The why
 
-The [release evidence](reports/v1-final/README.md) records the pinned source and artifact hashes, ABI checks, per-key catalogs, persistence, adoption and rollback. ARM64 and AMD64 each passed 42 catalog and 54 standalone-plugin checks. Hermes was exercised with a synthetic provider; this is not a claim about real provider inference. Routine CI validates the source without rebuilding or certifying the native gateway/plugin pair.
+Bifrost governs inference, credentials, budgets and routing. What it does not give an operator is a trustworthy, reviewable picture of what each virtual key can actually reach. Registry fills that gap: one catalogue of Models.dev and Bifrost references, with per-field provenance and manual corrections that survive refreshes, composed into access policies for virtual keys.
 
-## Contribute and report issues
+Embedding a versioned Models.dev snapshot keeps the catalogue reproducible and offline — there is no runtime dependency on a third-party API. The gateway image ships unmodified Bifrost 2.2.3 compiled with dynamic loading, and Registry stays a separately installed plugin, so the inference path you already trust is never patched.
 
-Use [GitHub Issues](https://github.com/sofianbll/bifrost-plugin-registry/issues) for bugs and feature proposals. Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request. Report vulnerabilities privately through [SECURITY.md](SECURITY.md).
+Independent project, not an official Maxim/Bifrost product.
+
+## Getting started
+
+- [Installation](docs/INSTALL.md) — release files, credentials, persistent storage, upgrade and rollback.
+- [Configuration](docs/CONFIGURATION.md) — registry records, groups, key policies and legacy datasheets.
+- [User guide](docs/USER-GUIDE.md) — model registration, sources, groups and key composition.
+- [Release procedure](docs/RELEASE.md) — qualifying and publishing a gateway/plugin pair.
+- [Native build](docs/BUILD.md) — compiling the gateway and the `.so` with compatible dependencies.
+- [Documentation index](docs/README.md) · [Changelog](CHANGELOG.md) · [Status](STATUS.md).
+
+## Runtime & qualification
+
+The current release **v0.3.0-rc.2** is an ARM64 Bifrost 2.2.3 pair (final commit `f097f74`) built from the unmodified `transports/v2.2.3` source. All suites use synthetic providers.
+
+| Check | Result |
+| --- | --- |
+| Gateway `bifrost-http` | `80d17483…` (reproducible build) |
+| Plugin `bifrost-registry.so` | `09485d28…` |
+| Per-key `/v1/models` isolation | 42/42 |
+| Standalone install, restart, disable | 55/55 |
+| Standalone + synthetic assistant | 72/72 |
+| Native-key adoption | 19/19 |
+| Per-access capabilities (prices, restricted VK, shared alias) | 34/34 assertions |
+
+[ARM64 qualification report](reports/bifrost-2.2.3-arm64-f097f74/README.md) · [Final audit](docs/reviews/2026-09-28-final-audit.md)
+
+**Honest limits.** ARM64 only — AMD64 2.2.3 and the prebuilt official image remain unqualified, and the download image is qualified separately from the `.so`. All suites ran against synthetic providers with **no real inference**. The adoption suite runs its fixture over bridge networking bound to loopback; the other suites use `--network none`. No production deployment was performed, and native sidebar integration is deferred.
+
+## Contributing
+
+Open an issue with a reproducible bug or a concrete use case first, then a pull request against `main`. Read [CONTRIBUTING.md](CONTRIBUTING.md) for requirements and the full `make check` command. Issues are tracked with the repo's [five triage labels](docs/agents/triage-labels.md).
+
+## Support
+
+Ask questions and report bugs through [GitHub Issues](https://github.com/sofianbll/bifrost-plugin-registry/issues). For usage and configuration questions, start with the [user guide](docs/USER-GUIDE.md).
+
+## Security
+
+Report vulnerabilities privately through [GitHub's private reporting](https://github.com/sofianbll/bifrost-plugin-registry/security/advisories/new); never open a public issue with credentials or an exploit. See [SECURITY.md](SECURITY.md) for scope and trust boundaries.
+
+## Code of conduct
+
+This project follows the [Contributor Covenant v2.1](CODE_OF_CONDUCT.md). Report unacceptable behavior through the private channels in [SECURITY.md](SECURITY.md).
 
 ## License
 
-Project-authored code is [MIT licensed](LICENSE). Vendored Bifrost UI code and assets retain their [Apache-2.0 license](ui/LICENSE); Geist fonts retain their [SIL Open Font License](ui/public/static/fonts/OFL.txt). See [third-party notices](THIRD_PARTY_NOTICES.md) and [upstream provenance](ui/PROVENANCE.md).
+Project-authored code is [MIT licensed](LICENSE). Vendored Bifrost UI code and assets retain their [Apache-2.0 license](ui/LICENSE), and Geist fonts retain their [SIL Open Font License](ui/public/static/fonts/OFL.txt). See [third-party notices](THIRD_PARTY_NOTICES.md) and [upstream provenance](ui/PROVENANCE.md).
