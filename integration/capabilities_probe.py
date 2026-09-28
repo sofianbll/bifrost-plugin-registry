@@ -261,12 +261,19 @@ def check_approx(report, name, observed, expected, tolerance):
 
 
 def summarize(report):
-    total = len(report["checks"])
-    passed = sum(1 for c in report["checks"] if c["ok"])
+    # A check is an assertion: ok true passes, ok false fails, and ok null is a
+    # recorded observation rather than an assertion (native responses are dumped
+    # for review). Only a failed assertion makes the run red; observations never
+    # mask one, they are listed alongside it.
+    checks = report["checks"]
+    total = len(checks)
+    failed = sum(1 for c in checks if c["ok"] is False)
+    informational = sum(1 for c in checks if c["ok"] is None)
     report["total"] = total
-    report["passed"] = passed
-    report["failed"] = total - passed
-    report["all_passed"] = (report.get("error") is None and total > 0 and passed == total)
+    report["passed"] = total - failed - informational
+    report["failed"] = failed
+    report["informational"] = informational
+    report["all_passed"] = (report.get("error") is None and total > 0 and failed == 0)
 
 
 def main():
