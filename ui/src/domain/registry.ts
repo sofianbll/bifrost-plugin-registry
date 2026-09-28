@@ -15,8 +15,9 @@ export type Model = {
   capabilities: Record<string, Capability>;
   accesses: Access[];
 };
+export type AccessSelector = { added: string[]; excluded: string[] };
 export type Group = { id: string; name: string; description: string; members: string[] };
-export type Policy = { groups: string[]; added: string[]; excluded: string[]; naming: "model" | "provider/model" | "both" };
+export type Policy = { groups: string[]; added: string[]; excluded: string[]; naming: "model" | "provider/model" | "both"; accessSelection?: Record<string, AccessSelector> };
 export type Publication = { state: "verified" | "drift" | "not_verified"; revision: string; checkedAt: string; observedAt?: string; observedRevision?: string; expected: string[]; actual: string[] | null; missing: string[]; unexpected: string[]; error?: string };
 export type PricingProof = { access: string; state: string; checkedAt: string; error?: string };
 export type Key = { id: string; name: string; client: string; active: boolean; policy: Policy; observed: string[] | null; readError: boolean; revision: number; managed?: boolean; publication?: Publication };
@@ -36,10 +37,28 @@ export const catalogModels = (registered: Model[], discovered: Model[]) => {
 export const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 export const members = (policy: Policy, groups: Group[]) => [...new Set([...groups.filter(g => policy.groups.includes(g.id)).flatMap(g => g.members), ...policy.added])].filter(id => !policy.excluded.includes(id));
 export const origin = (id: string, policy: Policy, groups: Group[]) => groups.filter(g => policy.groups.includes(g.id) && g.members.includes(id)).map(g => g.name);
+export const retainedAccesses = (model: Model, policy: Policy) => {
+  const sel = policy.accessSelection?.[model.id];
+  if (!sel) return { known: model.accesses.map(a => a.id), unknown: [] as string[] };
+  const knownIds = new Set(model.accesses.map(a => a.id));
+  const retained = new Set(knownIds);
+  const unknown: string[] = [];
+  for (const id of sel.added) {
+    if (knownIds.has(id)) {
+      retained.add(id);
+    } else {
+      unknown.push(id);
+    }
+  }
+  for (const id of sel.excluded) retained.delete(id);
+  return { known: model.accesses.filter(a => retained.has(a.id)).map(a => a.id), unknown };
+};
 export const exposed = (policy: Policy, groups: Group[], models: Model[]) => members(policy, groups).flatMap(id => {
   const model = models.find(m => m.id === id);
   if (!model) return [];
-  const prefixed = model.accesses.map(a => a.id);
+  const { known } = retainedAccesses(model, policy);
+  if (!known.length) return [];
+  const prefixed = known.map(accessId => model.accesses.find(a => a.id === accessId)?.id || accessId);
   return policy.naming === "model" ? [model.id] : policy.naming === "provider/model" ? prefixed : [model.id, ...prefixed];
 });
 export const delta = (before: string[], after: string[]) => ({ added: after.filter(x => !before.includes(x)), removed: before.filter(x => !after.includes(x)) });

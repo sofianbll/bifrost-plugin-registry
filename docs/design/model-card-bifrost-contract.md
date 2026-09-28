@@ -289,3 +289,15 @@ Décisions de périmètre pour cette tranche :
 3. Les budgets/réutilisations (`/api/governance/model-configs`) sont de la gouvernance, pas des propriétés de fiche : hors périmètre de cette tranche.
 4. L'état « appliqué » exige une relecture native (`GET /api/governance/pricing-overrides` et/ou `overridden_pricing` de `/api/models/details`) ; un échec ou un champ non applicable reste visible dans l'UI, conformément à la précision de Sofian ci-dessus.
 5. Une correction locale d'un accès n'écrit que l'override de cet accès ; les autres accès ne sont jamais modifiés implicitement.
+
+### Tranche (c) — sélection d'accès par clé/VK : décision de périmètre (28 septembre 2026)
+
+S'appuie sur le processus candidat du §7 et les conditions natives établies (la clé autorise le nom demandé ; Bifrost résout `aliases[clé]` avant la traduction ; `allowed_models` de la VK filtre avant traduction). Plan d'implémentation ancré fichiers/lignes, arbitrages inclus :
+
+1. **Représentation** : `Policy.AccessSelection map[string]AccessSelector`, clé = ID de modèle logique, `AccessSelector{Added, Excluded []string}` d'IDs d'accès (`internal/registry/config.go`). Même forme dans le DTO workspace. Validation : unicité, non-vacuité, appartenance des accès au modèle logique.
+2. **Défaut sans sélection** (principe « endpoints » de la tranche Models.dev) : modèle logique à exactement un accès et sans `AccessSelection` → tolérance, comportement actuel préservé ; modèle multi-accès sans sélection → erreur de compilation explicite. Un modèle sélectionné dont aucun accès n'est retenu → erreur, jamais de route vide silencieuse.
+3. **Compilation** : le filtrage par accès s'applique avant le regroupement par alias ; `AllowedModels` (plan) découle des routes retenues. Conséquence utile : une clé qui n'autorise qu'un accès d'un alias à plusieurs accès rend le nom court non ambigu (`Prefer` non requis) ; plusieurs accès autorisés conservent l'exigence `Prefer` ou le format `provider/model`.
+4. **Application native** : `installAliases` reste systématique sur les clés provider de tous les accès configurés (séparation native alias/autorisations) ; la restriction se fait au niveau de la VK par `allowed_models` dans `applyVirtualKey`. Aucun nom `provider/modèle` natif n'est requis dans `allowed_models`.
+5. **Exclusions locales** : une exclusion d'accès d'une clé prime sur ses groupes et ne modifie aucune autre clé. Les clés adoptées ne sont jamais réécrites (leur configuration native reste intacte).
+6. **UI** : sous-menu « Accesses » par carte modèle dans le compositeur de clé (cases à cocher, logos provider, badges d'origine hérité/ajouté/exclu), selon le contrat UI ; le brouillon liste accès retenus et exclusions locales.
+7. **Preuves** : tests de compilation (cas du plan §5) ; la qualification native à deux providers simulés reste à la tranche (f), comme le routage effectif entre accès admissibles (tranche d).

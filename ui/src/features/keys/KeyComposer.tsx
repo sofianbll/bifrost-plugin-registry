@@ -8,10 +8,11 @@ import { Input } from "@/components/ui/input";
 import { useCopyToClipboard } from "../../hooks/useCopyToClipboard";
 import ModelBrowser from "../catalog/ModelBrowser";
 import { BrandIcon } from "../../components/registry/BrandIcon";
+import { ProviderMark } from "../../components/registry/BrandIcon";
 import type { ViewOptions } from "../../components/registry/ViewOptions";
 import { delta, exposed, members, origin, same, toggleModel, type Group, type Key, type Model, type Policy, type Publication } from "../../domain/registry";
 import { useCopy } from "../../lib/locale";
-import { keyComposition, modelOrigin, toggleVisibleModels } from "./KeyComposer.state";
+import { accessOrigin, keyComposition, modelOrigin, toggleAccess, toggleVisibleModels, type AccessOrigin } from "./KeyComposer.state";
 
 type Props = {
   virtualKey: Key;
@@ -45,6 +46,7 @@ export default function KeyComposer({ virtualKey, draft, onDraftChange, models, 
   const dirty = !same(draft, virtualKey.policy);
   const selected = composition.selected;
   const excluded = composition.excluded;
+  const selectedAccessCount = useMemo(() => [...composition.byModel.values()].reduce((sum, m) => sum + m.retained.length, 0), [composition.byModel]);
   const toggleGroup = (id: string) => onDraftChange({ ...draft, groups: draft.groups.includes(id) ? draft.groups.filter(value => value !== id) : [...draft.groups, id] });
   const selectVisible = (visible: string[], target: string[]) => onDraftChange(toggleVisibleModels(draft, visible, target, models, groups));
   const selectionDetails = (id: string) => {
@@ -76,6 +78,24 @@ export default function KeyComposer({ virtualKey, draft, onDraftChange, models, 
               {isExcluded && <Badge variant="warning">{copy("Excluded locally", "Exclu pour cette clé")}</Badge>}
             </div>
             {model && <div className="space-y-1">{model.accesses.length ? model.accesses.map(access => <p key={access.id} className="break-all text-xs text-muted-foreground">{access.provider} · {copy("access ID", "ID d’accès")} {access.id} · {copy("native model", "modèle natif")} {access.nativeModel || "—"} <span>({copy(access.status, access.status === "Configured" ? "Configuré" : "Inconnu")})</span></p>) : <p className="text-xs text-muted-foreground">{copy("No provider access recorded", "Aucun accès fournisseur enregistré")}</p>}</div>}
+            {model && composition.selected.includes(id) && (model.accesses.length > 1 || draft.accessSelection?.[id]) && <div className="mt-2 space-y-1">
+              <p className="text-xs font-medium">{copy("Accesses", "Accès")}</p>
+              {model.accesses.map(access => {
+                const o = accessOrigin(access.id, id, draft, groups);
+                const checked = o !== "excluded";
+                return <label key={access.id} className="flex cursor-pointer items-center gap-2 rounded-sm py-1">
+                  <Checkbox checked={checked} disabled={busy} onCheckedChange={() => onDraftChange(toggleAccess(draft, id, access.id, models, groups))} aria-label={`${checked ? copy("Exclude", "Exclure") : copy("Include", "Inclure")} ${access.id}`} />
+                  <ProviderMark id={access.provider} />
+                  <span className="min-w-0 flex-1 break-all text-xs text-muted-foreground">{access.id}</span>
+                  {o && <Badge variant={o === "excluded" ? "warning" : o === "added" ? "default" : "secondary"}>{o === "excluded" ? copy("Excluded locally", "Exclu pour cette clé") : o === "added" ? copy("Added", "Ajouté") : copy("Inherited", "Hérité")}</Badge>}
+                </label>;
+              })}
+              {composition.byModel.get(id)?.unknown.map(accessId => <div key={accessId} className="flex items-center gap-2 rounded-sm py-1">
+                <span className="flex size-4 shrink-0 items-center justify-center text-chart-warning"><span aria-hidden="true">!</span></span>
+                <span className="min-w-0 flex-1 break-all text-xs text-muted-foreground">{accessId}</span>
+                <Badge variant="warning">{copy("Unknown access", "Accès inconnu")}</Badge>
+              </div>)}
+            </div>}
           </div>
         </details>
       </div>
@@ -106,7 +126,7 @@ export default function KeyComposer({ virtualKey, draft, onDraftChange, models, 
     preferences={preferences}
     compact
     label={copy("Key models", "Modèles de la clé")}
-    selectionNote={copy("Selecting a model includes all linked provider accesses.", "La sélection d’un modèle inclut tous ses accès fournisseurs liés.")}
+    selectionNote={`${selectedAccessCount} ${copy(selectedAccessCount === 1 ? "provider access selected" : "provider accesses selected", selectedAccessCount === 1 ? "accès fournisseur sélectionné" : "accès fournisseurs sélectionnés")}`}
   />;
 
   const idsPanel = <section className="space-y-3 border-t pt-3">

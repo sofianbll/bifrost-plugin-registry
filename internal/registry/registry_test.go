@@ -18,7 +18,7 @@ func fixture() Config {
 		{ID: "a", Alias: "smart", Provider: "alpha", ProviderKeyIDs: []string{"key-a"}, UpstreamModel: "wire/a-1", CanonicalModel: "canonical-a", ModelFamily: "openai", Creator: "Creator A", Family: "Family A", Capabilities: []string{"text", "tools", "reasoning"}, Endpoints: []string{"chat/completions", "responses"}, Enabled: true, Verified: true, Evidence: "unit test fixture; not a live provider"},
 		{ID: "b", Alias: "smart", Provider: "beta", ProviderKeyIDs: []string{"key-b"}, UpstreamModel: "wire-b-2", Creator: "Creator B", Family: "Family B", Capabilities: []string{"text", "tools"}, Endpoints: []string{"chat/completions", "responses"}, Enabled: true, Verified: true, Evidence: "unit test fixture; not a live provider"},
 		{ID: "c", Alias: "fast", Provider: "alpha", ProviderKeyIDs: []string{"key-a"}, UpstreamModel: "wire-c-3", Creator: "Creator A", Family: "Family A", Capabilities: []string{"text"}, Endpoints: []string{"chat/completions"}, Enabled: true, Verified: true, Evidence: "unit test fixture; not a live provider"},
-	}, Groups: []Group{{ID: "all", Name: "All", ModelIDs: []string{"a", "b", "c"}}}, Policies: []Policy{{VirtualKeyID: "vk-1", Name: "Tests", TokenSHA256: TokenHash(testToken), Groups: []string{"all"}, Enabled: true}}}
+	}, Groups: []Group{{ID: "all", Name: "All", ModelIDs: []string{"a", "b", "c"}}}, Policies: []Policy{{VirtualKeyID: "vk-1", Name: "Tests", TokenSHA256: TokenHash(testToken), Groups: []string{"all"}, Enabled: true, AccessSelection: map[string]AccessSelector{"smart": {}}}}}
 }
 func mustCompile(t *testing.T, c Config) *Snapshot {
 	t.Helper()
@@ -222,6 +222,113 @@ func TestPolicyLocalSelections(t *testing.T) {
 	if _, err := Compile(c); err == nil || !strings.Contains(err.Error(), "preference") {
 		t.Fatalf("excluded preference accepted: %v", err)
 	}
+}
+func TestAccessSelection(t *testing.T) {
+	// (a) key allowing only one access of a two-access model restricts routes and makes the bare alias unambiguous.
+	t.Run("single_access_unambiguous", func(t *testing.T) {
+		c := fixture()
+		c.Policies[0].Naming = "both"
+		c.Policies[0].AccessSelection = map[string]AccessSelector{"smart": {Added: []string{"a"}, Excluded: []string{"b"}}}
+		s := mustCompile(t, c)
+		got := names(t, s)
+		if !reflect.DeepEqual(got, []string{"alpha/fast", "alpha/smart", "fast", "smart"}) {
+			t.Fatalf("expected restricted routes, got %v", got)
+		}
+	})
+	// (a) with provider/model naming only the retained access is exposed.
+	t.Run("single_access_provider_model", func(t *testing.T) {
+		c := fixture()
+		c.Policies[0].Naming = "provider/model"
+		c.Policies[0].AccessSelection = map[string]AccessSelector{"smart": {Added: []string{"a"}, Excluded: []string{"b"}}}
+		s := mustCompile(t, c)
+		got := names(t, s)
+		if !reflect.DeepEqual(got, []string{"alpha/fast", "alpha/smart"}) {
+			t.Fatalf("expected alpha routes only, got %v", got)
+		}
+	})
+	// (b) key allowing both accesses keeps the ambiguity requirement.
+	t.Run("both_accesses_require_prefer", func(t *testing.T) {
+		c := fixture()
+		c.Policies[0].Naming = "model"
+		c.Policies[0].AccessSelection = map[string]AccessSelector{"smart": {Added: []string{"a", "b"}}}
+		if _, err := Compile(c); err == nil || !strings.Contains(err.Error(), "ambiguous") {
+			t.Fatalf("expected ambiguity error, got %v", err)
+		}
+	})
+	t.Run("both_accesses_provider_model_ok", func(t *testing.T) {
+		c := fixture()
+		c.Policies[0].Naming = "provider/model"
+		c.Policies[0].AccessSelection = map[string]AccessSelector{"smart": {Added: []string{"a", "b"}}}
+		s := mustCompile(t, c)
+		got := names(t, s)
+		if !reflect.DeepEqual(got, []string{"alpha/fast", "alpha/smart", "beta/smart"}) {
+			t.Fatalf("expected both provider routes, got %v", got)
+		}
+	})
+	// (c) local access exclusion wins over group inheritance.
+	t.Run("local_exclusion_wins", func(t *testing.T) {
+		c := fixture()
+		c.Groups = append(c.Groups, Group{ID: "other", Name: "Other", ModelIDs: []string{"a", "b"}})
+		c.Policies[0].Groups = []string{"all", "other"}
+		c.Policies[0].AccessSelection = map[string]AccessSelector{"smart": {Excluded: []string{"b"}}}
+		s := mustCompile(t, c)
+		got := names(t, s)
+		if !reflect.DeepEqual(got, []string{"alpha/fast", "alpha/smart"}) {
+			t.Fatalf("expected beta/smart excluded, got %v", got)
+		}
+	})
+	// (d) old client without access_selection on a single-access model is tolerated.
+	t.Run("legacy_single_access", func(t *testing.T) {
+		c := fixture()
+		c.Policies[0].AccessSelection = nil
+		c.Models[1].Alias = "other" // make "smart" single-access
+		c.Policies[0].Prefer = map[string]string{"other": "b"}
+		s := mustCompile(t, c)
+		got := names(t, s)
+		if !reflect.DeepEqual(got, []string{"alpha/fast", "alpha/smart", "beta/other"}) {
+			t.Fatalf("expected legacy behavior, got %v", got)
+		}
+	})
+	// (e) old client on a multi-access model fails explicitly.
+	t.Run("legacy_multi_access", func(t *testing.T) {
+		c := fixture()
+		c.Policies[0].AccessSelection = nil
+		if _, err := Compile(c); err == nil || !strings.Contains(err.Error(), "access_selection") {
+			t.Fatalf("expected access_selection error, got %v", err)
+		}
+	})
+	// (f) model with all accesses excluded fails rather than producing a silent empty route.
+	t.Run("all_accesses_excluded", func(t *testing.T) {
+		c := fixture()
+		c.Policies[0].AccessSelection = map[string]AccessSelector{"smart": {Excluded: []string{"a", "b"}}}
+		if _, err := Compile(c); err == nil || !strings.Contains(err.Error(), "no retained accesses") {
+			t.Fatalf("expected no retained accesses error, got %v", err)
+		}
+	})
+	// Validation: access_selection must reference known models with the matching alias.
+	t.Run("unknown_access_rejected", func(t *testing.T) {
+		c := fixture()
+		c.Policies[0].AccessSelection = map[string]AccessSelector{"smart": {Added: []string{"missing"}}}
+		if _, err := Compile(c); err == nil || !strings.Contains(err.Error(), "unknown access") {
+			t.Fatalf("expected unknown access error, got %v", err)
+		}
+	})
+	t.Run("wrong_alias_rejected", func(t *testing.T) {
+		c := fixture()
+		c.Policies[0].AccessSelection = map[string]AccessSelector{"fast": {Added: []string{"a"}}}
+		if _, err := Compile(c); err == nil || !strings.Contains(err.Error(), "access_selection fast references access") {
+			t.Fatalf("expected alias mismatch error, got %v", err)
+		}
+	})
+	t.Run("empty_selector_retains_all_eligible", func(t *testing.T) {
+		c := fixture()
+		c.Policies[0].AccessSelection = map[string]AccessSelector{"smart": {}}
+		s := mustCompile(t, c)
+		got := names(t, s)
+		if !reflect.DeepEqual(got, []string{"alpha/fast", "alpha/smart", "beta/smart"}) {
+			t.Fatalf("expected all eligible accesses, got %v", got)
+		}
+	})
 }
 func TestSnapshotIsolationAndDeterminism(t *testing.T) {
 	c := fixture()

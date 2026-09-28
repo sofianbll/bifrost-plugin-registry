@@ -77,10 +77,11 @@ type groupDTO struct {
 	Members     []string `json:"members"`
 }
 type policyDTO struct {
-	Groups   []string `json:"groups"`
-	Added    []string `json:"added"`
-	Excluded []string `json:"excluded"`
-	Naming   string   `json:"naming"`
+	Groups          []string                           `json:"groups"`
+	Added           []string                           `json:"added"`
+	Excluded        []string                           `json:"excluded"`
+	Naming          string                             `json:"naming"`
+	AccessSelection map[string]registry.AccessSelector `json:"accessSelection,omitempty"`
 }
 type publication struct {
 	State            string   `json:"state"`
@@ -478,7 +479,7 @@ func (s *Server) workspace(ctx context.Context) (workspace, error) {
 		active := vk.IsActive == nil || *vk.IsActive
 		key := keyDTO{ID: vk.ID, Name: vk.Name, Client: vk.Description, Active: active, Managed: managed, Policy: policyDTO{Groups: []string{}, Added: []string{}, Excluded: []string{}, Naming: config.DefaultNaming}, Publication: publication{State: "not_verified", Revision: snap.Revision(), Expected: []string{}, Missing: []string{}, Unexpected: []string{}}, Revision: 1}
 		if managed {
-			key.Policy = policyDTO{p.Groups, refsToAliases(p.Added, refs), refsToAliases(p.Excluded, refs), p.Naming}
+			key.Policy = policyDTO{Groups: p.Groups, Added: refsToAliases(p.Added, refs), Excluded: refsToAliases(p.Excluded, refs), Naming: p.Naming, AccessSelection: accessSelectionToDTO(p.AccessSelection, config.Models)}
 			if key.Policy.Naming == "" {
 				key.Policy.Naming = config.DefaultNaming
 			}
@@ -535,6 +536,37 @@ func refsToAliases(ids []string, refs map[string]string) []string {
 			out = append(out, v)
 			seen[v] = true
 		}
+	}
+	return out
+}
+
+func accessSelectionToDTO(sel map[string]registry.AccessSelector, models []registry.Model) map[string]registry.AccessSelector {
+	if len(sel) == 0 {
+		return nil
+	}
+	idToAccess := map[string]string{}
+	for _, m := range models {
+		idToAccess[m.ID] = m.Provider + "/" + m.Alias
+	}
+	out := map[string]registry.AccessSelector{}
+	for alias, s := range sel {
+		dto := registry.AccessSelector{}
+		for _, id := range s.Added {
+			if access := idToAccess[id]; access != "" {
+				dto.Added = append(dto.Added, access)
+			}
+		}
+		for _, id := range s.Excluded {
+			if access := idToAccess[id]; access != "" {
+				dto.Excluded = append(dto.Excluded, access)
+			}
+		}
+		if len(dto.Added)+len(dto.Excluded) > 0 {
+			out[alias] = dto
+		}
+	}
+	if len(out) == 0 {
+		return nil
 	}
 	return out
 }
@@ -624,6 +656,7 @@ func (s *Server) putWorkspace(w http.ResponseWriter, r *http.Request) {
 		nativeAccess[n.Provider+"/"+n.Name] = n
 	}
 	byLogical := map[string][]string{}
+	accessToRegistry := map[string]string{}
 	seenRegistry := map[string]bool{}
 	seenLogical := map[string]bool{}
 	for _, m := range input.Data.Models {
@@ -675,6 +708,7 @@ func (s *Server) putWorkspace(w http.ResponseWriter, r *http.Request) {
 			}
 			cfg.Models = append(cfg.Models, registry.Model{ID: id, Alias: m.ID, Provider: a.Provider, ProviderKeyIDs: native.AccessibleByKeys, UpstreamModel: raw, Creator: cleanUnknown(m.Creator), Family: cleanUnknown(m.Family), Endpoints: append([]string{}, endpoints...), Enabled: true, Configured: true, Evidence: "Configured in Bifrost native model catalog; inference not observed", Metadata: map[string]json.RawMessage{"ui": metadata}})
 			byLogical[m.ID] = append(byLogical[m.ID], id)
+			accessToRegistry[a.ID] = id
 		}
 	}
 	for _, g := range input.Data.Groups {
@@ -719,12 +753,18 @@ func (s *Server) putWorkspace(w http.ResponseWriter, r *http.Request) {
 			reply(w, 422, map[string]string{"error": e.Error()})
 			return
 		}
+		accessSelection, err := logicalAccessSelection(k.Policy.AccessSelection, byLogical, accessToRegistry)
+		if err != nil {
+			reply(w, 422, map[string]string{"error": err.Error()})
+			return
+		}
 		oldp.Name = k.Name
 		oldp.Enabled = k.Active
 		oldp.Groups = k.Policy.Groups
 		oldp.Added = added
 		oldp.Excluded = excluded
 		oldp.Naming = k.Policy.Naming
+		oldp.AccessSelection = accessSelection
 		cfg.Policies = append(cfg.Policies, oldp)
 	}
 	for id := range oldPolicy {
@@ -846,6 +886,52 @@ func logicalRefs(ids []string, by map[string][]string) ([]string, error) {
 			return nil, errors.New("Key references an unknown model")
 		}
 		out = append(out, r...)
+	}
+	return out, nil
+}
+
+func logicalAccessSelection(sel map[string]registry.AccessSelector, byLogical map[string][]string, accessToRegistry map[string]string) (map[string]registry.AccessSelector, error) {
+	if len(sel) == 0 {
+		return nil, nil
+	}
+	out := map[string]registry.AccessSelector{}
+	for alias, s := range sel {
+		registryIDs, ok := byLogical[alias]
+		if !ok {
+			return nil, fmt.Errorf("access selection references unknown model %s", alias)
+		}
+		valid := map[string]bool{}
+		for _, id := range registryIDs {
+			valid[id] = true
+		}
+		dto := registry.AccessSelector{}
+		for _, access := range s.Added {
+			id, ok := accessToRegistry[access]
+			if !ok {
+				return nil, fmt.Errorf("access selection for %s references unknown access %s", alias, access)
+			}
+			if !valid[id] {
+				return nil, fmt.Errorf("access selection for %s: access %s does not belong to model", alias, access)
+			}
+			dto.Added = append(dto.Added, id)
+		}
+		for _, access := range s.Excluded {
+			id, ok := accessToRegistry[access]
+			if !ok {
+				return nil, fmt.Errorf("access selection for %s references unknown access %s", alias, access)
+			}
+			if !valid[id] {
+				return nil, fmt.Errorf("access selection for %s: access %s does not belong to model", alias, access)
+			}
+			dto.Excluded = append(dto.Excluded, id)
+		}
+		if len(dto.Added)+len(dto.Excluded) == 0 {
+			continue
+		}
+		out[alias] = dto
+	}
+	if len(out) == 0 {
+		return nil, nil
 	}
 	return out, nil
 }

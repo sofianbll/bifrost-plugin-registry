@@ -77,19 +77,25 @@ type Group struct {
 	Exclude     []string `json:"exclude,omitempty"`
 }
 
+type AccessSelector struct {
+	Added    []string `json:"added"`
+	Excluded []string `json:"excluded"`
+}
+
 type Policy struct {
-	VirtualKeyID   string            `json:"virtual_key_id"`
-	Name           string            `json:"name"`
-	TokenSHA256    string            `json:"token_sha256"`
-	Naming         string            `json:"naming,omitempty"`
-	Groups         []string          `json:"groups"`
-	Added          []string          `json:"added,omitempty"`
-	Excluded       []string          `json:"excluded,omitempty"`
-	Sources        []string          `json:"sources,omitempty"`
-	Prefer         map[string]string `json:"prefer,omitempty"`
-	Enabled        bool              `json:"enabled"`
-	Adopted        bool              `json:"adopted,omitempty"`
-	NativeModelIDs []string          `json:"native_model_ids,omitempty"`
+	VirtualKeyID    string                    `json:"virtual_key_id"`
+	Name            string                    `json:"name"`
+	TokenSHA256     string                    `json:"token_sha256"`
+	Naming          string                    `json:"naming,omitempty"`
+	Groups          []string                  `json:"groups"`
+	Added           []string                  `json:"added,omitempty"`
+	Excluded        []string                  `json:"excluded,omitempty"`
+	Sources         []string                  `json:"sources,omitempty"`
+	Prefer          map[string]string         `json:"prefer,omitempty"`
+	AccessSelection map[string]AccessSelector `json:"access_selection,omitempty"`
+	Enabled         bool                      `json:"enabled"`
+	Adopted         bool                      `json:"adopted,omitempty"`
+	NativeModelIDs  []string                  `json:"native_model_ids,omitempty"`
 }
 
 type Route struct {
@@ -149,6 +155,10 @@ func unique(xs []string) bool {
 		seen[x] = true
 	}
 	return true
+}
+
+func validAccessSelector(sel AccessSelector) bool {
+	return unique(sel.Added) && unique(sel.Excluded)
 }
 func noControls(s string) bool {
 	for _, r := range s {
@@ -273,6 +283,9 @@ func Compile(c Config) (*Snapshot, error) {
 	for i := range c.Policies {
 		if c.Policies[i].Groups == nil {
 			c.Policies[i].Groups = []string{}
+		}
+		if c.Policies[i].AccessSelection == nil {
+			c.Policies[i].AccessSelection = map[string]AccessSelector{}
 		}
 	}
 	if c.SchemaVersion != 1 {
@@ -428,6 +441,14 @@ func Compile(c Config) (*Snapshot, error) {
 		if !unique(p.Groups) || !unique(p.Added) || !unique(p.Excluded) || !unique(p.Sources) {
 			return nil, fmt.Errorf("policy %s: duplicate/empty selectors", p.VirtualKeyID)
 		}
+		for alias, sel := range p.AccessSelection {
+			if alias == "" {
+				return nil, fmt.Errorf("policy %s: empty access_selection key", p.VirtualKeyID)
+			}
+			if !validAccessSelector(sel) {
+				return nil, fmt.Errorf("policy %s: access_selection %s has duplicate/empty references", p.VirtualKeyID, alias)
+			}
+		}
 		if p.Adopted {
 			if len(p.NativeModelIDs) == 0 || !unique(p.NativeModelIDs) {
 				return nil, fmt.Errorf("policy %s: adopted key needs unique native model IDs", p.VirtualKeyID)
@@ -455,6 +476,17 @@ func Compile(c Config) (*Snapshot, error) {
 				return nil, fmt.Errorf("policy %s: unknown model %s", p.VirtualKeyID, id)
 			}
 		}
+		for alias, sel := range p.AccessSelection {
+			for _, id := range append(append([]string{}, sel.Added...), sel.Excluded...) {
+				m, ok := models[id]
+				if !ok {
+					return nil, fmt.Errorf("policy %s: access_selection %s references unknown access %s", p.VirtualKeyID, alias, id)
+				}
+				if m.Alias != alias {
+					return nil, fmt.Errorf("policy %s: access_selection %s references access %s with alias %s", p.VirtualKeyID, alias, id, m.Alias)
+				}
+			}
+		}
 		for _, id := range p.Added {
 			selected[id] = true
 		}
@@ -469,6 +501,41 @@ func Compile(c Config) (*Snapshot, error) {
 			}
 		}
 		byAlias := map[string][]Model{}
+		for _, m := range eligible {
+			byAlias[m.Alias] = append(byAlias[m.Alias], m)
+		}
+		filtered := map[string]Model{}
+		for alias, ms := range byAlias {
+			sel, hasSelection := p.AccessSelection[alias]
+			if !hasSelection {
+				if len(ms) == 1 {
+					filtered[ms[0].ID] = ms[0]
+					continue
+				}
+				return nil, fmt.Errorf("policy %s: model %s has %d accesses; add access_selection", p.VirtualKeyID, alias, len(ms))
+			}
+			retained := map[string]bool{}
+			for _, m := range ms {
+				retained[m.ID] = true
+			}
+			for _, id := range sel.Added {
+				if _, ok := eligible[id]; !ok || eligible[id].Alias != alias {
+					return nil, fmt.Errorf("policy %s: access_selection %s added access %s is not eligible", p.VirtualKeyID, alias, id)
+				}
+				retained[id] = true
+			}
+			for _, id := range sel.Excluded {
+				delete(retained, id)
+			}
+			if len(retained) == 0 {
+				return nil, fmt.Errorf("policy %s: model %s has no retained accesses", p.VirtualKeyID, alias)
+			}
+			for id := range retained {
+				filtered[id] = eligible[id]
+			}
+		}
+		eligible = filtered
+		byAlias = map[string][]Model{}
 		for _, m := range eligible {
 			byAlias[m.Alias] = append(byAlias[m.Alias], m)
 		}

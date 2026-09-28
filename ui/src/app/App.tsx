@@ -352,7 +352,17 @@ function RegistryApp({ language, onLanguageChange }: { language: Language; onLan
     setConfirm({ title: `Delete ${model.name}?`, text: `This removes the model from its groups and key selections. ${used} key catalog${used === 1 ? "" : "s"} will change.`, action: () => {
       const models = data.models.filter(m => m.id !== model.id);
       const groups = data.groups.map(g => ({ ...g, members: g.members.filter(id => id !== model.id) }));
-      const keys = data.keys.map(k => ({ ...k, policy: { ...k.policy, added: k.policy.added.filter(id => id !== model.id), excluded: k.policy.excluded.filter(id => id !== model.id) } }));
+      const keys = data.keys.map(k => {
+        const accessSelection = k.policy.accessSelection ? { ...k.policy.accessSelection } : undefined;
+        if (accessSelection) {
+          delete accessSelection[model.id];
+          if (Object.keys(accessSelection).length === 0) {
+            const { accessSelection: _, ...rest } = k.policy;
+            return { ...k, policy: rest };
+          }
+        }
+        return { ...k, policy: { ...k.policy, added: k.policy.added.filter(id => id !== model.id), excluded: k.policy.excluded.filter(id => id !== model.id), accessSelection } };
+      });
       void (async () => { if (await commit({ ...data, models, groups, keys }, "Deleting model…", data.keys.filter(k => k.managed !== false && members(k.policy, data.groups).includes(model.id)).map(k => k.id))) setModelDraft(null); })();
     } });
   };

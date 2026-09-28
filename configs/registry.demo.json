@@ -151,6 +151,14 @@
       "prefer": {
         "reasoning": "codex-reasoning"
       },
+      "access_selection": {
+        "reasoning": {
+          "added": [
+            "codex-reasoning",
+            "ag-reasoning"
+          ]
+        }
+      },
       "enabled": true
     },
     {
@@ -161,6 +169,14 @@
       "groups": [
         "reasoning-demo"
       ],
+      "access_selection": {
+        "reasoning": {
+          "added": [
+            "codex-reasoning",
+            "ag-reasoning"
+          ]
+        }
+      },
       "enabled": true
     }
   ]
