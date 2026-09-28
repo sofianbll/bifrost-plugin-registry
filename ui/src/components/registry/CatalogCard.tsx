@@ -4,8 +4,17 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 type CardFormat = "compact" | "square";
 
-export function CatalogGrid({ format, children }: { format: CardFormat; children: ReactNode }) {
-  return <div data-format={format} className={cn("grid gap-4", format === "square" ? "items-start [grid-template-columns:repeat(auto-fill,minmax(min(100%,18.75rem),1fr))]" : "auto-rows-fr items-stretch [grid-template-columns:repeat(auto-fill,minmax(min(100%,22.5rem),1fr))]")}>{children}</div>;
+const columnsClass = (columns: 1 | 2 | 3 | 4) => {
+  switch (columns) {
+    case 4: return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4";
+    case 3: return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3";
+    case 2: return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2";
+    default: return "grid-cols-1";
+  }
+};
+
+export function CatalogGrid({ format, columns, children }: { format: CardFormat; columns?: 1 | 2 | 3 | 4; children: ReactNode }) {
+  return <div data-format={format} className={cn("grid gap-4", columns ? columnsClass(columns) : format === "square" ? "items-start [grid-template-columns:repeat(auto-fill,minmax(min(100%,18.75rem),1fr))]" : "auto-rows-fr items-stretch [grid-template-columns:repeat(auto-fill,minmax(min(100%,22.5rem),1fr))]")}>{children}</div>;
 }
 
 export function CatalogCard({ format, selected, warning, header, children, footer, dataTour }: {

@@ -124,7 +124,7 @@ function RegistryApp({ language, onLanguageChange }: { language: Language; onLan
   const [settingsSection, setSettingsSection] = useState<"general" | "help">("general");
   const [catalogFocus, setCatalogFocus] = useState<{ target: "reference" | "access"; id: string } | null>(null);
   const [discoveryOpen, setDiscoveryOpen] = useState(false);
-  const [preferences, setPreferences] = useState<ViewOptions>(() => { try { return { ...defaultViewOptions, ...JSON.parse(localStorage.getItem("registry-prototype-view") || "{}") }; } catch { return defaultViewOptions; } });
+  const [preferences, setPreferences] = useState<ViewOptions>(() => { try { const saved = JSON.parse(localStorage.getItem("registry-prototype-view") || "{}"); return { ...defaultViewOptions, ...saved, shape: saved.shape || defaultViewOptions.shape }; } catch { return defaultViewOptions; } });
   const [listOverrides, setListOverrides] = useState<Record<string, Partial<ViewOptions>>>({});
   useEffect(() => { localStorage.setItem("registry-prototype-view", JSON.stringify(preferences)); }, [preferences]);
   const [dark, setDark] = useState(() => document.documentElement.classList.contains("dark"));

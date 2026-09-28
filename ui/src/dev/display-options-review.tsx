@@ -2,7 +2,8 @@ import { useState } from "react";
 import { LanguageContext } from "@/lib/locale";
 import { createRoot } from "react-dom/client";
 import { LayoutGrid, List, Settings2, Square } from "lucide-react";
-import { CatalogCard } from "@/components/registry/CatalogCard";
+import { CatalogCard, CatalogGrid } from "@/components/registry/CatalogCard";
+import { cardFormat, gridColumns } from "@/components/registry/ViewOptions";
 import { BrandIcon, displayProvider } from "@/components/registry/BrandIcon";
 import { ProviderSummary } from "@/components/registry/CompactCollection";
 import { ModelCapabilitiesSummary, ModelModalitiesSummary } from "@/components/registry/model-capabilities";
@@ -39,9 +40,9 @@ function Review() {
   return <main className="min-h-screen bg-background text-foreground">
     <div className="mx-auto max-w-[1500px] space-y-6 p-5 sm:p-8">
       <header className="space-y-2">
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Proposition · composants existants · non appliquée à l’interface</p>
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Référence historique · contrôles migrés dans ViewControls</p>
         <h1 className="text-2xl font-semibold tracking-tight">Options d’affichage du catalogue</h1>
-        <p className="max-w-3xl text-sm text-muted-foreground">Grille et Tableau choisissent la présentation. Dans la Grille, Rectangle et Carré gardent les mêmes cartes et les mêmes informations; Petit, Moyen et Grand règlent seulement la densité.</p>
+        <p className="max-w-3xl text-sm text-muted-foreground">Ces variantes ont été intégrées dans les contrôles actifs du catalogue (ModelBrowser / ReferenceCatalogBrowser). Grille et Tableau choisissent la présentation. Dans la Grille, Rectangle et Carré gardent les mêmes cartes et les mêmes informations; Petit, Moyen et Grand règlent seulement la densité.</p>
       </header>
 
       <section className="flex flex-wrap items-center justify-between gap-4 rounded-sm border bg-card p-3" aria-label="Options d’affichage proposées">
@@ -66,7 +67,7 @@ function Review() {
       </section>
 
       <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="text-lg font-semibold">{layout === "table" ? "Vue Tableau" : `Vue Grille · ${shape === "square" ? "Carré" : "Rectangle"} · ${{ small: "Petit", medium: "Moyen", large: "Grand" }[density]}`}</h2><p className="text-xs text-muted-foreground">8 modèles de démonstration</p></div>
-      {layout === "grid" ? <div data-review-grid data-shape={shape} data-density={density} className="grid min-w-0 auto-rows-fr items-stretch gap-4 [grid-template-columns:minmax(0,1fr)] sm:[grid-template-columns:repeat(2,minmax(0,1fr))] lg:[grid-template-columns:repeat(2,minmax(0,1fr))] xl:[grid-template-columns:repeat(var(--review-columns),minmax(0,1fr))]" style={{ "--review-columns": density === "small" ? 4 : density === "medium" ? 3 : 2 } as React.CSSProperties}>{models.map(model => <ModelCard key={model.id} model={model} shape={shape} />)}</div> : <div className="rounded-sm border bg-card"><Table><TableHeader><TableRow><TableHead>Modèle</TableHead><TableHead>Créateur</TableHead><TableHead>Fournisseurs</TableHead><TableHead>Modalités</TableHead><TableHead>Capacités</TableHead><TableHead>Accès</TableHead></TableRow></TableHeader><TableBody>{models.map(model => <TableRow key={model.id}><TableCell className="font-medium">{model.name}</TableCell><TableCell>{model.creator}</TableCell><TableCell><ProviderSummary ids={model.accesses.map(access => access.provider)} /></TableCell><TableCell><ModelModalitiesSummary model={model} /></TableCell><TableCell><ModelCapabilitiesSummary model={model} /></TableCell><TableCell>{model.accesses.length}</TableCell></TableRow>)}</TableBody></Table></div>}
+      {layout === "grid" ? <CatalogGrid format={cardFormat({ layout: "grid", shape })} columns={gridColumns(density)}>{models.map(model => <ModelCard key={model.id} model={model} shape={shape} />)}</CatalogGrid> : <div className="rounded-sm border bg-card"><Table><TableHeader><TableRow><TableHead>Modèle</TableHead><TableHead>Créateur</TableHead><TableHead>Fournisseurs</TableHead><TableHead>Modalités</TableHead><TableHead>Capacités</TableHead><TableHead>Accès</TableHead></TableRow></TableHeader><TableBody>{models.map(model => <TableRow key={model.id}><TableCell className="font-medium">{model.name}</TableCell><TableCell>{model.creator}</TableCell><TableCell><ProviderSummary ids={model.accesses.map(access => access.provider)} /></TableCell><TableCell><ModelModalitiesSummary model={model} /></TableCell><TableCell><ModelCapabilitiesSummary model={model} /></TableCell><TableCell>{model.accesses.length}</TableCell></TableRow>)}</TableBody></Table></div>}
       <p className="text-xs text-muted-foreground">Données fictives de la galerie. Les cartes réutilisent CatalogCard et BrandIcon. Aucune donnée réelle ni préférence n’est modifiée.</p>
       <nav aria-label="Références de conception" className="flex flex-wrap gap-3 border-t pt-4 text-xs text-muted-foreground"><a className="underline underline-offset-4 hover:text-foreground" href="https://vercel.com/ai-gateway/models/providers" target="_blank" rel="noreferrer">Catalogue Vercel AI Gateway</a><a className="underline underline-offset-4 hover:text-foreground" href="https://vercel.com/geist/grid" target="_blank" rel="noreferrer">Geist · grille</a><a className="underline underline-offset-4 hover:text-foreground" href="https://carbondesignsystem.com/components/content-switcher/usage/" target="_blank" rel="noreferrer">Carbon · sélecteur de vue</a></nav>
     </div>
