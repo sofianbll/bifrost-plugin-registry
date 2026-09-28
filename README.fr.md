@@ -44,7 +44,7 @@ export REGISTRY_ADMIN_TOKEN=…  REGISTRY_BIFROST_AUTH='Basic …'
 open http://127.0.0.1:8099/model-registry
 ```
 
-**[Installation, configuration et retour arrière complets →](docs/INSTALL.md)**
+**[Installation, configuration et retour arrière complets →](docs/INSTALL.md)** — deux modes : l'image dynamique publiée plus l'URL du plugin, ou le plugin seul sur tout Bifrost compilé avec chargement dynamique. Si l'ajout du plugin échoue avec une erreur de permission sur un fichier temporaire, voir [Dépannage](docs/INSTALL.md#troubleshooting).
 
 ## Captures d'écran
 
