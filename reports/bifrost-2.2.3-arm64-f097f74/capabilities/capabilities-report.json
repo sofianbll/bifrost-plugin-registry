@@ -1,0 +1,538 @@
+{
+  "all_passed": true,
+  "artifacts": {
+    "gateway": "80d17483d6b693340b5b6f742710873a0a3ebfa96c1b419dc5352b76cb3bd6d0",
+    "plugin": "09485d28a458bc7485504fe64bbb94a52480fc9a634f47b68edfd6f3dfd708e9"
+  },
+  "bifrost_version_expected": "2.2.3",
+  "checks": [
+    {
+      "detail": {
+        "expected": [
+          "lo"
+        ],
+        "observed": [
+          "lo"
+        ]
+      },
+      "name": "network namespace has only loopback",
+      "ok": true
+    },
+    {
+      "detail": {
+        "expected": true,
+        "observed": true
+      },
+      "name": "workspace connected",
+      "ok": true
+    },
+    {
+      "detail": {
+        "expected": true,
+        "observed": true
+      },
+      "name": "create VK A",
+      "ok": true
+    },
+    {
+      "detail": {
+        "expected": true,
+        "observed": true
+      },
+      "name": "create VK B",
+      "ok": true
+    },
+    {
+      "detail": {
+        "expected": true,
+        "observed": true
+      },
+      "name": "workspace saved",
+      "ok": true
+    },
+    {
+      "detail": {
+        "expected": true,
+        "observed": true
+      },
+      "name": "saved model has two accesses",
+      "ok": true
+    },
+    {
+      "detail": {
+        "expected": true,
+        "observed": true
+      },
+      "name": "VK A lists shared alias",
+      "ok": true
+    },
+    {
+      "detail": {
+        "expected": 200,
+        "observed": 200
+      },
+      "name": "VK A chat status",
+      "ok": true
+    },
+    {
+      "detail": {
+        "expected": true,
+        "observed": true
+      },
+      "name": "VK A routed only to provider A",
+      "ok": true
+    },
+    {
+      "detail": {
+        "expected": "upstream-a",
+        "observed": "upstream-a"
+      },
+      "name": "VK A upstream model is upstream-a",
+      "ok": true
+    },
+    {
+      "detail": {
+        "body": null,
+        "ids": [
+          "shared"
+        ],
+        "status": 200
+      },
+      "name": "VK B models response",
+      "ok": null
+    },
+    {
+      "detail": {
+        "expected": true,
+        "observed": true
+      },
+      "name": "VK B lists shared alias",
+      "ok": true
+    },
+    {
+      "detail": {
+        "expected": 200,
+        "observed": 200
+      },
+      "name": "VK B chat calls succeeded",
+      "ok": true
+    },
+    {
+      "detail": {
+        "expected": true,
+        "observed": true
+      },
+      "name": "VK B received only authorized upstream models",
+      "ok": true
+    },
+    {
+      "detail": {
+        "expected": true,
+        "observed": true
+      },
+      "name": "VK B never sent alias as model",
+      "ok": true
+    },
+    {
+      "detail": {
+        "native_allow_all_providers": false,
+        "native_provider_configs": [
+          {
+            "allow_all_keys": false,
+            "allowed_models": [
+              "shared"
+            ],
+            "blacklisted_models": [],
+            "key_ids": [
+              "key-a"
+            ],
+            "provider": "provider-a"
+          }
+        ],
+        "native_vk_status": 200,
+        "readback": {
+          "actual": [
+            "shared"
+          ],
+          "error": null,
+          "expected": [
+            "shared"
+          ],
+          "missing": [],
+          "state": "verified",
+          "unexpected": []
+        },
+        "readback_status": 200
+      },
+      "name": "VK A readback truth",
+      "ok": null
+    },
+    {
+      "detail": {
+        "native_allow_all_providers": false,
+        "native_provider_configs": [
+          {
+            "allow_all_keys": false,
+            "allowed_models": [
+              "shared"
+            ],
+            "blacklisted_models": [],
+            "key_ids": [
+              "key-a"
+            ],
+            "provider": "provider-a"
+          },
+          {
+            "allow_all_keys": false,
+            "allowed_models": [
+              "shared"
+            ],
+            "blacklisted_models": [],
+            "key_ids": [
+              "key-b"
+            ],
+            "provider": "provider-b"
+          }
+        ],
+        "native_vk_status": 200,
+        "readback": {
+          "actual": [
+            "shared"
+          ],
+          "error": null,
+          "expected": [
+            "shared"
+          ],
+          "missing": [],
+          "state": "verified",
+          "unexpected": []
+        },
+        "readback_status": 200
+      },
+      "name": "VK B readback truth",
+      "ok": null
+    },
+    {
+      "detail": {
+        "expected": true,
+        "observed": true
+      },
+      "name": "catalog read",
+      "ok": true
+    },
+    {
+      "detail": {
+        "expected": true,
+        "observed": true
+      },
+      "name": "catalog refresh",
+      "ok": true
+    },
+    {
+      "detail": {
+        "expected": true,
+        "observed": true
+      },
+      "name": "catalog has access provider-a/upstream-a",
+      "ok": true
+    },
+    {
+      "detail": {
+        "expected": true,
+        "observed": true
+      },
+      "name": "price override applied",
+      "ok": true
+    },
+    {
+      "detail": {
+        "expected": true,
+        "observed": true
+      },
+      "name": "workspace save triggers pricing sync",
+      "ok": true
+    },
+    {
+      "detail": {
+        "pricingProofs": [
+          {
+            "access": "provider-a/upstream-a",
+            "checkedAt": "2026-09-28T14:10:22Z",
+            "state": "verified"
+          }
+        ],
+        "publications": [
+          {
+            "id": "fc8e8701-12e6-4104-a948-9b5b97c712ae",
+            "publication": {
+              "actual": [
+                "shared"
+              ],
+              "checkedAt": "",
+              "error": "Readback required",
+              "expected": [
+                "shared"
+              ],
+              "missing": [],
+              "observedAt": "2026-09-28T14:10:18Z",
+              "observedRevision": "068d0031f6b386facafab8cd12385ebc62ee7eeee3cb422848a8953d272ba565",
+              "revision": "7e75bc83cca8a6578b327f745e2dd1bd6d620bfd430e8d8d229f4e2f37876a1d",
+              "state": "not_verified",
+              "unexpected": []
+            }
+          },
+          {
+            "id": "3ac6934e-e55f-476e-97b8-91086d196152",
+            "publication": {
+              "actual": [
+                "shared"
+              ],
+              "checkedAt": "",
+              "error": "Readback required",
+              "expected": [
+                "shared"
+              ],
+              "missing": [],
+              "observedAt": "2026-09-28T14:10:19Z",
+              "observedRevision": "068d0031f6b386facafab8cd12385ebc62ee7eeee3cb422848a8953d272ba565",
+              "revision": "7e75bc83cca8a6578b327f745e2dd1bd6d620bfd430e8d8d229f4e2f37876a1d",
+              "state": "not_verified",
+              "unexpected": []
+            }
+          }
+        ]
+      },
+      "name": "publications after save",
+      "ok": null
+    },
+    {
+      "detail": {
+        "expected": true,
+        "observed": true
+      },
+      "name": "list pricing overrides",
+      "ok": true
+    },
+    {
+      "detail": {
+        "expected": true,
+        "observed": true
+      },
+      "name": "pricing override exists",
+      "ok": true
+    },
+    {
+      "detail": {
+        "expected": "provider_key",
+        "observed": "provider_key"
+      },
+      "name": "override scope_kind",
+      "ok": true
+    },
+    {
+      "detail": {
+        "expected": "exact",
+        "observed": "exact"
+      },
+      "name": "override match_type",
+      "ok": true
+    },
+    {
+      "detail": {
+        "expected": null,
+        "observed": null
+      },
+      "name": "override carries no provider_id",
+      "ok": true
+    },
+    {
+      "detail": {
+        "expected": "key-a",
+        "observed": "key-a"
+      },
+      "name": "override provider_key_id",
+      "ok": true
+    },
+    {
+      "detail": {
+        "expected": "upstream-a",
+        "observed": "upstream-a"
+      },
+      "name": "override pattern",
+      "ok": true
+    },
+    {
+      "detail": {
+        "expected": [
+          "chat_completion"
+        ],
+        "observed": [
+          "chat_completion"
+        ]
+      },
+      "name": "override request_types",
+      "ok": true
+    },
+    {
+      "detail": {
+        "expected": 1.5e-06,
+        "observed": 1.5e-06,
+        "tolerance": 1e-15
+      },
+      "name": "override input_cost_per_token",
+      "ok": true
+    },
+    {
+      "detail": {
+        "applied": null,
+        "note": "provider_key scope is informational in the management catalog"
+      },
+      "name": "models/details overridden_pricing",
+      "ok": null
+    },
+    {
+      "detail": {
+        "expected": true,
+        "observed": true
+      },
+      "name": "models/details lists the override",
+      "ok": true
+    },
+    {
+      "detail": {
+        "expected": 1.5e-06,
+        "observed": 1.5e-06,
+        "tolerance": 1e-15
+      },
+      "name": "models/details override cost",
+      "ok": true
+    },
+    {
+      "detail": {
+        "expected": true,
+        "observed": true
+      },
+      "name": "price override removed",
+      "ok": true
+    },
+    {
+      "detail": {
+        "expected": true,
+        "observed": true
+      },
+      "name": "workspace save triggers pricing override deletion",
+      "ok": true
+    },
+    {
+      "detail": {
+        "expected": true,
+        "observed": true
+      },
+      "name": "pricing override deleted",
+      "ok": true
+    },
+    {
+      "detail": {
+        "expected": true,
+        "observed": true
+      },
+      "name": "no provider ever received alias as model",
+      "ok": true
+    }
+  ],
+  "failed": 0,
+  "finished_at_utc": "2026-09-28T14:10:25.686453+00:00",
+  "informational": 5,
+  "network_isolation": "Docker --network none required; only loopback interface accepted",
+  "passed": 34,
+  "pricing_override_raw": {
+    "created_at": "2026-09-28T14:10:21.948831766Z",
+    "id": "8c0d1bc0-4eb5-4528-b99f-daa7a724e269",
+    "match_type": "exact",
+    "name": "registry/provider-a/key-a/upstream-a",
+    "pattern": "upstream-a",
+    "pricing_patch": "{\"input_cost_per_token\":0.0000015}",
+    "provider_key_id": "key-a",
+    "request_types": [
+      "chat_completion"
+    ],
+    "scope_kind": "provider_key",
+    "updated_at": "2026-09-28T14:10:21.948831766Z"
+  },
+  "readback_diagnostic": {
+    "A": {
+      "native_allow_all_providers": false,
+      "native_provider_configs": [
+        {
+          "allow_all_keys": false,
+          "allowed_models": [
+            "shared"
+          ],
+          "blacklisted_models": [],
+          "key_ids": [
+            "key-a"
+          ],
+          "provider": "provider-a"
+        }
+      ],
+      "native_vk_status": 200,
+      "readback": {
+        "actual": [
+          "shared"
+        ],
+        "error": null,
+        "expected": [
+          "shared"
+        ],
+        "missing": [],
+        "state": "verified",
+        "unexpected": []
+      },
+      "readback_status": 200
+    },
+    "B": {
+      "native_allow_all_providers": false,
+      "native_provider_configs": [
+        {
+          "allow_all_keys": false,
+          "allowed_models": [
+            "shared"
+          ],
+          "blacklisted_models": [],
+          "key_ids": [
+            "key-a"
+          ],
+          "provider": "provider-a"
+        },
+        {
+          "allow_all_keys": false,
+          "allowed_models": [
+            "shared"
+          ],
+          "blacklisted_models": [],
+          "key_ids": [
+            "key-b"
+          ],
+          "provider": "provider-b"
+        }
+      ],
+      "native_vk_status": 200,
+      "readback": {
+        "actual": [
+          "shared"
+        ],
+        "error": null,
+        "expected": [
+          "shared"
+        ],
+        "missing": [],
+        "state": "verified",
+        "unexpected": []
+      },
+      "readback_status": 200
+    }
+  },
+  "scope": "network-none synthetic providers; Registry accessSelection, shared-alias routing, pricing overrides; no real inference",
+  "started_at_utc": "2026-09-28T14:10:07.849719+00:00",
+  "total": 39
+}
