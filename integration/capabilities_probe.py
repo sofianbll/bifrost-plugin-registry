@@ -528,6 +528,8 @@ def main():
             # --- c. VK B routes to either provider with the correct upstream model ---
             status, models_b, _ = http_request(base + MODELS_PATH, secret_b)
             ids_b = [item["id"] for item in models_b.get("data", [])] if isinstance(models_b, dict) else []
+            report["checks"].append({"name": "VK B models response", "ok": None,
+                                     "detail": {"status": status, "ids": ids_b[:12], "body": json.dumps(models_b)[:300] if not isinstance(models_b, dict) else None}})
             check(report, "VK B lists shared alias", alias in ids_b, True)
 
             hits_a_before = len(StubA.post_hits)
@@ -580,8 +582,13 @@ def main():
             check(report, "workspace save triggers pricing sync", status == 200, True)
 
             override_name = f"registry/{provider_a}/{key_a_id}/{upstream_a}"
+            status, ws_after, _ = http_request(admin + "/api/workspace", registry_token)
+            if isinstance(ws_after, dict):
+                pubs = [{"id": k.get("id"), "publication": k.get("publication")} for k in ws_after.get("data", {}).get("keys", [])]
+                report["checks"].append({"name": "publications after save", "ok": None,
+                                         "detail": {"publications": pubs, "pricingProofs": ws_after.get("pricingProofs")}})
             status, overrides_list, _ = http_request(
-                base + f"/api/governance/pricing-overrides?provider_id={provider_a}",
+                base + f"/api/governance/pricing-overrides?provider_key_id={key_a_id}",
                 None, "GET", headers={"Authorization": basic})
             check(report, "list pricing overrides", status == 200 and isinstance(overrides_list, dict), True)
             overrides = overrides_list.get("pricing_overrides", []) if isinstance(overrides_list, dict) else []

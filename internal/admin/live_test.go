@@ -591,10 +591,10 @@ func TestPricingOverridesIdempotentSync(t *testing.T) {
 			record(r.Method, r.URL.Path)
 			switch r.Method {
 			case http.MethodGet:
-				provider := r.URL.Query().Get("provider_id")
+				keyID := r.URL.Query().Get("provider_key_id")
 				out := []nativePricingOverride{}
 				for _, o := range state.overrides {
-					if o.Provider == provider {
+					if o.KeyID == keyID {
 						out = append(out, o)
 					}
 				}
@@ -711,7 +711,7 @@ func TestPricingOverridesIdempotentSync(t *testing.T) {
 	}
 	po := state.overrides["registry/CLI PROXY/provider-key/gpt-6-sol"]
 	state.Unlock()
-	if po.Name != "registry/CLI PROXY/provider-key/gpt-6-sol" || po.Provider != "CLI PROXY" || po.KeyID != "provider-key" || po.Pattern != "gpt-6-sol" || po.ScopeKind != "provider_key" || po.MatchType != "exact" {
+	if po.Name != "registry/CLI PROXY/provider-key/gpt-6-sol" || po.Provider != "" || po.KeyID != "provider-key" || po.Pattern != "gpt-6-sol" || po.ScopeKind != "provider_key" || po.MatchType != "exact" {
 		t.Fatalf("unexpected override shape: %+v", po)
 	}
 	in, _ := po.Patch["input_cost_per_token"].(float64)
