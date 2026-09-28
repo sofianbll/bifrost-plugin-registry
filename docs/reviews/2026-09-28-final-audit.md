@@ -2,16 +2,16 @@
 
 Suivi : [GitHub #17](https://github.com/sofianbll/bifrost-plugin-registry/issues/17) · PR [#18](https://github.com/sofianbll/bifrost-plugin-registry/pull/18).
 
-Périmètre : branche `codex/prototype-model-card-modelsdev`, commits `12ea32c` → `2003e3e`. Ce rapport consolide : la qualification native de la paire finale, les audits Standards/Spec/UX rendus de fin de tranche, les bugs produit découverts par la qualification, et les défauts qui restent ouverts. Il ne prétend rien au-delà des rapports cités.
+Périmètre : branche `codex/prototype-model-card-modelsdev`, commits `12ea32c` → `2003e3e`, puis clôture UX `f097f74` sur `main` (fusionnée en `60d7dd8`, tags `v0.3.0-rc.1` et `v0.3.0-rc.2`). Ce rapport consolide : la qualification native de la paire finale, les audits Standards/Spec/UX rendus de fin de tranche, les bugs produit découverts par la qualification, et les limites qui subsistent. Il ne prétend rien au-delà des rapports cités.
 
 ## Qualification native — paire finale
 
-Paire compilée ensemble depuis le checkout Bifrost épinglé `transports/v2.2.3` (= `411d62b28b03b03bd3b4025b2cfab50af45f05f4`, arbre propre) et le plugin au commit `2003e3e`, Linux ARM64/musl, Go 1.27.1, `GOWORK=off`, `CGO_ENABLED=1`, sans patch upstream. Sonde ABI : passée.
+Paire compilée ensemble depuis le checkout Bifrost épinglé `transports/v2.2.3` (= `411d62b28b03b03bd3b4025b2cfab50af45f05f4`, arbre propre, 2 745 fichiers suivis revérifiés) et le plugin au commit `f097f74`, Linux ARM64/musl, Go 1.27.1, `GOWORK=off`, `CGO_ENABLED=1`, sans patch upstream. Sonde ABI : passée.
 
 | Artefact | SHA-256 |
 | --- | --- |
 | `bifrost-http` | `80d17483d6b693340b5b6f742710873a0a3ebfa96c1b419dc5352b76cb3bd6d0` (identique aux paires 2.2.3 précédentes : build reproductible) |
-| `bifrost-registry.so` | `91ec902f4f0289840acb3bba6dceaf11312e2ee2d1b3ebf7a7e4c2ed83e2f58d` |
+| `bifrost-registry.so` | `09485d28a458bc7485504fe64bbb94a52480fc9a634f47b68edfd6f3dfd708e9` (paire requalifiée après la clôture UX `f097f74`) |
 
 | Suite (fournisseurs synthétiques) | Checks | Verdict |
 | --- | --- | --- |
@@ -21,7 +21,7 @@ Paire compilée ensemble depuis le checkout Bifrost épinglé `transports/v2.2.3
 | Plugin autonome + assistant IA synthétique (network none) | 72 | 72/72 |
 | Adoption de clés natives (fixture bridge, ports hôte liés à `127.0.0.1`) | 19 | 19/19 |
 
-Preuves versionnées : [`reports/bifrost-2.2.3-arm64-2003e3e/`](../../reports/bifrost-2.2.3-arm64-2003e3e/README.md). Outillage : `./scripts/test.sh` (vet + `go test -race ./...`) et `make script-check` passent au commit final.
+Preuves versionnées : [`reports/bifrost-2.2.3-arm64-f097f74/`](../../reports/bifrost-2.2.3-arm64-f097f74/README.md) (la paire intermédiaire `2003e3e` reste consignée dans [`reports/bifrost-2.2.3-arm64-2003e3e/`](../../reports/bifrost-2.2.3-arm64-2003e3e/README.md)). Outillage : `./scripts/test.sh` (vet + `go test -race ./...`), `make script-check` et `make check` passent ; release publiée : [`v0.3.0-rc.2`](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.3.0-rc.2).
 
 ## Bugs produit trouvés par la qualification (corrigés)
 
@@ -42,11 +42,20 @@ La qualification native des nouvelles capacités a mis au jour des défauts qu'a
 - **Spec** : conformité des décisions (b)/(c)/(d) vérifiée contre `docs/design/model-card-bifrost-contract.md` et les sources 2.2.3 (`overrides.go:17-132`, `governance.go:4676`, `schemas/bifrost.go:141-196`). La sonde couvre VK mono-accès vs bi-accès, l'identifiant réellement transmis (`received_model`), le non-appel au provider exclu, et tolère la non-détermination de la répartition native (conforme à d.6). `request_types` désormais exercé par la qualification.
 - **UX rendu** (fixture natif jetable, navigateur réel, clavier, 400/800/1280/1440 px ; 72/72 au rapport de fixture) : les trois dimensions d'affichage pilotent réellement les cartes y compris groupes et clés ; Carré 1:1 mesuré ; Tableau masque Forme. Sept défauts corrigés en `2003e3e` : chaînes anglaises du flux clé, validation du nom alignée sur le formulaire de groupe (inline + bloquant), « 1 clé »/« N clés », double sélecteur Expert unifié, densité masquée en Tableau, filtres 400 px lisibles, totaux nommés (« accès natifs Bifrost » vs « fiches modèle Registry »). Décisions consignées dans [le contrat UI](../design/component-library.md).
 
-## Défauts et limites ouverts (honnêtes)
+## Défauts corrigés en clôture (`f097f74`, rc.2)
 
-- Chaînes anglaises résiduelles dans le flux modèles/groupes (« Deleting model… », confirmations de suppression) — consignées, hors du flux clé corrigé.
-- Création de clé : corrigée et couverte par tests, mais non exercée en rendu sur la paire native finale (le prévisualiseur local désactive la création native) ; re-vérification rendue à refaire à l'occasion.
-- Infobulles ajoutées non vérifiées au survol ; choix « élargissement plutôt qu'ellipse » à re-valider visuellement.
+Les trois défauts ouverts à l'issue de l'audit ont été corrigés et re-vérifiés au rendu réel (fixture synthétique jetable) :
+
+- Chaînes anglaises des flux modèles/groupes/clés → localisées FR/EN ; confirmation de suppression, pluriels et messages d'erreur alignés.
+- Infobulles des totaux catalogue et des filtres → remplacées par l'infobulle partagée (survol **et** focus clavier, contenu enveloppé), vérifiées à 1452 px et 400 px ; libellés de filtres affichés en entier.
+- Dialogue de création de clé → exercé au rendu (fixture `tests/ui-fixture`, port 4174) : marqueur `*`, message inline (vide puis doublon), bouton bloqué puis création réelle, Échap, 400 px.
+
+La paire finale a été reconstruite et requalifiée sur ces changements (`.so` ci-dessus) ; la release [`v0.3.0-rc.2`](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.3.0-rc.2) supersède la rc.1.
+
+## Limites (assumées, pas des défauts)
+
 - La suite adoption exige un réseau bridge avec ports publiés liés à `127.0.0.1` (pas `--network none`) ; les autres suites restent en `--network none`.
 - ARM64 uniquement : AMD64 2.2.3 reste non qualifié, l'image officielle précompilée n'est pas qualifiée, et aucune inférence fournisseur réelle n'est prouvée.
+- Quelques libellés anglais subsistent hors des parcours finaux (laboratoire exclu de la navigation, sections « À vérifier » de l'assistance).
+- Les vérifications rendues de clôture ont porté sur le fixture synthétique ; la paire native finale est prouvée par les cinq suites, pas par une re-prise de captures pixel.
 - Aucun déploiement de production n'a été effectué ; le pilote local et la release `v0.2.0-rc.1` restent intacts.
