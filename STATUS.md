@@ -2,6 +2,10 @@
 
 Current release: **[v0.2.0-rc.1](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.2.0-rc.1)** — September 24, 2026. This page is the entry point for the current release, merged follow-up and local development. The [September 26 project reconciliation](docs/reviews/2026-09-26-project-state.md) records their evidence and remaining gaps.
 
+## Final candidate — natively qualified, release candidate in preparation (September 28, 2026)
+
+The September 27–28 continuation is qualified as an ARM64 Bifrost 2.2.3 pair at commit `2003e3e` of `codex/prototype-model-card-modelsdev` (PR [#18](https://github.com/sofianbll/bifrost-plugin-registry/pull/18)): the dynamic gateway from the pinned unmodified `transports/v2.2.3` source (`411d62b`) with a **reproducible** gateway hash (`80d17483…`) and its separately embedded plugin (`.so` `91ec902f…`). Five synthetic-provider suites pass: **42/42** isolated per-key models, **55/55** standalone/restart, **72/72** standalone/assistant, **19/19** native-key adoption, and **34/34 assertions** for the new capabilities (native price overrides, restricted per-key access, shared native alias routing) — 188 HTTP checks in total, above the previous 133. Native qualification also found and fixed six product defects the source tests had missed (alias key re-posting, semantic alias comparison, `provider_key` scope, required `request_types`, `pricing_patch` read-back, shared-alias projection); each carries a regression test. Evidence: [reports/bifrost-2.2.3-arm64-2003e3e](reports/bifrost-2.2.3-arm64-2003e3e/README.md) · [final audit](docs/reviews/2026-09-28-final-audit.md). Limits unchanged: ARM64 only, synthetic providers only (no real inference), adoption suite on loopback bridge; AMD64 2.2.3 and real-provider inference remain unqualified, and no production deployment was performed.
+
 Registry V1 is implemented and published as a release candidate. It uses an unmodified Bifrost 2.2.2 gateway compiled with dynamic loading, distributed separately from the Registry `.so`. The plugin embeds the React UI and serves its own admin port, `8099`.
 
 ## Implemented after the release — unreleased

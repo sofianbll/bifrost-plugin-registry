@@ -72,3 +72,14 @@ This subsequent pass uses a separate copy at `dist/checks/modelsdev-endpoints-re
 - [x] Original configuration SHA-256 remains `2810bdfac0df400471e2d48ad3f6c3183bb5e98d06bbe3f36a04b174d30afce9`; only the dedicated review copy changed during save QA.
 
 Visual evidence in the task visualization directory: `endpoints-desktop.png`, `endpoints-mobile.png`, `modelsdev-source.png`. Bounded Luna implementation and independent audits were used. Source tests and the local review server do not establish native plugin ABI compatibility, actual provider support, inference, native price/limit application or production readiness. No commit, deployment or production mutation was performed by this pass. Follow-up remains tracked in [#17](https://github.com/sofianbll/bifrost-plugin-registry/issues/17) and the model-card contract.
+
+## Final qualification and delivery (28 September 2026)
+
+Closing pass for the September 27–28 continuation ([#17](https://github.com/sofianbll/bifrost-plugin-registry/issues/17), PR [#18](https://github.com/sofianbll/bifrost-plugin-registry/pull/18)).
+
+- [x] Candidate integrated: Models.dev snapshot, per-access endpoints, access selection per key, shared native alias routing, validated display options, price-field origins and native price overrides — commits `12ea32c` → `2003e3e`.
+- [x] Native qualification, ARM64 Bifrost 2.2.3 at commit `2003e3e`: gateway `80d17483…` (reproducible), plugin `.so` `91ec902f…`; **42/42** models, **55/55** standalone/restart, **72/72** standalone/assistant, **19/19** adoption, **34/34 capability assertions** (39 checks incl. observations) — all with synthetic providers, `--network none` except the loopback-bridge adoption fixture.
+- [x] Six product defects found by qualification and fixed with regression tests: provider-key re-posting for aliases, semantic alias comparison, `provider_key` scope without `provider_id`, required `request_types`, `pricing_patch` read-back, shared-alias projection.
+- [x] Final audits: [Standards and Spec](2026-09-28-final-audit.md), rendered UX (keyboard, 400/800/1280/1440 px, working fixture 72/72) with seven fixes in `2003e3e`; evidence under [reports/bifrost-2.2.3-arm64-2003e3e](../../reports/bifrost-2.2.3-arm64-2003e3e/README.md).
+- [x] Remaining honest limits (recorded, not hidden): ARM64 only; synthetic providers only, no real inference; adoption on a loopback bridge; residual English strings in the model/group flow; key-creation dialog verified by tests but not re-rendered on the final native pair; AMD64 and production deployment out of scope.
+- [ ] Release publication (tag, artifacts, checksums, notes) — in preparation.
