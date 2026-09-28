@@ -1,0 +1,28 @@
+{
+  "after_compilation_modified_tracked_files": [],
+  "commit": "411d62b28b03b03bd3b4025b2cfab50af45f05f4",
+  "go": "go1.27.1",
+  "go_build_evidence": "dist/qual-223-arm64-d13ac01/build-environment.txt",
+  "go_platform_observed": "linux/arm64",
+  "hash_mismatches": [],
+  "head_commit": "411d62b28b03b03bd3b4025b2cfab50af45f05f4",
+  "object_format": "sha1",
+  "official_prebuilt_image": false,
+  "platform": "linux/arm64 musl",
+  "scope": "Bifrost 2.2.3 dynamic gateway source provenance for release candidate v0.3.0-rc.3",
+  "source_dir": "dist/source-223-sparse",
+  "tag": "transports/v2.2.3",
+  "tag_commit": "411d62b28b03b03bd3b4025b2cfab50af45f05f4",
+  "verification_method": "full per-file comparison for every tracked file under core/, framework/, plugins/, transports/ and ui/: git ls-files -s blob id vs the sha1 blob hash recomputed from the working tree file (symlink targets hashed as git does)",
+  "verified_at_utc": "2026-09-28T14:56:22.145981+00:00",
+  "verified_directories": {
+    "core": 913,
+    "framework": 349,
+    "plugins": 226,
+    "transports": 211,
+    "ui": 1046
+  },
+  "verified_files_digest_sha256": "7a51cbad28deead409360abf6afa3d5a45f4aededc6c0ac0adac2960034fd19b",
+  "verified_tracked_files_total": 2745,
+  "working_tree_clean": true
+}

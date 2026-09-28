@@ -1,0 +1,9 @@
+{
+  "bifrost_version": "2.2.3",
+  "bifrost_commit": "411d62b28b03b03bd3b4025b2cfab50af45f05f4",
+  "registry_commit": "d13ac01",
+  "artifacts": {
+    "bifrost-http": "80d17483d6b693340b5b6f742710873a0a3ebfa96c1b419dc5352b76cb3bd6d0",
+    "bifrost-registry.so": "835f79b8f49ef038f2fc68de464ccd88f6393f18a96571ac56697f22bcb34ddb"
+  }
+}
