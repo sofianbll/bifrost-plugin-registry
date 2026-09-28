@@ -339,7 +339,7 @@ def main():
         registry_file = work / "registry.json"
         registry_file.write_text(json.dumps({
             "schema_version": 1,
-            "default_naming": "provider/model",
+            "default_naming": "model",
             "models": [],
             "groups": [],
             "policies": [],
@@ -377,10 +377,12 @@ def main():
             },
             "providers": {
                 provider_a: {
+                    "custom_provider_config": {"base_provider_type": "openai"},
                     "network_config": {"base_url": f"http://127.0.0.1:{stub_a.server_port}", "allow_private_network": True},
                     "keys": [{"id": key_a_id, "name": "Stub A", "value": "synthetic-key-a", "weight": 1, "models": ["*"]}],
                 },
                 provider_b: {
+                    "custom_provider_config": {"base_provider_type": "openai"},
                     "network_config": {"base_url": f"http://127.0.0.1:{stub_b.server_port}", "allow_private_network": True},
                     "keys": [{"id": key_b_id, "name": "Stub B", "value": "synthetic-key-b", "weight": 1, "models": ["*"]}],
                 },
@@ -551,21 +553,21 @@ def main():
             check(report, "catalog read", status == 200 and isinstance(catalog, dict), True)
             catalog_revision = headers.get("etag", "").strip('"')
 
-            status, catalog, _ = http_request(admin + "/api/catalog/refresh", registry_token, "POST",
+            status, catalog, headers = http_request(admin + "/api/catalog/refresh", registry_token, "POST",
                                               {"sources": ["bifrost"]}, {"If-Match": catalog_revision})
             check(report, "catalog refresh", status == 200 and isinstance(catalog, dict), True)
-            catalog_revision = catalog["revision"]
+            catalog_revision = headers.get("etag", "").strip('"')
 
             access_id_a = f"{provider_a}/{upstream_a}"
             access = next((a for a in catalog.get("accesses", []) if a.get("id") == access_id_a), None)
             check(report, "catalog has access provider-a/upstream-a", access is not None, True)
 
-            status, catalog, _ = http_request(admin + "/api/catalog/override", registry_token, "PUT",
+            status, catalog, headers = http_request(admin + "/api/catalog/override", registry_token, "PUT",
                                               {"target": "access", "id": access_id_a,
                                                "field": "input_cost_usd_per_million", "value": 1.5},
                                               {"If-Match": catalog_revision})
             check(report, "price override applied", status == 200 and isinstance(catalog, dict), True)
-            catalog_revision = catalog["revision"]
+            catalog_revision = headers.get("etag", "").strip('"')
 
             # Trigger native pricing override sync.
             status, ws, _ = http_request(admin + "/api/workspace", registry_token)
@@ -573,6 +575,8 @@ def main():
                 raise RuntimeError("workspace read before pricing sync failed")
             status, ws, _ = http_request(admin + "/api/workspace", registry_token, "PUT",
                                          {"data": ws["data"]}, {"If-Match": ws["revision"]})
+            if status != 200:
+                raise RuntimeError(f"pricing workspace save failed: {status}: {json.dumps(ws)[:400]}")
             check(report, "workspace save triggers pricing sync", status == 200, True)
 
             override_name = f"registry/{provider_a}/{key_a_id}/{upstream_a}"
@@ -620,12 +624,12 @@ def main():
                 })
 
             # Remove the correction.
-            status, catalog, _ = http_request(admin + "/api/catalog/override", registry_token, "PUT",
+            status, catalog, headers = http_request(admin + "/api/catalog/override", registry_token, "PUT",
                                               {"target": "access", "id": access_id_a,
                                                "field": "input_cost_usd_per_million", "value": None},
                                               {"If-Match": catalog_revision})
             check(report, "price override removed", status == 200 and isinstance(catalog, dict), True)
-            catalog_revision = catalog["revision"]
+            catalog_revision = headers.get("etag", "").strip('"')
 
             status, ws, _ = http_request(admin + "/api/workspace", registry_token)
             if status != 200:

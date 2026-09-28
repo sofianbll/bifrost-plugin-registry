@@ -505,7 +505,9 @@ func TestInstallAliasesRepostsFullNativeKey(t *testing.T) {
 			t.Fatalf("unexpected native route %s", r.URL.Path)
 		}
 		if r.Method == http.MethodGet {
-			return nativeResponse(200, `{"id":"key-alpha","name":"Alpha","value":"masked-preview","models":["*"],"aliases":{"legacy":"old-model"}}`), nil
+			// "shared" uses the legacy string wire shape Bifrost re-emits for
+			// rich aliases that carry only model_id; it must compare equal.
+			return nativeResponse(200, `{"id":"key-alpha","name":"Alpha","value":"masked-preview","models":["*"],"aliases":{"legacy":"old-model","shared":"native-alpha"}}`), nil
 		}
 		if r.Method == http.MethodPut {
 			body, _ := io.ReadAll(r.Body)
@@ -518,7 +520,7 @@ func TestInstallAliasesRepostsFullNativeKey(t *testing.T) {
 	if err := s.installAliases(context.Background(), snap); err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{`"value":"masked-preview"`, `"name":"Alpha"`, `"legacy"`, `"shared"`, `"model_id":"native-alpha"`} {
+	for _, want := range []string{`"value":"masked-preview"`, `"name":"Alpha"`, `"legacy"`, `"shared"`, `"native-alpha"`} {
 		if !strings.Contains(putBody, want) {
 			t.Fatalf("alias PUT lost %s: %s", want, putBody)
 		}

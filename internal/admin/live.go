@@ -959,17 +959,44 @@ func (s *Server) installAliases(ctx context.Context, snap *registry.Snapshot) er
 				return errors.New("Invalid native aliases")
 			}
 		}
+		// Native aliases decode from either wire shape: the legacy string form
+		// ("model-upstream") or the rich object. Bifrost re-emits rich entries
+		// that carry only model_id in the legacy string form, so comparisons
+		// must be semantic, not byte-wise.
+		decodeAlias := func(raw json.RawMessage) (registry.Alias, error) {
+			var shorthand string
+			if json.Unmarshal(raw, &shorthand) == nil {
+				return registry.Alias{ModelID: shorthand}, nil
+			}
+			var decoded registry.Alias
+			if err := json.Unmarshal(raw, &decoded); err != nil {
+				return registry.Alias{}, err
+			}
+			return decoded, nil
+		}
 		for name, a := range aliases {
+			matched := false
 			for old, raw := range existing {
-				if strings.EqualFold(name, old) {
-					b, _ := json.Marshal(a)
-					if old != name || !bytes.Equal(bytes.TrimSpace(raw), b) {
-						return errors.New("Native alias conflict")
-					}
+				if !strings.EqualFold(name, old) {
+					continue
+				}
+				prev, err := decodeAlias(raw)
+				if err != nil {
+					return errors.New("Invalid native aliases")
+				}
+				if prev != a {
+					return errors.New("Native alias conflict")
+				}
+				matched = true
+				if old != name {
+					delete(existing, old)
+					existing[name] = raw
 				}
 			}
-			b, _ := json.Marshal(a)
-			existing[name] = b
+			if !matched {
+				b, _ := json.Marshal(a)
+				existing[name] = b
+			}
 		}
 		// Bifrost 2.2.3 updateProviderKey replaces the key with the payload
 		// (only masked secrets are restored), so the full key read-back must be
