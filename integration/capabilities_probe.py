@@ -549,6 +549,63 @@ def main():
                   received.issubset({upstream_a, upstream_b}) and len(received) > 0, True)
             check(report, "VK B never sent alias as model", alias not in received, True)
 
+            # --- c2. Native write/readback diagnostic ---
+            # Trigger the Registry readback for both keys and record the truth of
+            # what Bifrost stored (native provider_configs) against what the
+            # Registry expects. This separates an applyVirtualKey write bug from a
+            # native listing difference.
+            id_b = created_b["created"]["id"]
+
+            def native_virtual_key(key_id):
+                return http_request(base + "/api/governance/virtual-keys/" + key_id, None, "GET",
+                                    headers={"Authorization": basic})
+
+            def workspace_key(key_id):
+                status, current, _ = http_request(admin + "/api/workspace", registry_token)
+                if not isinstance(current, dict):
+                    return None
+                for entry in current.get("data", {}).get("keys", []):
+                    if entry.get("id") == key_id:
+                        return entry
+                return None
+
+            diagnostic = {}
+            for label, key_id in (("A", id_a), ("B", id_b)):
+                status, body, _ = native_virtual_key(key_id)
+                native_key = body.get("virtual_key", body) if isinstance(body, dict) else {}
+                configs = []
+                for config in (native_key.get("provider_configs") or []):
+                    configs.append({
+                        "provider": config.get("provider"),
+                        "allowed_models": config.get("allowed_models"),
+                        "blacklisted_models": config.get("blacklisted_models"),
+                        "allow_all_keys": config.get("allow_all_keys"),
+                        "key_ids": [k.get("key_id") for k in (config.get("keys") or [])],
+                    })
+                rb_status, _, _ = http_request(admin + "/api/keys/" + key_id + "/readback", registry_token, "POST")
+                entry = workspace_key(key_id) or {}
+                pub = entry.get("publication") or {}
+                diagnostic[label] = {
+                    "native_vk_status": status,
+                    "native_provider_configs": configs,
+                    "native_allow_all_providers": native_key.get("allow_all_providers"),
+                    "readback_status": rb_status,
+                    "readback": {
+                        "state": pub.get("state"),
+                        "expected": pub.get("expected"),
+                        "actual": pub.get("actual"),
+                        "missing": pub.get("missing"),
+                        "unexpected": pub.get("unexpected"),
+                        "error": pub.get("error"),
+                    },
+                }
+                report["checks"].append({
+                    "name": "VK %s readback truth" % label,
+                    "ok": None,
+                    "detail": diagnostic[label],
+                })
+            report["readback_diagnostic"] = diagnostic
+
             # --- d. Pricing override via catalogue access ---
             # Refresh catalogue so the access exists for override.
             status, catalog, headers = http_request(admin + "/api/catalog", registry_token)
@@ -594,43 +651,70 @@ def main():
             overrides = overrides_list.get("pricing_overrides", []) if isinstance(overrides_list, dict) else []
             override = next((o for o in overrides if o.get("name") == override_name), None)
             check(report, "pricing override exists", override is not None, True)
+            report["pricing_override_raw"] = override
             if override is not None:
                 check(report, "override scope_kind", override.get("scope_kind"), "provider_key")
                 check(report, "override match_type", override.get("match_type"), "exact")
-                check(report, "override provider_id", override.get("provider_id"), provider_a)
+                # Bifrost's provider_key scope carries no provider_id by contract; only the
+                # provider key id identifies the scope. Assert the native contract, not a
+                # provider link the scope forbids.
+                check(report, "override carries no provider_id", override.get("provider_id"), None)
                 check(report, "override provider_key_id", override.get("provider_key_id"), key_a_id)
                 check(report, "override pattern", override.get("pattern"), upstream_a)
-                patch = override.get("patch", {})
+                check(report, "override request_types", override.get("request_types"), ["chat_completion"])
+                # The list response serialises the patch as the JSON string "pricing_patch";
+                # /api/models/details serialises the same values as a "patch" object.
+                patch = override.get("pricing_patch")
+                if isinstance(patch, str):
+                    try:
+                        patch = json.loads(patch)
+                    except ValueError:
+                        patch = {}
+                if not isinstance(patch, dict):
+                    patch = {}
                 check_approx(report, "override input_cost_per_token",
                              patch.get("input_cost_per_token", 0), 1.5 / 1e6, 1e-15)
 
-            # Check /api/models/details if it exposes overridden_pricing.
+            # Check /api/models/details: a provider_key scoped override is listed as a
+            # matching override (informational), not as applied overridden_pricing, since
+            # the management catalog has no selected-key context.
             status, details, _ = http_request(
                 base + "/api/models/details?unfiltered=true&limit=100",
                 None, "GET", headers={"Authorization": basic})
             if status == 200 and isinstance(details, dict):
                 detail_model = next((m for m in details.get("models", [])
                                      if (m.get("provider") == provider_a and m.get("name") == upstream_a)), None)
-                if detail_model is not None:
-                    overridden = detail_model.get("overridden_pricing")
-                    check(report, "models/details exposes overridden_pricing", overridden is not None, True)
-                    if isinstance(overridden, dict):
-                        check_approx(report, "models/details input cost",
-                                     overridden.get("input_cost_per_token", 0), 1.5 / 1e6, 1e-15)
+                applied = (detail_model or {}).get("overridden_pricing")
+                report["checks"].append({"name": "models/details overridden_pricing", "ok": None,
+                                         "detail": {"applied": applied,
+                                                    "note": "provider_key scope is informational in the management catalog"}})
+                index = details.get("pricing_overrides") or {}
+                if detail_model is not None and override is not None:
+                    listed = override.get("id") in (detail_model.get("pricing_override_ids") or [])
+                    check(report, "models/details lists the override", listed, True)
+                    summary = index.get(override.get("id")) or {}
+                    summary_patch = summary.get("patch") or {}
+                    check_approx(report, "models/details override cost",
+                                 summary_patch.get("input_cost_per_token", 0), 1.5 / 1e6, 1e-15)
                 else:
                     report["checks"].append({
-                        "name": "models/details exposes overridden_pricing",
+                        "name": "models/details lists the override",
                         "ok": None,
                         "detail": {"note": "model not found in details response"},
                     })
             else:
                 report["checks"].append({
-                    "name": "models/details exposes overridden_pricing",
+                    "name": "models/details lists the override",
                     "ok": None,
                     "detail": {"note": f"endpoint returned {status}"},
                 })
 
-            # Remove the correction.
+            # Remove the correction. Re-read the catalogue for a fresh revision: the
+            # pricing sync above saved the workspace and advanced the store revision.
+            status, catalog, headers = http_request(admin + "/api/catalog", registry_token)
+            if status != 200:
+                raise RuntimeError("catalogue read before removal failed")
+            catalog_revision = headers.get("etag", "").strip('"')
             status, catalog, headers = http_request(admin + "/api/catalog/override", registry_token, "PUT",
                                               {"target": "access", "id": access_id_a,
                                                "field": "input_cost_usd_per_million", "value": None},
