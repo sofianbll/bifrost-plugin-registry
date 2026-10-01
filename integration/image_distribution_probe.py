@@ -324,6 +324,8 @@ def host(args):
               and bool(workspace.get('discovery')), status=code)
         model = dict(workspace['discovery'][0])
         model.update(tasks=['Chat'], inputModalities=['Text'], outputModalities=['Text'], kind='Chat')
+        for access in model['accesses']:
+            access['endpoints'] = ['chat/completions', 'responses']
         workspace['data']['models'].append(model)
         workspace['data']['groups'].append({'id': 'image-proof', 'name': 'Image proof',
                                              'description': 'Separate plugin distribution',
