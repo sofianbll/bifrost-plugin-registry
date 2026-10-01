@@ -38,3 +38,8 @@ They mutate the fixture and refuse non-fixture workspaces. Every invocation of
 removes its temporary registry: run the suite again rather than reusing state. Reports
 and traces go to `dist/checks/e2e/`. The README screenshots are a second, read-only
 config run as its own invocation; see [docs/images](../../docs/images/README.md).
+
+The suite replaces `node tests/ux_journeys.cjs` (last present at `60e859f`), which wrote its
+captures and JSON report to `dist/checks/ux-audit/`; only the fixture's temporary registry
+still lives there. The dated [UX audit](../../docs/reviews/2026-09-25-ux-audit.md) keeps its
+original commands.

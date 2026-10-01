@@ -4,8 +4,10 @@ import type { Options } from './e2e/fixtures';
 
 const base = e2e('screenshots');
 
-// The baselines are the images the READMEs embed, so they live in docs/images/{en,fr} and carry
-// no platform suffix: generate them on Linux only (the e2e workflow does, see docs/images/README.md).
+// The baselines are the images the READMEs embed (docs/images/{en,fr}, no platform suffix), so only
+// Linux may compare or rewrite them: the e2e workflow or a Linux container (docs/images/README.md).
+if (process.platform !== 'linux') throw new Error(`docs/images baselines are Linux-only; this host is ${process.platform}. Run the E2E workflow or a Linux container.`);
+
 export default defineConfig<Options>({
   ...base,
   testMatch: 'screenshots.spec.ts',

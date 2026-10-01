@@ -8,9 +8,7 @@
 import type { Locator } from '@playwright/test';
 import { expect, test, token } from './fixtures';
 
-test('UX journeys', async ({ page, browser, baseURL }, testInfo) => {
-  const errors: string[] = [];
-  page.on('pageerror', e => errors.push(e.message));
+test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testInfo) => {
   const headers = { Authorization: `Bearer ${token}` };
   const api = async (path: string) => {
     const r = await page.request.get(`/api/${path}`, { headers });
