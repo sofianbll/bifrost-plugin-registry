@@ -1,0 +1,65 @@
+name: E2E
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      update-screenshots:
+        description: Regenerate docs/images and upload them as an artifact (nothing is committed or pushed)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: ui
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.27.1'
+          cache: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22.23.1'
+      - run: npm ci
+      - run: npm run build
+      # Browsers are not cached: Playwright documents that restoring them costs about as much as downloading them.
+      - run: npx playwright install --with-deps --only-shell chromium
+      # The journeys and the screenshots are separate invocations: each starts a fresh synthetic fixture.
+      - name: Journeys
+        if: ${{ !inputs.update-screenshots }}
+        run: npx playwright test
+      # Compares with docs/images; a manual run with update-screenshots rewrites them instead.
+      - name: Screenshots
+        if: ${{ !cancelled() }}
+        run: npx playwright test -c playwright.screenshots.config.ts ${{ inputs.update-screenshots && '--update-snapshots' || '' }}
+      - name: Upload reports and traces
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: e2e-report
+          path: dist/checks/e2e
+          retention-days: 14
+          if-no-files-found: ignore
+      - name: Upload regenerated screenshots
+        if: ${{ inputs.update-screenshots }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: docs-images
+          path: docs/images
+          retention-days: 14
