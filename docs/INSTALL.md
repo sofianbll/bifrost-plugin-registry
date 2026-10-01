@@ -6,7 +6,9 @@ Registry is installed as **two separate artifacts**: a Bifrost gateway image com
 
 ## Which files for which host
 
-This table is the only place that names release files. Pick the row for your host.
+Pick the row for your host.
+
+<!-- When the pipeline (#20) publishes its first release: update this table and Mode A (GHCR image: docker pull ghcr.io/sofianbll/bifrost-dynamic:<version>) -->
 
 | Host | Release | Bifrost | Image archive | Plugin (`.so`) |
 | --- | --- | --- | --- | --- |
@@ -92,7 +94,7 @@ The plugin initializes a missing Registry file. Its UI assets are embedded; no s
 
 ## Verify
 
-Open **http://127.0.0.1:8099/model-registry** and enter the Registry admin token. It stays in tab memory and must be entered again after reloading. The interface starts in English; French is one toggle or `?lang=fr` away.
+Open **http://127.0.0.1:8099/model-registry** and enter the Registry admin token. It stays in tab memory and must be entered again after reloading. The interface of v0.3.0-rc.4 starts in English; French is one toggle or `?lang=fr` away. v0.2.0-rc.1, which the AMD64 and older ARM64 rows install, is older and starts French-first.
 
 Verify the plugin is `active` in `GET /api/plugins` and present in `GET /api/plugins/loaded`. Publish a small test catalog and read back `/v1/models` with a dedicated virtual key. Existing native keys remain unmanaged until explicitly adopted; adoption cannot expand their native permissions.
 

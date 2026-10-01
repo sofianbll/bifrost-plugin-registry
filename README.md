@@ -25,7 +25,7 @@ English · [Français](README.fr.md)
 - **Embedded Models.dev catalogue** — a versioned, reproducible reference snapshot with per-field provenance, canonical links and manual corrections that survive refreshes.
 - **Endpoints per access** — each provider access selects its exposed operations independently (Chat Completions and Responses are separate choices).
 - **Access selection per key** — choose what each virtual key can reach; exclusions and additions are reviewed before publication.
-- **Native prices and limits** — apply pricing overrides and restricted per-key access through Bifrost's own governance, not a parallel layer.
+- **Native price overrides** — apply pricing overrides and restricted per-key access through Bifrost's own governance, not a parallel layer. Technical limits are not applied natively.
 - **Restricted native routing** — publish shared aliases that route only within each key's selected accesses.
 - **Embedded UI plus import/export** — a React panel on its own port, versioned JSON snapshots with preview and backup, and flat CSV export.
 

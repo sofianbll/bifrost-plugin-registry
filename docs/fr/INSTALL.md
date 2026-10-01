@@ -6,7 +6,9 @@ Registry s'installe en **deux artefacts séparés** : une image de gateway Bifro
 
 ## Quels fichiers pour quel hôte
 
-Ce tableau est le seul endroit qui nomme les fichiers de release. Choisissez la ligne de votre hôte.
+Choisissez la ligne de votre hôte.
+
+<!-- When the pipeline (#20) publishes its first release: update this table and Mode A (GHCR image: docker pull ghcr.io/sofianbll/bifrost-dynamic:<version>) -->
 
 | Hôte | Release | Bifrost | Archive d'image | Plugin (`.so`) |
 | --- | --- | --- | --- | --- |
@@ -92,7 +94,7 @@ Le plugin initialise un fichier Registry manquant. Ses assets d'interface sont e
 
 ## Vérifier
 
-Ouvrez **http://127.0.0.1:8099/model-registry** et saisissez le jeton d'administration Registry. Il reste dans la mémoire de l'onglet et doit être ressaisi après rechargement. L'interface est en anglais par défaut ; le français est à un clic ou via `?lang=fr`.
+Ouvrez **http://127.0.0.1:8099/model-registry** et saisissez le jeton d'administration Registry. Il reste dans la mémoire de l'onglet et doit être ressaisi après rechargement. L'interface de v0.3.0-rc.4 est en anglais par défaut ; le français est à un clic ou via `?lang=fr`. v0.2.0-rc.1, que les lignes AMD64 et ancienne paire ARM64 installent, est plus ancienne et s'ouvre d'abord en français.
 
 Vérifiez que le plugin est `active` dans `GET /api/plugins` et présent dans `GET /api/plugins/loaded`. Publiez un petit catalogue de test et relisez `/v1/models` avec une clé virtuelle dédiée. Les clés natives préexistantes restent non gérées jusqu'à adoption explicite ; l'adoption n'élargit pas leurs droits natifs.
 

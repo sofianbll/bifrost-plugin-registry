@@ -25,11 +25,11 @@ The model panel can be expanded while retaining the current draft. Review the su
 - **Unknown** means the information is unavailable; it does not mean unsupported or zero.
 - **Custom references** can be created under Catalog data → Reference cards → New reference. Connect the appropriate access explicitly afterward.
 
-The current release embeds this Models.dev snapshot; the previous release does not. Refreshing it does not download a newer upstream version: updating the embedded data requires regenerating the snapshot and compiling a new release. Generic additional source connectors remain separate work. See [the Models.dev analysis](https://github.com/sofianbll/bifrost-plugin-registry/blob/main/docs/design/models-dev-reuse-research.md).
+The current release embeds this Models.dev snapshot; the previous release does not. Refreshing it does not download a newer upstream version: updating the embedded data requires regenerating the snapshot and compiling a new release. Technical limits (context length, maximum tokens) stay descriptive: Registry does not apply them natively. Generic additional source connectors remain separate work. See [the Models.dev analysis](https://github.com/sofianbll/bifrost-plugin-registry/blob/main/docs/design/models-dev-reuse-research.md).
 
 ## 3. Compose groups and keys
 
-Groups are reusable model selections. In a key, a selected model includes all its linked accesses by default; the **Accesses** menu on a model card excludes (or restores) individual provider accesses for that key only, without changing the shared group. Basic and Expert share the same draft. Expert is available on wide screens.
+Groups are reusable model selections. In a key, a selected model includes all its linked accesses by default. When a selected model has more than one access, the key composer lists them under **Accesses** with a checkbox each: unchecking one excludes that provider access for this key only, without changing the shared group. Basic and Expert share the same draft. Expert is available on wide screens.
 
 For a pre-existing Bifrost key, first **Review adoption**. Registry compares native permissions with registered accesses. If a model must be registered to preserve the key's existing routes, the preview identifies it. Confirm only after reviewing the proposed selection. Adoption cannot widen Bifrost permissions.
 

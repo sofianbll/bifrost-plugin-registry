@@ -25,11 +25,11 @@ Le panneau du modèle peut être élargi sans perdre le brouillon en cours. Reli
 - **Inconnu** signifie que l'information est indisponible ; cela ne veut dire ni non pris en charge, ni zéro.
 - Les **références personnalisées** se créent dans Données du catalogue → Fiches documentaires → Nouvelle fiche. Reliez ensuite explicitement l'accès concerné.
 
-La release courante embarque cet instantané Models.dev ; la release précédente non. Le rafraîchir ne télécharge pas une version upstream plus récente : mettre à jour les données embarquées exige de régénérer l'instantané et de compiler une nouvelle release. Les connecteurs de sources supplémentaires génériques restent un chantier séparé. Voir [l'analyse Models.dev](https://github.com/sofianbll/bifrost-plugin-registry/blob/main/docs/design/models-dev-reuse-research.md) (en anglais).
+La release courante embarque cet instantané Models.dev ; la release précédente non. Le rafraîchir ne télécharge pas une version upstream plus récente : mettre à jour les données embarquées exige de régénérer l'instantané et de compiler une nouvelle release. Les limites techniques (longueur de contexte, maximum de jetons) restent descriptives : Registry ne les applique pas nativement. Les connecteurs de sources supplémentaires génériques restent un chantier séparé. Voir [l'analyse Models.dev](https://github.com/sofianbll/bifrost-plugin-registry/blob/main/docs/design/models-dev-reuse-research.md) (en anglais).
 
 ## 3. Composer des groupes et des clés
 
-Les groupes sont des sélections de modèles réutilisables. Dans une clé, un modèle sélectionné inclut par défaut tous ses accès liés ; le menu **Accès** d'une carte de modèle exclut (ou rétablit) des accès fournisseurs individuels pour cette clé seulement, sans modifier le groupe partagé. Simple et Expert partagent le même brouillon. Expert est disponible sur grand écran.
+Les groupes sont des sélections de modèles réutilisables. Dans une clé, un modèle sélectionné inclut par défaut tous ses accès liés. Lorsqu'un modèle sélectionné a plusieurs accès, le compositeur de clé les liste sous **Accès** avec une case à cocher chacun : en décocher un exclut cet accès fournisseur pour cette clé seulement, sans modifier le groupe partagé. Simple et Expert partagent le même brouillon. Expert est disponible sur grand écran.
 
 Pour une clé Bifrost préexistante, commencez par **Examiner l'adoption**. Registry compare les permissions natives aux accès enregistrés. Si un modèle doit être enregistré pour préserver les routes existantes de la clé, l'aperçu l'indique. Ne confirmez qu'après avoir relu la sélection proposée. L'adoption n'élargit pas les permissions Bifrost.
 

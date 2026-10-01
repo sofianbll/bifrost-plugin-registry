@@ -27,7 +27,7 @@ L'interface est **anglaise par défaut** ; le français est disponible en un cli
 - **Catalogue Models.dev embarqué** — un instantané de référence versionné et reproductible, avec provenance par champ, liens canoniques et corrections manuelles qui survivent aux rafraîchissements.
 - **Endpoints par accès** — chaque accès fournisseur choisit ses opérations exposées indépendamment (Chat Completions et Responses sont des choix distincts).
 - **Sélection d'accès par clé** — choisissez ce que chaque clé virtuelle peut atteindre ; exclusions et ajouts sont révisés avant publication.
-- **Prix et limites natifs** — corrections tarifaires et accès restreint par clé appliqués via la gouvernance Bifrost elle-même, pas une couche parallèle.
+- **Corrections de prix natives** — corrections tarifaires et accès restreint par clé appliqués via la gouvernance Bifrost elle-même, pas une couche parallèle. Les limites techniques ne sont pas appliquées nativement.
 - **Routage natif restreint** — publiez des alias partagés qui ne routent que parmi les accès retenus par chaque clé.
 - **UI embarquée + import/export** — panneau React sur son propre port, instantanés JSON versionnés avec aperçu et sauvegarde, export CSV aplati.
 
