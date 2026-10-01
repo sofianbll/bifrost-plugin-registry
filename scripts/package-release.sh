@@ -1,47 +1,43 @@
 #!/usr/bin/env bash
-# Package the verified dynamic gateway and its separately installable plugin.
+# Stage the verified dynamic gateway (Docker context) and its separately installable plugin.
+# Builds nothing: release.yml builds, probes and pushes OUT/image-context; locally run docker build on it.
 set -euo pipefail
 
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 fail() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
-[[ $# == 3 ]] || fail "usage: $0 RELEASE_ID IMAGE_TAG NEW_OUTPUT_DIRECTORY"
+[[ $# == 2 ]] || fail "usage: $0 RELEASE_ID NEW_OUTPUT_DIRECTORY"
 RELEASE_ID=$1
-IMAGE_TAG=$2
-OUT=$3
+OUT=$2
 [[ $RELEASE_ID =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ && $RELEASE_ID != *..* ]] || fail "release ID must be a safe filename component"
-[[ -n $IMAGE_TAG && $IMAGE_TAG != *[[:space:]]* ]] || fail "image tag is required"
 [[ ! -e $OUT ]] || fail "output directory already exists: $OUT"
-command -v docker >/dev/null || fail "Docker is required"
 command -v python3 >/dev/null || fail "Python 3 is required"
 command -v sha256sum >/dev/null || fail "sha256sum is required"
 [[ -d $ROOT/ui/node_modules ]] || fail "UI dependencies are required for license notices; run npm --prefix ui ci"
 
-# Provenance of the packaged gateway. Defaults describe the 2.2.2 release path;
-# override every value together to package another verified (tag, commit, Go) build.
-BIFROST_SOURCE_TAG=${BIFROST_SOURCE_TAG:-transports/v2.2.2}
-BIFROST_SOURCE_COMMIT=${BIFROST_SOURCE_COMMIT:-fdeef8e3f31a3b18a61666ba49247d07bae3600a}
-BIFROST_GO_VERSION=${BIFROST_GO_VERSION:-go1.27.1}
-REGISTRY_SOURCE_COMMIT=${REGISTRY_SOURCE_COMMIT:-}
+# Provenance of the packaged gateway: bifrost.pin (only these keys are read) and the
+# Registry commit being packaged and tagged (default: this checkout's HEAD).
+while IFS='=' read -r key value; do
+  case $key in BIFROST_TAG|BIFROST_COMMIT|GO_VERSION) printf -v "$key" %s "$value" ;; esac
+done < "$ROOT/bifrost.pin"
+REGISTRY_SOURCE_COMMIT=${REGISTRY_SOURCE_COMMIT:-$(git -C "$ROOT" rev-parse HEAD)}
 
-PAIR=${PAIR_DIR:-"$ROOT/dist/standalone-v1"}
-REPORT=${PROOF_DIR:-"$ROOT/reports/plugin-standalone"}
-SOURCE=${SOURCE_DIR:-"$ROOT/dist/source-standalone-222"}
-LICENSE_SOURCE=${LICENSE_SOURCE:-"$ROOT/dist/source-native-ui"}
+# PAIR_DIR: an extracted qualified pair (pair-linux-<arch>); it carries its own proof.
+# SOURCE_DIR: the Bifrost checkout at the same commit (entrypoint, license, notices).
+PAIR=${PAIR_DIR:?set PAIR_DIR to a qualified gateway/plugin pair}
+SOURCE=${SOURCE_DIR:?set SOURCE_DIR to the Bifrost checkout of that pair}
 for file in "$PAIR/bifrost-http" "$PAIR/bifrost-registry.so" "$PAIR/SHA256SUMS" "$PAIR/build-environment.txt" \
-  "$PAIR/gateway-build-info.txt" "$PAIR/plugin-build-info.txt" \
-  "$REPORT/SHA256SUMS" "$REPORT/build-environment.txt" "$REPORT/source-verification.json" \
-  "$SOURCE/transports/docker-entrypoint.sh" "$LICENSE_SOURCE/LICENSE" \
-  "$LICENSE_SOURCE/THIRD_PARTY_NOTICES.md" "$ROOT/LICENSE"; do
+  "$PAIR/gateway-build-info.txt" "$PAIR/plugin-build-info.txt" "$PAIR/source-verification.json" "$PAIR/manifest.json" \
+  "$SOURCE/transports/docker-entrypoint.sh" "$SOURCE/LICENSE" "$SOURCE/THIRD_PARTY_NOTICES.md" "$ROOT/LICENSE"; do
   [[ -f $file && ! -L $file ]] || fail "missing or linked input: $file"
 done
-cmp -s "$PAIR/SHA256SUMS" "$REPORT/SHA256SUMS" || fail "paired SHA256 reports differ"
-cmp -s "$PAIR/build-environment.txt" "$REPORT/build-environment.txt" || fail "paired build environments differ"
 (cd "$PAIR" && sha256sum -c SHA256SUMS >/dev/null) || fail "verified pair checksum failed"
-ARCH=$(python3 - "$PAIR" "$REPORT" "$BIFROST_SOURCE_TAG" "$BIFROST_SOURCE_COMMIT" "$BIFROST_GO_VERSION" <<'PY'
+ARCH=$(python3 - "$PAIR" "$BIFROST_TAG" "$BIFROST_COMMIT" "go$GO_VERSION" "$REGISTRY_SOURCE_COMMIT" <<'PY'
 import json, pathlib, sys
-pair, report = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])
-tag, commit, go = sys.argv[3], sys.argv[4], sys.argv[5]
-provenance = json.loads((report / "source-verification.json").read_text())
+pair = pathlib.Path(sys.argv[1])
+tag, commit, go, registry = sys.argv[2:6]
+if json.loads((pair / "manifest.json").read_text()).get("registry_commit") != registry:
+    sys.exit(f"pair was not qualified at registry commit {registry}")
+provenance = json.loads((pair / "source-verification.json").read_text())
 expected = {"tag": tag, "commit": commit, "go": go, "official_prebuilt_image": False, "after_compilation_modified_tracked_files": []}
 if not all(provenance.get(k) == v for k, v in expected.items()):
     sys.exit("unexpected source provenance")
@@ -74,8 +70,8 @@ mkdir -p "$OUT/image-context/licenses" "$OUT/plugin" "$OUT/provenance"
 cp "$ROOT/packaging/Dockerfile" "$OUT/image-context/Dockerfile"
 cp "$PAIR/bifrost-http" "$OUT/image-context/main"
 cp "$SOURCE/transports/docker-entrypoint.sh" "$OUT/image-context/docker-entrypoint.sh"
-cp "$LICENSE_SOURCE/LICENSE" "$OUT/image-context/licenses/BIFROST-LICENSE"
-cp "$LICENSE_SOURCE/THIRD_PARTY_NOTICES.md" "$OUT/image-context/licenses/BIFROST-THIRD_PARTY_NOTICES.md"
+cp "$SOURCE/LICENSE" "$OUT/image-context/licenses/BIFROST-LICENSE"
+cp "$SOURCE/THIRD_PARTY_NOTICES.md" "$OUT/image-context/licenses/BIFROST-THIRD_PARTY_NOTICES.md"
 cp "$ROOT/LICENSE" "$OUT/plugin/LICENSE"
 python3 - "$ROOT" "$OUT/plugin" <<'PY'
 import json
@@ -179,25 +175,24 @@ for key in sorted(selected):
 PY
 cp "$PAIR/bifrost-registry.so" "$OUT/plugin/bifrost-registry-${RELEASE_ID}-linux-${ARCH}.so"
 cp "$PAIR/SHA256SUMS" "$PAIR/build-environment.txt" "$PAIR/gateway-build-info.txt" \
-  "$PAIR/plugin-build-info.txt" "$REPORT/source-verification.json" "$OUT/provenance/"
+  "$PAIR/plugin-build-info.txt" "$PAIR/source-verification.json" "$OUT/provenance/"
 (
   cd "$OUT/plugin"
   sha256sum "bifrost-registry-${RELEASE_ID}-linux-${ARCH}.so" > SHA256SUMS
 )
-python3 - "$OUT" "$RELEASE_ID" "$IMAGE_TAG" "$ARCH" \
-  "$BIFROST_SOURCE_TAG" "$BIFROST_SOURCE_COMMIT" "$BIFROST_GO_VERSION" "$REGISTRY_SOURCE_COMMIT" <<'PY'
+python3 - "$OUT" "$RELEASE_ID" "$ARCH" \
+  "$BIFROST_TAG" "$BIFROST_COMMIT" "go$GO_VERSION" "$REGISTRY_SOURCE_COMMIT" <<'PY'
 import hashlib, json, pathlib, sys
-out, release, tag, arch = pathlib.Path(sys.argv[1]), sys.argv[2], sys.argv[3], sys.argv[4]
-source_tag, source_commit, go, registry_commit = sys.argv[5:9]
+out, release, arch = pathlib.Path(sys.argv[1]), sys.argv[2], sys.argv[3]
+source_tag, source_commit, go, registry_commit = sys.argv[4:8]
 sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
 manifest = {
     "release_id": release,
     "arch": arch,
-    "image_tag": tag,
     "platform": f"linux/{arch} musl",
     "bifrost_source_tag": source_tag,
     "bifrost_source_commit": source_commit,
-    "registry_source_commit": registry_commit or None,
+    "registry_source_commit": registry_commit,
     "go": go,
     "gateway_sha256": sha(out / "image-context/main"),
     "plugin_file": f"bifrost-registry-{release}-linux-{arch}.so",
@@ -207,5 +202,4 @@ manifest = {
 (out / "manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
 PY
 
-docker build --pull=false --platform "linux/$ARCH" -t "$IMAGE_TAG" "$OUT/image-context"
-printf 'Built %s; plugin ready at %s/plugin/bifrost-registry-%s-linux-%s.so\n' "$IMAGE_TAG" "$OUT" "$RELEASE_ID" "$ARCH"
+printf 'Staged linux/%s image context at %s/image-context; plugin ready at %s/plugin/bifrost-registry-%s-linux-%s.so\n' "$ARCH" "$OUT" "$OUT" "$RELEASE_ID" "$ARCH"

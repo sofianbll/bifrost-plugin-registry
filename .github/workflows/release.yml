@@ -1,0 +1,328 @@
+# Publish the gateway image to GHCR and the plugin as a GitHub Release, for the commit `target`
+# (bifrost.pin is read from it; that commit is qualified, packaged and tagged).
+#
+# What is tested before anything is pushed:
+#   qualify  qualify.yml builds the gateway/plugin pair natively on linux/amd64 and linux/arm64 and runs its suites.
+#   image    the plugin-free image is built from that pair, started and probed by
+#            integration/image_distribution_probe.py (plugin installed from a URL, container recreated,
+#            synthetic provider, no inference). The pushed image must contain the probed manifest digest.
+#
+# Triggers:
+#   v* tag push        publish that tag.
+#   workflow_dispatch  `dry_run` (default true) runs meta, qualify, image build and probe, and assembles the
+#                      release assets as run artifacts; it pushes, attests, tags and releases nothing.
+#                      dry_run=false publishes `tag` at the dispatched commit.
+#   workflow_call      from watch-bifrost.yml (tags and events created with GITHUB_TOKEN start no workflow, so
+#                      the watcher runs this file inside its own run); publishes.
+# Every publishing step is guarded by `inputs.dry_run != true`. An existing release or tag stops the run;
+# gh release create never replaces assets. Image tags <bifrost-version> and <bifrost-version>-go<go> move
+# to the newest published gateway build; manifest.json and the release notes record the immutable index digest.
+#
+# Permissions (workflow default: none):
+#   meta     contents: read                      read bifrost.pin; check that the release and tag are new
+#   qualify  contents: read                      ceiling for qualify.yml (native build and suites)
+#   image    contents: read, packages: write     build and probe; publishing: push each architecture by digest
+#   merge    contents: read, packages: write, id-token: write, attestations: write
+#            (publishing only)                   tag the multi-arch index; sign its provenance (OIDC) and push it
+#   release  contents: write, id-token: write, attestations: write
+#                                                assemble the assets; publishing: attest SHA256SUMS, create the
+#                                                release and its tag
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_call:
+    inputs:
+      tag:
+        description: Release tag to create; it must not exist yet
+        required: true
+        type: string
+      target:
+        description: Commit to check out, package and tag; defaults to the triggering commit
+        type: string
+        default: ''
+      prerelease:
+        description: Mark as pre-release even without -rc/-pre in the tag
+        type: boolean
+        default: false
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag vX.Y.Z[-suffix]; it must not exist yet
+        required: true
+        type: string
+      dry_run:
+        description: Qualify, build, probe and assemble only; publish nothing
+        type: boolean
+        default: true
+
+permissions: {}
+
+env:
+  IMAGE: ghcr.io/${{ github.repository_owner }}/bifrost-dynamic
+
+jobs:
+  meta:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+      target: ${{ steps.meta.outputs.target }}
+      prerelease: ${{ steps.meta.outputs.prerelease }}
+      bifrost_tag: ${{ steps.meta.outputs.bifrost_tag }}
+      bifrost_commit: ${{ steps.meta.outputs.bifrost_commit }}
+      bifrost_version: ${{ steps.meta.outputs.bifrost_version }}
+      go_version: ${{ steps.meta.outputs.go_version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.target || github.sha }}
+          persist-credentials: false
+      - id: meta
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag || github.ref_name }}
+          PRERELEASE: ${{ inputs.prerelease }}
+        run: |
+          . ./bifrost.pin
+          [[ $TAG =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]] || { echo "::error::invalid release tag: $TAG"; exit 1; }
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "::error::release $TAG already exists"; exit 1
+          fi
+          if [[ $GITHUB_REF != "refs/tags/$TAG" ]] && git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null; then
+            echo "::error::tag $TAG already exists"; exit 1
+          fi
+          prerelease=false
+          if [[ $PRERELEASE == true || $TAG == *-rc* || $TAG == *-pre* ]]; then prerelease=true; fi
+          {
+            echo "tag=$TAG"
+            echo "target=$(git rev-parse HEAD)"
+            echo "prerelease=$prerelease"
+            echo "bifrost_tag=$BIFROST_TAG"
+            echo "bifrost_commit=$BIFROST_COMMIT"
+            echo "bifrost_version=${BIFROST_TAG#transports/v}"
+            echo "go_version=$GO_VERSION"
+          } >> "$GITHUB_OUTPUT"
+
+  qualify:
+    needs: meta
+    uses: ./.github/workflows/qualify.yml
+    permissions:
+      contents: read
+    with:
+      ref: ${{ needs.meta.outputs.target }}
+
+  image:
+    needs: [meta, qualify]
+    strategy:
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write
+    env:
+      ARCH: ${{ matrix.arch }}
+      TAG: ${{ needs.meta.outputs.tag }}
+      TARGET: ${{ needs.meta.outputs.target }}
+      BIFROST_COMMIT: ${{ needs.meta.outputs.bifrost_commit }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.meta.outputs.target }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22.23.1'
+      # License notices only read package.json and license files: no install scripts, and the pair is not on disk yet.
+      - run: npm --prefix ui ci --ignore-scripts
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: pair-linux-${{ matrix.arch }}*
+          path: ${{ runner.temp }}/pair
+      - name: Stage the image context and plugin from the qualified pair
+        run: |
+          tar -xzf "$(find "$RUNNER_TEMP/pair" -name '*.tar.gz')" -C "$RUNNER_TEMP/pair"
+          git init -q "$RUNNER_TEMP/bifrost"
+          git -C "$RUNNER_TEMP/bifrost" fetch -q --depth 1 https://github.com/maximhq/bifrost "$BIFROST_COMMIT"
+          git -C "$RUNNER_TEMP/bifrost" checkout -q FETCH_HEAD
+          PAIR_DIR=$(dirname "$(find "$RUNNER_TEMP/pair" -name bifrost-http -type f)") \
+            SOURCE_DIR="$RUNNER_TEMP/bifrost" REGISTRY_SOURCE_COMMIT="$TARGET" \
+            ./scripts/package-release.sh "$TAG" "$RUNNER_TEMP/package"
+          test "$(jq -r .arch "$RUNNER_TEMP/package/manifest.json")" = "$ARCH"
+          # Reproducible build: the probed and the pushed image have the same manifest digest.
+          echo "SOURCE_DATE_EPOCH=$(git log -1 --format=%ct)" >> "$GITHUB_ENV"
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+        with:
+          driver-opts: image=moby/buildkit:v0.33.1@sha256:cec9f139f45e93c5c69c60f8b07cfad9f43f4ef6b6a6cd917527fea5ff2e3dea
+      - id: local
+        name: Build the image locally
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: ${{ runner.temp }}/package/image-context
+          platforms: linux/${{ matrix.arch }}
+          labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          tags: bifrost-dynamic:probe
+          load: true
+          provenance: false
+      - name: Start and probe the image (plugin from a URL, recreation, synthetic provider)
+        run: |
+          . ./bifrost.pin
+          docker pull -q "$PY_IMAGE" && docker tag "$PY_IMAGE" python:3.13-alpine
+          python3 integration/image_distribution_probe.py --image bifrost-dynamic:probe \
+            --plugin "$RUNNER_TEMP/package/plugin/bifrost-registry-$TAG-linux-$ARCH.so" --out "$RUNNER_TEMP/package/image-probe" \
+            || { cat "$RUNNER_TEMP/package/image-probe/report.json"; exit 1; }
+      - if: inputs.dry_run != true
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - id: build
+        name: Push the image by digest (same build, from cache)
+        if: inputs.dry_run != true
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: ${{ runner.temp }}/package/image-context
+          platforms: linux/${{ matrix.arch }}
+          labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
+          attests: type=sbom,generator=docker/buildkit-syft-scanner:1.12.0@sha256:ae4f3b554449e7e25548e7d8ccc029d17357348e30c6e3df01b92bc93654d6a9
+          provenance: false
+      - name: Check that the pushed image is the probed one; record its digest
+        if: inputs.dry_run != true
+        env:
+          PROBED: ${{ steps.local.outputs.digest }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          pushed=$(docker buildx imagetools inspect --raw "$IMAGE@$DIGEST" | jq -r --arg arch "$ARCH" '.manifests[] | select(.platform.architecture == $arch) | .digest')
+          [[ -n $PROBED && $pushed == "$PROBED" ]] || { echo "::error::pushed linux/$ARCH manifest $pushed is not the probed $PROBED"; exit 1; }
+          mkdir "$RUNNER_TEMP/digest" && touch "$RUNNER_TEMP/digest/${DIGEST#sha256:}"
+      - if: inputs.dry_run != true
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: digest-linux-${{ matrix.arch }}
+          path: ${{ runner.temp }}/digest/*
+          if-no-files-found: error
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: package-linux-${{ matrix.arch }}
+          path: |
+            ${{ runner.temp }}/package/manifest.json
+            ${{ runner.temp }}/package/plugin
+            ${{ runner.temp }}/package/provenance
+            ${{ runner.temp }}/package/image-probe
+          if-no-files-found: error
+
+  merge:
+    needs: [meta, image]
+    if: inputs.dry_run != true
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+    outputs:
+      digest: ${{ steps.index.outputs.digest }}
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: digest-linux-*
+          merge-multiple: true
+          path: ${{ runner.temp }}/digests
+      # imagetools only talks to the registry; the runner's default builder is enough, no BuildKit container.
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - id: index
+        working-directory: ${{ runner.temp }}/digests
+        env:
+          VERSION: ${{ needs.meta.outputs.bifrost_version }}
+          GO_VERSION: ${{ needs.meta.outputs.go_version }}
+          SOURCE: ${{ github.server_url }}/${{ github.repository }}
+        run: |
+          docker buildx imagetools create --metadata-file "$RUNNER_TEMP/index.json" \
+            -t "$IMAGE:$VERSION" -t "$IMAGE:$VERSION-go$GO_VERSION" \
+            --annotation "index:org.opencontainers.image.source=$SOURCE" \
+            --annotation "index:org.opencontainers.image.description=Bifrost $VERSION gateway built for dynamic Go plugins; no plugin included" \
+            $(printf "$IMAGE@sha256:%s " *)
+          echo "digest=$(jq -r '."containerimage.descriptor".digest' "$RUNNER_TEMP/index.json")" >> "$GITHUB_OUTPUT"
+      - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-name: ${{ env.IMAGE }}
+          subject-digest: ${{ steps.index.outputs.digest }}
+          push-to-registry: true
+          create-storage-record: false
+
+  release:
+    needs: [meta, image, merge]
+    if: ${{ !cancelled() && needs.image.result == 'success' && (needs.merge.result == 'success' || inputs.dry_run == true) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    env:
+      TAG: ${{ needs.meta.outputs.tag }}
+      TARGET: ${{ needs.meta.outputs.target }}
+      DIGEST: ${{ needs.merge.outputs.digest }}
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: package-linux-*
+          path: ${{ runner.temp }}/in
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: reports-linux-*
+          path: ${{ runner.temp }}/in
+      - name: Assemble assets
+        working-directory: ${{ runner.temp }}/in
+        run: |
+          mkdir ../assets
+          # License notices are architecture-independent: ship them once.
+          diff -r -x '*.so' -x SHA256SUMS package-linux-amd64/plugin package-linux-arm64/plugin
+          tar -czf ../assets/licenses.tar.gz -C package-linux-amd64/plugin LICENSE THIRD_PARTY_NOTICES.md licenses
+          for arch in amd64 arm64; do
+            cp "package-linux-$arch/plugin/bifrost-registry-$TAG-linux-$arch.so" ../assets/
+            tar -czf "../assets/reports-linux-$arch.tar.gz" "reports-linux-$arch"* -C "package-linux-$arch" provenance image-probe
+          done
+          jq -s --arg image "${DIGEST:+$IMAGE@$DIGEST}" '{image: $image, platforms: .}' package-linux-*/manifest.json > ../assets/manifest.json
+          cd ../assets && sha256sum * > SHA256SUMS
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-assets
+          path: ${{ runner.temp }}/assets
+          if-no-files-found: error
+      - if: inputs.dry_run != true
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-checksums: ${{ runner.temp }}/assets/SHA256SUMS
+          create-storage-record: false
+      - name: Publish the release
+        if: inputs.dry_run != true
+        working-directory: ${{ runner.temp }}/assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PRERELEASE: ${{ needs.meta.outputs.prerelease }}
+          BIFROST_TAG: ${{ needs.meta.outputs.bifrost_tag }}
+          BIFROST_COMMIT: ${{ needs.meta.outputs.bifrost_commit }}
+          GO_VERSION: ${{ needs.meta.outputs.go_version }}
+        run: |
+          flags=()
+          if [[ $PRERELEASE == true ]]; then flags+=(--prerelease); fi
+          notes="Gateway image (no plugin): \`docker pull $IMAGE@$DIGEST\`. Bifrost \`$BIFROST_TAG\` (\`$BIFROST_COMMIT\`), Go $GO_VERSION. In $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID, the gateway/plugin pair was built and qualified natively on linux/amd64 and linux/arm64; each architecture's image was then built from that pair, started and probed with the plugin installed from a URL before it was pushed. Verify any asset with \`gh attestation verify <file> --repo $GITHUB_REPOSITORY\`."
+          gh release create "$TAG" * --target "$TARGET" --title "$TAG" --generate-notes --notes "$notes" "${flags[@]}"

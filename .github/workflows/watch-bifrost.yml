@@ -1,0 +1,168 @@
+# Turn a new stable upstream Bifrost release into a qualified pre-release candidate.
+#
+# Detection: newest transports/vX.Y.Z tag upstream (git ls-remote, sort -V) whose GitHub release is
+# published and not a prerelease (releases/latest is unusable: it returns ent-v* releases), compared
+# with bifrost.pin. Upstream transports/go.mod needing a newer Go than pinned refuses the bump (issue).
+# A newer version gets a pin commit (main + the new bifrost.pin), then branch bump/bifrost-vX.Y.Z pointing
+# at it; release.yml then qualifies, packages and tags that exact commit as a pre-release (never latest),
+# in this same run, because events created with GITHUB_TOKEN start no workflow.
+# Candidate tag: v<newest X.Y.Z among this repository's v* tags>-bifrost<A.B.C>-rc.<n>, n = 1 + the highest
+# existing n for that prefix (e.g. v0.3.0-bifrost2.2.5-rc.1, then -rc.2 after a retry that follows a tag).
+# One issue per upstream version reports it; it is found by the body marker `<!-- watch-bifrost vA.B.C -->`
+# on an issue opened by github-actions, never by title.
+# Idempotent: an existing bump branch means the version was handled. To retry, re-run the failed jobs,
+# or delete the branch and dispatch again (the issue is reused).
+#
+# Permissions (workflow default: none):
+#   detect   contents: write, issues: write   create the pin commit, then the bump branch, through the REST API
+#                                             (no persisted git credentials); open the Go-refusal issue
+#   release  contents: write, packages: write, id-token: write, attestations: write
+#                                             ceiling for release.yml (see its header)
+#   report   actions: read, issues: write, pull-requests: write
+#                                             name failed jobs/steps of this run; open or comment the version
+#                                             issue; open the pin PR, which needs the repository setting
+#                                             "Allow GitHub Actions to create and approve pull requests"
+#                                             (off today), else link the compare page instead
+name: Watch Bifrost
+
+on:
+  schedule:
+    - cron: '23 5 * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: watch-bifrost
+  cancel-in-progress: false
+
+jobs:
+  detect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      issues: write
+    outputs:
+      version: ${{ steps.detect.outputs.version }}
+      branch: ${{ steps.detect.outputs.branch }}
+      bump: ${{ steps.detect.outputs.bump }}
+      candidate: ${{ steps.detect.outputs.candidate }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - id: detect
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          . ./bifrost.pin
+          latest=$(git ls-remote --tags --refs https://github.com/maximhq/bifrost 'refs/tags/transports/v*' | sed 's#.*refs/tags/##' \
+            | grep -E '^transports/v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1)
+          [[ -n $latest ]] || { echo "::error::no stable transports/vX.Y.Z tag upstream"; exit 1; }
+          if [[ $(printf '%s\n' "$BIFROST_TAG" "$latest" | sort -V | tail -1) == "$BIFROST_TAG" ]]; then
+            echo "::notice::$BIFROST_TAG is current"; exit 0
+          fi
+          stable=$(gh api "repos/maximhq/bifrost/releases/tags/$latest" --jq 'select(.prerelease == false and .draft == false) | .tag_name' || true)
+          if [[ $stable != "$latest" ]]; then echo "::notice::$latest has no published stable release yet"; exit 0; fi
+          version=${latest#transports/}
+          branch=bump/bifrost-$version
+          if git ls-remote --exit-code --heads origin "refs/heads/$branch" >/dev/null; then
+            echo "::notice::$branch exists: $version was already handled"; exit 0
+          fi
+          commit=$(gh api "repos/maximhq/bifrost/commits/$latest" --jq .sha)
+          upstream_go=$(gh api "repos/maximhq/bifrost/contents/transports/go.mod?ref=$commit" -H 'Accept: application/vnd.github.raw' \
+            | awk '$1 == "go" {print $2; exit}')
+          [[ $commit =~ ^[0-9a-f]{40}$ && $upstream_go =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?$ ]] || { echo "::error::cannot resolve $latest"; exit 1; }
+          if [[ $(printf '%s\n' "$GO_VERSION" "$upstream_go" | sort -V | tail -1) != "$GO_VERSION" ]]; then
+            echo "::warning::$latest needs Go $upstream_go; bifrost.pin has $GO_VERSION"
+            marker="<!-- watch-bifrost $version -->"
+            issue=$(gh issue list --state all --limit 1000 --search 'author:app/github-actions' --json number,body \
+              --jq "first(.[] | select(.body | contains(\"$marker\")) | .number)")
+            [[ -n $issue ]] || gh issue create --label needs-triage --title "Bifrost $version needs Go $upstream_go (pinned $GO_VERSION)" \
+              --body "Upstream \`$latest\` (\`$commit\`) declares \`go $upstream_go\` in transports/go.mod; bifrost.pin pins Go $GO_VERSION. The automatic bump was refused. Raise GO_VERSION (and the builder image) in bifrost.pin; the next run then qualifies $version."$'\n\n'"$marker"
+            exit 0
+          fi
+          base=$(git ls-remote --tags --refs origin 'refs/tags/v*' | sed 's#.*refs/tags/##; s/-.*//' | sort -V | tail -1)
+          prefix=$base-bifrost${version#v}-rc.
+          n=$(git ls-remote --tags --refs origin "refs/tags/$prefix*" | sed 's/.*-rc\.//' | grep -xE '[0-9]+' | sort -n | tail -1)
+          candidate=$prefix$(( ${n:-0} + 1 ))
+          sed -i "s#^BIFROST_TAG=.*#BIFROST_TAG=$latest#; s#^BIFROST_COMMIT=.*#BIFROST_COMMIT=$commit#" bifrost.pin
+          grep -qx "BIFROST_COMMIT=$commit" bifrost.pin
+          # Commit first, branch last: a failure leaves no branch, so the next run retries.
+          tree=$(jq -n --arg base "$(git rev-parse 'HEAD^{tree}')" --rawfile pin bifrost.pin \
+            '{base_tree: $base, tree: [{path: "bifrost.pin", mode: "100644", type: "blob", content: $pin}]}' \
+            | gh api -X POST "repos/$GITHUB_REPOSITORY/git/trees" --input - --jq .sha)
+          bump=$(gh api -X POST "repos/$GITHUB_REPOSITORY/git/commits" -f message="Bump Bifrost to $version" -f tree="$tree" \
+            -f "parents[]=$GITHUB_SHA" --jq .sha)
+          [[ $bump =~ ^[0-9a-f]{40}$ ]] || { echo "::error::pin commit not created"; exit 1; }
+          gh api -X POST "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/heads/$branch" -f sha="$bump" >/dev/null
+          {
+            echo "version=$version"
+            echo "branch=$branch"
+            echo "bump=$bump"
+            echo "candidate=$candidate"
+          } >> "$GITHUB_OUTPUT"
+
+  release:
+    needs: detect
+    if: needs.detect.outputs.candidate != ''
+    uses: ./.github/workflows/release.yml
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+      attestations: write
+    with:
+      tag: ${{ needs.detect.outputs.candidate }}
+      target: ${{ needs.detect.outputs.bump }}
+      prerelease: true
+
+  report:
+    needs: [detect, release]
+    if: always() && needs.detect.outputs.candidate != ''
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      issues: write
+      pull-requests: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      VERSION: ${{ needs.detect.outputs.version }}
+      BRANCH: ${{ needs.detect.outputs.branch }}
+      CANDIDATE: ${{ needs.detect.outputs.candidate }}
+      RESULT: ${{ needs.release.result }}
+    steps:
+      - run: |
+          repo=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY
+          run=$repo/actions/runs/$GITHUB_RUN_ID
+          compare="$repo/compare/$GITHUB_REF_NAME...$BRANCH?expand=1"
+          if [[ $RESULT == success ]]; then
+            title="Bifrost $VERSION qualified: promote?"
+            pr=$(gh api -X POST "repos/$GITHUB_REPOSITORY/pulls" -f base="$GITHUB_REF_NAME" -f head="$BRANCH" \
+              -f title="Bump Bifrost to $VERSION" -f body="Qualified on linux/amd64 and linux/arm64 in $run." --jq .html_url) \
+              || pr="not opened (GitHub Actions may not create pull requests here); open it from $compare"
+            body=$(printf '%s\n\n' \
+              "Pre-release candidate [$CANDIDATE]($repo/releases/tag/$CANDIDATE) passed qualification on linux/amd64 and linux/arm64 ($run)." \
+              "Pin bump pull request: $pr" \
+              "To promote: merge the pin bump, then push a stable \`v*\` tag.")
+          else
+            failed=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs" --paginate \
+              --jq '.jobs[] | select(.conclusion == "failure") | "- \(.name): \([.steps[] | select(.conclusion == "failure") | .name] | join(", "))"')
+            title="Bifrost $VERSION candidate failed"
+            body=$(printf '%s\n\n' \
+              "Candidate $CANDIDATE was not published (release: $RESULT, $run). Failing jobs and suites:" \
+              "${failed:-"- none recorded"}" \
+              "Branch with the new pin: $compare")
+          fi
+          marker="<!-- watch-bifrost $VERSION -->"
+          issue=$(gh issue list --state all --limit 1000 --search 'author:app/github-actions' --json number,body \
+            --jq "first(.[] | select(.body | contains(\"$marker\")) | .number)")
+          if [[ -n $issue ]]; then
+            gh issue comment "$issue" --body "$body"
+          else
+            gh issue create --label needs-triage --title "$title" --body "$body"$'\n\n'"$marker"
+          fi
