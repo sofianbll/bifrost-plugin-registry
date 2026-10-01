@@ -1,5 +1,7 @@
 # Build local Bifrost 2.2.2 + Registry live
 
+> **Note (2026-10-01):** the patches, scripts and probes this dated report links to or runs were removed from the tree in #27. They remain in Git history at commit `61648dd` (`git show 61648dd:<path>`). The report itself is unchanged.
+
 Paire recompilée le 24 septembre 2026 dans `dist/native-v2.2.2-live-v5/` (dossier local ignoré par Git). Les paires précédentes, dont `dist/native-v2.2.2-live-v4/`, sont obsolètes. L'ancienne paire `dist/native-v2.2.2/` n'a pas été modifiée. Une modification directe de `/api/config` invalide maintenant le statut de relecture vérifiée à la prochaine lecture du workspace, tout en gardant la dernière observation. Dans la sidebar native, le sous-menu « Model Registry » ouvre désormais `/bifrost-registry/` par un lien HTML dans les états déployé et replié.
 
 | Élément | Résultat |

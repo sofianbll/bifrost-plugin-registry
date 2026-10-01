@@ -17,3 +17,6 @@ registry.local.json
 
 /ui/node_modules/
 /ui/dist/
+
+# Local agent skills; reinstall from skills-lock.json
+/.agents/

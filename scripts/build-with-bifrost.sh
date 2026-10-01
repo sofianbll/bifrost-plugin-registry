@@ -14,10 +14,6 @@ command -v npm >/dev/null || fail "npm is required to build the embedded Registr
 [[ $(go env GOOS) == "linux" || $(go env GOOS) == "darwin" ]] || fail "Go plugins require Linux or macOS"
 [[ $(go env GOOS) == $(go env GOHOSTOS) && $(go env GOARCH) == $(go env GOHOSTARCH) ]] || fail "Use a native matching builder, not cross-compilation"
 [[ -z ${GOFLAGS:-} ]] || fail "Unset GOFLAGS to avoid hidden build flag mismatches"
-case ${REGISTRY_NATIVE_UI:-0} in
-  0|1) ;;
-  *) fail "REGISTRY_NATIVE_UI must be 0 or 1" ;;
-esac
 if ! [[ -f "$BF/transports/bifrost-http/ui/index.html" ]]; then
  fail "Real Bifrost UI assets missing. Build the UI from this SAME checkout and copy its output to transports/bifrost-http/ui (see docs/BUILD.md). No placeholder UI is generated."
 fi
@@ -61,9 +57,6 @@ export GOWORK=off CGO_ENABLED=1
 # Both packages are loaded together before build, so the same dependency versions
 # are selected. -mod=readonly stops silent go.mod/go.sum edits.
 FLAGS=(-mod=readonly -trimpath -buildvcs=false -tags=bifrost)
-if [[ ${REGISTRY_NATIVE_UI:-0} == 1 ]]; then
- FLAGS=(-mod=readonly -trimpath -buildvcs=false -tags=bifrost,bifrost_native_ui)
-fi
 go list "${FLAGS[@]}" -deps ./bifrost-http ./registry-plugin ./registry-plugin/abi-probe ./registry-plugin/legacy-proof >/dev/null
 go test "${FLAGS[@]}" ./registry-plugin
 {

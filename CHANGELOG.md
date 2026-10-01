@@ -14,6 +14,7 @@ Release downloads and their exact source commits are listed in [GitHub Releases]
 - Production React source moved to `ui/`; matching build paths updated without changing runtime behavior.
 - Source CI, contribution instructions, issue forms and pull request template.
 - Clear license attribution and private vulnerability reporting instructions.
+- Removed the deferred native-menu integration (host patches, `REGISTRY_NATIVE_UI` build flag), four superseded integration probes and `HANDOFF.md`; `.agents/` is no longer tracked. All remain in Git history at `61648dd` (native-menu work stays tracked in issue #7).
 
 The published `v0.2.0-rc.1` binaries are unchanged; these additions require a newly compiled compatible plugin.
 
