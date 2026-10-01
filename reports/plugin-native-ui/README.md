@@ -1,5 +1,7 @@
 # Native plugin UI contract candidate
 
+> **Note (2026-10-01):** the patches, scripts and probes this dated report links to or runs were removed from the tree in #27. They remain in Git history at commit `61648dd` (`git show 61648dd:<path>`). The report itself is unchanged.
+
 Date: 2026-09-24. Bifrost source pin: `fdeef8e3f31a3b18a61666ba49247d07bae3600a`. This is an isolated development patch, not an upstream release or a production change.
 
 ## Contract
