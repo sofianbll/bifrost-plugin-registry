@@ -10,6 +10,10 @@ The full packaging regression (`packaging/test-package-release.sh`) requires a p
 
 The Models.dev snapshot generator (`scripts/build-modelsdev-snapshot.ts`) and its determinism check require Bun and a clean checkout of the pinned upstream repository at `dist/models-dev-upstream` (ignored by Git). Bun is a generation-only tool: the Go plugin, its tests, and the runtime do not depend on it. `make check` runs the determinism check when both Bun and the upstream checkout are available, and skips it with a notice otherwise.
 
+### Qualification
+
+The upstream Bifrost target is pinned in `bifrost.pin` at the repository root (tag, commit, Go and Alpine versions). `scripts/qualify.sh amd64` or `scripts/qualify.sh arm64` verifies that source, builds the Bifrost UI with upstream's own pinned builder image, builds the gateway and plugin `.so` together in `golang:<Go>-alpine<Alpine>`, runs the ABI smoke and the native suites in disposable containers, and writes `dist/qualify/<arch>/` (the pair tarball and `reports/`). It needs bash, git, Python 3 and Docker on a host of that same architecture; it refuses emulation and cross-compilation, builds the committed `HEAD`, and does not overwrite an existing output directory. An optional second argument runs one stage (`build`, `models`, `standalone-restart`, `standalone-assistant`, `capabilities` or `adoption`). `.github/workflows/qualify.yml` runs each stage as its own step on `ubuntu-24.04` (amd64) and `ubuntu-24.04-arm` (arm64) for pull requests that touch the pair, on manual dispatch, and when called by another workflow. It qualifies synthetic behavior only, not real-provider inference or a production rollout.
+
 ## Français
 
 Ouvrez un ticket avec un bug reproductible ou un usage concret avant un changement important. Travaillez sur une branche et proposez une pull request vers `main`. Ne publiez jamais de clés API, jetons, URL privées, configurations de production ou données personnelles dans les tickets, journaux, tests ou commits.

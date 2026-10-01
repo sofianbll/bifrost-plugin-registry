@@ -1,0 +1,96 @@
+name: Qualify
+
+# Native build and qualification of the gateway/plugin pair (scripts/qualify.sh).
+# Empty inputs fall back to bifrost.pin.
+on:
+  workflow_call:
+    inputs:
+      bifrost_tag:
+        type: string
+        default: ''
+      bifrost_commit:
+        type: string
+        default: ''
+      go_version:
+        type: string
+        default: ''
+  workflow_dispatch:
+    inputs:
+      bifrost_tag:
+        description: 'Upstream tag, transports/vX.Y.Z (empty: bifrost.pin)'
+        default: ''
+      bifrost_commit:
+        description: 'Full commit SHA of that tag (empty: bifrost.pin)'
+        default: ''
+      go_version:
+        description: 'Go version, X.Y.Z (empty: bifrost.pin)'
+        default: ''
+  pull_request:
+    paths:
+      - bifrost.pin
+      - scripts/qualify.sh
+      - scripts/build-with-bifrost.sh
+      - integration/**
+      - internal/**
+      - native/**
+      - ui/**
+      - .github/workflows/qualify.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: qualify-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    env:
+      BIFROST_TAG: ${{ inputs.bifrost_tag }}
+      BIFROST_COMMIT: ${{ inputs.bifrost_commit }}
+      GO_VERSION: ${{ inputs.go_version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build pair, verify source, ABI smoke
+        id: build
+        run: scripts/qualify.sh ${{ matrix.arch }} build
+      # Each suite runs even when another one failed.
+      - name: 'Suite: models'
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: scripts/qualify.sh ${{ matrix.arch }} models
+      - name: 'Suite: standalone-restart'
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: scripts/qualify.sh ${{ matrix.arch }} standalone-restart
+      - name: 'Suite: standalone-assistant'
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: scripts/qualify.sh ${{ matrix.arch }} standalone-assistant
+      - name: 'Suite: capabilities'
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: scripts/qualify.sh ${{ matrix.arch }} capabilities
+      - name: 'Suite: adoption'
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: scripts/qualify.sh ${{ matrix.arch }} adoption
+      # Only a fully qualified pair is uploaded; the tarball keeps the executable bit.
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: pair-linux-${{ matrix.arch }}
+          path: dist/qualify/${{ matrix.arch }}/pair-linux-${{ matrix.arch }}.tar.gz
+          compression-level: 0
+          if-no-files-found: error
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: ${{ !cancelled() }}
+        with:
+          name: reports-linux-${{ matrix.arch }}
+          path: dist/qualify/${{ matrix.arch }}/reports/
