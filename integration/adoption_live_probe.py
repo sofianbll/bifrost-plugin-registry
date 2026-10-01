@@ -20,8 +20,9 @@ import urllib.parse
 import urllib.request
 
 
-GATEWAY = "http://127.0.0.1:18180"
-PANEL = "http://127.0.0.1:18099"
+# Run inside the fixture's network namespace (docker run --network container:<fixture>).
+GATEWAY = "http://127.0.0.1:8080"
+PANEL = "http://127.0.0.1:8099"
 
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
