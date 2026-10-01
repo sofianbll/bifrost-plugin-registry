@@ -127,7 +127,7 @@ build() {
   {
     printf '\nImages (reference, image ID, repository digests):\n'
     for image in "$node_image" "$GO_IMAGE" "$PY_IMAGE"; do
-      printf '%s ' "$image"; docker image inspect -f '{{.Id}} {{join .RepoDigests " "}}' "$image"
+      printf '%s ' "$image"; docker image inspect -f '{{.Id}} {{json .RepoDigests}}' "$image"
     done
     printf '\nGo builder packages (apk info -v):\n'
     docker run "${SAFE[@]}" --network none "$builder" apk info -v | sort
