@@ -123,10 +123,10 @@ build() {
   cp "$OUT/build/out/"{bifrost-http,bifrost-registry.so,build-environment.txt,gateway-build-info.txt,plugin-build-info.txt,abi-smoke.json} "$OUT/pair/"
   grep -E '  (bifrost-http|bifrost-registry\.so)$' "$OUT/build/out/SHA256SUMS" > "$OUT/pair/SHA256SUMS"
   # Recorded by the host: the images behind the build and the suites, and the builder's packages.
-  docker pull -q "$PY_IMAGE" >/dev/null
   {
     printf '\nImages (reference, image ID, repository digests):\n'
     for image in "$node_image" "$GO_IMAGE" "$PY_IMAGE"; do
+      docker pull -q "$image" >/dev/null
       printf '%s ' "$image"; docker image inspect -f '{{.Id}} {{json .RepoDigests}}' "$image"
     done
     printf '\nGo builder packages (apk info -v):\n'
