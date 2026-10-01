@@ -10,7 +10,7 @@ ui-check:
 
 script-check:
 	python3 scripts/test_import_bifrost_datasheets.py
-	bash -n scripts/package-release.sh packaging/test-package-release.sh scripts/qualify.sh
+	for f in scripts/*.sh packaging/*.sh; do bash -n "$$f" || exit 1; done
 	@if command -v bun >/dev/null 2>&1 && [ -d dist/models-dev-upstream ]; then \
 		bun scripts/build-modelsdev-snapshot.test.ts; \
 	else \
