@@ -1,67 +1,85 @@
 # Install Registry
 
-English · [Français](RELEASE.md)
+English · [Français](fr/INSTALL.md)
 
-> **Current release: [v0.3.0-rc.4](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.3.0-rc.4)** — Bifrost **2.2.3**, **Linux ARM64/musl** only. Download `bifrost-dynamic-2.2.3-linux-arm64.tar.gz` and `bifrost-registry-v0.3.0-rc.4-linux-arm64.so` from that release, verify `SHA256SUMS`, then follow the steps below (the image tag is `bifrost-dynamic:2.2.3-go1.27.1-arm64`). The interface starts in English; French is one toggle or `?lang=fr` away. AMD64 2.2.3 is not qualified yet — the older `v0.2.0-rc.1` (Bifrost 2.2.2, ARM64 + AMD64) remains available for that pair.
+Registry is installed as **two separate artifacts**: a Bifrost gateway image compiled with dynamic loading (it contains no plugin), and the Registry plugin, a `.so` file with its interface embedded. Both must come from the same build: same architecture, Go toolchain, dependency versions and libc. Starting the image does not install the plugin. Use a staging instance before migrating an existing deployment.
 
-This guide's detailed walkthrough below still targets **[v0.2.0-rc.1](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.2.0-rc.1)** with Bifrost 2.2.2; its steps apply unchanged to the current release, only the file names, image tag and version differ. Use a staging instance before migrating an existing deployment.
+## Which files for which host
 
-## 1. Choose an installation mode
+This table is the only place that names release files. Pick the row for your host.
 
-**Mode A — Registry image + plugin (recommended).** Run the published Bifrost **2.2.3 dynamic image** (`docker load`, volume on `/app/data`, the two credential variables) and install the `.so` by **direct URL** in Bifrost's plugin settings. The image contains an unmodified Bifrost compiled with dynamic loading and **no plugin**; Registry stays a separate, versioned artifact. Steps below.
+| Host | Release | Bifrost | Image archive | Plugin (`.so`) |
+| --- | --- | --- | --- | --- |
+| Linux ARM64 | [v0.3.0-rc.4](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.3.0-rc.4) (current) | 2.2.3 | `bifrost-dynamic-2.2.3-linux-arm64.tar.gz` | `bifrost-registry-v0.3.0-rc.4-linux-arm64.so` |
+| Linux AMD64 (x86_64) | [v0.2.0-rc.1](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.2.0-rc.1) (previous) | 2.2.2 | `bifrost-dynamic-2.2.2-linux-amd64.tar.gz` | `bifrost-registry-v0.2.0-rc.1-linux-amd64.so` |
+| Linux ARM64, older pair | [v0.2.0-rc.1](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.2.0-rc.1) (previous) | 2.2.2 | `bifrost-dynamic-2.2.2-linux-arm64.tar.gz` | `bifrost-registry-v0.2.0-rc.1-linux-arm64.so` |
 
-**Mode B — Plugin only, on a gateway you already run.** Any Bifrost **compiled with dynamic loading** can host the Registry `.so`: download the matching `.so`, verify its checksum, make it reachable from the gateway either as a **local file path** (`path: "/plugins/bifrost-registry.so"` in the plugin entry, file readable by the Bifrost process) or as an **http(s) URL** (Bifrost downloads it at startup). Requirements: same architecture, Go toolchain, dependency versions, OS and libc as your gateway build; the qualified pair uses Linux ARM64/musl, Go 1.27.1. The official prebuilt static image refuses dynamic plugins (`Dynamic loading not supported`) — see [Troubleshooting](#troubleshooting).
+- Download each file from its release page. The plugin URL is always `https://github.com/sofianbll/bifrost-plugin-registry/releases/download/<release>/<plugin file>`: the URL of the **`.so` file**, not of the repository or the release page.
+- Every release includes a `SHA256SUMS` file. Verify each download against it.
+- No AMD64 pair is qualified or published yet for the Bifrost version of the current release, so AMD64 hosts use the previous release. It predates the Models.dev catalogue, per-access endpoints and native price and routing capabilities that the current release adds.
+- Both releases are release candidates. See [Qualification and limits](#qualification-and-limits).
 
-## 2. Download the matching pair (mode A)
+## Choose an installation mode
 
-Choose `amd64` for an x86_64 Linux host or `arm64` for an ARM64 Linux host (the current 2.2.3 release ships **arm64 only**). The release provides:
+**Mode A: Registry image and plugin URL (recommended).** Run the published dynamic image and add the `.so` by direct URL in Bifrost's plugin settings. The image holds an unmodified Bifrost compiled with dynamic loading and **no plugin**, so the inference path you trust is never patched and Registry stays a separate, versioned artifact.
 
-- `bifrost-dynamic-2.2.2-linux-{arch}.tar.gz` (v0.2.0-rc.1) or `bifrost-dynamic-2.2.3-linux-arm64.tar.gz` (current): a Docker image containing the complete Bifrost gateway compiled with dynamic loading, **without the Registry plugin**.
-- `bifrost-registry-v{release}-linux-{arch}.so`: the separately installed Registry plugin, including its interface.
-- `SHA256SUMS` and a provenance/license bundle.
+**Mode B: plugin only, on a gateway you already run.** Any Bifrost **compiled with dynamic loading** can host the Registry `.so`. It must match your gateway's architecture, Go toolchain, dependency versions, OS and libc; the qualified pairs use Linux/musl and Go 1.27.1. The official prebuilt static image refuses dynamic plugins (`Dynamic loading not supported`); see [Troubleshooting](TROUBLESHOOTING.md).
 
-Verify the downloaded files against `SHA256SUMS`. For example, on an AMD64 host:
+## Mode A: image and plugin URL
+
+### 1. Download and verify
+
+Download the image archive and the `.so` for your host from the table, plus `SHA256SUMS`, then compare checksums:
 
 ```bash
-sha256sum bifrost-dynamic-2.2.2-linux-amd64.tar.gz
-# Compare the result with the same filename in SHA256SUMS.
-docker load -i bifrost-dynamic-2.2.2-linux-amd64.tar.gz
+sha256sum <image archive> <plugin file>
+# Compare each result with the same filename in SHA256SUMS.
 ```
 
-On macOS, `shasum -a 256 <file>` provides the equivalent checksum. The loaded image tag is `bifrost-dynamic:2.2.2-go1.27.1-amd64` (or `-arm64`).
+On macOS, `shasum -a 256 <file>` gives the equivalent checksum.
 
-The gateway and plugin must match architecture, Go toolchain, dependencies, build settings and libc. The published pair uses Linux/musl and Go 1.27.1. The tested static official Bifrost image cannot load this `.so`. These are two separate installation steps; starting the image does not install the plugin.
+### 2. Load the image and start the gateway
 
-## 2. Configure the gateway and credentials
+```bash
+docker load -i <image archive>   # prints the loaded image tag
+```
 
-Keep the existing Bifrost providers, keys, budgets and routing configuration. Use the image's normal entrypoint and a **writable, persistent** volume mounted at `/app/data`. Before replacing an existing gateway image, stop it and back up the **complete** volume, including SQLite and WAL files. Never run two writers against that volume.
+Keep the existing Bifrost providers, keys, budgets and routing. Use the image's normal entrypoint and a **writable, persistent** volume mounted at `/app/data`. Before replacing the image of an existing gateway, stop it and back up the **complete** volume, including the SQLite and WAL files. Never run two writers against that volume.
 
-For a new gateway, configure native Bifrost administration and providers first. Supply these separate environment values through your secret manager or a private environment file:
+For a new gateway, configure native Bifrost administration and providers first. Supply the two [credentials](#credentials-and-plugin-settings) through your secret manager or a private environment file, then start the container. This command is illustrative; adapt ports, volume and hardening to your environment:
+
+```bash
+docker run -d --name bifrost \
+  -p 8080:8080 -p 127.0.0.1:8099:8099 \
+  -v bifrost-data:/app/data \
+  -e REGISTRY_ADMIN_TOKEN -e REGISTRY_BIFROST_AUTH \
+  <image tag>
+```
+
+The gateway's usual port is `8080`. Publish the Registry port `8099` only on host loopback, as above. Inside the container, `admin_listen` must be `0.0.0.0:8099` for that mapping to work.
+
+### 3. Install the plugin by URL
+
+Add the plugin through Bifrost's native plugin settings or `POST /api/plugins`, using the plugin URL built from the table. Merge the [plugin fragment](https://github.com/sofianbll/bifrost-plugin-registry/blob/main/configs/plugin.fragment.json) into the existing configuration, replacing its placeholder `path` with that URL, and keep the [plugin settings](#credentials-and-plugin-settings) below. Bifrost downloads the saved URL at installation and at every start, so keep the bytes of that version available at that URL.
+
+If the download fails with a temporary-file permission error, see [Troubleshooting](TROUBLESHOOTING.md).
+
+## Mode B: plugin only
+
+1. Download the `.so` matching your gateway from the table and verify its checksum as above. If your gateway was built from a different release, [build the pair yourself](BUILD.md) (French only).
+2. Make it reachable by the gateway either as a **local file path** (`path: "/plugins/bifrost-registry.so"` in the plugin entry, file readable by the Bifrost process) or as an **http(s) URL** (Bifrost downloads it at startup).
+3. Merge the [plugin fragment](https://github.com/sofianbll/bifrost-plugin-registry/blob/main/configs/plugin.fragment.json) with that `path` and the [plugin settings](#credentials-and-plugin-settings) below, through Bifrost's native plugin settings or `POST /api/plugins`.
+
+## Credentials and plugin settings
+
+Both modes use two separate secrets, supplied as environment values (never committed in JSON or logs):
 
 | Variable | Purpose |
 | --- | --- |
 | `REGISTRY_ADMIN_TOKEN` | At least 32 characters; opens the Registry panel. |
 | `REGISTRY_BIFROST_AUTH` | Complete `Authorization` header for the native Bifrost admin API, for example `Basic <base64(username:password)>`. Must match the gateway's configured authentication. |
 
-Keep credentials out of committed JSON and logs. Expose the Registry port only on host loopback, for example `127.0.0.1:8099:8099`. Inside the container, `admin_listen` must be `0.0.0.0:8099` for that mapping to work. The gateway's usual port is `8080`.
-
-## 3. Install the plugin by URL
-
-Use the URL of the **`.so` file**, not the repository or release page. Current release:
-
-**ARM64 (current, Bifrost 2.2.3)**
-
-```text
-https://github.com/sofianbll/bifrost-plugin-registry/releases/download/v0.3.0-rc.4/bifrost-registry-v0.3.0-rc.4-linux-arm64.so
-```
-
-**AMD64 (previous v0.2.0-rc.1, Bifrost 2.2.2 — AMD64 2.2.3 is not qualified yet)**
-
-```text
-https://github.com/sofianbll/bifrost-plugin-registry/releases/download/v0.2.0-rc.1/bifrost-registry-v0.2.0-rc.1-linux-amd64.so
-```
-
-Add the plugin through Bifrost's native plugin settings or `POST /api/plugins`. Merge the [plugin fragment](../configs/plugin.fragment.json) into the existing configuration, replacing its placeholder `path` with the matching URL (mode A) or a local `.so` path (mode B). Keep:
+In the plugin entry keep:
 
 - `placement: "post_builtin"` and `order: 0`;
 - `registry_path: "/app/data/registry/registry.json"`;
@@ -70,7 +88,11 @@ Add the plugin through Bifrost's native plugin settings or `POST /api/plugins`. 
 - `bifrost_auth_env: "REGISTRY_BIFROST_AUTH"`;
 - `bifrost_url: "http://127.0.0.1:8080"` when plugin and gateway share the same container.
 
-The plugin initializes a missing Registry file. Its UI assets are embedded; no separate frontend mount is needed. Open **http://127.0.0.1:8099/model-registry** and enter the Registry admin token. It stays in tab memory and must be entered again after reloading.
+The plugin initializes a missing Registry file. Its UI assets are embedded; no separate frontend mount is needed.
+
+## Verify
+
+Open **http://127.0.0.1:8099/model-registry** and enter the Registry admin token. It stays in tab memory and must be entered again after reloading. The interface starts in English; French is one toggle or `?lang=fr` away.
 
 Verify the plugin is `active` in `GET /api/plugins` and present in `GET /api/plugins/loaded`. Publish a small test catalog and read back `/v1/models` with a dedicated virtual key. Existing native keys remain unmanaged until explicitly adopted; adoption cannot expand their native permissions.
 
@@ -80,23 +102,8 @@ Stop the gateway and back up **all of `/app/data`** before an update. Save the n
 
 To roll back, stop the gateway, restore the complete stopped-volume backup, restore the prior gateway image if changed, and restart. This restores the Bifrost database, plugin URL and Registry data together. Pointing an old plugin at already-migrated data is not the tested rollback procedure. Keep the old plugin bytes available at their versioned URL.
 
-## Troubleshooting
-
-**`failed to create temporary file: open /tmp/bifrost-plugin-*.so: permission denied`** when adding a plugin by URL. Bifrost downloads the `.so` into its temporary directory before loading it (`os.TempDir()` — `/tmp`, or `$TMPDIR` when set; source: `framework/plugins/utils.go` in the pinned Bifrost tree). The Bifrost process therefore needs a **writable (and executable) temp directory**. This fails on hardened containers: read-only root filesystem, missing `/tmp`, or a `$TMPDIR` owned by another user. Fixes:
-
-- Docker: mount a writable tmpfs, e.g. `--tmpfs /tmp:rw,exec,nosuid,size=128m`, or point the temp dir at the data volume: `-e TMPDIR=/app/data/tmp` and create `/app/data/tmp` writable by the container's runtime user.
-- Kubernetes: add an `emptyDir` volume at `/tmp` when `readOnlyRootFilesystem` is set.
-- systemd service: check `PrivateTmp`/hardening options and `Environment=TMPDIR=…` pointing to a writable directory.
-- Quick check from the host: `docker exec <container> sh -c 'id; touch /tmp/write-test && rm /tmp/write-test'` must succeed as the Bifrost user.
-
-**`Dynamic loading not supported` (official prebuilt image).** The static official Bifrost image downloads the `.so` but refuses to load it. Use the published dynamic image (mode A) or build your own gateway with dynamic loading matching your Go toolchain, architecture and libc ([native build](BUILD.md)).
-
-**`plugin already loaded` when re-enabling without restart.** Hot reactivation of a Go plugin is not supported; restart the gateway (the panel, data and readback are restored).
-
-**Plugin downloads but fails to activate.** Verify the checksum against `SHA256SUMS`, and that image and `.so` share architecture, Go version, dependencies and libc. Check `GET /api/plugins` and the gateway logs for the activation error.
-
 ## Qualification and limits
 
-[Release evidence](../reports/v1-final/README.md) covers both architectures, separate URL installation, persistence, native adoption and an ARM64 upgrade/rollback. The installed Hermes client was tested against a synthetic provider. Real-provider capabilities, a production rollout and native sidebar integration are not certified by these checks.
+The current pair is qualified on Linux ARM64 with synthetic providers; see the [ARM64 qualification report](https://github.com/sofianbll/bifrost-plugin-registry/blob/main/reports/bifrost-2.2.3-arm64-869e251/README.md). The previous release's evidence covers both architectures, URL installation, persistence, native adoption and an ARM64 upgrade/rollback ([release evidence](https://github.com/sofianbll/bifrost-plugin-registry/blob/main/reports/v1-final/README.md)). Real-provider inference, a production rollout and native sidebar integration are not certified by these checks. [STATUS](https://github.com/sofianbll/bifrost-plugin-registry/blob/main/STATUS.md) is the authoritative record.
 
-The previous Bifrost 2.2.1 binary-mount recipe is retained in [the historical archive](archive/installation-2.2.1.md).
+The previous Bifrost 2.2.1 binary-mount recipe is retained in the [historical archive](https://github.com/sofianbll/bifrost-plugin-registry/blob/main/docs/archive/installation-2.2.1.md).

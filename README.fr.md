@@ -44,7 +44,7 @@ export REGISTRY_ADMIN_TOKEN=…  REGISTRY_BIFROST_AUTH='Basic …'
 open http://127.0.0.1:8099/model-registry
 ```
 
-**[Installation, configuration et retour arrière complets →](docs/INSTALL.md)** — deux modes : l'image dynamique publiée plus l'URL du plugin, ou le plugin seul sur tout Bifrost compilé avec chargement dynamique. Si l'ajout du plugin échoue avec une erreur de permission sur un fichier temporaire, voir [Dépannage](docs/INSTALL.md#troubleshooting).
+**[Installation, configuration et retour arrière complets →](docs/fr/INSTALL.md)** — deux modes : l'image dynamique publiée plus l'URL du plugin, ou le plugin seul sur tout Bifrost compilé avec chargement dynamique. Si l'ajout du plugin échoue avec une erreur de permission sur un fichier temporaire, voir [Dépannage](docs/fr/TROUBLESHOOTING.md).
 
 ## Captures d'écran
 
@@ -64,12 +64,12 @@ Projet indépendant, pas un produit officiel Maxim/Bifrost.
 
 ## Pour aller plus loin
 
-- [Installation](docs/INSTALL.md) — fichiers de release, identifiants, stockage persistant, mise à jour et retour arrière.
-- [Configuration](docs/CONFIGURATION.md) — fiches Registry, groupes, politiques de clé et anciennes datasheets.
-- [Guide utilisateur](docs/USER-GUIDE.md) — enregistrement de modèles, sources, groupes et composition de clés.
-- [Procédure de release](docs/RELEASE.md) — qualifier et publier une paire gateway/plugin.
+- [Installation](docs/fr/INSTALL.md) — fichiers de release, identifiants, stockage persistant, mise à jour et retour arrière.
+- [Configuration](docs/fr/CONFIGURATION.md) — fiches Registry, groupes, politiques de clé et anciennes datasheets.
+- [Guide utilisateur](docs/fr/USER-GUIDE.md) — enregistrement de modèles, sources, groupes et composition de clés.
+- [Dépannage](docs/fr/TROUBLESHOOTING.md) — permissions du répertoire temporaire, `Dynamic loading not supported`, échecs d'activation.
 - [Compilation native](docs/BUILD.md) — compiler le gateway et le `.so` avec des dépendances compatibles.
-- [Index de la documentation](docs/README.md) · [Changelog](CHANGELOG.md) · [État](STATUS.md).
+- [Index de la documentation](docs/fr/README.md) · [Changelog](CHANGELOG.md) · [État](STATUS.md).
 
 ## Exécution et qualification
 
@@ -95,7 +95,7 @@ Ouvrez d'abord une issue avec un bug reproductible ou un cas d'usage concret, pu
 
 ## Support
 
-Posez vos questions et signalez les bugs via [GitHub Issues](https://github.com/sofianbll/bifrost-plugin-registry/issues). Pour les questions d'usage et de configuration, commencez par le [guide utilisateur](docs/USER-GUIDE.md).
+Posez vos questions et signalez les bugs via [GitHub Issues](https://github.com/sofianbll/bifrost-plugin-registry/issues). Pour les questions d'usage et de configuration, commencez par le [guide utilisateur](docs/fr/USER-GUIDE.md).
 
 ## Sécurité
 

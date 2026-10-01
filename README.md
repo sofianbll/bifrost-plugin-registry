@@ -42,7 +42,7 @@ export REGISTRY_ADMIN_TOKEN=…  REGISTRY_BIFROST_AUTH='Basic …'
 open http://127.0.0.1:8099/model-registry
 ```
 
-**[Full installation, configuration and rollback →](docs/INSTALL.md)** — two modes: the published dynamic image plus the plugin URL, or the plugin alone on any Bifrost built with dynamic loading. If adding the plugin fails with a temp-file permission error, see [Troubleshooting](docs/INSTALL.md#troubleshooting).
+**[Full installation, configuration and rollback →](docs/INSTALL.md)** — two modes: the published dynamic image plus the plugin URL, or the plugin alone on any Bifrost built with dynamic loading. If adding the plugin fails with a temp-file permission error, see [Troubleshooting](docs/TROUBLESHOOTING.md).
 
 ## Screenshots
 
@@ -65,7 +65,7 @@ Independent project, not an official Maxim/Bifrost product.
 - [Installation](docs/INSTALL.md) — release files, credentials, persistent storage, upgrade and rollback.
 - [Configuration](docs/CONFIGURATION.md) — registry records, groups, key policies and legacy datasheets.
 - [User guide](docs/USER-GUIDE.md) — model registration, sources, groups and key composition.
-- [Release procedure](docs/RELEASE.md) — qualifying and publishing a gateway/plugin pair.
+- [Troubleshooting](docs/TROUBLESHOOTING.md) — temp-directory permissions, `Dynamic loading not supported`, activation failures.
 - [Native build](docs/BUILD.md) — compiling the gateway and the `.so` with compatible dependencies.
 - [Documentation index](docs/README.md) · [Changelog](CHANGELOG.md) · [Status](STATUS.md).
 

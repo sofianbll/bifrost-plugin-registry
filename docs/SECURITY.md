@@ -1,39 +1,41 @@
-# Sécurité et frontière de confiance
+# Security and trust boundaries
 
-Pour signaler une vulnérabilité, suivre la [politique de signalement privé](../SECURITY.md). Les [preuves V1](../reports/v1-final/README.md) identifient les binaires et scénarios réellement qualifiés.
+English · [Français](fr/SECURITY.md)
 
-## Ce que le plugin n’est pas
+To report a vulnerability, follow the [private reporting policy](https://github.com/sofianbll/bifrost-plugin-registry/blob/main/SECURITY.md). The [V1 evidence](https://github.com/sofianbll/bifrost-plugin-registry/blob/main/reports/v1-final/README.md) identifies the binaries and scenarios that were actually qualified.
 
-Ce projet n’est pas un fournisseur d’identité, un gestionnaire de secrets, une implémentation de budgets ni un moteur de facturation. Une empreinte SHA-256 relie une politique à une clé virtuelle ; **elle n’authentifie pas la clé auprès de Bifrost**. La gouvernance native doit encore authentifier la clé, vérifier sa validité et ses restrictions, sélectionner une clé provider autorisée et appliquer les quotas/budgets.
+## What the plugin is not
 
-Les fichiers `registry.json` et le jeton d’administration sont des éléments de confiance : une personne capable de les modifier peut changer les politiques. Les IDs et empreintes ne sont pas des secrets d’authentification utilisables directement, mais restent des données d’administration sensibles. Les permissions natives doivent être maintenues indépendamment.
+This project is not an identity provider, a secret manager, a budget implementation or a billing engine. A SHA-256 fingerprint ties a policy to a virtual key; **it does not authenticate the key to Bifrost**. Native governance must still authenticate the key, check its validity and restrictions, select an allowed provider key and apply quotas and budgets.
 
-## Invariants implémentés et testés localement
+The `registry.json` files and the admin token are trusted assets: anyone able to modify them can change the policies. IDs and fingerprints are not directly usable authentication secrets, but they remain sensitive administration data. Native permissions must be maintained independently.
 
-Les alias courts ambigus sont rejetés sans préférence. Les modèles désactivés ou sans accès natif configuré ni preuve historique valide ne sont pas publiés. Une métadonnée manquante ne crée pas de permission et ne bloque pas à elle seule un accès valide. Aucun groupe dans une politique signifie aucun accès. Les noms amont ne sont pas acceptés comme raccourci implicite. Les références inconnues et les clés JSON dupliquées sont rejetées. Une tentative provider doit faire partie des routes explicitement acceptées pour cette requête.
+## Invariants implemented and tested locally
 
-Les snapshots sont immuables. Une validation invalide ne remplace pas l’état en mémoire ; une sauvegarde exige la révision attendue. Les fichiers sont écrits en mode 0600 via fichier temporaire et rename. Le fsync du répertoire parent est best-effort ; ce n’est pas une promesse de durabilité absolue sur tous les systèmes de fichiers.
+Ambiguous short aliases are rejected without any preference. Disabled models, or models with no configured native access and no valid historical proof, are not published. Missing metadata creates no permission and does not by itself block a valid access. No group in a policy means no access. Upstream names are not accepted as an implicit shortcut. Unknown references and duplicate JSON keys are rejected. A provider attempt must be one of the routes explicitly accepted for that request.
 
-Le panneau n’utilise pas de cookies ni de stockage navigateur pour ses jetons. Les commandes de clés virtuelles lisent le secret sur stdin, pas dans les arguments. Les requêtes d’administration demandent un Bearer explicite ; les hôtes inattendus et les Origin d’autres sites sont refusés. Aucune CORS permissive n’est activée. Une CSP stricte, `nosniff`, `no-referrer` et `no-store` sont envoyés. Les champs affichés dans les templates sont échappés. Les requêtes JSON d’administration sont limitées à 4 Mio et les requêtes du garde à 32 Mio.
+Snapshots are immutable. An invalid validation does not replace the in-memory state; a save requires the expected revision. Files are written with mode 0600 through a temporary file and rename. The parent-directory fsync is best-effort; this is not a promise of absolute durability on every filesystem.
 
-Ces protections ont des tests de code, des sondes dans le gateway réel et une revue navigateur sur une fixture loopback. Ces contrôles ne remplacent pas la qualification du réseau, du reverse proxy ou des autres plugins de votre déploiement.
+The panel uses no cookies and no browser storage for its tokens. Virtual-key commands read the secret on stdin, not in arguments. Admin requests require an explicit Bearer token; unexpected hosts and Origins from other sites are refused. No permissive CORS is enabled. A strict CSP, `nosniff`, `no-referrer` and `no-store` are sent. Fields displayed in templates are escaped. Admin JSON requests are limited to 4 MiB and guard requests to 32 MiB.
 
-## Hypothèses natives à vérifier avant production
+These protections have code tests, probes in the real gateway and a browser review on a loopback fixture. These checks do not replace qualification of the network, reverse proxy or other plugins in your deployment.
 
-Le HTTP PreHook doit recevoir chaque route protégée. Le PreLLMHook doit voir `provider/alias` avant résolution finale de l’alias amont et s’exécuter à chaque tentative. La gouvernance doit publier l’ID VK authentifié dans le contexte attendu. Les réponses ListModels doivent être filtrées par la gouvernance et présenter les IDs natifs préfixés attendus. Les sondes de la V1 vérifient ces interactions dans Bifrost 2.2.2 avec un fournisseur synthétique. Les autres versions, transports et combinaisons de plugins exigent leurs propres contrôles.
+## Native assumptions to verify before production
 
-Le plugin exige cet ID authentifié avant de rendre un contenu réussi. Il ne l’invente pas et ne le déduit pas du simple fingerprint. Les chunks d’erreur natifs sont préservés, même lorsque l’authentification n’a pas produit d’identité. Les refus PreLLM utilisent un `LLMPluginShortCircuit` avec `AllowFallbacks=false` : une erreur Go ordinaire n’est pas un contrôle d’accès suffisant dans Bifrost.
+The HTTP PreHook must receive every protected route. The PreLLMHook must see `provider/alias` before the upstream alias is finally resolved, and must run on every attempt. Governance must publish the authenticated VK ID in the expected context. ListModels responses must be filtered by governance and carry the expected prefixed native IDs. The V1 probes verify these interactions in Bifrost 2.2.2 with a synthetic provider. Other versions, transports and plugin combinations require their own checks.
 
-La vérification tardive de l’ID ne doit pas devenir le mécanisme d’authentification principal : si la gouvernance était absente ou mal configurée, une requête pourrait avoir atteint l’amont avant le refus de sa réponse. **Ne pas charger ce plugin sur une installation sans gouvernance native opérationnelle et vérifiée.** Les tests de staging doivent confirmer l’absence de requête provider sur les refus d’authentification.
+The plugin requires this authenticated ID before returning successful content. It neither invents it nor deduces it from the fingerprint alone. Native error chunks are preserved, even when authentication produced no identity. PreLLM refusals use an `LLMPluginShortCircuit` with `AllowFallbacks=false`: an ordinary Go error is not a sufficient access control in Bifrost.
 
-Les autres plugins natifs et l’hôte Go sont de confiance. Un autre plugin malveillant exécuté dans le même processus a les mêmes possibilités d’accès mémoire/configuration ; ce code n’est pas un sandbox de plugins.
+Late verification of the ID must not become the main authentication mechanism: if governance were absent or misconfigured, a request could have reached the upstream before its response was refused. **Do not load this plugin on an installation without verified, working native governance.** Staging tests must confirm that authentication refusals produce no provider request.
 
-## Limites opérationnelles
+Other native plugins and the Go host are trusted. A malicious plugin running in the same process has the same memory and configuration access; this code is not a plugin sandbox.
 
-Un seul processus doit écrire la configuration. La détection de modification externe n’est pas un verrou interprocessus ni un compare-and-swap distribué : deux writers pourraient franchir simultanément la vérification. Monter un répertoire et utiliser le panneau embarqué du plugin pour une mise à jour runtime. Une session d’inférence conserve son snapshot initial ; la révocation du registre n’interrompt pas les streams déjà engagés. Les révocations natives doivent être traitées par Bifrost.
+## Operational limits
 
-La projection `/models` refuse les IDs natifs dupliqués, les enveloppes invalides et l’absence d’identité attendue. Un provider qui ne retourne pas les alias attendus peut produire une liste vide : il faut corriger la configuration, pas élargir implicitement les droits.
+A single process must write the configuration. Detecting an external change is neither an interprocess lock nor a distributed compare-and-swap: two writers could pass the check simultaneously. Mount a directory and use the plugin's embedded panel for a runtime update. An inference session keeps its initial snapshot; revoking in the registry does not interrupt streams already in progress. Native revocations must be handled by Bifrost.
 
-Pour une clé gérée par Registry, les endpoints non pris en charge échouent explicitement. Les clés natives non gérées restent soumises au pipeline Bifrost natif. La restriction HTTP peut aussi bloquer des appels internes SDK/probes lorsqu’ils ne passent pas par une session Registry. Une recette d’intégration validée pour votre version reste nécessaire.
+The `/models` projection refuses duplicate native IDs, invalid envelopes and a missing expected identity. A provider that does not return the expected aliases can produce an empty list: fix the configuration rather than implicitly widening rights.
 
-Le `.so` possède les privilèges du processus Bifrost. Ne charger que le build que vous avez examiné, conserver ses checksums, protéger les volumes et reconstruire le gateway/plugin ensemble lors des mises à jour. Aucun mécanisme « impossible à contourner » ou compatibilité « 100 % » n’est revendiqué.
+For a key managed by Registry, unsupported endpoints fail explicitly. Unmanaged native keys stay subject to the native Bifrost pipeline. The HTTP restriction can also block internal SDK calls and probes when they do not go through a Registry session. An integration recipe validated for your version is still needed.
+
+The `.so` has the privileges of the Bifrost process. Load only a build you have examined, keep its checksums, protect the volumes and rebuild the gateway and plugin together on updates. No "impossible to bypass" mechanism or "100%" compatibility is claimed.

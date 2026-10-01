@@ -1,6 +1,6 @@
 # Bifrost Registry UI
 
-React frontend for the standalone Bifrost Registry plugin. The plugin embeds the production build and serves the panel at `/model-registry` on its admin port (default `8099`). See the [release guide](../docs/RELEASE.md) for installation and authentication.
+React frontend for the standalone Bifrost Registry plugin. The plugin embeds the production build and serves the panel at `/model-registry` on its admin port (default `8099`). See the [installation guide](../docs/INSTALL.md) for installation and authentication.
 
 ## Develop and verify
 
