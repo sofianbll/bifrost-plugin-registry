@@ -1,5 +1,7 @@
 # Installation du plugin par URL — Bifrost officiel 2.2.2
 
+> **Note (2026-10-01):** the patches, scripts and probes this dated report links to or runs were removed from the tree in #27. They remain in Git history at commit `61648dd` (`git show 61648dd:<path>`). The report itself is unchanged.
+
 Recherche du 24 septembre 2026. **Résultat : le fichier est téléchargé, mais le plugin ne se charge pas.** Le succès d'exécution de la sonde ne signifie pas une installation réussie.
 
 ## Preuve finale

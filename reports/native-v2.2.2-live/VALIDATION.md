@@ -1,5 +1,7 @@
 # Validation du pilote local — 24 septembre 2026
 
+> **Note (2026-10-01):** the patches, scripts and probes this dated report links to or runs were removed from the tree in #27. They remain in Git history at commit `61648dd` (`git show 61648dd:<path>`). The report itself is unchanged.
+
 ## Périmètre
 
 Bifrost `transports/v2.2.2`, instance locale `http://127.0.0.1:8082`, fournisseur **CLI PROXY** configuré par Sofian. La production et un vrai client Hermes ne font pas partie de cette preuve.

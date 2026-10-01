@@ -1,0 +1,32 @@
+# Version updates: weekly, minor and patch together in one PR per ecosystem, majors alone.
+# Dependabot applies a 3-day cooldown to version updates by default (not to security updates); kept as is.
+# Pins of the form `uses: owner/repo@<full sha> # vX.Y.Z` are bumped with their comment (dependabot-core's
+# github_actions file updater has a version commenter; the GitHub docs do not say so): check the first PR.
+# No gomod entry: go.mod has no requirements.
+version: 2
+updates:
+  # ui/ also holds the Playwright E2E package; docs/ holds the VitePress site.
+  - package-ecosystem: npm
+    directories: [/ui, /docs]
+    schedule:
+      interval: weekly
+    groups:
+      npm:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        update-types: [minor, patch]
+
+  # packaging/Dockerfile: the Alpine base image, pinned by tag and digest.
+  - package-ecosystem: docker
+    directory: /packaging
+    schedule:
+      interval: weekly
+    groups:
+      docker:
+        update-types: [minor, patch]

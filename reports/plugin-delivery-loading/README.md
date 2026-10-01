@@ -1,5 +1,7 @@
 # URL installation on a paired dynamic Bifrost 2.2.2 build
 
+> **Note (2026-10-01):** the patches, scripts and probes this dated report links to or runs were removed from the tree in #27. They remain in Git history at commit `61648dd` (`git show 61648dd:<path>`). The report itself is unchanged.
+
 Local proof on 2026-09-24. The Bifrost source was pinned to `fdeef8e3f31a3b18a61666ba49247d07bae3600a` (`transports/v2.2.2`). The paired gateway and Registry plugin were built in the same Go module with Go 1.27.1, `CGO_ENABLED=1`, `GOWORK=off`, `-mod=readonly -trimpath -buildvcs=false -tags=bifrost -ldflags='-w -s'`, for Linux ARM64 and Alpine musl. The gateway is a dynamically linked ELF executable. The runtime container used the already-local `golang:1.27.1-alpine` image; this was **not** an official Bifrost image.
 
 | Artifact | SHA-256 |
