@@ -113,11 +113,13 @@ note "  $TOTAL_STAGES stages. Each shows the current state first and asks before
 # STAGES
 # ──────────────────────────────────────────────────────────────────────────
 
+# gh prints the error body on stdout for a non-2xx answer, so `$(gh ... || echo X)` would keep that body in
+# the variable: the lookups below take the value only when gh succeeded.
 # 1 ── Dependabot alerts and security updates ────────────────────────────────
 stage "Dependabot alerts and security updates"
 alerts=disabled
 gh api "repos/$REPO/vulnerability-alerts" --silent 2>/dev/null && alerts=enabled
-fixes=$(gh api "repos/$REPO/automated-security-fixes" --jq .enabled 2>/dev/null || echo unknown)
+fixes=unknown; v=$(gh api "repos/$REPO/automated-security-fixes" --jq .enabled 2>/dev/null) && fixes=$v
 say "alerts:           $alerts"
 say "security updates: enabled=$fixes"
 note "Version-update PRs come from .github/dependabot.yml, not from these switches."
@@ -166,7 +168,7 @@ fi
 
 # 4 ── CodeQL default setup must stay off ────────────────────────────────────
 stage "Code scanning: CodeQL default setup"
-state=$(gh api "repos/$REPO/code-scanning/default-setup" --jq .state 2>/dev/null || echo unknown)
+state=unknown; v=$(gh api "repos/$REPO/code-scanning/default-setup" --jq .state 2>/dev/null) && state=$v
 say "default setup: $state"
 note ".github/workflows/codeql.yml is the advanced setup; GitHub rejects its results while default setup is on."
 if [[ $state == configured ]]; then
@@ -175,7 +177,7 @@ fi
 
 # 5 ── Pages ─────────────────────────────────────────────────────────────────
 stage "Pages: source = GitHub Actions"
-build=$(gh api "repos/$REPO/pages" --jq .build_type 2>/dev/null || echo none)
+build=none; v=$(gh api "repos/$REPO/pages" --jq .build_type 2>/dev/null) && build=$v
 say "Pages build type: $build (none = Pages not enabled; wanted: workflow)"
 case $build in
   workflow) ;;
