@@ -27,7 +27,7 @@ L'interface est **anglaise par défaut** ; le français est disponible en un cli
 - **Catalogue Models.dev embarqué** — un instantané de référence versionné et reproductible, avec provenance par champ, liens canoniques et corrections manuelles qui survivent aux rafraîchissements.
 - **Endpoints par accès** — chaque accès fournisseur choisit ses opérations exposées indépendamment (Chat Completions et Responses sont des choix distincts).
 - **Sélection d'accès par clé** — choisissez ce que chaque clé virtuelle peut atteindre ; exclusions et ajouts sont révisés avant publication.
-- **Prix et limites natifs** — corrections tarifaires et accès restreint par clé appliqués via la gouvernance Bifrost elle-même, pas une couche parallèle.
+- **Corrections de prix natives** — corrections tarifaires et accès restreint par clé appliqués via la gouvernance Bifrost elle-même, pas une couche parallèle. Les limites techniques ne sont pas appliquées nativement.
 - **Routage natif restreint** — publiez des alias partagés qui ne routent que parmi les accès retenus par chaque clé.
 - **UI embarquée + import/export** — panneau React sur son propre port, instantanés JSON versionnés avec aperçu et sauvegarde, export CSV aplati.
 
@@ -44,7 +44,7 @@ export REGISTRY_ADMIN_TOKEN=…  REGISTRY_BIFROST_AUTH='Basic …'
 open http://127.0.0.1:8099/model-registry
 ```
 
-**[Installation, configuration et retour arrière complets →](docs/INSTALL.md)** — deux modes : l'image dynamique publiée plus l'URL du plugin, ou le plugin seul sur tout Bifrost compilé avec chargement dynamique. Si l'ajout du plugin échoue avec une erreur de permission sur un fichier temporaire, voir [Dépannage](docs/INSTALL.md#troubleshooting).
+**[Installation, configuration et retour arrière complets →](docs/fr/INSTALL.md)** — deux modes : l'image dynamique publiée plus l'URL du plugin, ou le plugin seul sur tout Bifrost compilé avec chargement dynamique. Si l'ajout du plugin échoue avec une erreur de permission sur un fichier temporaire, voir [Dépannage](docs/fr/TROUBLESHOOTING.md).
 
 ## Captures d'écran
 
@@ -64,12 +64,12 @@ Projet indépendant, pas un produit officiel Maxim/Bifrost.
 
 ## Pour aller plus loin
 
-- [Installation](docs/INSTALL.md) — fichiers de release, identifiants, stockage persistant, mise à jour et retour arrière.
-- [Configuration](docs/CONFIGURATION.md) — fiches Registry, groupes, politiques de clé et anciennes datasheets.
-- [Guide utilisateur](docs/USER-GUIDE.md) — enregistrement de modèles, sources, groupes et composition de clés.
-- [Procédure de release](docs/RELEASE.md) — qualifier et publier une paire gateway/plugin.
+- [Installation](docs/fr/INSTALL.md) — fichiers de release, identifiants, stockage persistant, mise à jour et retour arrière.
+- [Configuration](docs/fr/CONFIGURATION.md) — fiches Registry, groupes, politiques de clé et anciennes datasheets.
+- [Guide utilisateur](docs/fr/USER-GUIDE.md) — enregistrement de modèles, sources, groupes et composition de clés.
+- [Dépannage](docs/fr/TROUBLESHOOTING.md) — permissions du répertoire temporaire, `Dynamic loading not supported`, échecs d'activation.
 - [Compilation native](docs/BUILD.md) — compiler le gateway et le `.so` avec des dépendances compatibles.
-- [Index de la documentation](docs/README.md) · [Changelog](CHANGELOG.md) · [État](STATUS.md).
+- [Index de la documentation](docs/fr/README.md) · [Changelog](CHANGELOG.md) · [État](STATUS.md).
 
 ## Exécution et qualification
 
@@ -95,7 +95,7 @@ Ouvrez d'abord une issue avec un bug reproductible ou un cas d'usage concret, pu
 
 ## Support
 
-Posez vos questions et signalez les bugs via [GitHub Issues](https://github.com/sofianbll/bifrost-plugin-registry/issues). Pour les questions d'usage et de configuration, commencez par le [guide utilisateur](docs/USER-GUIDE.md).
+Posez vos questions et signalez les bugs via [GitHub Issues](https://github.com/sofianbll/bifrost-plugin-registry/issues). Pour les questions d'usage et de configuration, commencez par le [guide utilisateur](docs/fr/USER-GUIDE.md).
 
 ## Sécurité
 

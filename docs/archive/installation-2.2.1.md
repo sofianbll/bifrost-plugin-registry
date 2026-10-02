@@ -2,7 +2,7 @@
 
 # Installation historique du plugin dans Bifrost
 
-La procédure active V1 RC est dans [RELEASE.md](../RELEASE.md) : image Bifrost compilée avec liaison dynamique, puis installation du `.so` séparé par URL. Le montage ci-dessous conserve la preuve historique du 23 septembre ; le placement indiqué a été actualisé pour la coexistence des clés natives.
+La procédure active V1 RC est dans [fr/INSTALL.md](../fr/INSTALL.md) : image Bifrost compilée avec liaison dynamique, puis installation du `.so` séparé par URL. Le montage ci-dessous conserve la preuve historique du 23 septembre ; le placement indiqué a été actualisé pour la coexistence des clés natives.
 
 Date : 2026-09-23. Validée de bout en bout sur un staging Pulsar (Alpine/musl, x86_64, Bifrost v2.2.1 dynamique).
 

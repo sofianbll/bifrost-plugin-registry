@@ -1,87 +1,89 @@
-# Référence de configuration
+# Configuration reference
 
-## Modèle du registre
+English · [Français](fr/CONFIGURATION.md)
 
-`id` est l’identifiant local stable du modèle. `alias` est le nom exposable ; cette version impose des identifiants minuscules sans slash. `provider` est le nom exact du provider configuré dans Bifrost. `provider_key_ids` contient les identifiants non secrets des clés provider EXISTANTES où cet alias doit être déclaré.
+## Registry model
 
-`upstream_model` est la cible exacte envoyée par l’alias natif. `canonical_model` est exporté comme `model_name` pour le mapping canonique/pricing natif. `model_family` est exporté comme famille de protocole native : ce n’est **pas** une étiquette de classement et il ne faut pas la deviner. `creator`, `family`, `capabilities` et `metadata` sont des métadonnées d’administration. La famille de classement peut par exemple être `Claude` sans correspondre à la valeur native `anthropic`.
+`id` is the model's stable local identifier. `alias` is the name that can be exposed; this version requires lowercase identifiers without slashes. `provider` is the exact name of the provider configured in Bifrost. `provider_key_ids` holds the non-secret identifiers of the EXISTING provider keys where this alias must be declared.
 
-`endpoints` est une liste explicite des endpoints autorisés pour ce modèle ; la déclaration ne prouve pas que le provider les implémente. Pour entrer dans la vue compilée ou le plan d'alias, un modèle doit avoir `enabled: true` et **au moins un** des états `configured: true` ou `verified: true`. `configured` indique un accès natif Bifrost configuré ; il ne prouve aucune inférence ni capacité. `verified: true` exige `evidence` non vide : c'est une déclaration de l'administrateur, sans vérification automatique. Les permissions et la liste native Bifrost continuent de limiter les accès effectifs.
+`upstream_model` is the exact target sent by the native alias. `canonical_model` is exported as `model_name` for native canonical/pricing mapping. `model_family` is exported as the native protocol family: it is **not** a classification label and must not be guessed. `creator`, `family`, `capabilities` and `metadata` are administration metadata. The classification family can be `Claude`, for example, without matching the native value `anthropic`.
 
-## Groupes
+`endpoints` is an explicit list of the endpoints allowed for this model; declaring one does not prove that the provider implements it. To enter the compiled view or the alias plan, a model must have `enabled: true` and **at least one** of `configured: true` or `verified: true`. `configured` indicates a configured native Bifrost access; it proves no inference or capability. `verified: true` requires a non-empty `evidence`: it is an administrator declaration, with no automatic verification. Native Bifrost permissions and lists still limit effective access.
 
-`model_ids` et `filter` sont réunis par UNION. Un filtre comprend les listes optionnelles `sources`, `creators`, `families`, `capabilities`.
+## Groups
 
-À l’intérieur des sources/créateurs/familles, une correspondance suffit. Entre catégories, toutes les conditions doivent être satisfaites. Pour les capacités, toutes les capacités demandées doivent être présentes. `exclude` soustrait ensuite les identifiants précisés. Les modèles désactivés, ou ni configurés ni vérifiés, sont encore retirés lors de la compilation de chaque vue.
+`model_ids` and `filter` are combined by UNION. A filter holds the optional lists `sources`, `creators`, `families` and `capabilities`.
 
-Un groupe sans modèles explicites et sans filtre non vide est invalide. Une politique sans aucun groupe est valide et interdit tout. Les membres de groupe sont des IDs locaux, pas des alias.
+Within sources, creators or families, one match is enough. Across categories, every condition must be met. For capabilities, every requested capability must be present. `exclude` then subtracts the listed identifiers. Disabled models, and models that are neither configured nor verified, are still removed when each view is compiled.
 
-## Politiques de clés virtuelles
+A group with no explicit models and no non-empty filter is invalid. A policy with no group is valid and denies everything. Group members are local IDs, not aliases.
 
-`virtual_key_id` est l’identifiant natif de la clé. `token_sha256` est l’empreinte du **jeton complet** ; ce champ ne doit jamais contenir le jeton brut. Le SDK client continue d’envoyer son vrai jeton `sk-bf-…` à Bifrost via `Authorization: Bearer …` ou `x-bf-vk`.
+## Virtual key policies
 
-Pour produire l’empreinte sans secret dans l’historique du shell :
+`virtual_key_id` is the key's native identifier. `token_sha256` is the fingerprint of the **full token**; this field must never hold the raw token. The client SDK keeps sending its real `sk-bf-…` token to Bifrost through `Authorization: Bearer …` or `x-bf-vk`.
+
+To produce the fingerprint without leaving a secret in the shell history (build the CLI first with `make build`):
 
 ```bash
-read -r -s -p 'Clé virtuelle Bifrost : ' BF_VK; printf '\n'
-printf '%s' "$BF_VK" | ./dist/registry-linux-amd64 hash
+read -r -s -p 'Bifrost virtual key: ' BF_VK; printf '\n'
+printf '%s' "$BF_VK" | ./dist/registry hash
 unset BF_VK
 ```
 
-Le prompt `read -p` de cet exemple est prévu pour Bash. Sur Mac, `go run ./cmd/registry hash` remplace le binaire Linux ; conserver la saisie secrète dans un shell compatible. Le panneau propose aussi un hachage WebCrypto local sur localhost/HTTPS ; ce parcours n’a pas été testé en contexte navigateur sécurisé lors de cette livraison.
+The `read -p` prompt in this example is meant for Bash; keep the input secret in a compatible shell. The panel also offers a local WebCrypto hash on localhost/HTTPS; that path was not tested in a secure browser context for this delivery.
 
-`groups` autorise les groupes choisis. `sources` restreint encore leur union ; vide signifie « pas de filtre de source supplémentaire », pas « tout le catalogue ». `naming` surcharge `default_naming`.
+`groups` allows the chosen groups. `sources` further restricts their union; empty means "no additional source filter", not "the whole catalog". `naming` overrides `default_naming`.
 
-| Format | Exemples | Collisions |
+| Format | Examples | Collisions |
 | --- | --- | --- |
-| `provider/model` | `codex/reasoning` | Chaque source conserve son préfixe. |
-| `model` | `reasoning` | Un seul gagnant autorisé pour chaque nom court. |
-| `both` | Les deux | Tous les noms préfixés, plus un gagnant pour le nom court. |
+| `provider/model` | `codex/reasoning` | Each source keeps its prefix. |
+| `model` | `reasoning` | One winner is allowed for each short name. |
+| `both` | Both | All prefixed names, plus one winner for the short name. |
 
-`prefer` sélectionne un **ID local** : `{"reasoning":"codex-reasoning"}`. En format `model`, une source perdante ne devient pas implicitement accessible via son nom préfixé ; seuls les noms effectivement exposés sont acceptés. En format `both`, les autres sources restent accessibles avec leur préfixe. Une clé désactivée est rejetée, même si son empreinte reste dans la configuration.
+`prefer` selects a **local ID**: `{"reasoning":"codex-reasoning"}`. In `model` format, a losing source does not implicitly become reachable through its prefixed name; only the names actually exposed are accepted. In `both` format, the other sources stay reachable with their prefix. A disabled key is rejected, even if its fingerprint remains in the configuration.
 
-## Déroulement d’une requête
+## How a request flows
 
-Le moteur lit la clé virtuelle, retrouve une politique activée et prend un snapshot immutable. Il résout le nom exposé vers `provider/alias`, valide l’endpoint et les fallbacks explicites. Il ne résout pas lui-même vers `upstream_model` : ce travail appartient aux aliases natifs. Tous les autres champs JSON sont conservés sémantiquement, y compris outils, reasoning, signatures, `prompt_cache_key` et `previous_response_id`. La mise en forme JSON et l’ordre des propriétés peuvent changer.
+The engine reads the virtual key, finds an enabled policy and takes an immutable snapshot. It resolves the exposed name to `provider/alias`, then validates the endpoint and the explicit fallbacks. It does not itself resolve to `upstream_model`: that work belongs to the native aliases. All other JSON fields are preserved semantically, including tools, reasoning, signatures, `prompt_cache_key` and `previous_response_id`. JSON formatting and property order may change.
 
-Chaque tentative est limitée au primaire ou aux fallbacks explicitement demandés dans cette requête. Une règle native qui ajoute un autre fallback est refusée, même si ce modèle figure dans un autre groupe autorisé. Le corps `fallbacks` doit être une liste de noms exposés, de taille maximale 16. Les overrides de connexion et de clés provider documentés dans le code sont refusés ; la sécurité native Bifrost reste indispensable.
+Each attempt is limited to the primary or to the fallbacks explicitly requested in that request. A native rule that adds another fallback is refused, even if that model is in another allowed group. The `fallbacks` body must be a list of exposed names, at most 16. The connection and provider-key overrides documented in the code are refused; native Bifrost security remains essential.
 
-Les requêtes acceptées par le Registry sont encore soumises à l’authentification, à la sélection de clés provider, aux budgets et aux limites de Bifrost. Le Registry ne positionne jamais l’identité authentifiée : il vérifie celle que Bifrost produit, avant de rendre une réponse réussie au client.
+Requests accepted by Registry are still subject to Bifrost's authentication, provider-key selection, budgets and limits. Registry never sets the authenticated identity: it verifies the one Bifrost produces, before returning a successful response to the client.
 
-## Catalogue public
+## Public catalog
 
-Le moteur de projection exige une réponse native autorisée dont les entrées portent `provider/alias`. Il ne publie que les correspondances exactes ; un alias non présent dans la liste native n’est pas fabriqué. Seuls `id`, `object`, `created`, `owned_by` et, si présent, `shutdown_date` sont rendus. Le comportement exact du format natif `/models` de chaque version et provider doit être validé : sinon la projection reste vide ou échoue explicitement.
+The projection engine requires an authorized native response whose entries carry `provider/alias`. It publishes only exact matches; an alias absent from the native list is not fabricated. Only `id`, `object`, `created`, `owned_by` and, when present, `shutdown_date` are rendered. The exact behavior of the native `/models` format for each version and provider must be validated: otherwise the projection stays empty or fails explicitly.
 
-L’aperçu dans l’administration est seulement la vue calculée du registre. Il n’a pas la liste autorisée par le vrai Bifrost et ne prouve donc aucun accès amont.
+The preview in the administration is only the computed view of the registry. It does not have the list authorized by the real Bifrost and therefore proves no upstream access.
 
-## Plan et fusion
+## Plan and merge
 
 ```bash
-./dist/registry-linux-amd64 plan --config configs/registry.json --out plan.json
-./dist/registry-linux-amd64 merge-aliases \
+./dist/registry plan --config configs/registry.json --out plan.json
+./dist/registry merge-aliases \
   --config configs/registry.json \
-  --bifrost-config /copie/config.json \
-  --out /copie/config.registry.json
+  --bifrost-config /copy/config.json \
+  --out /copy/config.registry.json
 ```
 
-Le plan est notre schéma de déploiement, pas celui d’un endpoint Bifrost. La fusion lit un `config.json` avec `providers` sous forme d’objet et des `keys` existantes ayant un `id`. Elle refuse les providers absents, les clés ambiguës et les collisions d’alias, y compris la casse et les définitions contradictoires sur une autre clé du même provider. Elle ne modifie pas les permissions de VK. Elle préserve les secrets et les paramètres dans la COPIE, qui reste donc sensible. Les fichiers de sortie existants ne sont jamais écrasés.
+The plan is our deployment schema, not that of a Bifrost endpoint. The merge reads a `config.json` with `providers` as an object and existing `keys` that have an `id`. It refuses missing providers, ambiguous keys and alias collisions, including case and contradictory definitions on another key of the same provider. It does not change virtual-key permissions. It preserves secrets and settings in the COPY, which therefore stays sensitive. Existing output files are never overwritten.
 
-## API du panneau
+## Panel API
 
-Toutes les routes `/api/*` demandent un jeton d’administration Bearer, distinct des clés Bifrost. Les corps JSON sont limités à 4 Mio ; les clés JSON dupliquées et les propriétés de configuration inconnues sont refusées.
+Every `/api/*` route requires a Bearer admin token, distinct from Bifrost keys. JSON bodies are limited to 4 MiB; duplicate JSON keys and unknown configuration properties are refused.
 
-| Route | Contrat |
+| Route | Contract |
 | --- | --- |
-| `GET /api/config` | Configuration et ETag de révision. |
-| `PUT /api/config` | Nouvelle configuration avec `If-Match` obligatoire. 428 si absent, 409 si conflit, 422 si invalide. |
-| `POST /api/validate` | `{"config":{…}}` ; vérification structurelle du brouillon. |
-| `POST /api/preview` | `{"config":{…},"virtual_key_id":"…"}` ; vue calculée sans accès amont. |
-| `POST /api/plan` | `{"config":{…}}` ; compilation des primitives natives attendues. |
-| `GET /api/status` | Statut du contrôle local ; ne revendique pas une connexion administrative à Bifrost ou un chargement `.so` vérifié. |
+| `GET /api/config` | Configuration and revision ETag. |
+| `PUT /api/config` | New configuration with a mandatory `If-Match`. 428 if absent, 409 on conflict, 422 if invalid. |
+| `POST /api/validate` | `{"config":{…}}`; structural check of the draft. |
+| `POST /api/preview` | `{"config":{…},"virtual_key_id":"…"}`; computed view with no upstream access. |
+| `POST /api/plan` | `{"config":{…}}`; compilation of the expected native primitives. |
+| `GET /api/status` | Local control status; it does not claim an administrative connection to Bifrost or a verified `.so` load. |
 
-## Import des anciennes datasheets Bifrost
+## Importing legacy Bifrost datasheets
 
-Exporter d'abord l'instantané JSON du Registry, puis convertir les deux fichiers produits par `datasheet-sync.py` dans un **nouveau** fichier :
+First export the Registry JSON snapshot, then convert the two files produced by `datasheet-sync.py` into a **new** file:
 
 ```bash
 python3 scripts/import-bifrost-datasheets.py \
@@ -89,4 +91,4 @@ python3 scripts/import-bifrost-datasheets.py \
   --parameters model-parameters.json --out registry-with-datasheets.json
 ```
 
-Importer le résultat dans le panneau via l'aperçu puis l'application avec révision. Le convertisseur garde les lignes de prix et paramètres complètes dans `catalog.accesses[].overrides.legacy_datasheet`, y compris les paliers et horaires hors pointe. Il exige `provider` et `base_model` cohérents avec la clé `Provider/model` lorsqu'elle existe, refuse les correspondances ambiguës et ne lit ni clés ni base Bifrost. Les nouveaux accès sont `configured: false` ; modèles, groupes et politiques restent inchangés.
+Import the result in the panel through the preview, then apply it with its revision. The converter keeps the complete price and parameter rows in `catalog.accesses[].overrides.legacy_datasheet`, including tiers and off-peak schedules. It requires `provider` and `base_model` to agree with the `Provider/model` key when one exists, refuses ambiguous matches, and reads neither keys nor the Bifrost database. New accesses are `configured: false`; models, groups and policies stay unchanged.

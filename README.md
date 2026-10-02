@@ -25,7 +25,7 @@ English · [Français](README.fr.md)
 - **Embedded Models.dev catalogue** — a versioned, reproducible reference snapshot with per-field provenance, canonical links and manual corrections that survive refreshes.
 - **Endpoints per access** — each provider access selects its exposed operations independently (Chat Completions and Responses are separate choices).
 - **Access selection per key** — choose what each virtual key can reach; exclusions and additions are reviewed before publication.
-- **Native prices and limits** — apply pricing overrides and restricted per-key access through Bifrost's own governance, not a parallel layer.
+- **Native price overrides** — apply pricing overrides and restricted per-key access through Bifrost's own governance, not a parallel layer. Technical limits are not applied natively.
 - **Restricted native routing** — publish shared aliases that route only within each key's selected accesses.
 - **Embedded UI plus import/export** — a React panel on its own port, versioned JSON snapshots with preview and backup, and flat CSV export.
 
@@ -42,7 +42,7 @@ export REGISTRY_ADMIN_TOKEN=…  REGISTRY_BIFROST_AUTH='Basic …'
 open http://127.0.0.1:8099/model-registry
 ```
 
-**[Full installation, configuration and rollback →](docs/INSTALL.md)** — two modes: the published dynamic image plus the plugin URL, or the plugin alone on any Bifrost built with dynamic loading. If adding the plugin fails with a temp-file permission error, see [Troubleshooting](docs/INSTALL.md#troubleshooting).
+**[Full installation, configuration and rollback →](docs/INSTALL.md)** — two modes: the published dynamic image plus the plugin URL, or the plugin alone on any Bifrost built with dynamic loading. If adding the plugin fails with a temp-file permission error, see [Troubleshooting](docs/TROUBLESHOOTING.md).
 
 ## Screenshots
 
@@ -65,7 +65,7 @@ Independent project, not an official Maxim/Bifrost product.
 - [Installation](docs/INSTALL.md) — release files, credentials, persistent storage, upgrade and rollback.
 - [Configuration](docs/CONFIGURATION.md) — registry records, groups, key policies and legacy datasheets.
 - [User guide](docs/USER-GUIDE.md) — model registration, sources, groups and key composition.
-- [Release procedure](docs/RELEASE.md) — qualifying and publishing a gateway/plugin pair.
+- [Troubleshooting](docs/TROUBLESHOOTING.md) — temp-directory permissions, `Dynamic loading not supported`, activation failures.
 - [Native build](docs/BUILD.md) — compiling the gateway and the `.so` with compatible dependencies.
 - [Documentation index](docs/README.md) · [Changelog](CHANGELOG.md) · [Status](STATUS.md).
 

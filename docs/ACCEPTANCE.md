@@ -1,6 +1,8 @@
 # Checklist d’acceptation native
 
-Modèle à reprendre pour chaque campagne, en enregistrant version, environnement et preuves. Les cases ci-dessous ne constituent pas un rapport d'exécution ; voir [l'état audité](../STATUS.md) pour les vérifications consignées.
+> Page disponible en français uniquement. *(Developer page, French only.)*
+
+Modèle à reprendre pour chaque campagne, en enregistrant version, environnement et preuves. Les cases ci-dessous ne constituent pas un rapport d'exécution ; voir [l'état audité](https://github.com/sofianbll/bifrost-plugin-registry/blob/main/STATUS.md) pour les vérifications consignées.
 
 Les preuves locales couvrent les scénarios identifiés dans leurs rapports, pas toutes les conditions de votre déploiement. Effectuer les essais sur une instance de staging avec des clés et providers de test, avant toute bascule. Les essais d’inférence peuvent consommer quota et budget.
 
