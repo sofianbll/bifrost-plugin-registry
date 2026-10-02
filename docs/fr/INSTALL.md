@@ -8,18 +8,18 @@ Registry s'installe en **deux artefacts séparés** : une image de gateway Bifro
 
 Choisissez la ligne de votre hôte.
 
-<!-- When the pipeline (#20) publishes its first release: update this table and Mode A (GHCR image: docker pull ghcr.io/sofianbll/bifrost-dynamic:<version>) -->
-
-| Hôte | Release | Bifrost | Archive d'image | Plugin (`.so`) |
+| Hôte | Release | Bifrost | Image du gateway | Plugin (`.so`) |
 | --- | --- | --- | --- | --- |
-| Linux ARM64 | [v0.3.0-rc.4](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.3.0-rc.4) (courante) | 2.2.3 | `bifrost-dynamic-2.2.3-linux-arm64.tar.gz` | `bifrost-registry-v0.3.0-rc.4-linux-arm64.so` |
-| Linux AMD64 (x86_64) | [v0.2.0-rc.1](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.2.0-rc.1) (précédente) | 2.2.2 | `bifrost-dynamic-2.2.2-linux-amd64.tar.gz` | `bifrost-registry-v0.2.0-rc.1-linux-amd64.so` |
-| Linux ARM64, ancienne paire | [v0.2.0-rc.1](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.2.0-rc.1) (précédente) | 2.2.2 | `bifrost-dynamic-2.2.2-linux-arm64.tar.gz` | `bifrost-registry-v0.2.0-rc.1-linux-arm64.so` |
+| Linux AMD64 (x86_64) | [v0.3.0-rc.5](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.3.0-rc.5) (courante) | 2.2.4 | `ghcr.io/sofianbll/bifrost-dynamic:2.2.4` | `bifrost-registry-v0.3.0-rc.5-linux-amd64.so` |
+| Linux ARM64 | [v0.3.0-rc.5](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.3.0-rc.5) (courante) | 2.2.4 | `ghcr.io/sofianbll/bifrost-dynamic:2.2.4` | `bifrost-registry-v0.3.0-rc.5-linux-arm64.so` |
+| Linux ARM64, release précédente | [v0.3.0-rc.4](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.3.0-rc.4) (précédente) | 2.2.3 | `bifrost-dynamic-2.2.3-linux-arm64.tar.gz` | `bifrost-registry-v0.3.0-rc.4-linux-arm64.so` |
+| Linux AMD64 (x86_64), ancienne | [v0.2.0-rc.1](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.2.0-rc.1) (ancienne) | 2.2.2 | `bifrost-dynamic-2.2.2-linux-amd64.tar.gz` | `bifrost-registry-v0.2.0-rc.1-linux-amd64.so` |
+| Linux ARM64, ancienne | [v0.2.0-rc.1](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.2.0-rc.1) (ancienne) | 2.2.2 | `bifrost-dynamic-2.2.2-linux-arm64.tar.gz` | `bifrost-registry-v0.2.0-rc.1-linux-arm64.so` |
 
-- Téléchargez chaque fichier depuis sa page de release. L'URL du plugin est toujours `https://github.com/sofianbll/bifrost-plugin-registry/releases/download/<release>/<fichier plugin>` : l'URL du **fichier `.so`**, pas celle du dépôt ni de la page de release.
+- Téléchargez chaque `.so` depuis sa page de release. L'URL du plugin est toujours `https://github.com/sofianbll/bifrost-plugin-registry/releases/download/<release>/<fichier plugin>` : l'URL du **fichier `.so`**, pas celle du dépôt ni de la page de release. v0.3.0-rc.5 n'a pas d'archive d'image : l'image du gateway vient de GHCR (voir le [mode A](#mode-a-image-et-url-du-plugin)) ; les releases plus anciennes la fournissent en archive sur leur page de release.
 - Chaque release contient un fichier `SHA256SUMS`. Vérifiez chaque téléchargement avec lui.
-- Aucune paire AMD64 n'est encore qualifiée ni publiée pour la version de Bifrost de la release courante : les hôtes AMD64 utilisent la release précédente. Elle est antérieure au catalogue Models.dev, aux endpoints par accès et aux capacités natives de prix et de routage qu'ajoute la release courante.
-- Les deux releases sont des release candidates. Voir [Qualification et limites](#qualification-et-limites).
+- La release courante couvre les deux architectures. v0.2.0-rc.1 est antérieure au catalogue Models.dev, aux endpoints par accès et aux capacités natives de prix et de routage qu'ajoute v0.3.0.
+- Toutes les releases listées sont des release candidates. Voir [Qualification et limites](#qualification-et-limites).
 
 ## Choisir un mode d'installation
 
@@ -31,16 +31,29 @@ Choisissez la ligne de votre hôte.
 
 ### 1. Télécharger et vérifier
 
-Téléchargez l'archive d'image et le `.so` de votre hôte d'après le tableau, ainsi que `SHA256SUMS`, puis comparez les empreintes :
+Téléchargez le `.so` de votre hôte d'après le tableau, ainsi que `SHA256SUMS`, dans un même dossier, puis vérifiez-le :
 
 ```bash
-sha256sum <archive d'image> <fichier plugin>
-# Comparer chaque résultat avec le même nom de fichier dans SHA256SUMS.
+sha256sum -c --ignore-missing SHA256SUMS
 ```
 
-Sous macOS, `shasum -a 256 <fichier>` donne l'empreinte équivalente.
+`SHA256SUMS` liste tous les fichiers de la release ; `--ignore-missing` ignore ceux que vous n'avez pas téléchargés. Sous macOS, `shasum -a 256 <fichier>` donne l'empreinte à comparer à la main.
 
-### 2. Charger l'image et démarrer le gateway
+Pour v0.3.0-rc.4 et v0.2.0-rc.1, téléchargez aussi l'archive d'image du tableau et vérifiez-la de la même façon.
+
+### 2. Récupérer l'image et démarrer le gateway
+
+Pour v0.3.0-rc.5, l'image du gateway (sans plugin) est une image multi-architecture sur GHCR : Docker choisit `linux/amd64` ou `linux/arm64` selon votre hôte. Épinglez le digest publié dans les notes de release ; le tag `2.2.4` est pratique mais se déplace vers la dernière compilation publiée du gateway Bifrost 2.2.4.
+
+<!-- verify the 2.2.4 tag with an anonymous `docker buildx imagetools inspect` before merging -->
+```bash
+# épinglé
+docker pull ghcr.io/sofianbll/bifrost-dynamic@sha256:ef56067e2bf807930270d2d6318ba9e9996ed914c9469db46068078d3c06e7b2
+# pratique
+docker pull ghcr.io/sofianbll/bifrost-dynamic:2.2.4
+```
+
+Pour v0.3.0-rc.4 et v0.2.0-rc.1, chargez plutôt l'archive :
 
 ```bash
 docker load -i <archive d'image>   # affiche le tag de l'image chargée
@@ -55,7 +68,7 @@ docker run -d --name bifrost \
   -p 8080:8080 -p 127.0.0.1:8099:8099 \
   -v bifrost-data:/app/data \
   -e REGISTRY_ADMIN_TOKEN -e REGISTRY_BIFROST_AUTH \
-  <tag de l'image>
+  <référence de l'image>
 ```
 
 Le port habituel du gateway est `8080`. Publiez le port Registry `8099` uniquement sur le loopback de l'hôte, comme ci-dessus. Dans le conteneur, `admin_listen` doit être `0.0.0.0:8099` pour que ce mapping fonctionne.
@@ -94,7 +107,7 @@ Le plugin initialise un fichier Registry manquant. Ses assets d'interface sont e
 
 ## Vérifier
 
-Ouvrez **http://127.0.0.1:8099/model-registry** et saisissez le jeton d'administration Registry. Il reste dans la mémoire de l'onglet et doit être ressaisi après rechargement. L'interface de v0.3.0-rc.4 est en anglais par défaut ; le français est à un clic ou via `?lang=fr`. v0.2.0-rc.1, que les lignes AMD64 et ancienne paire ARM64 installent, est plus ancienne et s'ouvre d'abord en français.
+Ouvrez **http://127.0.0.1:8099/model-registry** et saisissez le jeton d'administration Registry. Il reste dans la mémoire de l'onglet et doit être ressaisi après rechargement. L'interface de v0.3.0-rc.4 et v0.3.0-rc.5 est en anglais par défaut ; le français est à un clic ou via `?lang=fr`. v0.2.0-rc.1, installée par les lignes anciennes, s'ouvre d'abord en français.
 
 Vérifiez que le plugin est `active` dans `GET /api/plugins` et présent dans `GET /api/plugins/loaded`. Publiez un petit catalogue de test et relisez `/v1/models` avec une clé virtuelle dédiée. Les clés natives préexistantes restent non gérées jusqu'à adoption explicite ; l'adoption n'élargit pas leurs droits natifs.
 
@@ -106,6 +119,6 @@ Pour revenir en arrière, arrêtez le gateway, restaurez **l'intégralité** de 
 
 ## Qualification et limites
 
-La paire courante est qualifiée sur Linux ARM64 avec des fournisseurs synthétiques ; voir le [rapport de qualification ARM64](https://github.com/sofianbll/bifrost-plugin-registry/blob/main/reports/bifrost-2.2.3-arm64-869e251/README.md). Les preuves de la release précédente couvrent les deux architectures, l'installation par URL, la persistance, l'adoption native et une mise à jour/retour arrière ARM64 ([preuves de release](https://github.com/sofianbll/bifrost-plugin-registry/blob/main/reports/v1-final/README.md)). L'inférence chez un fournisseur réel, un déploiement en production et l'intégration à la barre latérale native ne sont pas certifiés par ces contrôles. [STATUS](https://github.com/sofianbll/bifrost-plugin-registry/blob/main/STATUS.md) (en anglais) est le registre de référence.
+v0.3.0-rc.5 est le Registry de v0.3.0-rc.4 recompilé et qualifié nativement sur Linux AMD64 et ARM64 contre Bifrost 2.2.4, avec des fournisseurs synthétiques ; les rapports par architecture sont des fichiers de la release (`reports-linux-<arch>.tar.gz`). v0.3.0-rc.4 a été qualifiée sur Linux ARM64 contre Bifrost 2.2.3 ; voir son [rapport de qualification ARM64](https://github.com/sofianbll/bifrost-plugin-registry/blob/main/reports/bifrost-2.2.3-arm64-869e251/README.md). Les preuves de v0.2.0-rc.1 couvrent les deux architectures, l'installation par URL, la persistance, l'adoption native et une mise à jour/retour arrière ARM64 ([preuves de release](https://github.com/sofianbll/bifrost-plugin-registry/blob/main/reports/v1-final/README.md)). L'inférence chez un fournisseur réel, un déploiement en production et l'intégration à la barre latérale native ne sont pas certifiés par ces contrôles. [STATUS](https://github.com/sofianbll/bifrost-plugin-registry/blob/main/STATUS.md) (en anglais) est le registre de référence.
 
 L'ancienne recette de montage binaire pour Bifrost 2.2.1 est conservée dans [l'archive historique](https://github.com/sofianbll/bifrost-plugin-registry/blob/main/docs/archive/installation-2.2.1.md).
