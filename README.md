@@ -9,7 +9,7 @@
 Organize every model once, then decide exactly what each virtual key can reach — through an embedded interface that runs beside your existing Bifrost gateway.
 
 [![CI](https://github.com/sofianbll/bifrost-plugin-registry/actions/workflows/ci.yml/badge.svg)](https://github.com/sofianbll/bifrost-plugin-registry/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/release-v0.3.0--rc.4-blue)](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.3.0-rc.4)
+[![Release](https://img.shields.io/badge/release-v0.3.0--rc.5-blue)](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.3.0-rc.5)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 English · [Français](README.fr.md)
@@ -32,12 +32,12 @@ English · [Français](README.fr.md)
 ## Quickstart
 
 ```bash
-# 1. Load the published dynamic Bifrost 2.2.3 image (Linux ARM64)
-docker load -i bifrost-dynamic-2.2.3-linux-arm64.tar.gz
+# 1. Pull the published dynamic Bifrost 2.2.4 image (Linux AMD64 or ARM64, no plugin inside)
+docker pull ghcr.io/sofianbll/bifrost-dynamic:2.2.4
 # 2. Provide the two admin credentials and a persistent volume at /app/data
 export REGISTRY_ADMIN_TOKEN=…  REGISTRY_BIFROST_AUTH='Basic …'
 # 3. Add the matching .so by direct URL in Bifrost's plugin settings
-#    https://github.com/sofianbll/bifrost-plugin-registry/releases/download/v0.3.0-rc.4/bifrost-registry-v0.3.0-rc.4-linux-arm64.so
+#    https://github.com/sofianbll/bifrost-plugin-registry/releases/download/v0.3.0-rc.5/bifrost-registry-v0.3.0-rc.5-linux-<amd64|arm64>.so
 # 4. Open the panel
 open http://127.0.0.1:8099/model-registry
 ```
@@ -56,7 +56,7 @@ open http://127.0.0.1:8099/model-registry
 
 Bifrost governs inference, credentials, budgets and routing. What it does not give an operator is a trustworthy, reviewable picture of what each virtual key can actually reach. Registry fills that gap: one catalogue of Models.dev and Bifrost references, with per-field provenance and manual corrections that survive refreshes, composed into access policies for virtual keys.
 
-Embedding a versioned Models.dev snapshot keeps the catalogue reproducible and offline — there is no runtime dependency on a third-party API. The gateway image ships unmodified Bifrost 2.2.3 compiled with dynamic loading, and Registry stays a separately installed plugin, so the inference path you already trust is never patched.
+Embedding a versioned Models.dev snapshot keeps the catalogue reproducible and offline — there is no runtime dependency on a third-party API. The gateway image ships unmodified Bifrost 2.2.4 compiled with dynamic loading, and Registry stays a separately installed plugin, so the inference path you already trust is never patched.
 
 Independent project, not an official Maxim/Bifrost product.
 
@@ -71,7 +71,9 @@ Independent project, not an official Maxim/Bifrost product.
 
 ## Runtime & qualification
 
-The current release **v0.3.0-rc.4** is an ARM64 Bifrost 2.2.3 pair (final commit `d588a9f`; English-first interface) — it supersedes rc.1–rc.3 built from the unmodified `transports/v2.2.3` source. All suites use synthetic providers.
+The current release **v0.3.0-rc.5** (pre-release) is the v0.3.0-rc.4 Registry rebuilt and tested against unmodified Bifrost 2.2.4 (`transports/v2.2.4`, commit `ed8371a`) for Linux AMD64 and ARM64 (musl), Go 1.27.1. Native qualification ran on both architectures with synthetic providers ([release run](https://github.com/sofianbll/bifrost-plugin-registry/actions/runs/37011831292)); the reports and `.so` hashes ship with the release.
+
+The results below were recorded on the previous release **v0.3.0-rc.4** (ARM64, Bifrost 2.2.3, final commit `d588a9f`; English-first interface), whose code rc.5 rebuilds.
 
 | Check | Result |
 | --- | --- |
@@ -85,7 +87,7 @@ The current release **v0.3.0-rc.4** is an ARM64 Bifrost 2.2.3 pair (final commit
 
 [ARM64 qualification report](reports/bifrost-2.2.3-arm64-869e251/README.md) · [Final audit](docs/reviews/2026-09-28-final-audit.md)
 
-**Honest limits.** ARM64 only — AMD64 2.2.3 and the prebuilt official image remain unqualified, and the download image is qualified separately from the `.so`. All suites ran against synthetic providers with **no real inference**. The adoption suite runs its fixture over bridge networking bound to loopback; the other suites use `--network none`. No production deployment was performed, and native sidebar integration is deferred.
+**Honest limits.** The detailed results above are ARM64 only; rc.5 adds AMD64 and ARM64 qualification for Bifrost 2.2.4. The prebuilt official image remains unqualified, and the download image is qualified separately from the `.so`. All suites ran against synthetic providers with **no real inference**. The rc.4 adoption suite runs its fixture over bridge networking bound to loopback; the other suites use `--network none`. No production deployment was performed, and native sidebar integration is deferred.
 
 ## Contributing
 
