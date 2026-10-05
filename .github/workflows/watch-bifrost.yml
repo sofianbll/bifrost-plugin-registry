@@ -18,11 +18,14 @@
 #                                             (no persisted git credentials); open the Go-refusal issue
 #   release  contents: write, packages: write, id-token: write, attestations: write
 #                                             ceiling for release.yml (see its header)
-#   report   actions: read, issues: write, pull-requests: write
+#   report   actions: write, issues: write, pull-requests: write
 #                                             name failed jobs/steps of this run; open or comment the version
-#                                             issue; open the pin PR, which needs the repository setting
-#                                             "Allow GitHub Actions to create and approve pull requests"
-#                                             (off today), else link the compare page instead
+#                                             issue; open the pin PR (needs the repository setting "Allow GitHub
+#                                             Actions to create and approve pull requests", else link the compare
+#                                             page instead) and start ci.yml on its branch: a PR opened with the
+#                                             workflow token does not start its own checks (GitHub's loop guard),
+#                                             and main requires go, ui and scripts; checks of a dispatched run
+#                                             attach to the same head commit
 name: Watch Bifrost
 
 on:
@@ -125,7 +128,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
-      actions: read
+      actions: write
       issues: write
       pull-requests: write
     env:
@@ -145,6 +148,9 @@ jobs:
             pr=$(gh api -X POST "repos/$GITHUB_REPOSITORY/pulls" -f base="$GITHUB_REF_NAME" -f head="$BRANCH" \
               -f title="Bump Bifrost to $VERSION" -f body="Qualified on linux/amd64 and linux/arm64 in $run." --jq .html_url) \
               || pr="not opened (GitHub Actions may not create pull requests here); open it from $compare"
+            if [[ $pr == http* ]]; then
+              gh workflow run ci.yml --ref "$BRANCH" || echo "::warning::could not start CI on $BRANCH; close and reopen the pull request to run its checks"
+            fi
             body=$(printf '%s\n\n' \
               "Pre-release candidate [$CANDIDATE]($repo/releases/tag/$CANDIDATE) passed qualification on linux/amd64 and linux/arm64 ($run)." \
               "Pin bump pull request: $pr" \
