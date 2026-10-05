@@ -30,3 +30,8 @@ updates:
     groups:
       docker:
         update-types: [minor, patch]
+    ignore:
+      # The runtime image must stay on the Alpine minor the gateway is built on (ALPINE_VERSION in bifrost.pin):
+      # patch updates only. A new Alpine minor changes the tested combination and goes through the qualification first.
+      - dependency-name: alpine
+        update-types: ["version-update:semver-minor", "version-update:semver-major"]
