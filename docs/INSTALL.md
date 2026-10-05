@@ -45,7 +45,6 @@ For v0.3.0-rc.4 and v0.2.0-rc.1, also download the image archive from the table 
 
 For v0.3.0-rc.5 the gateway image (no plugin) is a multi-arch image on GHCR: Docker picks `linux/amd64` or `linux/arm64` for your host. Pin the digest published in the release notes; the `2.2.4` tag is convenient but moves to the newest published Bifrost 2.2.4 gateway build.
 
-<!-- verify the 2.2.4 tag with an anonymous `docker buildx imagetools inspect` before merging -->
 ```bash
 # pinned
 docker pull ghcr.io/sofianbll/bifrost-dynamic@sha256:ef56067e2bf807930270d2d6318ba9e9996ed914c9469db46068078d3c06e7b2

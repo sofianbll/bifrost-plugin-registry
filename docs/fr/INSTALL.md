@@ -45,7 +45,6 @@ Pour v0.3.0-rc.4 et v0.2.0-rc.1, téléchargez aussi l'archive d'image du tablea
 
 Pour v0.3.0-rc.5, l'image du gateway (sans plugin) est une image multi-architecture sur GHCR : Docker choisit `linux/amd64` ou `linux/arm64` selon votre hôte. Épinglez le digest publié dans les notes de release ; le tag `2.2.4` est pratique mais se déplace vers la dernière compilation publiée du gateway Bifrost 2.2.4.
 
-<!-- verify the 2.2.4 tag with an anonymous `docker buildx imagetools inspect` before merging -->
 ```bash
 # épinglé
 docker pull ghcr.io/sofianbll/bifrost-dynamic@sha256:ef56067e2bf807930270d2d6318ba9e9996ed914c9469db46068078d3c06e7b2
