@@ -35,7 +35,7 @@ Every pull request runs [CI](.github/workflows/ci.yml) (Go, UI, scripts, lint), 
 - This is a release candidate, not a blanket production or provider certification.
 - Plugin updates require a gateway restart; hot reactivation is not supported by the tested loader.
 - Native Bifrost menu integration is [deferred](https://github.com/sofianbll/bifrost-plugin-registry/issues/7). The laboratory runner is also deferred.
-- A new stable Bifrost release is rebuilt and qualified by the upstream watcher ([watch-bifrost.yml](.github/workflows/watch-bifrost.yml)), which publishes a pre-release candidate; promoting it stays manual. Its pull request is opened with the default token, so its checks start only after a maintainer approves the workflows or reopens it. A new toolchain or architecture needs its own qualification.
+- A new stable Bifrost release is rebuilt and qualified by the upstream watcher ([watch-bifrost.yml](.github/workflows/watch-bifrost.yml)), which publishes a pre-release candidate; promoting it stays manual. After opening its pull request the watcher starts `ci.yml` on the bump branch, because a pull request opened with the workflow token does not start its own checks (the first real bump, Bifrost 2.2.5, needed a manual close and reopen before this was added). A new toolchain or architecture needs its own qualification.
 - Production deployment and personal data migration require a separate rollout.
 
 ## Project records
