@@ -253,6 +253,7 @@ jobs:
           GO_VERSION: ${{ needs.meta.outputs.go_version }}
           SOURCE: ${{ github.server_url }}/${{ github.repository }}
         run: |
+          # shellcheck disable=SC2046 # split on purpose: one image reference per digest file
           docker buildx imagetools create --metadata-file "$RUNNER_TEMP/index.json" \
             -t "$IMAGE:$VERSION" -t "$IMAGE:$VERSION-go$GO_VERSION" \
             --annotation "index:org.opencontainers.image.source=$SOURCE" \
@@ -300,6 +301,7 @@ jobs:
             tar -czf "../assets/reports-linux-$arch.tar.gz" "reports-linux-$arch"* -C "package-linux-$arch" provenance image-probe
           done
           jq -s --arg image "${DIGEST:+$IMAGE@$DIGEST}" '{image: $image, platforms: .}' package-linux-*/manifest.json > ../assets/manifest.json
+          # shellcheck disable=SC2035 # the assets directory is ours: no file name starts with a dash
           cd ../assets && sha256sum * > SHA256SUMS
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -325,4 +327,5 @@ jobs:
           flags=()
           if [[ $PRERELEASE == true ]]; then flags+=(--prerelease); fi
           notes="Gateway image (no plugin): \`docker pull $IMAGE@$DIGEST\`. Bifrost \`$BIFROST_TAG\` (\`$BIFROST_COMMIT\`), Go $GO_VERSION. In $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID, the gateway/plugin pair was built and qualified natively on linux/amd64 and linux/arm64; each architecture's image was then built from that pair, started and probed with the plugin installed from a URL before it was pushed. Verify any asset with \`gh attestation verify <file> --repo $GITHUB_REPOSITORY\`."
+          # shellcheck disable=SC2035 # the assets directory is ours: no file name starts with a dash
           gh release create "$TAG" * --target "$TARGET" --title "$TAG" --generate-notes --notes "$notes" "${flags[@]}"
