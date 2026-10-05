@@ -124,6 +124,7 @@ build() {
   grep -E '  (bifrost-http|bifrost-registry\.so)$' "$OUT/build/out/SHA256SUMS" > "$OUT/pair/SHA256SUMS"
   # Recorded by the host: the images behind the build and the suites, and the builder's packages.
   {
+    printf '\nDocker engine: %s\n' "$(docker version --format '{{.Server.Version}}')"
     printf '\nImages (reference, image ID, repository digests):\n'
     for image in "$node_image" "$GO_IMAGE" "$PY_IMAGE"; do
       docker pull -q "$image" >/dev/null

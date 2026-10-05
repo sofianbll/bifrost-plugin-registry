@@ -10,7 +10,7 @@ The native Go plugin has a separate build and qualification path. Passing source
 
 ## Delegation
 
-For this project, delegate bounded implementation and focused audits to GPT-6 Luna, as requested by Sofian. Keep the coordinating agent focused on decisions and integration; avoid Astra subagents.
+Delegate bounded implementation and focused audits to subagents, each with a named worktree, a file scope and a completion criterion. Keep the coordinating agent on decisions and integration. In Codex, as requested by Sofian, use GPT-6 Luna for that work and avoid Astra subagents.
 
 ## Project conventions
 

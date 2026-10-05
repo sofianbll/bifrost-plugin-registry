@@ -20,3 +20,6 @@ registry.local.json
 
 # Local agent skills; reinstall from skills-lock.json
 /.agents/
+
+# Local subagent worktrees
+/.claude/worktrees/
