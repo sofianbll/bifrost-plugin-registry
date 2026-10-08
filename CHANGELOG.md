@@ -4,7 +4,6 @@ Release downloads and their exact source commits are listed in [GitHub Releases]
 
 ## Unreleased
 
-- Registry data from v0.1/v0.2 no longer stops the plugin (#53). A key model offered by several accesses without `access_selection` is withheld from that key, logged as a gateway warning and flagged in the panel until an access is chosen; the rest of the key is published. Saves still refuse new ambiguity.
 - Searchable Model ID, Creator and series selectors with custom values, known metadata/access prefill and atomic reference matching.
 - Optional AI suggestions through a selected native virtual key, with field-by-field review before saving; Chat Completions and Responses supported.
 - On-demand native virtual-key reveal/copy, visible unknown capabilities and a scrollable model editor.
@@ -17,10 +16,15 @@ Release downloads and their exact source commits are listed in [GitHub Releases]
 - Clear license attribution and private vulnerability reporting instructions.
 - The 18 browser journeys now run as `@playwright/test` specs (`ui/e2e`) in a new E2E workflow, re-expressed against the current UI (the September 25 script no longer matched it), and the README screenshots are generated Playwright baselines refreshed by a manual workflow run. `tests/ux_journeys.cjs` and the unreferenced legacy-UI `tests/browser_smoke.py` are removed (Git history).
 - Removed the deferred native-menu integration (host patches, `REGISTRY_NATIVE_UI` build flag), four superseded integration probes and `HANDOFF.md`; `.agents/` is no longer tracked. All remain in Git history at `61648dd` (native-menu work stays tracked in issue #7).
-- `GET /api/status` reports the release stamped at build time (the release tag; checked in `abi-smoke.json`) and the real `bifrost_connected` state, matching the workspace connection; the constant `mode`, `native_apply` and `adapter_build` fields are removed (#54).
-- Sign-in rejects a pasted token containing spaces or non-ASCII characters with a clear message instead of "Could not connect to Registry" (#55).
 
 The published `v0.2.0-rc.1` binaries are unchanged; these additions require a newly compiled compatible plugin.
+
+## [0.3.0-rc.8] — 2026-10-08
+
+- Pre-release: the Registry rebuilt and qualified natively against the same unmodified Bifrost 2.2.6 as rc.7 (`transports/v2.2.6`, `8b4fce4`), Go 1.27.1, Alpine 3.23, on Linux AMD64 and ARM64 (musl).
+- Registry data from v0.1/v0.2 no longer stops the plugin (#53). A key model offered by several accesses without `access_selection` is withheld from that key, logged as a gateway warning and flagged in the panel until an access is chosen; the rest of the key is published. Saves still refuse new ambiguity.
+- `GET /api/status` reports the release stamped at build time (the release tag; checked in `abi-smoke.json`) and the real `bifrost_connected` state, matching the workspace connection; the constant `mode`, `native_apply` and `adapter_build` fields are removed (#54).
+- Sign-in rejects a pasted token containing spaces or non-ASCII characters with a clear message instead of "Could not connect to Registry" (#55).
 
 ## [0.3.0-rc.7] — 2026-10-08
 
@@ -49,6 +53,7 @@ The published `v0.2.0-rc.1` binaries are unchanged; these additions require a ne
 
 The integrated UI prototype and earlier build evidence are retained in the project history. Hot plugin reactivation, native sidebar integration and the laboratory runner are not part of this release.
 
+[0.3.0-rc.8]: https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.3.0-rc.8
 [0.3.0-rc.7]: https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.3.0-rc.7
 [0.3.0-rc.6]: https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.3.0-rc.6
 [0.3.0-rc.5]: https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.3.0-rc.5
