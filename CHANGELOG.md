@@ -19,6 +19,11 @@ Release downloads and their exact source commits are listed in [GitHub Releases]
 
 The published `v0.2.0-rc.1` binaries are unchanged; these additions require a newly compiled compatible plugin.
 
+## [0.3.0-rc.6] — 2026-10-05
+
+- Pre-release: the Registry rebuilt and qualified natively against unmodified Bifrost 2.2.5 (`transports/v2.2.5`, `77d08f2`), Go 1.27.1, Alpine 3.23, on Linux AMD64 and ARM64 (musl). It supersedes the watcher's pre-release `v0.3.0-bifrost2.2.5-rc.1`.
+- Bifrost 2.2.4 to 2.2.5 and UI dependency updates (React 19.3 and 22 minor/patch updates); the Registry's own Go code is unchanged.
+
 ## [0.3.0-rc.5] — 2026-10-02
 
 - Pre-release: the `v0.3.0-rc.4` Registry rebuilt and qualified natively against unmodified Bifrost 2.2.4 (`transports/v2.2.4`, `ed8371a`), Go 1.27.1, Alpine 3.23, on Linux AMD64 and ARM64 (musl); rc.4 shipped ARM64 only.
@@ -35,5 +40,6 @@ The published `v0.2.0-rc.1` binaries are unchanged; these additions require a ne
 
 The integrated UI prototype and earlier build evidence are retained in the project history. Hot plugin reactivation, native sidebar integration and the laboratory runner are not part of this release.
 
+[0.3.0-rc.6]: https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.3.0-rc.6
 [0.3.0-rc.5]: https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.3.0-rc.5
 [0.2.0-rc.1]: https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.2.0-rc.1

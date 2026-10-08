@@ -9,7 +9,7 @@
 Organisez chaque modèle une seule fois, puis décidez exactement de ce que chaque clé virtuelle peut atteindre — via une interface embarquée qui tourne à côté de votre gateway Bifrost existant.
 
 [![CI](https://github.com/sofianbll/bifrost-plugin-registry/actions/workflows/ci.yml/badge.svg)](https://github.com/sofianbll/bifrost-plugin-registry/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/release-v0.3.0--rc.5-blue)](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.3.0-rc.5)
+[![Release](https://img.shields.io/badge/release-v0.3.0--rc.6-blue)](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.3.0-rc.6)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 [English](README.md) · Français
@@ -34,12 +34,12 @@ L'interface est **anglaise par défaut** ; le français est disponible en un cli
 ## Démarrage rapide
 
 ```bash
-# 1. Récupérez l'image dynamique Bifrost 2.2.4 publiée (Linux AMD64 ou ARM64, sans plugin)
-docker pull ghcr.io/sofianbll/bifrost-dynamic:2.2.4
+# 1. Récupérez l'image dynamique Bifrost 2.2.5 publiée (Linux AMD64 ou ARM64, sans plugin)
+docker pull ghcr.io/sofianbll/bifrost-dynamic:2.2.5
 # 2. Fournissez les deux identifiants admin et un volume persistant sur /app/data
 export REGISTRY_ADMIN_TOKEN=…  REGISTRY_BIFROST_AUTH='Basic …'
 # 3. Ajoutez le .so correspondant par URL directe dans les réglages plugin de Bifrost
-#    https://github.com/sofianbll/bifrost-plugin-registry/releases/download/v0.3.0-rc.5/bifrost-registry-v0.3.0-rc.5-linux-<amd64|arm64>.so
+#    https://github.com/sofianbll/bifrost-plugin-registry/releases/download/v0.3.0-rc.6/bifrost-registry-v0.3.0-rc.6-linux-<amd64|arm64>.so
 # 4. Ouvrez le panneau
 open http://127.0.0.1:8099/model-registry
 ```
@@ -58,7 +58,7 @@ open http://127.0.0.1:8099/model-registry
 
 Bifrost gouverne l'inférence, les identifiants, les budgets et le routage. Ce qu'il ne donne pas à l'opérateur, c'est une image fiable et révisable de ce que chaque clé virtuelle peut réellement atteindre. Registry comble ce trou : un catalogue des références Models.dev et Bifrost, avec provenance par champ et corrections manuelles qui survivent aux rafraîchissements, composé en politiques d'accès pour les clés virtuelles.
 
-L'embarquement d'un instantané Models.dev versionné rend le catalogue reproductible et hors-ligne — aucune dépendance d'exécution vers une API tierce. L'image du gateway est un Bifrost 2.2.4 non modifié compilé avec chargement dynamique, et Registry reste un plugin installé séparément : le chemin d'inférence auquel vous faites confiance n'est jamais patché.
+L'embarquement d'un instantané Models.dev versionné rend le catalogue reproductible et hors-ligne — aucune dépendance d'exécution vers une API tierce. L'image du gateway est un Bifrost 2.2.5 non modifié compilé avec chargement dynamique, et Registry reste un plugin installé séparément : le chemin d'inférence auquel vous faites confiance n'est jamais patché.
 
 Projet indépendant, pas un produit officiel Maxim/Bifrost.
 
@@ -73,9 +73,9 @@ Projet indépendant, pas un produit officiel Maxim/Bifrost.
 
 ## Exécution et qualification
 
-La release courante **v0.3.0-rc.5** (pré-release) est le Registry de v0.3.0-rc.4 recompilé et testé contre Bifrost 2.2.4 non modifié (`transports/v2.2.4`, commit `ed8371a`) pour Linux AMD64 et ARM64 (musl), Go 1.27.1. La qualification native a tourné sur les deux architectures avec des fournisseurs synthétiques ([exécution de release](https://github.com/sofianbll/bifrost-plugin-registry/actions/runs/37011831292)) ; les rapports et les empreintes des `.so` sont fournis avec la release.
+La release courante **v0.3.0-rc.6** (pré-release) est le Registry recompilé et testé contre Bifrost 2.2.5 non modifié (`transports/v2.2.5`, commit `77d08f2`) pour Linux AMD64 et ARM64 (musl), Go 1.27.1 ; depuis v0.3.0-rc.5, la version de Bifrost et les dépendances de l'interface ont changé, pas le code Go de Registry. La qualification native a tourné sur les deux architectures avec des fournisseurs synthétiques ([exécution de release](https://github.com/sofianbll/bifrost-plugin-registry/actions/runs/37293098045)) ; les rapports et les empreintes des `.so` sont fournis avec la release.
 
-Les résultats ci-dessous ont été enregistrés sur la release précédente **v0.3.0-rc.4** (ARM64, Bifrost 2.2.3, commit final `d588a9f` ; interface en anglais par défaut), dont rc.5 recompile le code.
+Les résultats ci-dessous ont été enregistrés sur la release plus ancienne **v0.3.0-rc.4** (ARM64, Bifrost 2.2.3, commit final `d588a9f` ; interface en anglais par défaut), dont rc.5 et rc.6 recompilent le code.
 
 | Contrôle | Résultat |
 | --- | --- |
@@ -89,7 +89,7 @@ Les résultats ci-dessous ont été enregistrés sur la release précédente **v
 
 [Rapport de qualification ARM64](reports/bifrost-2.2.3-arm64-869e251/README.md) · [Audit final](docs/reviews/2026-09-28-final-audit.md)
 
-**Limites honnêtes.** Les résultats détaillés ci-dessus sont ARM64 seulement ; rc.5 ajoute la qualification AMD64 et ARM64 pour Bifrost 2.2.4. L'image officielle précompilée reste non qualifiée, et l'image téléchargée est qualifiée séparément du `.so`. Toutes les suites tournent contre des fournisseurs synthétiques, **sans inférence réelle**. La suite d'adoption de rc.4 utilise un bridge réseau limité au loopback ; les autres suites utilisent `--network none`. Aucun déploiement de production n'a été effectué, et l'intégration à la barre latérale native est différée.
+**Limites honnêtes.** Les résultats détaillés ci-dessus sont ARM64 seulement ; rc.5 a ajouté la qualification AMD64 et ARM64 pour Bifrost 2.2.4, et rc.6 la répète pour 2.2.5. L'image officielle précompilée reste non qualifiée, et l'image téléchargée est qualifiée séparément du `.so`. Toutes les suites tournent contre des fournisseurs synthétiques, **sans inférence réelle**. La suite d'adoption de rc.4 utilise un bridge réseau limité au loopback ; les autres suites utilisent `--network none`. Aucun déploiement de production n'a été effectué, et l'intégration à la barre latérale native est différée.
 
 ## Contribuer
 
