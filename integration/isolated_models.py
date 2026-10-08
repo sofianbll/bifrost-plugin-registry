@@ -123,7 +123,8 @@ def wait_ready(url, process, timeout=20):
         if process.poll() is not None:
             raise RuntimeError("gateway exited before ready")
         try:
-            status, _, _ = request(url + "/api/config")
+            # /health stays public; since Bifrost 2.2.6 /api/* answers 401/403 until auth or a setup token exists.
+            status, _, _ = request(url + "/health")
             if status == 200:
                 return
         except (OSError, ValueError):
