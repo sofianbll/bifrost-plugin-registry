@@ -4,6 +4,7 @@
 # Host: bash, git, python3 and Docker, natively on <arch> (no emulation, no cross-compilation).
 # Builds the committed HEAD of this repository; uncommitted changes are not qualified.
 # Without a STAGE everything runs; CI runs each stage as its own step.
+# REGISTRY_VERSION (build stage): the release stamped into the plugin; release.yml passes its tag.
 set -euo pipefail
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 fail() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
@@ -97,6 +98,8 @@ build() {
   [[ ! -e $OUT ]] || fail "$OUT already exists; remove it first (nothing is overwritten)"
   mkdir -p "$OUT/registry" "$OUT/proof" "$SRC" "$OUT/build" "$OUT/pair" "$OUT/reports"
   REGISTRY_COMMIT=$(git -C "$ROOT" rev-parse HEAD)
+  # Without a release tag, the commit: every qualification still exercises the version stamp.
+  local registry_version=${REGISTRY_VERSION:-dev-${REGISTRY_COMMIT:0:12}}
   [[ -z $(git -C "$ROOT" status --porcelain) ]] || printf 'note: uncommitted changes are not qualified; building %s\n' "$REGISTRY_COMMIT"
   git -C "$ROOT" archive "$REGISTRY_COMMIT" | tar -x -C "$OUT/registry"
   # The suites run the probes from their own export, which the build containers never mount.
@@ -113,7 +116,7 @@ build() {
     sh -euc 'npm ci && npm run build-enterprise && cp -r out ../transports/bifrost-http/ui'
   # The toolchain is installed at image build time, so the build itself needs no root.
   builder=$(printf 'FROM %s\nRUN apk add --no-cache bash git python3 nodejs npm gcc musl-dev\n' "$GO_IMAGE" | docker build -q -)
-  docker run "${SAFE[@]}" -e HOME=/tmp -e BIFROST_VERSION="v$VERSION" \
+  docker run "${SAFE[@]}" -e HOME=/tmp -e BIFROST_VERSION="v$VERSION" -e REGISTRY_VERSION="$registry_version" \
     -v "$OUT/registry:/q/registry" -v "$SRC:/q/bifrost" -v "$OUT/build:/q/build" "$builder" \
     /q/registry/scripts/build-with-bifrost.sh /q/bifrost /q/build/out
   grep -qx "Go: go version go$GO_VERSION linux/$ARCH" "$OUT/build/out/build-environment.txt" || fail "pair was not built with Go $GO_VERSION on linux/$ARCH"

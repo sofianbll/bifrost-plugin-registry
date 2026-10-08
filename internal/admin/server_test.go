@@ -239,7 +239,7 @@ func TestValidatePlanPreview(t *testing.T) {
 		})
 	}
 	w := perform(s, "GET", "/api/status", "", authorized())
-	if w.Code != 200 || !strings.Contains(w.Body.String(), `"bifrost_connected":false`) || !strings.Contains(w.Body.String(), `"native_apply":"manual"`) {
+	if w.Code != 200 || !strings.Contains(w.Body.String(), `"bifrost_connected":false`) || !strings.Contains(w.Body.String(), `"version":"`+registry.Version+`"`) {
 		t.Fatal("misleading status", w.Body.String())
 	}
 }

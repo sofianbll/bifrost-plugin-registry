@@ -15,7 +15,9 @@ import (
 	"strings"
 )
 
-const Version = "0.2.0-rc.1"
+// Version is the release tag, stamped at build time by scripts/build-with-bifrost.sh (-ldflags -X).
+var Version = "dev"
+
 const MaxConfigBytes = 4 << 20
 const MaxBodyBytes = 32 << 20
 

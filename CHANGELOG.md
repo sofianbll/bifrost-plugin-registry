@@ -16,6 +16,7 @@ Release downloads and their exact source commits are listed in [GitHub Releases]
 - Clear license attribution and private vulnerability reporting instructions.
 - The 18 browser journeys now run as `@playwright/test` specs (`ui/e2e`) in a new E2E workflow, re-expressed against the current UI (the September 25 script no longer matched it), and the README screenshots are generated Playwright baselines refreshed by a manual workflow run. `tests/ux_journeys.cjs` and the unreferenced legacy-UI `tests/browser_smoke.py` are removed (Git history).
 - Removed the deferred native-menu integration (host patches, `REGISTRY_NATIVE_UI` build flag), four superseded integration probes and `HANDOFF.md`; `.agents/` is no longer tracked. All remain in Git history at `61648dd` (native-menu work stays tracked in issue #7).
+- `GET /api/status` reports the release stamped at build time (the release tag; checked in `abi-smoke.json`) and the real `bifrost_connected` state, matching the workspace connection; the constant `mode`, `native_apply` and `adapter_build` fields are removed (#54).
 
 The published `v0.2.0-rc.1` binaries are unchanged; these additions require a newly compiled compatible plugin.
 

@@ -9,10 +9,18 @@ on:
         description: 'Ref of this repository to qualify (empty: the triggering ref)'
         type: string
         default: ''
+      version:
+        description: 'Registry release stamped into the plugin (empty: dev-<commit>)'
+        type: string
+        default: ''
   workflow_dispatch:
     inputs:
       ref:
         description: 'Ref of this repository to qualify (empty: the triggering ref)'
+        type: string
+        default: ''
+      version:
+        description: 'Registry release stamped into the plugin (empty: dev-<commit>)'
         type: string
         default: ''
   pull_request:
@@ -52,6 +60,8 @@ jobs:
           persist-credentials: false
       - name: Build pair, verify source, ABI smoke
         id: build
+        env:
+          REGISTRY_VERSION: ${{ inputs.version }}
         run: scripts/qualify.sh ${{ matrix.arch }} build
       # Each suite runs even when another one failed.
       - name: 'Suite: models'

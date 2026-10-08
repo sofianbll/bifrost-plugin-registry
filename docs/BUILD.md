@@ -63,7 +63,7 @@ Depuis ce paquet :
 ./scripts/build-with-bifrost.sh /chemin/absolu/bifrost-build ./dist/native
 ```
 
-Le script utilise le tag exact du checkout pour injecter la version réelle dans le gateway. Pour une archive sans métadonnées Git ou une référence personnalisée, vérifier la source puis définir `BIFROST_VERSION=vX.Y.Z` avant la compilation.
+Le script utilise le tag exact du checkout pour injecter la version réelle dans le gateway. Pour une archive sans métadonnées Git ou une référence personnalisée, vérifier la source puis définir `BIFROST_VERSION=vX.Y.Z` avant la compilation. `REGISTRY_VERSION` (par défaut `dev`) fixe la version que le plugin annonce dans `/api/status` et `abi-smoke.json`, vérifiée par le script après la sonde ABI ; `release.yml` y passe le tag de la release.
 
 Le répertoire de sortie doit être nouveau. Le script :
 

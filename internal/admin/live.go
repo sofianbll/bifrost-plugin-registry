@@ -240,6 +240,17 @@ type nativeHTTPError int
 
 func (e nativeHTTPError) Error() string { return fmt.Sprintf("Bifrost returned HTTP %d", e) }
 
+// bifrostConnected is workspace.connection.connected: the workspace reads Bifrost successfully.
+func (s *Server) bifrostConnected(ctx context.Context) bool {
+	s.live.Lock()
+	defer s.live.Unlock()
+	if s.live.client == nil {
+		return false
+	}
+	_, e := s.workspace(ctx)
+	return e == nil
+}
+
 func (s *Server) liveHandler(w http.ResponseWriter, r *http.Request) {
 	s.live.Lock()
 	defer s.live.Unlock()

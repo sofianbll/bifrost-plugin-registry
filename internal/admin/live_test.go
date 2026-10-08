@@ -122,6 +122,9 @@ func TestLiveWorkspacePublishAndReadback(t *testing.T) {
 	if len(ws.Discovery) != 1 || ws.Discovery[0].Accesses[0].ID != "CLI PROXY/gpt-6-sol" || !ws.Data.Keys[0].Managed || ws.Connection.Version != "2.2.3" {
 		t.Fatal("discovery or managed key missing")
 	}
+	if status := perform(s, "GET", "/api/status", "", authorized()); status.Code != 200 || !strings.Contains(status.Body.String(), `"bifrost_connected":true`) {
+		t.Fatal("status disagrees with workspace.connection", status.Code, status.Body.String())
+	}
 	failVersion = true
 	if unavailable := perform(s, "GET", "/api/workspace", "", authorized()); unavailable.Code != 200 || !strings.Contains(unavailable.Body.String(), `"version":"unknown"`) {
 		t.Fatal("version failure blocked workspace", unavailable.Code, unavailable.Body.String())
@@ -216,6 +219,17 @@ func TestLiveWorkspacePublishAndReadback(t *testing.T) {
 	_ = json.Unmarshal(get.Body.Bytes(), &checked)
 	if checked.Data.Keys[0].Publication.State != "not_verified" || checked.Data.Keys[0].Publication.Revision != checked.Revision {
 		t.Fatal("partial native failure retained stale proof", get.Body.String())
+	}
+}
+
+func TestStatusReportsUnreachableBifrost(t *testing.T) {
+	s := setup(t)
+	if err := s.ConnectBifrost("http://bifrost.local", ""); err != nil {
+		t.Fatal(err)
+	}
+	s.live.client.http.Transport = nativeRoundTrip(func(*http.Request) (*http.Response, error) { return nativeResponse(503, `{}`), nil })
+	if w := perform(s, "GET", "/api/status", "", authorized()); w.Code != 200 || !strings.Contains(w.Body.String(), `"bifrost_connected":false`) {
+		t.Fatal("configured but unreachable Bifrost reported connected", w.Code, w.Body.String())
 	}
 }
 

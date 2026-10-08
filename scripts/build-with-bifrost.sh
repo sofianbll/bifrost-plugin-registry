@@ -23,6 +23,9 @@ TAG_VERSION=${TAG_VERSION#transports/}
 BIFROST_VERSION=${BIFROST_VERSION:-$TAG_VERSION}
 [[ $BIFROST_VERSION =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail "Set BIFROST_VERSION=vX.Y.Z matching verified source, or use an exact tagged checkout"
 GATEWAY_LDFLAGS="-w -s -X main.Version=$BIFROST_VERSION"
+# The Registry release the plugin reports (/api/status, abi-smoke.json): release.yml passes its tag.
+REGISTRY_VERSION=${REGISTRY_VERSION:-dev}
+[[ $REGISTRY_VERSION =~ ^[0-9A-Za-z][0-9A-Za-z.+-]*$ ]] || fail "REGISTRY_VERSION must look like v1.2.3-rc.1"
 OUT=${2:-"$ROOT/dist/native"}
 [[ ! -e "$OUT" ]] || fail "Output directory already exists; choose a new directory (nothing is overwritten)"
 mkdir -p "$OUT"
@@ -74,10 +77,13 @@ go test "${FLAGS[@]}" ./registry-plugin
 } > "$OUT/build-environment.txt"
 printf 'Building native Bifrost and registry plugin from the same module…\n'
 go build "${FLAGS[@]}" -ldflags="$GATEWAY_LDFLAGS" -o "$OUT/bifrost-http" ./bifrost-http
-go build "${FLAGS[@]}" -ldflags='-w -s' -buildmode=plugin -o "$OUT/bifrost-registry.so" ./registry-plugin
+go build "${FLAGS[@]}" -ldflags="-w -s -X $MODULE/registry-plugin/internal/registry.Version=$REGISTRY_VERSION" -buildmode=plugin -o "$OUT/bifrost-registry.so" ./registry-plugin
 go build "${FLAGS[@]}" -ldflags='-w -s' -buildmode=plugin -o "$OUT/legacy-hook-proof.so" ./registry-plugin/legacy-proof
 go build "${FLAGS[@]}" -ldflags='-w -s' -o "$OUT/native-probe" ./registry-plugin/abi-probe
 "$OUT/native-probe" "$OUT/bifrost-registry.so" > "$OUT/abi-smoke.json"
+# -X silently ignores a wrong symbol path, so check the version the loaded plugin reports.
+python3 -c 'import json, sys; sys.exit(json.load(open(sys.argv[1])).get("registry_version") != sys.argv[2])' \
+  "$OUT/abi-smoke.json" "$REGISTRY_VERSION" || fail "plugin does not report Registry version $REGISTRY_VERSION"
 go version -m "$OUT/bifrost-http" > "$OUT/gateway-build-info.txt"
 go version -m "$OUT/bifrost-registry.so" > "$OUT/plugin-build-info.txt"
 go version -m "$OUT/legacy-hook-proof.so" > "$OUT/legacy-plugin-build-info.txt"
