@@ -4,6 +4,7 @@ Release downloads and their exact source commits are listed in [GitHub Releases]
 
 ## Unreleased
 
+- Registry data from v0.1/v0.2 no longer stops the plugin (#53). A key model offered by several accesses without `access_selection` is withheld from that key, logged as a gateway warning and flagged in the panel until an access is chosen; the rest of the key is published. Saves still refuse new ambiguity.
 - Searchable Model ID, Creator and series selectors with custom values, known metadata/access prefill and atomic reference matching.
 - Optional AI suggestions through a selected native virtual key, with field-by-field review before saving; Chat Completions and Responses supported.
 - On-demand native virtual-key reveal/copy, visible unknown capabilities and a scrollable model editor.

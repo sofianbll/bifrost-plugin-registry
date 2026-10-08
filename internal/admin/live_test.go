@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"reflect"
 	"sort"
 	"strings"
 	"sync"
@@ -384,6 +385,113 @@ func TestWorkspacePreservesPerAccessEndpointsAndRequiresExplicitChoices(t *testi
 	newAccessBody, _ = json.Marshal(newAccessPayload)
 	if invalid := putWorkspaceBody(newAccessBody, ws.Revision); invalid.Code != 422 || s.Store.Load().Revision() != before || nativeWrites != 0 {
 		t.Fatalf("new access without endpoints accepted: %d %s", invalid.Code, invalid.Body.String())
+	}
+}
+
+// Issue #53: the panel flags a v0.1.3 policy whose alias has two accesses and no
+// access_selection, can still save that workspace, refuses new ambiguity, and
+// publishes the alias once the admin keeps one access.
+func TestWorkspaceSavesLegacyAmbiguityAndResolvesIt(t *testing.T) {
+	legacy, err := registry.Compile(registry.Config{SchemaVersion: 1, DefaultNaming: "provider/model", Models: []registry.Model{
+		{ID: "shared-a", Alias: "shared", Provider: "alpha", ProviderKeyIDs: []string{"key-alpha"}, UpstreamModel: "native-shared-a", Endpoints: []string{"chat/completions"}, Enabled: true, Verified: true, Evidence: "v0.1.3"},
+		{ID: "shared-b", Alias: "shared", Provider: "beta", ProviderKeyIDs: []string{"key-beta"}, UpstreamModel: "native-shared-b", Endpoints: []string{"chat/completions"}, Enabled: true, Verified: true, Evidence: "v0.1.3"},
+		{ID: "solo", Alias: "solo", Provider: "alpha", ProviderKeyIDs: []string{"key-alpha"}, UpstreamModel: "native-solo", Endpoints: []string{"chat/completions"}, Enabled: true, Verified: true, Evidence: "v0.1.3"},
+	}, Groups: []registry.Group{{ID: "all", Name: "All", ModelIDs: []string{"shared-a", "shared-b", "solo"}}}, Policies: []registry.Policy{
+		{VirtualKeyID: "vk-legacy", Name: "Legacy", TokenSHA256: registry.TokenHash("sk-bf-legacy"), Naming: "both", Groups: []string{"all"}, Prefer: map[string]string{"shared": "shared-a"}, Enabled: true},
+		{VirtualKeyID: "vk-other", Name: "Other", TokenSHA256: registry.TokenHash("sk-bf-other"), Groups: []string{}, Enabled: true},
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	s, err := New(registry.MemoryStore(legacy), adminToken, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.ConnectBifrost("http://bifrost.local", "Bearer native-admin")
+	applied := map[string]map[string]any{}
+	s.live.client.http.Transport = nativeRoundTrip(func(r *http.Request) (*http.Response, error) {
+		switch r.URL.Path {
+		case "/api/providers":
+			return nativeResponse(200, `{"providers":[{"name":"alpha"},{"name":"beta"}]}`), nil
+		case "/api/providers/alpha/keys":
+			return nativeResponse(200, `{"keys":[{"id":"key-alpha"}]}`), nil
+		case "/api/providers/beta/keys":
+			return nativeResponse(200, `{"keys":[{"id":"key-beta"}]}`), nil
+		case "/api/models":
+			models := map[string]string{"alpha": `[{"name":"native-shared-a","provider":"alpha","accessible_by_keys":["key-alpha"]},{"name":"native-solo","provider":"alpha","accessible_by_keys":["key-alpha"]}],"total":2`, "beta": `[{"name":"native-shared-b","provider":"beta","accessible_by_keys":["key-beta"]}],"total":1`}
+			return nativeResponse(200, `{"models":`+models[r.URL.Query().Get("provider")]+`}`), nil
+		case "/api/governance/virtual-keys":
+			return nativeResponse(200, `{"virtual_keys":[{"id":"vk-legacy","name":"Legacy","is_active":true},{"id":"vk-other","name":"Other","is_active":true}]}`), nil
+		case "/api/governance/virtual-keys/vk-legacy", "/api/governance/virtual-keys/vk-other":
+			var body map[string]any
+			_ = json.NewDecoder(r.Body).Decode(&body)
+			applied[strings.TrimPrefix(r.URL.Path, "/api/governance/virtual-keys/")] = body
+			return nativeResponse(200, `{}`), nil
+		case "/api/governance/pricing-overrides":
+			return nativeResponse(200, `{"pricing_overrides":[]}`), nil
+		case "/api/version":
+			return nativeResponse(200, `"2.2.6"`), nil
+		default:
+			if strings.HasPrefix(r.URL.Path, "/api/providers/") && strings.Contains(r.URL.Path, "/keys/") {
+				return nativeResponse(200, `{"aliases":{}}`), nil
+			}
+			t.Fatalf("unexpected native route %s", r.URL.Path)
+			return nil, nil
+		}
+	})
+	keyByID := func(ws workspace, id string) *keyDTO {
+		for i := range ws.Data.Keys {
+			if ws.Data.Keys[i].ID == id {
+				return &ws.Data.Keys[i]
+			}
+		}
+		t.Fatalf("missing key %s", id)
+		return nil
+	}
+	put := func(ws workspace) (*httptest.ResponseRecorder, workspace) {
+		body, _ := json.Marshal(map[string]any{"data": ws.Data})
+		h := authorized()
+		h["If-Match"] = ws.Revision
+		w := perform(s, "PUT", "/api/workspace", string(body), h)
+		var out workspace
+		_ = json.Unmarshal(w.Body.Bytes(), &out)
+		return w, out
+	}
+
+	read := perform(s, "GET", "/api/workspace", "", authorized())
+	var ws workspace
+	if read.Code != 200 || json.Unmarshal(read.Body.Bytes(), &ws) != nil {
+		t.Fatalf("workspace read: %d %s", read.Code, read.Body.String())
+	}
+	if got := keyByID(ws, "vk-legacy").PendingAccessSelection; !reflect.DeepEqual(got, map[string][]string{"shared": {"alpha/shared", "beta/shared"}}) {
+		t.Fatalf("legacy ambiguity not flagged: %#v", got)
+	}
+	if got := keyByID(ws, "vk-other").PendingAccessSelection; got != nil {
+		t.Fatalf("unrelated key flagged: %#v", got)
+	}
+
+	w, saved := put(ws)
+	if w.Code != 200 || keyByID(saved, "vk-legacy").PendingAccessSelection == nil {
+		t.Fatalf("legacy workspace could not be saved as is: %d %s", w.Code, w.Body.String())
+	}
+
+	ambiguous := saved
+	ambiguous.Data.Keys = append([]keyDTO(nil), saved.Data.Keys...)
+	keyByID(ambiguous, "vk-other").Policy.Groups = []string{"all"}
+	if w, _ := put(ambiguous); w.Code != 422 || !strings.Contains(w.Body.String(), "policy vk-other: model shared has 2 accesses; add access_selection") {
+		t.Fatalf("new ambiguity accepted: %d %s", w.Code, w.Body.String())
+	}
+
+	keyByID(saved, "vk-legacy").Policy.AccessSelection = map[string]registry.AccessSelector{"shared": {Excluded: []string{"beta/shared"}}}
+	w, resolved := put(saved)
+	if w.Code != 200 || keyByID(resolved, "vk-legacy").PendingAccessSelection != nil {
+		t.Fatalf("access choice not saved: %d %s", w.Code, w.Body.String())
+	}
+	if pcs := fmt.Sprint(applied["vk-legacy"]["provider_configs"]); !strings.Contains(pcs, "allowed_models:[shared solo]") || strings.Contains(pcs, "beta") {
+		t.Fatalf("native allowlist does not follow the chosen access: %s", pcs)
+	}
+	if prefer := s.Store.Load().Config().Policies[0].Prefer["shared"]; prefer != registryID("alpha", "native-shared-a") {
+		t.Fatalf("v0.1 preference not carried to the rebuilt access ID: %q", prefer)
 	}
 }
 

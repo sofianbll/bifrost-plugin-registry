@@ -35,6 +35,9 @@ func (s *Snapshot) Plan() NativePlan {
 		"Install aliases on existing provider keys, then configure native virtual-key allowlists. Budgets, limits, routing, secrets and pricing remain native.",
 		"model_family changes native provider routing semantics; it is not just a display label. Verify it for each custom provider.",
 	}}
+	for _, a := range s.Ambiguities() {
+		p.Warnings = append(p.Warnings, a.String())
+	}
 	byKey := map[string]*KeyPlan{}
 	for _, m := range s.config.Models {
 		if !m.Enabled || (!m.Verified && !m.Configured) {

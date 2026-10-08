@@ -55,6 +55,9 @@ func run(args []string) error {
 	if e != nil {
 		return e
 	}
+	for _, a := range store.Load().Ambiguities() {
+		fmt.Fprintln(os.Stderr, "registry: warning:", a)
+	}
 	switch args[0] {
 	case "validate":
 		fmt.Printf("Valid registry · revision %s\n", store.Load().Revision())

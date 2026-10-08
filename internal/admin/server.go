@@ -215,6 +215,10 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request, embedded bool) {
 			return
 		}
 		snap, err := registry.Parse(input.Config)
+		if err == nil && r.URL.Path == "/api/validate" {
+			// Same rule as saving: keep withheld legacy aliases, refuse new ones.
+			err = snap.NewAmbiguity(s.Store.Load())
+		}
 		if err != nil {
 			reply(w, 422, map[string]string{"error": err.Error()})
 			return
