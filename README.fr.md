@@ -9,7 +9,7 @@
 Organisez chaque modèle une seule fois, puis décidez exactement de ce que chaque clé virtuelle peut atteindre — via une interface embarquée qui tourne à côté de votre gateway Bifrost existant.
 
 [![CI](https://github.com/sofianbll/bifrost-plugin-registry/actions/workflows/ci.yml/badge.svg)](https://github.com/sofianbll/bifrost-plugin-registry/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/release-v0.3.0--rc.7-blue)](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.3.0-rc.7)
+[![Release](https://img.shields.io/badge/release-v0.3.0--rc.8-blue)](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.3.0-rc.8)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 [English](README.md) · Français
@@ -39,7 +39,7 @@ docker pull ghcr.io/sofianbll/bifrost-dynamic:2.2.6
 # 2. Fournissez les deux identifiants admin et un volume persistant sur /app/data
 export REGISTRY_ADMIN_TOKEN=…  REGISTRY_BIFROST_AUTH='Basic …'
 # 3. Ajoutez le .so correspondant par URL directe dans les réglages plugin de Bifrost
-#    https://github.com/sofianbll/bifrost-plugin-registry/releases/download/v0.3.0-rc.7/bifrost-registry-v0.3.0-rc.7-linux-<amd64|arm64>.so
+#    https://github.com/sofianbll/bifrost-plugin-registry/releases/download/v0.3.0-rc.8/bifrost-registry-v0.3.0-rc.8-linux-<amd64|arm64>.so
 # 4. Ouvrez le panneau
 open http://127.0.0.1:8099/model-registry
 ```
@@ -73,9 +73,9 @@ Projet indépendant, pas un produit officiel Maxim/Bifrost.
 
 ## Exécution et qualification
 
-La release courante **v0.3.0-rc.7** (pré-release) est le Registry recompilé et testé contre Bifrost 2.2.6 non modifié (`transports/v2.2.6`, commit `8b4fce4`) pour Linux AMD64 et ARM64 (musl), Go 1.27.1 ; depuis v0.3.0-rc.6, la version de Bifrost et la sonde de disponibilité de la qualification ont changé, pas le code Go de Registry. Bifrost 2.2.6 exige l'authentification du tableau de bord pour les appels de Registry à son API native ([Installation](docs/fr/INSTALL.md#identifiants-et-configuration-du-plugin)). La qualification native a tourné sur les deux architectures avec des fournisseurs synthétiques ([exécution de release](https://github.com/sofianbll/bifrost-plugin-registry/actions/runs/37767256145)) ; les rapports et les empreintes des `.so` sont fournis avec la release.
+La release courante **v0.3.0-rc.8** (pré-release) est le Registry recompilé et testé contre Bifrost 2.2.6 non modifié (`transports/v2.2.6`, commit `8b4fce4`) pour Linux AMD64 et ARM64 (musl), Go 1.27.1. Depuis v0.3.0-rc.7, Bifrost n'a pas changé et le code de Registry a évolué : un fichier de registre de v0.1/v0.2 n'arrête plus le plugin (un modèle accessible par plusieurs accès est retiré de sa clé jusqu'au choix d'un accès), `/api/status` indique la version de la release et l'état réel de la connexion à Bifrost, et l'écran de connexion signale clairement un jeton d'administration mal formé. Bifrost 2.2.6 exige l'authentification du tableau de bord pour les appels de Registry à son API native ([Installation](docs/fr/INSTALL.md#identifiants-et-configuration-du-plugin)). La qualification native a tourné sur les deux architectures avec des fournisseurs synthétiques ([exécution de release](https://github.com/sofianbll/bifrost-plugin-registry/actions/runs/37782995939)) ; les rapports et les empreintes des `.so` sont fournis avec la release.
 
-Les résultats ci-dessous ont été enregistrés sur la release plus ancienne **v0.3.0-rc.4** (ARM64, Bifrost 2.2.3, commit final `d588a9f` ; interface en anglais par défaut), dont rc.5 à rc.7 recompilent le code.
+Les résultats ci-dessous ont été enregistrés sur la release plus ancienne **v0.3.0-rc.4** (ARM64, Bifrost 2.2.3, commit final `d588a9f` ; interface en anglais par défaut), dont rc.5 à rc.7 recompilent le code et que rc.8 fait évoluer.
 
 | Contrôle | Résultat |
 | --- | --- |
@@ -89,7 +89,7 @@ Les résultats ci-dessous ont été enregistrés sur la release plus ancienne **
 
 [Rapport de qualification ARM64](reports/bifrost-2.2.3-arm64-869e251/README.md) · [Audit final](docs/reviews/2026-09-28-final-audit.md)
 
-**Limites honnêtes.** Les résultats détaillés ci-dessus sont ARM64 seulement ; rc.5 a ajouté la qualification AMD64 et ARM64 pour Bifrost 2.2.4, et rc.6 puis rc.7 la répètent pour 2.2.5 et 2.2.6. L'image officielle précompilée reste non qualifiée, et l'image téléchargée est qualifiée séparément du `.so`. Toutes les suites tournent contre des fournisseurs synthétiques, **sans inférence réelle**. La suite d'adoption de rc.4 utilise un bridge réseau limité au loopback ; les autres suites utilisent `--network none`. Aucun déploiement de production n'a été effectué, et l'intégration à la barre latérale native est différée.
+**Limites honnêtes.** Les résultats détaillés ci-dessus sont ARM64 seulement ; rc.5 a ajouté la qualification AMD64 et ARM64 pour Bifrost 2.2.4, et rc.6 à rc.8 la répètent pour 2.2.5 et 2.2.6. L'image officielle précompilée reste non qualifiée, et l'image téléchargée est qualifiée séparément du `.so`. Toutes les suites tournent contre des fournisseurs synthétiques, **sans inférence réelle**. La suite d'adoption de rc.4 utilise un bridge réseau limité au loopback ; les autres suites utilisent `--network none`. La paire rc.7 a aussi été installée par URL sur une copie de test d'un gateway de production ([STATUS](STATUS.md), en anglais) ; aucun déploiement de production n'a été effectué, et l'intégration à la barre latérale native est différée.
 
 ## Contribuer
 

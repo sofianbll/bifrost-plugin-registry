@@ -2,7 +2,7 @@
 
 > Page disponible en français uniquement. *(Developer page, French only.)*
 
-Le [guide d'installation](fr/INSTALL.md) indique les fichiers publiés pour chaque hôte, l'image Docker Bifrost compilée avec liaison dynamique, le `.so` séparé, l'installation, la mise à jour et le retour arrière. Les preuves de la première prérelease sont dans [`reports/v1-final/`](https://github.com/sofianbll/bifrost-plugin-registry/tree/main/reports/v1-final) ; celles de la paire ARM64 de `v0.3.0-rc.4` dans [`reports/bifrost-2.2.3-arm64-869e251/`](https://github.com/sofianbll/bifrost-plugin-registry/tree/main/reports/bifrost-2.2.3-arm64-869e251). Celles de `v0.3.0-rc.5` à `v0.3.0-rc.7` (AMD64 et ARM64) sont les fichiers `reports-linux-<arch>.tar.gz` de chaque release. Les compilations et pilotes ci-dessous expliquent la provenance et conservent les essais antérieurs.
+Le [guide d'installation](fr/INSTALL.md) indique les fichiers publiés pour chaque hôte, l'image Docker Bifrost compilée avec liaison dynamique, le `.so` séparé, l'installation, la mise à jour et le retour arrière. Les preuves de la première prérelease sont dans [`reports/v1-final/`](https://github.com/sofianbll/bifrost-plugin-registry/tree/main/reports/v1-final) ; celles de la paire ARM64 de `v0.3.0-rc.4` dans [`reports/bifrost-2.2.3-arm64-869e251/`](https://github.com/sofianbll/bifrost-plugin-registry/tree/main/reports/bifrost-2.2.3-arm64-869e251). Celles de `v0.3.0-rc.5` à `v0.3.0-rc.8` (AMD64 et ARM64) sont les fichiers `reports-linux-<arch>.tar.gz` de chaque release. Les compilations et pilotes ci-dessous expliquent la provenance et conservent les essais antérieurs.
 
 ## Mode standard prioritaire : plugin avec son propre serveur web
 
@@ -41,7 +41,7 @@ Sources :
 
 ## Préparation d’un checkout isolé
 
-Utiliser la version exacte de votre gateway, pas `dev`, pas `core@latest`. La dernière release (`v0.3.0-rc.7`) est compilée contre **Bifrost HTTP 2.2.6** : le tag `transports/v2.2.6` pointe vers `8b4fce4f1709d66f9208d02f50552da522535f9e`. Exemple de checkout isolé :
+Utiliser la version exacte de votre gateway, pas `dev`, pas `core@latest`. La dernière release (`v0.3.0-rc.8`) est compilée contre **Bifrost HTTP 2.2.6** : le tag `transports/v2.2.6` pointe vers `8b4fce4f1709d66f9208d02f50552da522535f9e`. Exemple de checkout isolé :
 
 ```bash
 git clone --branch transports/v2.2.6 --depth 1 https://github.com/maximhq/bifrost.git bifrost-build
@@ -49,7 +49,7 @@ cd bifrost-build
 git rev-parse HEAD
 ```
 
-Les artefacts 2.2.1 à 2.2.5 ne valident pas cette cible ; `v0.3.0-rc.6` vise `transports/v2.2.5` (`77d08f241cfa10d09ea37d6b00ef9f2c363a3ede`), `v0.3.0-rc.5` vise `transports/v2.2.4` (`ed8371a9779bfbc8aa689d4d77964cf8ce9308bf`), la paire `v0.3.0-rc.4` vise `transports/v2.2.3` (`411d62b28b03b03bd3b4025b2cfab50af45f05f4`) et `v0.2.0-rc.1` vise `transports/v2.2.2` (`fdeef8e3f31a3b18a61666ba49247d07bae3600a`). Pour toute nouvelle compilation, enregistrer le commit réellement utilisé et exécuter la sonde ABI.
+Les artefacts 2.2.1 à 2.2.5 ne valident pas cette cible ; `v0.3.0-rc.7` vise le même tag `transports/v2.2.6`, `v0.3.0-rc.6` vise `transports/v2.2.5` (`77d08f241cfa10d09ea37d6b00ef9f2c363a3ede`), `v0.3.0-rc.5` vise `transports/v2.2.4` (`ed8371a9779bfbc8aa689d4d77964cf8ce9308bf`), la paire `v0.3.0-rc.4` vise `transports/v2.2.3` (`411d62b28b03b03bd3b4025b2cfab50af45f05f4`) et `v0.2.0-rc.1` vise `transports/v2.2.2` (`fdeef8e3f31a3b18a61666ba49247d07bae3600a`). Pour toute nouvelle compilation, enregistrer le commit réellement utilisé et exécuter la sonde ABI.
 
 Compiler le vrai frontend à partir de ce checkout, selon son `package.json` et les instructions officielles. La documentation consultée donne `npm ci`, puis `npm run build-enterprise` dans `ui`, et copie le contenu de `ui/out` vers `transports/bifrost-http/ui`. Vérifier ces chemins/scripts dans le tag réellement choisi. Le script Registry s’arrête tant que `transports/bifrost-http/ui/index.html` n’existe pas ; il ne fabrique pas de faux frontend.
 
