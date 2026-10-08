@@ -1,8 +1,20 @@
 # Project status
 
-Current release: **[v0.3.0-rc.6](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.3.0-rc.6)** (pre-release) — October 5, 2026 (supersedes `v0.3.0-rc.1`–`rc.5`). Previous release: [v0.3.0-rc.5](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.3.0-rc.5); first release candidate: [v0.2.0-rc.1](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.2.0-rc.1). This page is the entry point for the current release; sections marked superseded are kept for history. The [September 26 project reconciliation](docs/reviews/2026-09-26-project-state.md) records the historical evidence and gaps.
+Current release: **[v0.3.0-rc.7](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.3.0-rc.7)** (pre-release) — October 8, 2026 (supersedes `v0.3.0-rc.1`–`rc.6`). Previous release: [v0.3.0-rc.6](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.3.0-rc.6); first release candidate: [v0.2.0-rc.1](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.2.0-rc.1). This page is the entry point for the current release; sections marked superseded are kept for history. The [September 26 project reconciliation](docs/reviews/2026-09-26-project-state.md) records the historical evidence and gaps.
 
-## v0.3.0-rc.6 — published (October 5, 2026)
+## v0.3.0-rc.7 — published (October 8, 2026)
+
+[v0.3.0-rc.7](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.3.0-rc.7) is a **pre-release**: the Registry rebuilt and tested against unmodified Bifrost 2.2.6 (`transports/v2.2.6`, commit `8b4fce4f1709d66f9208d02f50552da522535f9e`), Go 1.27.1, Alpine 3.23, for **linux/amd64 and linux/arm64** (musl). Since v0.3.0-rc.6 the Bifrost version (2.2.5 to 2.2.6) and the qualification `models` suite changed: it now waits for gateway readiness on the public `/health` route instead of `/api/config`, which Bifrost 2.2.6 locks until dashboard authentication or a setup token is in place (PR [#50](https://github.com/sofianbll/bifrost-plugin-registry/pull/50), fixing [#49](https://github.com/sofianbll/bifrost-plugin-registry/issues/49): the watcher's 2.2.6 candidate had failed only on that probe). The Registry's own Go code is unchanged.
+
+- **Plugin assets:** `bifrost-registry-v0.3.0-rc.7-linux-amd64.so` (`5ff7291291466e2b14c6987f8b4b253940df5387a554bce771e9098a2ec5a48e`) and `bifrost-registry-v0.3.0-rc.7-linux-arm64.so` (`4222d714a3b06a85217b58a0f2a3b7af09014d2ada6b6d7fb67621dd40dd35c9`), plus `SHA256SUMS`, `manifest.json`, `reports-linux-<arch>.tar.gz` and `licenses.tar.gz`. There are no image archives.
+- **Gateway image** (gateway only, no plugin): multi-arch index `ghcr.io/sofianbll/bifrost-dynamic@sha256:d0b4e98c40e22f142c637737507acfb4e181f6dc340c85aba8989b9df0bbf3be`, matching the release notes. The release workflow also tags it `2.2.6` and `2.2.6-go1.27.1`; a `docker buildx imagetools inspect` on October 8, 2026 showed both tags resolving to that digest. Tags move with each published 2.2.6 gateway build, so the digest is the pinned reference. Each `.so` and the image index carry one attestation (checked through the API).
+- **Evidence:** [release run](https://github.com/sofianbll/bifrost-plugin-registry/actions/runs/37767256145), all jobs successful: metadata, native qualification on amd64 and arm64 runners (models, standalone-restart, standalone-assistant, capabilities and adoption suites), image build, start and probe per architecture, multi-arch merge with attestations, release. The suites use synthetic providers only; per-architecture reports are release assets.
+- **Bifrost 2.2.6 authentication:** 2.2.6 locks its management API until dashboard authentication is enabled or a setup token is sent, and turns inference authentication on by default for fresh deployments. Registry sends only the `Authorization` header from `REGISTRY_BIFROST_AUTH`, so dashboard authentication must be enabled, as in the qualified configuration; see [Install](docs/INSTALL.md#credentials-and-plugin-settings).
+- **Not done, not claimed:** real-provider inference, any production deployment, native-menu integration ([#7](https://github.com/sofianbll/bifrost-plugin-registry/issues/7)). No installation of this release is recorded here. The watcher's own pull request starting its checks ([#23](https://github.com/sofianbll/bifrost-plugin-registry/issues/23)) remains unproven: its 2.2.6 run failed before opening a pull request.
+
+Registry V1 is implemented and published as a release candidate. It uses an unmodified Bifrost gateway (2.2.6 in v0.3.0-rc.7, 2.2.5 in v0.3.0-rc.6, 2.2.4 in v0.3.0-rc.5, 2.2.3 in v0.3.0-rc.4, 2.2.2 in v0.2.0-rc.1) compiled with dynamic loading, distributed separately from the Registry `.so`. The plugin embeds the React UI and serves its own admin port, `8099`.
+
+## v0.3.0-rc.6 — previous release (October 5, 2026)
 
 [v0.3.0-rc.6](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.3.0-rc.6) is a **pre-release**: the Registry rebuilt and tested against unmodified Bifrost 2.2.5 (`transports/v2.2.5`, commit `77d08f241cfa10d09ea37d6b00ef9f2c363a3ede`), Go 1.27.1, Alpine 3.23, for **linux/amd64 and linux/arm64** (musl). Since v0.3.0-rc.5 the Bifrost version (2.2.4 to 2.2.5) and the UI dependencies (React 19.3 and 22 minor/patch updates, PR [#35](https://github.com/sofianbll/bifrost-plugin-registry/pull/35)) changed; the Registry's own Go code is unchanged. It supersedes the watcher's pre-release `v0.3.0-bifrost2.2.5-rc.1`.
 
@@ -11,9 +23,7 @@ Current release: **[v0.3.0-rc.6](https://github.com/sofianbll/bifrost-plugin-reg
 - **Evidence:** [release run](https://github.com/sofianbll/bifrost-plugin-registry/actions/runs/37293098045), all jobs successful: metadata, native qualification on amd64 and arm64 runners, image build, start and probe per architecture, multi-arch merge with attestations, release. The suites use synthetic providers only; per-architecture reports are release assets.
 - **Not done, not claimed:** real-provider inference, any production deployment, native-menu integration ([#7](https://github.com/sofianbll/bifrost-plugin-registry/issues/7)). No installation of this release is recorded here.
 
-Registry V1 is implemented and published as a release candidate. It uses an unmodified Bifrost gateway (2.2.5 in v0.3.0-rc.6, 2.2.4 in v0.3.0-rc.5, 2.2.3 in v0.3.0-rc.4, 2.2.2 in v0.2.0-rc.1) compiled with dynamic loading, distributed separately from the Registry `.so`. The plugin embeds the React UI and serves its own admin port, `8099`.
-
-## v0.3.0-rc.5 — previous release (October 2, 2026)
+## v0.3.0-rc.5 — older release (October 2, 2026)
 
 [v0.3.0-rc.5](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.3.0-rc.5) is a **pre-release**: the v0.3.0-rc.4 Registry code rebuilt and tested against unmodified Bifrost 2.2.4 (`transports/v2.2.4`, commit `ed8371a9779bfbc8aa689d4d77964cf8ce9308bf`), Go 1.27.1, Alpine 3.23, for **linux/amd64 and linux/arm64** (musl). It adds the AMD64 pair that rc.4 lacked.
 
@@ -36,7 +46,7 @@ The September 27–28 continuation is delivered as an ARM64 Bifrost 2.2.3 pair (
 
 ## Checks and evidence
 
-Every pull request runs [CI](.github/workflows/ci.yml) (Go, UI, scripts, lint), E2E, CodeQL and the docs build. A pull request that touches the gateway/plugin pair also runs the native qualification ([qualify.yml](.github/workflows/qualify.yml)) on linux/amd64 and linux/arm64 runners, and [release.yml](.github/workflows/release.yml) runs it again before publishing. Release evidence is the rc.6 run linked above; older per-release results are in [the archive](docs/archive/status-through-2026-10-05.md) and in `reports/`. Build artifacts and routine test output stay in ignored `dist/`.
+Every pull request runs [CI](.github/workflows/ci.yml) (Go, UI, scripts, lint), E2E, CodeQL and the docs build. A pull request that touches the gateway/plugin pair also runs the native qualification ([qualify.yml](.github/workflows/qualify.yml)) on linux/amd64 and linux/arm64 runners, and [release.yml](.github/workflows/release.yml) runs it again before publishing. Release evidence is the rc.7 run linked above; older per-release results are in [the archive](docs/archive/status-through-2026-10-05.md) and in `reports/`. Build artifacts and routine test output stay in ignored `dist/`.
 
 ## Limits and follow-up
 
