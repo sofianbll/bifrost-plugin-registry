@@ -122,8 +122,12 @@ func (r Route) NativeID() string {
 type View struct {
 	Policy Policy  `json:"policy"`
 	Routes []Route `json:"routes"`
-	index  map[string]Route
-	native map[string]Route
+	// Ambiguous maps each withheld alias to its candidate access IDs: several
+	// eligible accesses share it and the policy has no access_selection for it
+	// (files written before access selection existed).
+	Ambiguous map[string][]string `json:"ambiguous,omitempty"`
+	index     map[string]Route
+	native    map[string]Route
 }
 
 type Snapshot struct {
@@ -131,6 +135,52 @@ type Snapshot struct {
 	views    map[string]*View
 	tokens   map[string]*View
 	revision string
+}
+
+// ErrAmbiguousAccess rejects a save that makes a policy model ambiguous.
+var ErrAmbiguousAccess = errors.New("add access_selection")
+
+// Ambiguity is a model alias withheld from one policy until an access is chosen.
+type Ambiguity struct {
+	VirtualKeyID string
+	Alias        string
+	Accesses     []string
+}
+
+func (a Ambiguity) String() string {
+	return fmt.Sprintf("policy %s: model %s has %d accesses and no access_selection; withheld until an access is chosen", a.VirtualKeyID, a.Alias, len(a.Accesses))
+}
+
+// Ambiguities lists the withheld aliases, sorted by policy then alias.
+func (s *Snapshot) Ambiguities() []Ambiguity {
+	out := []Ambiguity{}
+	for id, v := range s.views {
+		for alias, accesses := range v.Ambiguous {
+			out = append(out, Ambiguity{id, alias, accesses})
+		}
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].VirtualKeyID != out[j].VirtualKeyID {
+			return out[i].VirtualKeyID < out[j].VirtualKeyID
+		}
+		return out[i].Alias < out[j].Alias
+	})
+	return out
+}
+
+// NewAmbiguity rejects an ambiguous alias that prev did not already withhold.
+// Legacy ambiguity stays saveable so the rest of the registry can be edited.
+func (s *Snapshot) NewAmbiguity(prev *Snapshot) error {
+	old := map[[2]string]bool{}
+	for _, a := range prev.Ambiguities() {
+		old[[2]string{a.VirtualKeyID, a.Alias}] = true
+	}
+	for _, a := range s.Ambiguities() {
+		if !old[[2]string{a.VirtualKeyID, a.Alias}] {
+			return fmt.Errorf("policy %s: model %s has %d accesses; %w", a.VirtualKeyID, a.Alias, len(a.Accesses), ErrAmbiguousAccess)
+		}
+	}
+	return nil
 }
 
 var slug = regexp.MustCompile(`^[a-z0-9][a-z0-9._-]{0,127}$`)
@@ -513,6 +563,7 @@ func Compile(c Config) (*Snapshot, error) {
 			byAlias[m.Alias] = append(byAlias[m.Alias], m)
 		}
 		filtered := map[string]Model{}
+		ambiguous := map[string][]string{}
 		for alias, ms := range byAlias {
 			sel, hasSelection := p.AccessSelection[alias]
 			if !hasSelection {
@@ -520,7 +571,13 @@ func Compile(c Config) (*Snapshot, error) {
 					filtered[ms[0].ID] = ms[0]
 					continue
 				}
-				return nil, fmt.Errorf("policy %s: model %s has %d accesses; add access_selection", p.VirtualKeyID, alias, len(ms))
+				// Fail closed for this alias only (#53): withhold it until an
+				// access is chosen; the rest of the policy is still published.
+				for _, m := range ms {
+					ambiguous[alias] = append(ambiguous[alias], m.ID)
+				}
+				sort.Strings(ambiguous[alias])
+				continue
 			}
 			retained := map[string]bool{}
 			for _, m := range ms {
@@ -548,12 +605,18 @@ func Compile(c Config) (*Snapshot, error) {
 			byAlias[m.Alias] = append(byAlias[m.Alias], m)
 		}
 		for alias, id := range p.Prefer {
+			if ambiguous[alias] != nil {
+				continue // a v0.1 bare-alias preference does not choose the key's access
+			}
 			m, ok := eligible[id]
 			if !ok || m.Alias != alias {
 				return nil, fmt.Errorf("policy %s: preference %s must reference an eligible model with that alias", p.VirtualKeyID, alias)
 			}
 		}
 		v := &View{Policy: p, Routes: []Route{}, index: map[string]Route{}, native: map[string]Route{}}
+		if len(ambiguous) > 0 {
+			v.Ambiguous = ambiguous
+		}
 		add := func(m Model, name string) {
 			r := Route{ExposedID: name, RegistryID: m.ID, Provider: m.Provider, Alias: m.Alias, UpstreamModel: m.UpstreamModel, Endpoints: append([]string{}, m.Endpoints...), Passthrough: m.Passthrough, RoutingTargets: append([]string{}, m.RoutingTargets...)}
 			v.Routes = append(v.Routes, r)

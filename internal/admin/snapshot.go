@@ -71,6 +71,10 @@ func (s *Server) snapshotHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		current := s.Store.Load()
+		if err := candidate.NewAmbiguity(current); err != nil {
+			reply(w, 422, map[string]string{"error": err.Error()})
+			return
+		}
 		if !apply {
 			reply(w, 200, snapshotPreview(current, candidate, source))
 			return

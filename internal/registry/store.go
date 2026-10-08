@@ -53,6 +53,9 @@ func (s *Store) save(data []byte, expected string, backup bool) (*Snapshot, stri
 	if expected == "" || s.Load().Revision() != expected {
 		return nil, "", ErrConflict
 	}
+	if err := candidate.NewAmbiguity(s.Load()); err != nil {
+		return nil, "", err
+	}
 	var backupPath string
 	if s.path != "" {
 		// Do not overwrite edits made by another process while this server was running.

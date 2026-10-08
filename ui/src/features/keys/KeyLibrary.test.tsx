@@ -26,3 +26,13 @@ for (const layout of ["grid", "table"] as const) {
   if (layout === "table" && density) throw new Error("table layout must hide the density control");
   if (!html.includes('aria-label="Grille"') || !html.includes('aria-label="Tableau"')) throw new Error(`${layout}: icon-only view toggles must keep explicit names`);
 }
+
+// #53: a key whose model awaits an access choice says so in grid and table, in both languages.
+const pending = { ...fixture.keys[0], managed: true, pendingAccessSelection: { "deepseek-v4.1-flash": ["openrouter/deepseek-v4.1-flash", "deepseek/deepseek-v4.1-flash"] } };
+for (const [language, label] of [["en", "Access choice needed"], ["fr", "Choix d’accès requis"]] as const) {
+  for (const layout of ["grid", "table"] as const) {
+    const html = renderToStaticMarkup(<LanguageContext.Provider value={language}><KeyLibrary keys={[pending]} groups={fixture.groups} models={fixture.models} search="" onSearch={() => {}} view={{ ...defaultViewOptions, layout }} onViewChange={() => {}} onResetView={() => {}} busy={false} snapshotMode onCreate={() => {}} onOpen={() => {}} /></LanguageContext.Provider>);
+    if (!html.includes(label)) throw new Error(`${language} ${layout}: pending access choice must be visible`);
+    if (layout === "grid" && !html.includes("deepseek-v4.1-flash")) throw new Error(`${language}: the card must name the withheld model`);
+  }
+}

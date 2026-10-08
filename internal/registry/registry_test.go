@@ -2,6 +2,7 @@ package registry
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -224,6 +225,68 @@ func TestPolicyLocalSelections(t *testing.T) {
 		t.Fatalf("excluded preference accepted: %v", err)
 	}
 }
+
+// Issue #53: a registry.json written by v0.1.3 (no access_selection, one alias
+// offered by two providers, the v0.1.3 bare-alias preference) must load. Only
+// that alias is withheld and reported; saves may keep it but not add another.
+func TestV013AmbiguousAliasIsWithheldNotFatal(t *testing.T) {
+	legacy := `{"schema_version": 1, "default_naming": "both",
+  "models": [
+    {"id": "flash-or", "alias": "deepseek-v4.1-flash", "provider": "openrouter", "provider_key_ids": ["k-or"], "upstream_model": "deepseek/deepseek-v4.1-flash", "endpoints": ["chat/completions"], "enabled": true, "verified": true, "evidence": "v0.1.3 fixture"},
+    {"id": "flash-ds", "alias": "deepseek-v4.1-flash", "provider": "deepseek", "provider_key_ids": ["k-ds"], "upstream_model": "deepseek-v4.1-flash", "endpoints": ["chat/completions"], "enabled": true, "verified": true, "evidence": "v0.1.3 fixture"},
+    {"id": "glm", "alias": "glm-5.3", "provider": "zai", "provider_key_ids": ["k-zai"], "upstream_model": "glm-5.3", "endpoints": ["chat/completions"], "enabled": true, "verified": true, "evidence": "v0.1.3 fixture"}],
+  "groups": [{"id": "all", "name": "All", "model_ids": ["flash-or", "flash-ds", "glm"]}],
+  "policies": [
+    {"virtual_key_id": "vk-1", "name": "Tests", "token_sha256": "` + TokenHash(testToken) + `", "groups": ["all"], "prefer": {"deepseek-v4.1-flash": "flash-ds"}, "enabled": true},
+    {"virtual_key_id": "vk-2", "name": "Other", "token_sha256": "` + TokenHash("sk-bf-other-token-0123456789") + `", "groups": [], "enabled": true}]}`
+	path := filepath.Join(t.TempDir(), "registry.json")
+	if err := os.WriteFile(path, []byte(legacy), 0600); err != nil {
+		t.Fatal(err)
+	}
+	store, err := OpenStore(path)
+	if err != nil {
+		t.Fatalf("v0.1.3 registry must load: %v", err)
+	}
+	s := store.Load()
+	if got := names(t, s); !reflect.DeepEqual(got, []string{"glm-5.3", "zai/glm-5.3"}) {
+		t.Fatalf("expected only the unambiguous model, got %v", got)
+	}
+	want := []Ambiguity{{"vk-1", "deepseek-v4.1-flash", []string{"flash-ds", "flash-or"}}}
+	if got := s.Ambiguities(); !reflect.DeepEqual(got, want) {
+		t.Fatalf("ambiguity not reported: %+v", got)
+	}
+	if w := strings.Join(s.Plan().Warnings, "\n"); !strings.Contains(w, "policy vk-1: model deepseek-v4.1-flash has 2 accesses") {
+		t.Fatalf("plan does not warn: %s", w)
+	}
+	for _, model := range []string{"deepseek-v4.1-flash", "deepseek/deepseek-v4.1-flash", "openrouter/deepseek-v4.1-flash"} {
+		sess, f := s.Prepare(req(`{"model":"` + model + `","messages":[]}`))
+		if f == nil && sess.CheckAttempt("deepseek", "deepseek-v4.1-flash") == nil {
+			t.Fatalf("withheld model %s is reachable", model)
+		}
+	}
+
+	cfg := s.Config()
+	cfg.Policies[0].Name = "Renamed"
+	if _, err := store.Save(mustJSON(t, cfg), s.Revision()); err != nil {
+		t.Fatalf("saving a registry with legacy ambiguity: %v", err)
+	}
+	s = store.Load()
+	cfg = s.Config()
+	cfg.Policies[1].Groups = []string{"all"}
+	if _, err := store.Save(mustJSON(t, cfg), s.Revision()); !errors.Is(err, ErrAmbiguousAccess) || err.Error() != "policy vk-2: model deepseek-v4.1-flash has 2 accesses; add access_selection" {
+		t.Fatalf("new ambiguity accepted: %v", err)
+	}
+	cfg = s.Config()
+	cfg.Policies[0].AccessSelection = map[string]AccessSelector{"deepseek-v4.1-flash": {Excluded: []string{"flash-or"}}}
+	resolved, err := store.Save(mustJSON(t, cfg), s.Revision())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := names(t, resolved); !reflect.DeepEqual(got, []string{"deepseek-v4.1-flash", "deepseek/deepseek-v4.1-flash", "glm-5.3", "zai/glm-5.3"}) || len(resolved.Ambiguities()) != 0 {
+		t.Fatalf("chosen access not published: %v %+v", got, resolved.Ambiguities())
+	}
+}
+
 func TestAccessSelection(t *testing.T) {
 	// (a) key allowing only one access of a two-access model restricts routes and makes the bare alias unambiguous.
 	t.Run("single_access_unambiguous", func(t *testing.T) {
@@ -302,12 +365,16 @@ func TestAccessSelection(t *testing.T) {
 			t.Fatalf("expected legacy behavior, got %v", got)
 		}
 	})
-	// (e) old client on a multi-access model fails explicitly.
+	// (e) old client on a multi-access model: that model is withheld and reported (#53).
 	t.Run("legacy_multi_access", func(t *testing.T) {
 		c := fixture()
 		c.Policies[0].AccessSelection = nil
-		if _, err := Compile(c); err == nil || !strings.Contains(err.Error(), "access_selection") {
-			t.Fatalf("expected access_selection error, got %v", err)
+		s := mustCompile(t, c)
+		if got := names(t, s); !reflect.DeepEqual(got, []string{"alpha/fast"}) {
+			t.Fatalf("ambiguous alias published: %v", got)
+		}
+		if got := s.Ambiguities(); !reflect.DeepEqual(got, []Ambiguity{{"vk-1", "smart", []string{"a", "b"}}}) {
+			t.Fatalf("ambiguity not reported: %+v", got)
 		}
 	})
 	// (f) model with all accesses excluded fails rather than producing a silent empty route.

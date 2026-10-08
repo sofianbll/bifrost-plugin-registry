@@ -122,6 +122,8 @@ Vérifiez que le plugin est `active` dans `GET /api/plugins` et présent dans `G
 
 Arrêtez le gateway et sauvegardez **tout** `/app/data` avant une mise à jour. Enregistrez l'URL du nouveau `.so` compatible et redémarrez le gateway : Bifrost retélécharge l'URL sauvegardée au démarrage. Désactiver puis réactiver un plugin Go sans redémarrage n'est pas un chemin de mise à jour pris en charge (`plugin already loaded`). Vérifiez de nouveau le chargement, les données conservées et la clé témoin.
 
+Les données Registry écrites avant v0.3 n'ont pas de sélection d'accès par clé. Quand un modèle d'une clé est proposé par plusieurs accès fournisseurs, le plugin se charge mais retire ce modèle du catalogue de la clé : le journal du gateway affiche `bifrost-registry: warning: policy <clé>: model <alias> has N accesses and no access_selection`, et le panneau marque la clé **Choix d'accès requis**. Ouvrez la clé, décochez dans la liste Accès du modèle ceux qu'elle ne doit pas utiliser, puis publiez.
+
 Pour revenir en arrière, arrêtez le gateway, restaurez **l'intégralité** de la sauvegarde du volume prise à l'arrêt, remettez l'image précédente si elle avait changé, puis redémarrez. Restaurer le volume complet récupère ensemble la base Bifrost, son URL de plugin et le registre ; pointer un ancien plugin sur un registre déjà migré n'est pas un retour arrière éprouvé. Conservez les octets de l'ancien plugin à son URL versionnée.
 
 ## Qualification et limites

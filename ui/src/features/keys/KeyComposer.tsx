@@ -79,7 +79,7 @@ export default function KeyComposer({ virtualKey, draft, onDraftChange, models, 
       {model && <BrandIcon model={model} mode={preferences.logo} />}
       <div className="min-w-0 flex-1">
         <details>
-          <summary className="cursor-pointer break-words text-sm font-medium">{model?.name || id}</summary>
+          <summary className="cursor-pointer break-words text-sm font-medium">{model?.name || id}{virtualKey.pendingAccessSelection?.[id] && !draft.accessSelection?.[id] && <Badge variant="warning" className="ml-2">{copy("Choose an access", "Choisir un accès")}</Badge>}</summary>
           <div className="mt-1 space-y-1">
             <p className="break-all font-mono text-xs text-muted-foreground">{id}</p>
             <div className="flex flex-wrap gap-1">
@@ -153,9 +153,14 @@ export default function KeyComposer({ virtualKey, draft, onDraftChange, models, 
   const { copy: copyIds } = useCopyToClipboard({ successMessage: copy("Planned IDs copied", "ID prévus copiés"), errorMessage: copy("Could not copy IDs", "Impossible de copier les ID") });
 
   const readback = virtualKey.publication;
+  const pending = Object.entries(virtualKey.pendingAccessSelection || {});
   const publication = (publication: Publication | undefined) => <Card className="gap-0 overflow-hidden py-0">
     <CardHeader className="border-b bg-muted/40 px-4 py-3 sm:px-5"><CardTitle className="flex flex-wrap items-center gap-2 text-base"><Eye className="size-4" />{snapshotMode ? copy("Saved in this local copy", "Enregistré dans cette copie locale") : copy("Published selection and readback", "Sélection publiée et relecture")}{!snapshotMode && <Badge variant={publication?.state === "verified" ? "success" : publication?.state === "drift" ? "warning" : "secondary"}>{publication?.state === "verified" ? copy("Verified", "Vérifiée") : publication?.state === "drift" ? copy("Drift detected", "Écart détecté") : copy("Not verified", "Non vérifiée")}</Badge>}</CardTitle><p className="text-xs text-muted-foreground">{snapshotMode ? copy("Changes stay in this copy; the gateway cannot be read back here.", "Les changements restent dans cette copie ; le gateway ne peut pas y être relu.") : copy("Readback checks the IDs returned by Bifrost. It does not test model inference.", "La relecture vérifie les ID renvoyés par Bifrost, pas les appels aux modèles.")}</p></CardHeader>
     <CardContent className="space-y-3 px-4 py-4 sm:px-5">
+      {pending.length > 0 && <div role="alert" className="space-y-1 text-xs text-chart-warning-ink">
+        <p>{copy("Several accesses offer these models and none is chosen, so this key does not publish them. In the model's Accesses list, uncheck the accesses this key must not use.", "Plusieurs accès proposent ces modèles et aucun n’est choisi : cette clé ne les publie pas. Dans la liste Accès du modèle, décochez ceux que cette clé ne doit pas utiliser.")}</p>
+        {pending.map(([alias, accesses]) => <p key={alias} className="break-all font-mono">{alias} · {accesses.join(" · ")}</p>)}
+      </div>}
       {snapshotMode ? <p className="break-all text-xs font-mono">{savedIds.join(" · ") || copy("No saved IDs.", "Aucun ID enregistré.")}</p> : <>
         <div className="flex flex-wrap items-center gap-2"><Button type="button" variant="outline" size="sm" disabled={busy} onClick={onReread}><RotateCcw className="size-3.5" />{copy("Read again", "Relire")}</Button>{publication?.checkedAt && <span className="break-all text-xs text-muted-foreground">{new Date(publication.checkedAt).toLocaleString()} · {copy("revision", "révision")} {publication.revision.slice(0, 12)}</span>}</div>
         {publication?.error && <p role="alert" className="text-xs text-chart-warning-ink">{publication.error}</p>}

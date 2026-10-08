@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log"
 	"net"
 	"net/http"
 	"os"
@@ -68,6 +69,9 @@ func Init(config any) error {
 		store, err := openOrCreateStore(cfg.RegistryPath)
 		if err != nil {
 			return err
+		}
+		for _, a := range store.Load().Ambiguities() {
+			log.Printf("bifrost-registry: warning: %s", a)
 		}
 		inst.store.Store(store)
 	}

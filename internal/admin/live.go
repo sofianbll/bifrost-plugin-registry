@@ -113,6 +113,8 @@ type keyDTO struct {
 	Observed    []string    `json:"observed"`
 	ReadError   bool        `json:"readError"`
 	Revision    int         `json:"revision"`
+	// Models withheld until an access is chosen, with their candidate access IDs.
+	PendingAccessSelection map[string][]string `json:"pendingAccessSelection,omitempty"`
 }
 type demoDTO struct {
 	Models    []modelDTO `json:"models"`
@@ -456,8 +458,10 @@ func (s *Server) workspace(ctx context.Context) (workspace, error) {
 		}
 	}
 	refs := map[string]string{}
+	accessIDs := map[string]string{}
 	for _, m := range config.Models {
 		refs[m.ID] = m.Alias
+		accessIDs[m.ID] = m.Provider + "/" + m.Alias
 	}
 	for _, g := range config.Groups {
 		members := []string{}
@@ -483,6 +487,14 @@ func (s *Server) workspace(ctx context.Context) (workspace, error) {
 			key.Policy = policyDTO{Groups: p.Groups, Added: refsToAliases(p.Added, refs), Excluded: refsToAliases(p.Excluded, refs), Naming: p.Naming, Prefer: p.Prefer, AccessSelection: accessSelectionToDTO(p.AccessSelection, config.Models)}
 			if key.Policy.Naming == "" {
 				key.Policy.Naming = config.DefaultNaming
+			}
+			if view, ok := snap.View(vk.ID); ok && len(view.Ambiguous) > 0 {
+				key.PendingAccessSelection = map[string][]string{}
+				for alias, ids := range view.Ambiguous {
+					for _, id := range ids {
+						key.PendingAccessSelection[alias] = append(key.PendingAccessSelection[alias], accessIDs[id])
+					}
+				}
 			}
 			if proof, ok := s.live.proofs[vk.ID]; ok {
 				if proof.Revision != snap.Revision() {
@@ -610,7 +622,10 @@ func (s *Server) putWorkspace(w http.ResponseWriter, r *http.Request) {
 	old := s.Store.Load().Config()
 	oldEndpoints := map[string][]string{}
 	ambiguousOldEndpoints := map[string]bool{}
+	// Saving rebuilds access IDs; carry v0.1 preferences over to the new IDs.
+	rebuiltID := map[string]string{}
 	for _, m := range old.Models {
+		rebuiltID[m.ID] = registryID(m.Provider, m.UpstreamModel)
 		key := m.Provider + "\x00" + m.UpstreamModel
 		if _, exists := oldEndpoints[key]; exists {
 			ambiguousOldEndpoints[key] = true
@@ -765,7 +780,16 @@ func (s *Server) putWorkspace(w http.ResponseWriter, r *http.Request) {
 		oldp.Added = added
 		oldp.Excluded = excluded
 		oldp.Naming = k.Policy.Naming
-		oldp.Prefer = k.Policy.Prefer
+		oldp.Prefer = nil
+		if len(k.Policy.Prefer) > 0 {
+			oldp.Prefer = map[string]string{}
+			for alias, id := range k.Policy.Prefer {
+				if next, ok := rebuiltID[id]; ok {
+					id = next
+				}
+				oldp.Prefer[alias] = id
+			}
+		}
 		oldp.AccessSelection = accessSelection
 		cfg.Policies = append(cfg.Policies, oldp)
 	}
@@ -789,6 +813,8 @@ func (s *Server) putWorkspace(w http.ResponseWriter, r *http.Request) {
 		status := 500
 		if errors.Is(e, registry.ErrConflict) {
 			status = 409
+		} else if errors.Is(e, registry.ErrAmbiguousAccess) {
+			status = 422
 		}
 		reply(w, status, map[string]string{"error": e.Error()})
 		return
