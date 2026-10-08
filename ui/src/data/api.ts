@@ -13,6 +13,8 @@ const endpoint = (path: string) => `${import.meta.env?.BASE_URL ?? "./"}api/${pa
 let adminToken = "";
 export const setAdminToken = (token: string) => { adminToken = token; };
 export const clearAdminToken = () => { adminToken = ""; };
+// fetch throws on a header value with a stray space or non-ASCII character (e.g. a terminal's "│" gutter).
+export const isWellFormedAdminToken = (token: string) => /^[\x21-\x7e]+$/.test(token);
 
 export class ApiError extends Error {
   constructor(message: string, readonly status: number, readonly phase?: string, readonly revision?: string, readonly publication?: Publication) { super(message); }

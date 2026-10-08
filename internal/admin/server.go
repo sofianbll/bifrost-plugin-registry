@@ -167,7 +167,7 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request, embedded bool) {
 		if !method(w, r, http.MethodGet) {
 			return
 		}
-		reply(w, 200, map[string]any{"version": registry.Version, "revision": s.Store.Load().Revision(), "mode": "local-control-plane", "bifrost_connected": false, "native_apply": "manual", "adapter_build": "not_checked_by_control_plane"})
+		reply(w, 200, map[string]any{"version": registry.Version, "revision": s.Store.Load().Revision(), "bifrost_connected": s.bifrostConnected(r.Context())})
 	case "/api/config":
 		if r.Method == http.MethodGet {
 			snap := s.Store.Load()

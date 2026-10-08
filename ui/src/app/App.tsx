@@ -13,7 +13,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useIsMobile } from "@/hooks/use-mobile";
 import { catalogModels, copy, exposed, keyImpact, members, same, type Demo, type Group, type Key, type Model, type Policy, type PricingProof } from "../domain/registry";
 import { firstRegistrationIssue } from "../features/catalog/model-editor-data";
-import { ApiError, clearAdminToken, createKey, getWorkspace, putWorkspace, readbackKey, setAdminToken, type AdoptionOperation, type Workspace } from "../data/api";
+import { ApiError, clearAdminToken, createKey, getWorkspace, isWellFormedAdminToken, putWorkspace, readbackKey, setAdminToken, type AdoptionOperation, type Workspace } from "../data/api";
 import ModelBrowser from "../features/catalog/ModelBrowser";
 import GatewayInventory from "../features/gateway/GatewayInventory";
 import ModelEditor from "../features/catalog/ModelEditor";
@@ -164,6 +164,7 @@ function RegistryApp({ language, onLanguageChange }: { language: Language; onLan
     event.preventDefault();
     const token = loginToken.trim();
     if (!token) { setLoginError(copyText("Enter the admin token.", "Saisissez le jeton administrateur.")); return; }
+    if (!isWellFormedAdminToken(token)) { setLoginError(copyText("The token contains spaces or invalid characters; copy it again on one line.", "Le jeton contient des espaces ou des caractères invalides ; copiez-le à nouveau sur une seule ligne.")); return; }
     setLoading(true);
     setLoginError("");
     setAdminToken(token);

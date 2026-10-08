@@ -79,7 +79,7 @@ Every `/api/*` route requires a Bearer admin token, distinct from Bifrost keys. 
 | `POST /api/validate` | `{"config":{…}}`; structural check of the draft. |
 | `POST /api/preview` | `{"config":{…},"virtual_key_id":"…"}`; computed view with no upstream access. |
 | `POST /api/plan` | `{"config":{…}}`; compilation of the expected native primitives. |
-| `GET /api/status` | Local control status; it does not claim an administrative connection to Bifrost or a verified `.so` load. |
+| `GET /api/status` | `version` (the Registry release stamped at build time, `dev` for a local build), `revision`, and `bifrost_connected`, which matches `connection.connected` in `GET /api/workspace`. |
 
 ## Importing legacy Bifrost datasheets
 

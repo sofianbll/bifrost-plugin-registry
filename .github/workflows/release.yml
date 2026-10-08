@@ -2,7 +2,8 @@
 # (bifrost.pin is read from it; that commit is qualified, packaged and tagged).
 #
 # What is tested before anything is pushed:
-#   qualify  qualify.yml builds the gateway/plugin pair natively on linux/amd64 and linux/arm64 and runs its suites.
+#   qualify  qualify.yml builds the gateway/plugin pair natively on linux/amd64 and linux/arm64 and runs its suites;
+#            the release tag is stamped into the plugin (registry.Version) and checked in abi-smoke.json.
 #   image    the plugin-free image is built from that pair, started and probed by
 #            integration/image_distribution_probe.py (plugin installed from a URL, container recreated,
 #            synthetic provider, no inference). The pushed image must contain the probed manifest digest.
@@ -114,6 +115,7 @@ jobs:
       contents: read
     with:
       ref: ${{ needs.meta.outputs.target }}
+      version: ${{ needs.meta.outputs.tag }}
 
   image:
     needs: [meta, qualify]

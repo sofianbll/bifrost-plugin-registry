@@ -79,7 +79,7 @@ Toutes les routes `/api/*` demandent un jeton d’administration Bearer, distinc
 | `POST /api/validate` | `{"config":{…}}` ; vérification structurelle du brouillon. |
 | `POST /api/preview` | `{"config":{…},"virtual_key_id":"…"}` ; vue calculée sans accès amont. |
 | `POST /api/plan` | `{"config":{…}}` ; compilation des primitives natives attendues. |
-| `GET /api/status` | Statut du contrôle local ; ne revendique pas une connexion administrative à Bifrost ou un chargement `.so` vérifié. |
+| `GET /api/status` | `version` (la release Registry injectée à la compilation, `dev` pour une compilation locale), `revision` et `bifrost_connected`, identique à `connection.connected` de `GET /api/workspace`. |
 
 ## Import des anciennes datasheets Bifrost
 

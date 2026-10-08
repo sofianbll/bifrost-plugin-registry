@@ -49,6 +49,9 @@ type guardedSession struct {
 }
 
 func GetName() string { return "bifrost-registry" }
+
+// RegistryVersion exposes the build-stamped release to the ABI probe; Bifrost never looks it up.
+func RegistryVersion() string { return registry.Version }
 func Init(config any) error {
 	lifecycle.Lock()
 	defer lifecycle.Unlock()

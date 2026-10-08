@@ -1,4 +1,4 @@
-import { applyKeyAdoption, clearAdminToken, getWorkspace, previewKeyAdoption, putWorkspace, readbackKey, setAdminToken } from "./api";
+import { applyKeyAdoption, clearAdminToken, getWorkspace, isWellFormedAdminToken, previewKeyAdoption, putWorkspace, readbackKey, setAdminToken } from "./api";
 import { createCatalogReference, getCatalog, matchCatalogReference, overrideCatalogField, parseCatalogValue, refreshCatalog } from "../features/catalog/catalog-api";
 import { applySnapshot, getSnapshot, getSnapshotCsv, previewSnapshot } from "../features/snapshot/snapshot-api";
 import type { Demo } from "../domain/registry";
@@ -89,6 +89,9 @@ await putWorkspace(data, "draft-revision", stagedCorrections);
 equal(calls.at(-1)?.url, "./api/workspace");
 equal(JSON.parse(calls.at(-1)?.init.body as string), { data, catalogOverrides: stagedCorrections });
 equal(new Headers(calls.at(-1)?.init.headers).get("If-Match"), "draft-revision");
+// Sign-in checks the pasted token before fetch would throw on it (#55).
+equal(isWellFormedAdminToken("abc123-_.~+/=XYZ"), true);
+equal(["abc     │ def", "abc def", "abc\tdef", "jéton", ""].map(isWellFormedAdminToken), [false, false, false, false, false]);
 let unknownBooleanRejected = false;
 try { parseCatalogValue("reasoning", ""); } catch { unknownBooleanRejected = true; }
 equal(unknownBooleanRejected, true);

@@ -38,6 +38,7 @@ func main() {
 	if name() != "bifrost-registry" {
 		panic("wrong plugin name")
 	}
+	version := must[func() string](p, "RegistryVersion")
 	init := must[func(any) error](p, "Init")
 	cleanup := must[func() error](p, "Cleanup")
 	pre := must[func(*schemas.BifrostContext, *schemas.HTTPRequest) (*schemas.HTTPResponse, error)](p, "HTTPTransportPreHook")
@@ -134,6 +135,6 @@ func main() {
 	if e = cleanup(); e != nil {
 		panic(e)
 	}
-	json.NewEncoder(os.Stdout).Encode(map[string]any{"plugin": name(), "plugin_open": true, "export_signatures": true, "init_cleanup": true, "nil_context_fail_closed": true, "child_identity_handoff": true, "real_bifrost_pipeline_tested": false})
+	json.NewEncoder(os.Stdout).Encode(map[string]any{"plugin": name(), "registry_version": version(), "plugin_open": true, "export_signatures": true, "init_cleanup": true, "nil_context_fail_closed": true, "child_identity_handoff": true, "real_bifrost_pipeline_tested": false})
 	fmt.Fprintln(os.Stderr, "ABI smoke passed. Real Bifrost request and governance tests are still required.")
 }
