@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"bifrost-registry/internal/registry"
@@ -454,6 +455,10 @@ func costPerMillion(raw json.RawMessage, perToken bool) (float64, bool) {
 	return number, true
 }
 
+// parameterLookupConcurrency bounds in-flight /api/models/parameters calls during a Bifrost refresh.
+// About 800 models at 75 ms each take 7.5 s at 8 in flight, well inside the 25 s refresh budget.
+const parameterLookupConcurrency = 8
+
 func bifrostCatalogue(ctx context.Context, client *liveClient, at string) ([]registry.CatalogAccess, error) {
 	// Reuse the native discovery path so only accesses backed by configured keys enter this view.
 	server := &Server{}
@@ -522,17 +527,39 @@ func bifrostCatalogue(ctx context.Context, client *liveClient, at string) ([]reg
 		ids = append(ids, id)
 	}
 	sort.Strings(ids)
-	for _, id := range ids {
-		a := byID[id]
-		var params json.RawMessage
-		if err := client.callQuery(ctx, "/api/models/parameters", url.Values{"model": {id}}, &params); err != nil {
-			if err.Error() == "Bifrost returned HTTP 404" {
-				continue
+	// One lookup per access; run them concurrently so large gateways fit the refresh timeout (#61).
+	// The first non-404 error fails the source and cancels the remaining lookups.
+	lookupCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	params := make([]json.RawMessage, len(ids))
+	slots := make(chan struct{}, parameterLookupConcurrency)
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	var firstErr error
+	for i, id := range ids {
+		slots <- struct{}{}
+		wg.Add(1)
+		go func() {
+			defer func() { <-slots; wg.Done() }()
+			err := client.callQuery(lookupCtx, "/api/models/parameters", url.Values{"model": {id}}, &params[i])
+			if err == nil || err.Error() == "Bifrost returned HTTP 404" {
+				return
 			}
-			return nil, err
-		}
-		if len(params) > 0 && string(params) != "null" {
-			putCatalogField(&a.CatalogRecord, "bifrost", at, "parameters", params)
+			mu.Lock()
+			defer mu.Unlock()
+			if firstErr == nil {
+				firstErr = err
+				cancel()
+			}
+		}()
+	}
+	wg.Wait()
+	if firstErr != nil {
+		return nil, firstErr
+	}
+	for i, id := range ids {
+		if len(params[i]) > 0 && string(params[i]) != "null" {
+			putCatalogField(&byID[id].CatalogRecord, "bifrost", at, "parameters", params[i])
 		}
 	}
 	out := make([]registry.CatalogAccess, 0, len(ids))
