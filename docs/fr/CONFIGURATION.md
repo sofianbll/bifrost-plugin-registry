@@ -70,7 +70,7 @@ Le plan est notre schéma de déploiement, pas celui d’un endpoint Bifrost. La
 
 ## API du panneau
 
-Toutes les routes `/api/*` demandent un jeton d’administration Bearer, distinct des clés Bifrost. Les corps JSON sont limités à 4 Mio ; les clés JSON dupliquées et les propriétés de configuration inconnues sont refusées.
+Toutes les routes `/api/*` demandent un jeton d’administration Bearer, distinct des clés Bifrost. Les corps JSON sont limités à 4 Mio ; les clés JSON dupliquées et les propriétés de configuration inconnues sont refusées. Le fichier `registry.json` lui-même peut atteindre 32 Mio : un enregistrement qui écrirait un fichier plus gros est refusé et laisse le fichier précédent en place.
 
 | Route | Contrat |
 | --- | --- |

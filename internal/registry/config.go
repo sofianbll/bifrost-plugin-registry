@@ -18,7 +18,11 @@ import (
 // Version is the release tag, stamped at build time by scripts/build-with-bifrost.sh (-ldflags -X).
 var Version = "dev"
 
+// MaxConfigBytes bounds admin API request bodies and one catalogue field value.
 const MaxConfigBytes = 4 << 20
+
+// MaxFileBytes bounds registry.json on load and save; it exceeds MaxConfigBytes because the indented file caches every discovered catalogue access.
+const MaxFileBytes = 32 << 20
 const MaxBodyBytes = 32 << 20
 
 type Config struct {
@@ -305,8 +309,8 @@ func walkJSON(d *json.Decoder, depth int) error {
 	return nil
 }
 func Parse(data []byte) (*Snapshot, error) {
-	if len(data) > MaxConfigBytes {
-		return nil, errors.New("registry config exceeds 4 MiB")
+	if len(data) > MaxFileBytes {
+		return nil, fmt.Errorf("registry config exceeds %d MiB", MaxFileBytes>>20)
 	}
 	var c Config
 	if err := StrictJSON(data, &c, true); err != nil {

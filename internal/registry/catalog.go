@@ -91,7 +91,7 @@ func validateCatalog(c *Catalog) error {
 	if c == nil {
 		return nil
 	}
-	// The 4 MiB config cap is authoritative; these caps also bound work while compiling.
+	// The MaxFileBytes cap is authoritative; these caps also bound work while compiling.
 	if len(c.References) > 12000 || len(c.Accesses) > 12000 || len(c.Sources) > 2 {
 		return errors.New("catalogue size limit exceeded")
 	}

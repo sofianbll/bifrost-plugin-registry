@@ -70,7 +70,7 @@ The plan is our deployment schema, not that of a Bifrost endpoint. The merge rea
 
 ## Panel API
 
-Every `/api/*` route requires a Bearer admin token, distinct from Bifrost keys. JSON bodies are limited to 4 MiB; duplicate JSON keys and unknown configuration properties are refused.
+Every `/api/*` route requires a Bearer admin token, distinct from Bifrost keys. JSON bodies are limited to 4 MiB; duplicate JSON keys and unknown configuration properties are refused. The `registry.json` file itself may reach 32 MiB: a save that would write a larger file is refused and leaves the previous file in place.
 
 | Route | Contract |
 | --- | --- |

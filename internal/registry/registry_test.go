@@ -149,7 +149,7 @@ func TestParse(t *testing.T) {
 	if _, e = Parse([]byte("null")); e == nil {
 		t.Fatal("null config")
 	}
-	if _, e = Parse([]byte(strings.Repeat(" ", MaxConfigBytes+1))); e == nil {
+	if _, e = Parse([]byte(strings.Repeat(" ", MaxFileBytes+1))); e == nil || !strings.Contains(e.Error(), "exceeds 32 MiB") {
 		t.Fatal("oversized config")
 	}
 }
@@ -686,6 +686,77 @@ func TestStoreAtomicAndConflicts(t *testing.T) {
 	}
 	if _, e = st.Save(next, st.Load().Revision()); e != ErrConflict {
 		t.Fatal("external edit overwritten", e)
+	}
+}
+
+// Regression for #63: a catalogue refresh saved an indented file over 4 MiB that OpenStore then refused.
+func TestStoreReopensFileOverAPILimit(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "registry.json")
+	if e := AtomicWrite(path, mustCompile(t, fixture()).JSON()); e != nil {
+		t.Fatal(e)
+	}
+	st, e := OpenStore(path)
+	if e != nil {
+		t.Fatal(e)
+	}
+	record := CatalogRecord{Candidates: map[string]map[string]json.RawMessage{
+		"context_length":    {"bifrost": json.RawMessage(`128000`)},
+		"input_modalities":  {"bifrost": json.RawMessage(`["text","image"]`)},
+		"output_modalities": {"bifrost": json.RawMessage(`["text"]`)},
+		"tool_call":         {"bifrost": json.RawMessage(`true`)},
+	}, UpdatedAt: map[string]string{"bifrost": "2026-10-01T00:00:00Z"}}
+	c := fixture()
+	c.Catalog = &Catalog{Accesses: make([]CatalogAccess, 7000)}
+	for i := range c.Catalog.Accesses {
+		model := fmt.Sprintf("vendor/model-%04d", i)
+		c.Catalog.Accesses[i] = CatalogAccess{ID: "openrouter/" + model, Provider: "openrouter", Model: model, CatalogRecord: record}
+	}
+	raw := mustJSON(t, c) // compact, as the catalogue refresh sends it
+	if _, e = st.Save(raw, st.Load().Revision()); e != nil {
+		t.Fatal(e)
+	}
+	info, e := os.Stat(path)
+	if e != nil {
+		t.Fatal(e)
+	}
+	if len(raw) > MaxConfigBytes || info.Size() <= MaxConfigBytes || info.Size() > MaxFileBytes {
+		t.Fatalf("want compact input <= 4 MiB < file <= 32 MiB, got %d and %d bytes", len(raw), info.Size())
+	}
+	reopened, e := OpenStore(path)
+	if e != nil || reopened.Load().Revision() != st.Load().Revision() {
+		t.Fatal("saved file not reloadable", e)
+	}
+}
+
+func TestStoreRefusesFileOverLimit(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "registry.json")
+	before := mustCompile(t, fixture()).JSON()
+	if e := AtomicWrite(path, before); e != nil {
+		t.Fatal(e)
+	}
+	st, e := OpenStore(path)
+	if e != nil {
+		t.Fatal(e)
+	}
+	// Indentation multiplies deeply nested array elements (~180 bytes each), so this
+	// small compact input passes Parse while its indented file exceeds MaxFileBytes.
+	deep := strings.Repeat("[", 80) + strings.Repeat("0,", 200000) + "0" + strings.Repeat("]", 80)
+	c := fixture()
+	c.Catalog = &Catalog{References: []CatalogReference{{ID: "lab/model", CatalogRecord: CatalogRecord{Overrides: map[string]CatalogValue{
+		"legacy_datasheet": {Value: json.RawMessage(`{"pricing":{"rows":` + deep + `}}`), Source: "manual", Kind: "declared"},
+	}}}}}
+	revision := st.Load().Revision()
+	if _, _, e = st.SaveWithBackup(mustJSON(t, c), revision); e == nil || !strings.Contains(e.Error(), "over the 32 MiB limit") {
+		t.Fatal("oversized file accepted", e)
+	}
+	after, e := os.ReadFile(path)
+	entries, _ := os.ReadDir(dir)
+	if e != nil || string(after) != string(before) || len(entries) != 1 || st.Load().Revision() != revision {
+		t.Fatal("refused save changed state", e, len(entries))
+	}
+	if e = AtomicWrite(path, make([]byte, MaxFileBytes+1)); e == nil {
+		t.Fatal("AtomicWrite accepted an oversized file")
 	}
 }
 func TestConcurrentSnapshots(t *testing.T) {
