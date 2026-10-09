@@ -56,3 +56,7 @@ Catalogue pages offer Grid and Table views. In Grid, cards can be Rectangle or S
 ![Grid view, square cards, medium density](./images/en/display-options.png)
 
 The gateway inventory shows captured providers, key permissions, aliases and routing. Tree and detail views show the same data. An alias maps a requested name to a provider target; a deployment can be that provider-specific target. Routing rules select targets using the captured conditions and weights. Missing or encrypted aliases remain explicitly unavailable.
+
+## 6. Set up or clean up with an AI agent
+
+The repository ships an agent skill, [`bifrost-registry-setup`](https://github.com/sofianbll/bifrost-plugin-registry/blob/main/.claude/skills/bifrost-registry-setup/SKILL.md), for setting up or cleaning up a Bifrost gateway with Registry. The agent first audits the host, native Bifrost and Registry without changing anything, including the last 30 days of usage per key. It then proposes changes in small batches. Each batch you approve runs first on a test copy of the gateway, then on production, through scripts you run yourself, so the agent never handles your admin password. Claude Code loads the skill from a checkout of this repository; other agents can read the file directly.

@@ -9,6 +9,7 @@ Release downloads and their exact source commits are listed in [GitHub Releases]
 - On-demand native virtual-key reveal/copy, visible unknown capabilities and a scrollable model editor.
 - Empty model taxonomies now remain arrays after catalogue enrichment, avoiding a crash after Save.
 - The panel reads the gateway version; paired builds record and inject an explicit upstream version.
+- Agent skill `bifrost-registry-setup` (`.claude/skills/`) to set up or clean up a Bifrost gateway with Registry: a read-only audit, then change batches the human approves, rehearsed on a test copy and applied through scripts the human runs.
 
 - English and French project landing pages; separate current guides and historical notes.
 - Production React source moved to `ui/`; matching build paths updated without changing runtime behavior.
