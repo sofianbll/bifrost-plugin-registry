@@ -56,3 +56,7 @@ Les pages de catalogue proposent les vues Grille et Tableau. En grille, les cart
 ![Vue grille, cartes carrées, densité moyenne](../images/fr/display-options.png)
 
 L'inventaire du gateway affiche les fournisseurs capturés, les permissions des clés, les alias et le routage. Les vues arborescente et détaillée montrent les mêmes données. Un alias associe un nom demandé à une cible fournisseur ; un déploiement peut être cette cible propre au fournisseur. Les règles de routage choisissent les cibles selon les conditions et pondérations capturées. Les alias manquants ou chiffrés restent explicitement indisponibles.
+
+## 6. Installer ou nettoyer avec un agent IA
+
+Le dépôt fournit une skill d'agent, [`bifrost-registry-setup`](https://github.com/sofianbll/bifrost-plugin-registry/blob/main/.claude/skills/bifrost-registry-setup/SKILL.md) (en anglais), pour installer ou nettoyer un gateway Bifrost avec Registry. L'agent audite d'abord l'hôte, Bifrost natif et Registry sans rien modifier, y compris l'usage des 30 derniers jours par clé. Il propose ensuite les changements par petits lots. Chaque lot que vous approuvez s'applique d'abord sur une copie de test du gateway, puis en production, au moyen de scripts que vous lancez vous-même : l'agent ne manipule jamais votre mot de passe d'administration. Claude Code charge la skill depuis un checkout de ce dépôt ; les autres agents peuvent lire le fichier directement.
