@@ -70,13 +70,18 @@ func (s *Store) save(data []byte, expected string, backup bool) (*Snapshot, stri
 		if candidate.Revision() == expected {
 			return s.Load(), "", nil
 		}
+		// Refuse before the backup too, so a refused save writes nothing.
+		out := append(candidate.JSON(), '\n')
+		if err := checkFileSize(out); err != nil {
+			return nil, "", err
+		}
 		if backup {
 			backupPath, err = writeBackup(s.path, onDisk)
 			if err != nil {
 				return nil, "", err
 			}
 		}
-		if err := AtomicWrite(s.path, append(candidate.JSON(), '\n')); err != nil {
+		if err := AtomicWrite(s.path, out); err != nil {
 			return nil, backupPath, err
 		}
 	} else if candidate.Revision() == expected {
@@ -112,7 +117,18 @@ func writeBackup(path string, data []byte) (string, error) {
 	}
 	return name, nil
 }
+
+// checkFileSize keeps every write loadable by OpenStore, which refuses files over MaxFileBytes.
+func checkFileSize(data []byte) error {
+	if len(data) > MaxFileBytes {
+		return fmt.Errorf("registry file would be %d bytes, over the %d MiB limit; not saved", len(data), MaxFileBytes>>20)
+	}
+	return nil
+}
 func AtomicWrite(path string, data []byte) error {
+	if err := checkFileSize(data); err != nil {
+		return err
+	}
 	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, 0700); err != nil {
 		return err
