@@ -1,12 +1,18 @@
 package admin
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"bifrost-registry/internal/registry"
 )
@@ -135,6 +141,91 @@ func TestCatalogRefreshOverrideAndRestart(t *testing.T) {
 	stale := perform(s, "PUT", "/api/catalog/reference", `{"id":"local/stale","fields":{"name":"Stale"}}`, headers)
 	if stale.Code != 409 {
 		t.Fatal("stale mutation did not conflict", stale.Code, stale.Body.String())
+	}
+}
+
+// Parameter lookups run with bounded concurrency and keep the sequential result: sorted IDs,
+// 404 and null skipped, first real error fails the source (#61).
+func TestBifrostCatalogueParameterLookupsAreBounded(t *testing.T) {
+	const models = 3 * parameterLookupConcurrency
+	run := func(failID string) ([]registry.CatalogAccess, int32, int32, error) {
+		var inFlight, maxInFlight, lookups atomic.Int32
+		release := make(chan struct{})
+		var releaseOnce sync.Once
+		fake := nativeRoundTrip(func(r *http.Request) (*http.Response, error) {
+			switch r.URL.Path {
+			case "/api/providers":
+				return nativeResponse(200, `{"providers":[{"name":"openai"}]}`), nil
+			case "/api/providers/openai/keys":
+				return nativeResponse(200, `{"keys":[{"id":"key-1","enabled":true}]}`), nil
+			case "/api/models":
+				rows := make([]string, models)
+				for i := range rows {
+					rows[i] = fmt.Sprintf(`{"name":"m%02d","provider":"openai","accessible_by_keys":["key-1"]}`, i)
+				}
+				return nativeResponse(200, fmt.Sprintf(`{"models":[%s],"total":%d}`, strings.Join(rows, ","), models)), nil
+			case "/api/models/details":
+				return nativeResponse(200, `{"models":[],"total":0}`), nil
+			case "/api/models/parameters":
+				lookups.Add(1)
+				n := inFlight.Add(1)
+				defer inFlight.Add(-1)
+				for m := maxInFlight.Load(); n > m && !maxInFlight.CompareAndSwap(m, n); m = maxInFlight.Load() {
+				}
+				// Hold the first lookups until the bound is reached, so the observed maximum is deterministic.
+				if n == parameterLookupConcurrency {
+					releaseOnce.Do(func() { close(release) })
+				}
+				select {
+				case <-release:
+				case <-r.Context().Done():
+					return nil, r.Context().Err()
+				case <-time.After(time.Second): // hang guard for a sequential implementation; the max assertion then fails
+					releaseOnce.Do(func() { close(release) })
+				}
+				switch id := r.URL.Query().Get("model"); id {
+				case failID:
+					return nativeResponse(500, `{}`), nil
+				case "openai/m03":
+					return nativeResponse(404, `{}`), nil
+				case "openai/m05":
+					return nativeResponse(200, `null`), nil
+				default:
+					return nativeResponse(200, `{"model":"`+id+`"}`), nil
+				}
+			}
+			t.Error("unexpected Bifrost request", r.URL.String())
+			return nativeResponse(404, `{}`), nil
+		})
+		client := &liveClient{base: &url.URL{Scheme: "http", Host: "bifrost.local"}, http: &http.Client{Transport: fake}}
+		accesses, err := bifrostCatalogue(context.Background(), client, "2026-10-09T00:00:00Z")
+		return accesses, maxInFlight.Load(), lookups.Load(), err
+	}
+
+	accesses, maxInFlight, lookups, err := run("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if maxInFlight < 2 || maxInFlight > parameterLookupConcurrency || lookups != models {
+		t.Fatalf("max in flight %d (bound %d), lookups %d of %d", maxInFlight, parameterLookupConcurrency, lookups, models)
+	}
+	if len(accesses) != models {
+		t.Fatalf("got %d accesses, want %d", len(accesses), models)
+	}
+	for i, a := range accesses {
+		id := fmt.Sprintf("openai/m%02d", i)
+		if a.ID != id || string(a.Candidates["name"]["bifrost"]) != fmt.Sprintf(`"m%02d"`, i) || a.UpdatedAt["bifrost"] != "2026-10-09T00:00:00Z" {
+			t.Fatalf("access %d out of order or missing provenance: %+v", i, a)
+		}
+		got, has := a.Candidates["parameters"]["bifrost"]
+		if skipped := id == "openai/m03" || id == "openai/m05"; skipped == has || (has && string(got) != `{"model":"`+id+`"}`) {
+			t.Fatalf("wrong parameters for %s: %s (present %v)", id, got, has)
+		}
+	}
+
+	accesses, _, _, err = run("openai/m10")
+	if err == nil || err.Error() != "Bifrost returned HTTP 500" || accesses != nil {
+		t.Fatalf("500 did not fail the source: err=%v accesses=%d", err, len(accesses))
 	}
 }
 
