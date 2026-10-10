@@ -1,4 +1,4 @@
-import { applyModelId, canonicalCapabilities, changeAccessProvider, firstRegistrationIssue, modelEditorOptions, omitUnchangedReferenceIds, prefillFromReference } from "./model-editor-data";
+import { applyModelId, canonicalCapabilities, changeAccessProvider, declaredEndpoints, firstRegistrationIssue, modelEditorOptions, omitUnchangedReferenceIds, prefillFromReference } from "./model-editor-data";
 import type { Catalog } from "./catalog-api";
 import type { Model } from "../../domain/registry";
 
@@ -52,4 +52,12 @@ const existing: Model = { ...draft, id: "alias", accesses: [{ provider: "p", id:
 equal(omitUnchangedReferenceIds(existing, [existing]).accesses[0].referenceId, undefined);
 equal(omitUnchangedReferenceIds({ ...existing, accesses: [{ ...existing.accesses[0], referenceId: "ref/changed" }] }, [existing]).accesses[0].referenceId, "ref/changed");
 equal(omitUnchangedReferenceIds({ ...existing, accesses: [{ ...existing.accesses[0], referenceId: "" }] }, [existing]).accesses[0].referenceId, "");
+// A new access preselects the operations its native mode implies (Bifrost's parameters datasheet).
+const withMode = (mode: unknown) => ({ id: "p/m", fields: { parameters: { value: { model: "m", provider: "p", mode }, source: "bifrost", updatedAt: null, kind: "declared" as const } }, overrides: {} });
+equal(declaredEndpoints(withMode("chat")), ["chat/completions"]);
+equal(declaredEndpoints(withMode("image_generation")), ["images/generations"]);
+equal(declaredEndpoints(withMode("embedding")), ["embeddings"]);
+equal(declaredEndpoints(withMode("something-new")), []);
+equal(declaredEndpoints(withMode(undefined)), []);
+equal(declaredEndpoints(undefined), []);
 console.log("model editor data checks passed");

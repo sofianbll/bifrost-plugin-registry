@@ -20,6 +20,8 @@ export type RegistrySettingsProps = {
   onNavigate: (page: Page) => void;
   onUnauthorized: () => void;
   providers?: string[];
+  // My models scope counts, as the models page header shows them.
+  modelCounts?: string;
   initialSection?: "general" | "display" | "sources" | "connection" | "assistance" | "help";
 };
 
@@ -36,7 +38,7 @@ const formatDate = (value: string | undefined, language: string) => value
   ? new Date(value).toLocaleString(language === "fr" ? "fr-FR" : "en-US")
   : language === "fr" ? "Non renseigné" : "Not recorded";
 
-export default function RegistrySettings({ preferences, onPreferencesChange, snapshotMode, onNavigate, onUnauthorized, providers = [], initialSection = "general" }: RegistrySettingsProps) {
+export default function RegistrySettings({ preferences, onPreferencesChange, snapshotMode, onNavigate, onUnauthorized, providers = [], modelCounts, initialSection = "general" }: RegistrySettingsProps) {
   const copy = useCopy();
   const language = useLanguage();
   const [section, setSection] = useState<SettingsSection>(initialSection);
@@ -67,7 +69,7 @@ export default function RegistrySettings({ preferences, onPreferencesChange, sna
   const content = () => {
     if (section === "general") return <div className="space-y-4">
       <Card><CardHeader><CardTitle>{copy("Administration", "Administration")}</CardTitle></CardHeader><CardContent className="flex flex-wrap gap-2">{navigate("gateway")}{navigate("catalog")}{navigate("snapshot")}</CardContent></Card>
-      <Card><CardHeader><CardTitle>{copy("Current workspace", "Espace de travail actuel")}</CardTitle></CardHeader><CardContent className="space-y-3 text-sm text-muted-foreground"><p>{snapshotMode ? copy("You are reviewing a local snapshot. Changes stay in this copy and do not update the connected Bifrost gateway.", "Vous consultez une copie locale. Les changements restent dans cette copie et ne modifient pas le gateway Bifrost connecté.") : copy("Registry catalog and model selections are managed in this workspace. Native Bifrost permissions remain governed by Bifrost.", "Le catalogue Registry et les sélections de modèles sont gérés dans cet espace. Les permissions natives restent régies par Bifrost.")}</p><Badge variant={snapshotMode ? "warning" : "success"}>{snapshotMode ? copy("Local snapshot", "Copie locale") : copy("Connected workspace", "Espace connecté")}</Badge></CardContent></Card>
+      <Card><CardHeader><CardTitle>{copy("Current workspace", "Espace de travail actuel")}</CardTitle></CardHeader><CardContent className="space-y-3 text-sm text-muted-foreground"><p>{snapshotMode ? copy("You are reviewing a local snapshot. Changes stay in this copy and do not update the connected Bifrost gateway.", "Vous consultez une copie locale. Les changements restent dans cette copie et ne modifient pas le gateway Bifrost connecté.") : copy("Registry catalog and model selections are managed in this workspace. Native Bifrost permissions remain governed by Bifrost.", "Le catalogue Registry et les sélections de modèles sont gérés dans cet espace. Les permissions natives restent régies par Bifrost.")}</p>{modelCounts && <p className="text-foreground">{modelCounts}</p>}<Badge variant={snapshotMode ? "warning" : "success"}>{snapshotMode ? copy("Local snapshot", "Copie locale") : copy("Connected workspace", "Espace connecté")}</Badge></CardContent></Card>
     </div>;
     if (section === "display") return <div className="space-y-3"><Card><CardHeader><CardTitle>{copy("Default model display", "Affichage par défaut des modèles")}</CardTitle></CardHeader><CardContent className="space-y-3"><p className="text-sm text-muted-foreground">{copy("These local preferences control the default information shown in model lists. A page can still offer its own view controls.", "Ces préférences locales déterminent les informations affichées par défaut dans les listes de modèles. Chaque page peut aussi proposer ses propres options.")}</p><ViewControls value={preferences} onChange={onPreferencesChange} scope={copy("Global", "Général")} catalogFormats /><div className="space-y-2 border-t pt-3"><p className="text-sm font-medium">{copy("Primary logo on model cards", "Logo principal des fiches modèles")}</p><div className="flex flex-wrap gap-2"><Button size="sm" variant={preferences.logo === "creator" ? "default" : "outline"} onClick={() => onPreferencesChange({ ...preferences, logo: "creator" })}>{copy("Creator", "Créateur")}</Button><Button size="sm" variant={preferences.logo === "provider" ? "default" : "outline"} onClick={() => onPreferencesChange({ ...preferences, logo: "provider" })}>{copy("Provider", "Fournisseur d’accès")}</Button></div></div></CardContent></Card>{catalogError && <p role="alert" className="text-sm text-destructive">{catalogError}</p>}<ProviderAppearance providers={[...providers, ...gatewayProviders, ...(catalog?.accesses.map(access => access.provider) || [])]} /></div>;
     if (section === "sources") return <div className="space-y-4">

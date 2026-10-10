@@ -1,22 +1,19 @@
 import { fixture } from "../dev/fixtures/registry";
-import { catalogModels, copy, creatorKey, delta, exposed, filterModels, keyImpact, members, modelImpact, toggleModel, emptyModelFilters } from "./registry";
+import { copy, unsavedModels, creatorKey, delta, exposed, filterModels, keyImpact, members, modelImpact, toggleModel, emptyModelFilters } from "./registry";
 
 const assert = (condition: boolean) => { if (!condition) throw Error("Demo state check failed"); };
 const deepEqual = (a: unknown, b: unknown) => assert(JSON.stringify(a) === JSON.stringify(b));
 
 const state = copy(fixture);
 const discovered = { ...state.models[0], name: "Discovery label", summary: "Unreviewed metadata" };
-deepEqual(catalogModels([state.models[0]], [discovered, state.models[1], state.models[1]]).map(m => m.id), [state.models[0].id, state.models[1].id]);
-deepEqual(catalogModels([state.models[0]], [discovered]).find(m => m.id === discovered.id), state.models[0]);
+// The "To add" shelf: discovered models minus the accesses saved cards hold, each discovered ID once.
+deepEqual(unsavedModels([state.models[0]], [discovered, state.models[1], state.models[1]]).map(m => m.id), [state.models[1].id]);
 const additionalAccess = { provider: "second-provider", id: "second-provider/gpt-5", nativeModel: "native-gpt-5", route: "Direct provider", status: "Configured" as const };
 const expandedDiscovery = { ...discovered, accesses: [...discovered.accesses, additionalAccess] };
-// A discovered access the saved card does not hold is offered beside it, never merged into it.
-const [savedCard, offered] = catalogModels([state.models[0]], [expandedDiscovery]);
-deepEqual(savedCard, state.models[0]);
-deepEqual(offered.accesses, [additionalAccess]);
-assert(offered.id === state.models[0].id);
+// A discovered access the saved card does not hold is offered beside it under its discovered ID, never merged into it.
+deepEqual(unsavedModels([state.models[0]], [expandedDiscovery]).map(m => [m.id, m.accesses]), [[state.models[0].id, [additionalAccess]]]);
 // An access already saved under another card ID is not offered again.
-deepEqual(catalogModels([state.models[1]], [{ ...state.models[1], id: "other-id" }]).map(m => m.id), [state.models[1].id]);
+deepEqual(unsavedModels([state.models[1]], [{ ...state.models[1], id: "other-id" }]), []);
 assert(state.models[0].accesses.length === 2);
 assert(state.campaigns.every(c => state.models.find(m => m.id === c.model)?.accesses.some(a => a.provider === c.provider && a.id === c.accessId)));
 const hermes = state.keys[0];
