@@ -10,32 +10,15 @@ import { CatalogCard, CatalogGrid } from "../../components/registry/CatalogCard"
 import { GroupSummary, ProviderSummary } from "../../components/registry/CompactCollection";
 import { cardFormat, gridColumns, ViewControls, type ViewOptions } from "../../components/registry/ViewOptions";
 import { exposed, members, type Group, type Key, type Model } from "../../domain/registry";
-import { displayProvider } from "../../components/registry/BrandIcon";
 import { useCopy, useFormat } from "../../lib/locale";
 import { filterKeys } from "./key-library-state";
+import { permissionSummary } from "./KeyComposer.state";
 import { useSessionState } from "../../lib/session-state";
-
-// One line for what Bifrost allows a key today: all providers, or N providers and M models.
-export function permissionSummary(permissions: Key["permissions"], copy: ReturnType<typeof useCopy>) {
-  if (!permissions) return copy("Not read yet", "Pas encore lues");
-  if (permissions.allProviders) return copy("All providers", "Tous les fournisseurs");
-  const providers = permissions.providers;
-  if (!providers.length) return copy("No provider", "Aucun fournisseur");
-  const all = providers.filter(p => p.allModels).map(p => displayProvider(p.provider));
-  const count = providers.reduce((sum, p) => sum + (p.allModels ? 0 : p.models.length), 0);
-  return [
-    `${providers.length} ${copy(providers.length === 1 ? "provider" : "providers", providers.length === 1 ? "fournisseur" : "fournisseurs")}`,
-    all.length < providers.length ? `${count} ${copy(count === 1 ? "model" : "models", count === 1 ? "modèle" : "modèles")}` : "",
-    all.length ? `${copy("all models of", "tous les modèles de")} ${all.join(", ")}` : "",
-  ].filter(Boolean).join(" · ");
-}
 
 type Props = {
   keys: Key[];
   groups: Group[];
   models: Model[];
-  search: string;
-  onSearch: (value: string) => void;
   view: ViewOptions;
   onViewChange: (value: ViewOptions) => void;
   onResetView: () => void;
@@ -45,12 +28,13 @@ type Props = {
   onOpen: (key: Key) => void;
 };
 
-export function KeyLibrary({ keys, groups, models, search, onSearch, view, onViewChange, onResetView, busy, snapshotMode, onCreate, onOpen }: Props) {
+export function KeyLibrary({ keys, groups, models, view, onViewChange, onResetView, busy, snapshotMode, onCreate, onOpen }: Props) {
   const copy = useCopy();
-  const colon = copy(":", " :");
   const localized = useFormat();
+  const { colon } = localized;
   const filterId = useId();
-  // Filters survive leaving the page for the session, like the search.
+  // Search and filters survive leaving the page for the session.
+  const [search, onSearch] = useSessionState("keys.search", "");
   const [groupFilter, setGroupFilter] = useSessionState("keys.group", "all");
   const [clientFilter, setClientFilter] = useSessionState("keys.client", "all");
   const [sort, setSort] = useSessionState("keys.sort", "name");

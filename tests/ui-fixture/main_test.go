@@ -62,7 +62,7 @@ func TestFixtureWorkspaceAndNativeReadback(t *testing.T) {
 		Discovery []any          `json:"discovery"`
 	}
 	get := call("GET", "/api/workspace", nil, "")
-	if get.Code != 200 || json.Unmarshal(get.Body.Bytes(), &ws) != nil || len(ws.Data["models"].([]any)) != 8 || len(ws.Data["groups"].([]any)) != 2 || len(ws.Data["keys"].([]any)) != 6 || len(ws.Discovery) != 76 {
+	if get.Code != 200 || json.Unmarshal(get.Body.Bytes(), &ws) != nil || len(ws.Data["models"].([]any)) != 9 || len(ws.Data["groups"].([]any)) != 2 || len(ws.Data["keys"].([]any)) != 6 || len(ws.Discovery) != 77 {
 		t.Fatalf("workspace: %d %s", get.Code, get.Body.String())
 	}
 	group := ws.Data["groups"].([]any)[0].(map[string]any)
@@ -146,7 +146,7 @@ func TestFixtureDiscoveryMirrorsSubscriptionGateway(t *testing.T) {
 	if len(aggregator) <= 60 {
 		t.Fatalf("aggregator serves %d models, want more than one 60-card page", len(aggregator))
 	}
-	if saved["Claude/qa-opus"] != "anthropic/qa-opus" || aggregator["anthropic/qa-opus"] != "anthropic/qa-opus" {
+	if saved["Claude/qa-opus"] != "anthropic/qa-opus" || saved["Claude/qa-opus-fast"] != "anthropic/qa-opus" || aggregator["anthropic/qa-opus"] != "anthropic/qa-opus" {
 		t.Fatalf("aggregator does not share the saved Claude card's reference: %q, %q", saved["Claude/qa-opus"], aggregator["anthropic/qa-opus"])
 	}
 	for _, variant := range []string{"~anthropic/qa-opus-latest", "openai/qa-codex:batch"} {

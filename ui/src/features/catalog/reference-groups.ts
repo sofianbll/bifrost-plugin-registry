@@ -1,5 +1,5 @@
 import type { Catalog, CatalogAccess, CatalogRecord } from "./catalog-api";
-import { emptyModelFilters, filterModels, type Access, type Model, type ModelFilters } from "../../domain/registry";
+import { emptyModelFilters, filterModels, sameAccess, type Access, type Model, type ModelFilters } from "../../domain/registry";
 
 export type ReferenceGroup = {
   key: string;
@@ -17,7 +17,8 @@ export function sharedReferenceFacts(group: ReferenceGroup) {
   return { modalities, capabilities, summary };
 }
 
-export function groupReferenceModels(models: Model[], catalog: Catalog, provider = ""): ReferenceGroup[] {
+// byCard: one group per model (In Registry, one tile per saved card) instead of one per reference.
+export function groupReferenceModels(models: Model[], catalog: Catalog, provider = "", byCard = false): ReferenceGroup[] {
   const references = new Map(catalog.references.map(reference => [reference.id, reference]));
   const accesses = new Map(catalog.accesses.map(access => [access.id, access]));
   const groups = new Map<string, ReferenceGroup>();
@@ -28,8 +29,9 @@ export function groupReferenceModels(models: Model[], catalog: Catalog, provider
       const candidate = nativeID ? accesses.get(nativeID) : undefined;
       const exact = candidate && access && candidate.provider === access.provider && (!access.nativeModel || candidate.model === access.nativeModel) ? candidate : undefined;
       const reference = exact?.referenceId ? references.get(exact.referenceId) : undefined;
-      const key = reference ? `reference:${reference.id}` : `model:${model.id}`;
+      const key = byCard ? `card:${model.id}` : reference ? `reference:${reference.id}` : `model:${model.id}`;
       const group = groups.get(key) ?? { key, reference, entries: [] };
+      group.reference ??= reference;
       group.entries.push({ model, access, catalogAccess: exact });
       groups.set(key, group);
     }
@@ -41,12 +43,12 @@ export function groupReferenceModels(models: Model[], catalog: Catalog, provider
 // beside it: a matching ID or reference alone does not put an access in the card.
 export function cardEntries(group: ReferenceGroup, saved: Model[]) {
   const held = ({ model, access }: ReferenceGroup["entries"][number]) => saved.some(card => card.id === model.id &&
-    (!access || card.accesses.some(row => row.provider === access.provider && row.nativeModel === access.nativeModel)));
+    (!access || card.accesses.some(row => sameAccess(row, access))));
   return { card: group.entries.filter(held), available: group.entries.filter(entry => !held(entry)) };
 }
 
-export function filterReferenceGroups(models: Model[], catalog: Catalog, filters: ModelFilters): ReferenceGroup[] {
-  const groups = groupReferenceModels(filterModels(models, { ...filters, search: "" }), catalog, filters.provider);
+export function filterReferenceGroups(models: Model[], catalog: Catalog, filters: ModelFilters, byCard = false): ReferenceGroup[] {
+  const groups = groupReferenceModels(filterModels(models, { ...filters, search: "" }), catalog, filters.provider, byCard);
   const query = filters.search.trim().toLocaleLowerCase();
   if (!query) return groups;
   return groups.filter(group =>
@@ -55,7 +57,7 @@ export function filterReferenceGroups(models: Model[], catalog: Catalog, filters
       .filter((value): value is string => typeof value === "string").join(" ").toLocaleLowerCase().includes(query));
 }
 
-export function filterReferenceModels(models: Model[], catalog: Catalog, filters: ModelFilters): Model[] {
-  const visible = new Set(filterReferenceGroups(models, catalog, filters).flatMap(group => group.entries.map(entry => entry.model.id)));
+export function filterReferenceModels(models: Model[], catalog: Catalog, filters: ModelFilters, byCard = false): Model[] {
+  const visible = new Set(filterReferenceGroups(models, catalog, filters, byCard).flatMap(group => group.entries.map(entry => entry.model.id)));
   return models.filter(model => visible.has(model.id));
 }

@@ -24,21 +24,22 @@ an aggregator that cross-lists them, variant IDs, unmanaged keys), not its data.
 | Provider (`/api/providers`) | Base type (`custom_provider_config.base_provider_type`) | Native models | Saved model cards |
 | --- | --- | --- | --- |
 | `synthetic-provider` | standard | `qa-code`, `qa-chat`, `qa-vision`, `qa-unregistered` | `qa-code`, `qa-chat`, `qa-vision` |
-| `Claude` | `anthropic` | `qa-opus`, `qa-haiku` | both |
+| `Claude` | `anthropic` | `qa-opus`, `qa-haiku`, `qa-opus-fast` | all three |
 | `Codex` | `openai` | `qa-codex`, `qa-codex-mini` | both |
 | `Google` | `gemini` | `qa-gemini`, `qa-image` | `qa-gemini` |
 | `openrouter` (aggregator) | standard | 66: `anthropic/qa-opus`, `~anthropic/qa-opus-latest`, `openai/qa-codex:batch`, `deepseek/qa-reasoner`, `tencent/qa-hunyuan`, `meituan/qa-longcat`, `qwen/qa-qwen-01` … `-60` | none |
 
 - Saved cards use only the subscription providers (and the original `synthetic-provider`).
   The Claude, Codex and Google cards are saved as discovery registers them: name equal to
-  the common ID, creator `Unknown`, no modalities.
+  the common ID, creator `Unknown`, no modalities. `qa-opus-fast` ("QA Opus Fast") is a
+  second saved card on the `anthropic/qa-opus` reference, so two saved cards share one.
 - `openrouter/anthropic/qa-opus` is linked to the same reference as the saved card
   `Claude/qa-opus` and carries a documented price ($4 / $20 per million tokens). The
   `~…-latest` and `:batch` variants have no reference. `openrouter/deepseek/qa-reasoner`
   costs 2e-7 per input token, stored per million with its float noise (0.19999999999999998)
   so the UI's number formatting is exercised.
 - The `qwen/` fillers push the aggregator past one 60-card page and sort after the `qa-*`
-  cards. Discovery holds 76 models.
+  cards. Discovery holds 77 models.
 - Each native model declares a `mode` (`chat`, or `image_generation` for `Google/qa-image`)
   in its `/api/models/parameters` datasheet. `/api/models/details` lists name, provider and
   per-token prices, so a Bifrost catalogue refresh works; the seeded catalogue already holds

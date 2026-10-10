@@ -5,18 +5,18 @@ import { fixture } from "../../dev/fixtures/registry";
 import { GroupLibrary } from "./GroupLibrary";
 
 for (const layout of ["grid", "table"] as const) {
-  const html = renderToStaticMarkup(<LanguageContext.Provider value="en"><GroupLibrary groups={fixture.groups} models={fixture.models} keys={fixture.keys} search="" onSearch={() => {}} view={{ ...defaultViewOptions, layout }} onViewChange={() => {}} onResetView={() => {}} onCreate={() => {}} onEdit={() => {}} /></LanguageContext.Provider>);
+  const html = renderToStaticMarkup(<LanguageContext.Provider value="en"><GroupLibrary groups={fixture.groups} models={fixture.models} keys={fixture.keys} view={{ ...defaultViewOptions, layout }} onViewChange={() => {}} onResetView={() => {}} onCreate={() => {}} onEdit={() => {}} /></LanguageContext.Provider>);
   if (!html.includes(fixture.groups[0].name)) throw new Error(`${layout}: group name must be rendered`);
 }
 for (const shape of ["rectangle", "square"] as const) {
   const view = { ...defaultViewOptions, layout: "grid" as const, shape: shape as "rectangle" | "square", size: "small" as const };
-  const html = renderToStaticMarkup(<LanguageContext.Provider value="en"><GroupLibrary groups={fixture.groups} models={fixture.models} keys={fixture.keys} search="" onSearch={() => {}} view={view} onViewChange={() => {}} onResetView={() => {}} onCreate={() => {}} onEdit={() => {}} /></LanguageContext.Provider>);
+  const html = renderToStaticMarkup(<LanguageContext.Provider value="en"><GroupLibrary groups={fixture.groups} models={fixture.models} keys={fixture.keys} view={view} onViewChange={() => {}} onResetView={() => {}} onCreate={() => {}} onEdit={() => {}} /></LanguageContext.Provider>);
   const expectedFormat = cardFormat(view);
   if (!html.includes(`data-format="${expectedFormat}"`)) throw new Error(`shape ${shape}: expected format ${expectedFormat}`);
   if (!html.includes(`xl:grid-cols-${gridColumns(view.size)}`)) throw new Error(`shape ${shape}: expected ${gridColumns(view.size)} columns`);
 }
 
-const render = (view = defaultViewOptions, language: "en" | "fr" = "en", keys = fixture.keys) => renderToStaticMarkup(<LanguageContext.Provider value={language}><GroupLibrary groups={fixture.groups} models={fixture.models} keys={keys} search="" onSearch={() => {}} view={view} onViewChange={() => {}} onResetView={() => {}} onCreate={() => {}} onEdit={() => {}} /></LanguageContext.Provider>);
+const render = (view = defaultViewOptions, language: "en" | "fr" = "en", keys = fixture.keys) => renderToStaticMarkup(<LanguageContext.Provider value={language}><GroupLibrary groups={fixture.groups} models={fixture.models} keys={keys} view={view} onViewChange={() => {}} onResetView={() => {}} onCreate={() => {}} onEdit={() => {}} /></LanguageContext.Provider>);
 
 // Density belongs to the grid view only: the table hides it and its column counts, like Shape.
 for (const layout of ["grid", "table"] as const) {

@@ -70,6 +70,19 @@ if (split.card.map(entry => entry.access?.provider).join(",") !== "alpha" || spl
 if (cardEntries(sharedGroup, []).card.length !== 0) throw new Error("An unsaved group claimed a card");
 console.log("Reference groups keep saved and available accesses apart: OK");
 
+// In Registry shows one tile per saved card: two cards on one reference stay apart, and a card
+// whose accesses link to two references stays whole. Reference grouping still folds and splits them.
+const twoReferences: Model = { ...model("alias-five", "gamma", "native-c"), accesses: [model("alias-five", "gamma", "native-c").accesses[0], model("alias-five", "delta", "native-d").accesses[0]] };
+const linkedTo = ["ref/shared", "ref/shared", "ref/other", "ref/shared"];
+const cardCatalog: Catalog = { ...splitCatalog, accesses: splitCatalog.accesses.map((access, index) => ({ ...access, referenceId: linkedTo[index] })) };
+const cards = [models[0], models[1], twoReferences];
+if (groupReferenceModels(cards, cardCatalog).length !== 2) throw new Error("Reference grouping no longer folds by reference");
+const tiles = groupReferenceModels(cards, cardCatalog, "", true);
+if (tiles.map(group => `${group.key}=${group.entries.length}`).join(",") !== "card:alias-one=1,card:alias-two=1,card:alias-five=2") throw new Error(`Saved cards folded or split: ${tiles.map(group => group.key)}`);
+if (tiles[2].reference?.id !== "ref/other") throw new Error("A saved card lost its reference");
+if (filterReferenceModels(cards, cardCatalog, { ...emptyModelFilters, search: "same display name" }, true).length !== 3) throw new Error("Card search hid a saved card");
+console.log("Saved cards are one tile each, whatever their references: OK");
+
 const facts = { ...models[0], summary: "shared", inputModalities: ["Image", "Text"], outputModalities: ["Text"], capabilities: { Vision: "Declared", Reasoning: "Unknown" } } as Model;
 const common = (other: Model) => sharedReferenceFacts({ key: "shared", entries: [{ model: facts }, { model: other }] });
 if (Object.values(common({ ...facts })).some(value => !value)) throw new Error("Identical reference facts were hidden");

@@ -1,4 +1,6 @@
-import { exposed, members, origin, retainedAccesses, toggleModel, type Group, type Key, type Model, type Policy } from "../../domain/registry";
+import { exposed, members, namedIds, origin, retainedAccesses, toggleModel, type Group, type Key, type Model, type Policy } from "../../domain/registry";
+import { displayProvider } from "../../components/registry/BrandIcon";
+import type { Copy } from "../../lib/locale";
 
 export function toggleVisibleModels(policy: Policy, visible: string[], target: string[], models: Model[], groups: Group[]): Policy {
   const visibleIds = new Set(visible);
@@ -125,18 +127,36 @@ export function keyComposition(policy: Policy, groups: Group[], models: Model[])
 
 
 // What Review compares the draft with: the last verified readback, else the last published plan,
-// else the models Bifrost allows today, in the key's ID format.
-export function keyBaseline(key: Key, groups: Group[], models: Model[]): { source: "readback" | "plan" | "native"; ids: string[] } {
+// else the models Bifrost allows today, in the key's ID format; none when neither is known.
+export function keyBaseline(key: Key, groups: Group[], models: Model[]): { source: "readback" | "plan" | "native" | "none"; ids: string[] } {
   if (key.publication?.state === "verified" && key.publication.actual) return { source: "readback", ids: key.publication.actual };
   const plan = exposed(key.policy, groups, models);
   const permissions = key.permissions;
-  if (plan.length || !permissions) return { source: "plan", ids: plan };
+  if (plan.length) return { source: "plan", ids: plan };
+  if (!permissions) return { source: "none", ids: [] };
   const ids = models.flatMap(model => {
-    const allowed = model.accesses.filter(access => permissions.allProviders || permissions.providers.some(p => p.provider === access.provider && (p.allModels || p.models.includes(access.nativeModel || access.id.slice(access.provider.length + 1))))).map(access => access.id);
-    if (!allowed.length) return [];
-    return key.policy.naming === "model" ? [model.id] : key.policy.naming === "provider/model" ? allowed : [model.id, ...allowed];
+    const allowed = model.accesses.filter(access => permissions.allProviders || permissions.providers.some(p => p.provider === access.provider && (p.allModels || p.models.includes(access.nativeModel ?? "")))).map(access => access.id);
+    return allowed.length ? namedIds(key.policy.naming, model.id, allowed) : [];
   });
   return { source: "native", ids };
+}
+
+// One line for what Bifrost allows a key today: all providers, or N providers and M models.
+export function permissionSummary(permissions: Key["permissions"], copy: Copy) {
+  if (!permissions) return copy("Not read yet", "Pas encore lues");
+  if (permissions.allProviders) return copy("All providers", "Tous les fournisseurs");
+  const providers = permissions.providers;
+  if (!providers.length) return copy("No provider", "Aucun fournisseur");
+  const all = providers.filter(p => p.allModels).map(p => displayProvider(p.provider));
+  const unknown = providers.filter(p => p.versionDependent).map(p => displayProvider(p.provider));
+  const listed = providers.filter(p => !p.allModels && !p.versionDependent);
+  const count = listed.reduce((sum, p) => sum + p.models.length, 0);
+  return [
+    `${providers.length} ${copy(providers.length === 1 ? "provider" : "providers", providers.length === 1 ? "fournisseur" : "fournisseurs")}`,
+    listed.length ? `${count} ${copy(count === 1 ? "model" : "models", count === 1 ? "modèle" : "modèles")}` : "",
+    all.length ? `${copy("all models of", "tous les modèles de")} ${all.join(", ")}` : "",
+    unknown.length ? `${copy("models depend on the Bifrost version for", "modèles selon la version de Bifrost pour")} ${unknown.join(", ")}` : "",
+  ].filter(Boolean).join(" · ");
 }
 
 export function preserveAdoptionDraft(adopted: Policy, draft: Policy): Policy {

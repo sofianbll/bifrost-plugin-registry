@@ -240,6 +240,7 @@ func TestWorkspaceSummarizesNativeKeyPermissions(t *testing.T) {
 				{"id":"vk-all","name":"All","allow_all_providers":true,"provider_configs":[]},
 				{"id":"vk-some","name":"Some","provider_configs":[{"provider":"Codex","allowed_models":["gpt-a","gpt-b","gpt-c"],"blacklisted_models":["gpt-c"]},{"provider":"Claude","allowed_models":["*"]}]},
 				{"id":"vk-none","name":"None","provider_configs":[]},
+				{"id":"vk-empty","name":"Empty","provider_configs":[{"provider":"Google","allowed_models":[]}]},
 				{"id":"vk-unread","name":"Unread"}]}`), nil
 		}
 		t.Fatal("unexpected native route", r.URL.String())
@@ -265,9 +266,11 @@ func TestWorkspaceSummarizesNativeKeyPermissions(t *testing.T) {
 		got[k.ID] = string(k.Permissions)
 	}
 	want := map[string]string{
-		"vk-all":    `{"allProviders":true,"providers":[]}`,
-		"vk-some":   `{"allProviders":false,"providers":[{"provider":"Codex","allModels":false,"models":["gpt-a","gpt-b"]},{"provider":"Claude","allModels":true,"models":[]}]}`,
-		"vk-none":   `{"allProviders":false,"providers":[]}`,
+		"vk-all":  `{"allProviders":true,"providers":[]}`,
+		"vk-some": `{"allProviders":false,"providers":[{"provider":"Codex","allModels":false,"models":["gpt-a","gpt-b"]},{"provider":"Claude","allModels":true,"models":[]}]}`,
+		"vk-none": `{"allProviders":false,"providers":[]}`,
+		// An empty allowed_models list means "all" or "none" depending on the Bifrost version.
+		"vk-empty":  `{"allProviders":false,"providers":[{"provider":"Google","allModels":false,"models":[],"versionDependent":true}]}`,
 		"vk-unread": "", // no provider rows in the native answer: not read, not "no access"
 	}
 	if !reflect.DeepEqual(got, want) {

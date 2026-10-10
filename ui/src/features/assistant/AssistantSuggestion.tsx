@@ -3,11 +3,11 @@ import { Button } from "@/components/ui/button";
 import { suggestModel } from "./assistant-api";
 import { applySuggestion, normalizeSuggestion, suggestionRows, type Suggestion } from "./assistant-proposal";
 import type { Model } from "../../domain/registry";
-import { useCopy, useTerm } from "../../lib/locale";
+import { useCopy, useFormat, useTerm } from "../../lib/locale";
 
 export default function AssistantSuggestion({ draft, onChange, onOpenSettings }: { draft: Model; onChange: (model: Model) => void; onOpenSettings?: () => void }) {
   const copy = useCopy();
-  const colon = copy(":", " :");
+  const { colon } = useFormat();
   const term = useTerm();
   const [result, setResult] = useState<{ suggestion: Suggestion; snapshot: string; model: string; endpoint: string } | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -37,7 +37,7 @@ export default function AssistantSuggestion({ draft, onChange, onOpenSettings }:
     } finally { if (requestId === generation.current) setBusy(false); }
   };
   const review = result && JSON.stringify(draft) === result.snapshot ? result : null;
-  const label = (key: string, original: string) => ({ name: copy("Display name", "Nom affiché"), creator: copy("Creator", "Créateur"), family: copy("Model series", "Série du modèle"), context: copy("Context window", "Longueur du contexte"), input_modalities: copy("Input modalities", "Modalités d’entrée"), output_modalities: copy("Output modalities", "Modalités de sortie"), reasoning: term("Reasoning"), tool_call: term("Tool calling"), structured_output: term("Structured output"), referenceId: copy("Reference match for all accesses", "Correspondance documentaire pour tous les accès") } as Record<string, string>)[key] || term(original);
+  const label = (key: string, original: string) => ({ name: copy("Display name", "Nom affiché"), creator: copy("Creator", "Créateur"), family: copy("Model family", "Famille du modèle"), context: copy("Context window", "Longueur du contexte"), input_modalities: copy("Input modalities", "Modalités d’entrée"), output_modalities: copy("Output modalities", "Modalités de sortie"), reasoning: term("Reasoning"), tool_call: term("Tool calling"), structured_output: term("Structured output"), referenceId: copy("Reference match for all accesses", "Correspondance documentaire pour tous les accès") } as Record<string, string>)[key] || term(original);
   const state = (value: string) => value === "Unknown" ? copy("Unknown", "Inconnu") : value === "Declared" ? copy("Declared", "Déclaré") : value === "Declared (AI suggestion)" ? copy("Declared (AI suggestion)", "Déclaré (proposition IA)") : value === "Observed in simulated campaign" ? copy("Observed in simulated campaign", "Observé en campagne simulée") : value;
   const rows = review ? suggestionRows(draft, review.suggestion).map(row => ({ ...row, label: label(row.key, row.label), current: state(row.current), proposed: state(row.proposed) })) : [];
   const apply = () => {
@@ -52,7 +52,7 @@ export default function AssistantSuggestion({ draft, onChange, onOpenSettings }:
     {result && !review && <p role="status" className="text-xs text-muted-foreground">{copy("Model draft changed. Generate a new suggestion before applying fields.", "Le brouillon du modèle a changé. Générez une nouvelle proposition avant d’appliquer les champs.")}</p>}
     {review && <div className="max-h-[min(45vh,25rem)] space-y-3 overflow-y-auto rounded-sm border bg-card p-3">
       <p className="text-xs text-muted-foreground">{copy("Proposed by", "Proposition de")} {review.model || copy("configured model", "modèle configuré")} · {review.endpoint || copy("configured endpoint", "point de terminaison configuré")}. {copy("AI metadata is declared, never observed.", "Les métadonnées proposées par l’IA sont déclarées, jamais observées.")}</p>
-      {rows.length ? <div className="space-y-2">{rows.map(row => <label key={row.key} className="flex cursor-pointer items-start gap-2 rounded-sm border p-2 text-sm"><input type="checkbox" className="mt-1 size-4 shrink-0" checked={selected.has(row.key)} onChange={event => setSelected(previous => { const next = new Set(previous); if (event.target.checked) next.add(row.key); else next.delete(row.key); return next; })} /><span className="min-w-0"><strong className="block">{row.label}</strong><span className="block break-words text-xs text-muted-foreground">{copy("Current", "Actuel")}{colon} {row.current}</span><span className="block break-words text-xs">{copy("Proposed", "Proposé")} : {row.proposed}</span></span></label>)}</div> : <p className="text-xs text-muted-foreground">{copy("No metadata fields proposed.", "Aucune métadonnée proposée.")}</p>}
+      {rows.length ? <div className="space-y-2">{rows.map(row => <label key={row.key} className="flex cursor-pointer items-start gap-2 rounded-sm border p-2 text-sm"><input type="checkbox" className="mt-1 size-4 shrink-0" checked={selected.has(row.key)} onChange={event => setSelected(previous => { const next = new Set(previous); if (event.target.checked) next.add(row.key); else next.delete(row.key); return next; })} /><span className="min-w-0"><strong className="block">{row.label}</strong><span className="block break-words text-xs text-muted-foreground">{copy("Current", "Actuel")}{colon} {row.current}</span><span className="block break-words text-xs">{copy("Proposed", "Proposé")}{colon} {row.proposed}</span></span></label>)}</div> : <p className="text-xs text-muted-foreground">{copy("No metadata fields proposed.", "Aucune métadonnée proposée.")}</p>}
       {rows.length > 0 && <Button type="button" size="sm" disabled={!selected.size} onClick={apply}>{copy("Apply selected to draft", "Appliquer au brouillon")}</Button>}
     </div>}
   </section>;

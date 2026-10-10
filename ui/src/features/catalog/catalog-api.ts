@@ -1,6 +1,11 @@
 import { request } from "../../data/api";
 import type { Copy } from "../../lib/locale";
 
+// An access's documented prices on one line, "" when it has none: "Input price $4/M · Output price $20/M".
+export function documentedPrice(input: unknown, output: unknown, copy: Copy, price: (value: unknown) => string) {
+  return input === undefined && output === undefined ? "" : `${fieldLabel("input_cost_usd_per_million", copy)} ${price(input)} · ${fieldLabel("output_cost_usd_per_million", copy)} ${price(output)}`;
+}
+
 export const fieldTypes = {
   name: "text", creator: "text", family: "text", context_length: "number", max_input_tokens: "number", max_output_tokens: "number",
   input_modalities: "array", output_modalities: "array", input_cost_usd_per_million: "number", output_cost_usd_per_million: "number",
@@ -11,7 +16,7 @@ export type CatalogFieldName = keyof typeof fieldTypes;
 
 // What people read for each field and source, in the UI language.
 const fieldLabels: Record<CatalogFieldName, [string, string]> = {
-  name: ["Name", "Nom"], creator: ["Creator", "Créateur"], family: ["Series", "Série"],
+  name: ["Name", "Nom"], creator: ["Creator", "Créateur"], family: ["Family", "Famille"],
   context_length: ["Context length", "Contexte"], max_input_tokens: ["Maximum input", "Entrée maximale"], max_output_tokens: ["Maximum output", "Sortie maximale"],
   input_modalities: ["Input modalities", "Modalités d’entrée"], output_modalities: ["Output modalities", "Modalités de sortie"],
   input_cost_usd_per_million: ["Input price", "Prix entrée"], output_cost_usd_per_million: ["Output price", "Prix sortie"],
