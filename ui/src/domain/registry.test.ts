@@ -1,5 +1,5 @@
 import { fixture } from "../dev/fixtures/registry";
-import { copy, unsavedModels, creatorKey, delta, exposed, filterModels, keyImpact, members, modelImpact, toggleModel, emptyModelFilters } from "./registry";
+import { copy, unsavedModels, creatorKey, delta, distinctLabels, exposed, filterModels, keyImpact, members, modelImpact, toggleModel, emptyModelFilters } from "./registry";
 
 const assert = (condition: boolean) => { if (!condition) throw Error("Demo state check failed"); };
 const deepEqual = (a: unknown, b: unknown) => assert(JSON.stringify(a) === JSON.stringify(b));
@@ -14,6 +14,9 @@ const expandedDiscovery = { ...discovered, accesses: [...discovered.accesses, ad
 deepEqual(unsavedModels([state.models[0]], [expandedDiscovery]).map(m => [m.id, m.accesses]), [[state.models[0].id, [additionalAccess]]]);
 // An access already saved under another card ID is not offered again.
 deepEqual(unsavedModels([state.models[1]], [{ ...state.models[1], id: "other-id" }]), []);
+// A display name shared by several cards gains the card's ID, so actions named after it stay distinct.
+const label = distinctLabels([{ name: "QA", id: "a" }, { name: "QA", id: "b" }, { name: "Other", id: "c" }], m => m.name, m => m.id);
+deepEqual([label({ name: "QA", id: "b" }), label({ name: "Other", id: "c" })], ["QA (b)", "Other"]);
 assert(state.models[0].accesses.length === 2);
 assert(state.campaigns.every(c => state.models.find(m => m.id === c.model)?.accesses.some(a => a.provider === c.provider && a.id === c.accessId)));
 const hermes = state.keys[0];
