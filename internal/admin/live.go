@@ -442,6 +442,7 @@ func (s *Server) workspace(ctx context.Context) (workspace, error) {
 		for j := range discovered[i].Accesses {
 			a := &discovered[i].Accesses[j]
 			a.ReferenceID = workspaceReferenceID(config.Catalog, a.Provider, a.NativeModel)
+			catalogModelFields(&discovered[i], catalogFieldsForAccess(config.Catalog, a.Provider, a.NativeModel))
 		}
 	}
 	dto := demoDTO{Models: []modelDTO{}, Groups: []groupDTO{}, Keys: []keyDTO{}, Campaigns: []any{}}
