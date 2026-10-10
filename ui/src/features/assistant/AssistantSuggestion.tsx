@@ -7,6 +7,7 @@ import { useCopy, useTerm } from "../../lib/locale";
 
 export default function AssistantSuggestion({ draft, onChange, onOpenSettings }: { draft: Model; onChange: (model: Model) => void; onOpenSettings?: () => void }) {
   const copy = useCopy();
+  const colon = copy(":", " :");
   const term = useTerm();
   const [result, setResult] = useState<{ suggestion: Suggestion; snapshot: string; model: string; endpoint: string } | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -51,7 +52,7 @@ export default function AssistantSuggestion({ draft, onChange, onOpenSettings }:
     {result && !review && <p role="status" className="text-xs text-muted-foreground">{copy("Model draft changed. Generate a new suggestion before applying fields.", "Le brouillon du modèle a changé. Générez une nouvelle proposition avant d’appliquer les champs.")}</p>}
     {review && <div className="max-h-[min(45vh,25rem)] space-y-3 overflow-y-auto rounded-sm border bg-card p-3">
       <p className="text-xs text-muted-foreground">{copy("Proposed by", "Proposition de")} {review.model || copy("configured model", "modèle configuré")} · {review.endpoint || copy("configured endpoint", "point de terminaison configuré")}. {copy("AI metadata is declared, never observed.", "Les métadonnées proposées par l’IA sont déclarées, jamais observées.")}</p>
-      {rows.length ? <div className="space-y-2">{rows.map(row => <label key={row.key} className="flex cursor-pointer items-start gap-2 rounded-sm border p-2 text-sm"><input type="checkbox" className="mt-1 size-4 shrink-0" checked={selected.has(row.key)} onChange={event => setSelected(previous => { const next = new Set(previous); if (event.target.checked) next.add(row.key); else next.delete(row.key); return next; })} /><span className="min-w-0"><strong className="block">{row.label}</strong><span className="block break-words text-xs text-muted-foreground">{copy("Current", "Actuel")} : {row.current}</span><span className="block break-words text-xs">{copy("Proposed", "Proposé")} : {row.proposed}</span></span></label>)}</div> : <p className="text-xs text-muted-foreground">{copy("No metadata fields proposed.", "Aucune métadonnée proposée.")}</p>}
+      {rows.length ? <div className="space-y-2">{rows.map(row => <label key={row.key} className="flex cursor-pointer items-start gap-2 rounded-sm border p-2 text-sm"><input type="checkbox" className="mt-1 size-4 shrink-0" checked={selected.has(row.key)} onChange={event => setSelected(previous => { const next = new Set(previous); if (event.target.checked) next.add(row.key); else next.delete(row.key); return next; })} /><span className="min-w-0"><strong className="block">{row.label}</strong><span className="block break-words text-xs text-muted-foreground">{copy("Current", "Actuel")}{colon} {row.current}</span><span className="block break-words text-xs">{copy("Proposed", "Proposé")} : {row.proposed}</span></span></label>)}</div> : <p className="text-xs text-muted-foreground">{copy("No metadata fields proposed.", "Aucune métadonnée proposée.")}</p>}
       {rows.length > 0 && <Button type="button" size="sm" disabled={!selected.size} onClick={apply}>{copy("Apply selected to draft", "Appliquer au brouillon")}</Button>}
     </div>}
   </section>;

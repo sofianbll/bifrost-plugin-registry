@@ -298,7 +298,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await openOpus.click();
     await page.getByRole('textbox', { name: 'Display name *', exact: true }).fill('QA Opus saved');
     await button('Review').click();
-    await sheet().getByText(/Display name : .* → QA Opus saved/).waitFor();
+    await sheet().getByText(/Display name: .* → QA Opus saved/).waitFor();
     await expect(sheet().getByText(/^Access (added|removed)/)).toHaveCount(0);
     const write = page.waitForRequest(r => r.method() === 'PUT' && r.url().endsWith('/api/workspace'));
     await button('Save model').click();
@@ -323,8 +323,8 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     // Preselected from the native chat mode declared by Bifrost.
     await expect(part(sheet(), /^In this card/).getByRole('checkbox', { name: /Chat Completions/ })).toBeChecked();
     await button('Review').click();
-    await sheet().getByText(/^Access added : openrouter · anthropic\/qa-opus$/i).waitFor();
-    await sheet().getByText(/^Access removed : Claude · qa-opus$/).waitFor();
+    await sheet().getByText(/^Access added: openrouter · anthropic\/qa-opus$/i).waitFor();
+    await sheet().getByText(/^Access removed: Claude · qa-opus$/).waitFor();
     await button('Cancel').click();
     await button('Discard draft').click();
     await sheet().waitFor({ state: 'hidden' });

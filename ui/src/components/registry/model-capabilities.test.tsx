@@ -13,7 +13,7 @@ if (!/aria-label="[^"]*Raisonnement/.test(mixed) || !/aria-label="[^"]*Outils/.t
 if (/>Raisonnement<|>Outils</.test(mixed)) throw new Error("capability labels visible in icon-only summary");
 const modalities = render(<ModelModalitiesSummary model={model} />);
 if (!/\+1/.test(modalities)) throw new Error("modality overflow hidden");
-if (!/aria-label="Entrée: Texte, Image, Audio; Sortie: inconnue/.test(modalities) || />Texte<|>Image<|>Audio</.test(modalities)) throw new Error("modality icons lack full accessible names or show duplicate text");
+if (!/aria-label="Entrée : Texte, Image, Audio; Sortie : inconnue/.test(modalities) || />Texte<|>Image<|>Audio</.test(modalities)) throw new Error("modality icons lack full accessible names or show duplicate text");
 const modalityPanel = render(<ModelModalitiesPanel model={{ ...model, outputModalities: ["Video", "Image"] }} />);
 for (const item of ["Entrées", "Sorties", "Texte", "Image", "Audio", "Vidéo"]) if (!modalityPanel.includes(item)) throw new Error(`actual modality missing: ${item}`);
 if (/Fonctionnalités|Raisonnement|Vision|data-capability=|Source et portée/.test(modalityPanel)) throw new Error("modality details include capability inventory");
