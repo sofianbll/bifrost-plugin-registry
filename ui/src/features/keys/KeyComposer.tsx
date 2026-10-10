@@ -34,8 +34,8 @@ const formats: Policy["naming"][] = ["model", "provider/model", "both"];
 
 export default function KeyComposer({ virtualKey, draft, onDraftChange, models, groups, preferences, busy, snapshotMode, expert, publishDisabled, onPublish, onDiscard, onReread }: Props) {
   const copy = useCopy();
-  const colon = copy(":", " :");
   const localized = useFormat();
+  const { colon } = localized;
   const [step, setStep] = useState(0);
   const [tab, setTab] = useState<"models" | "groups">("models");
   const [showReadback, setShowReadback] = useState(false);

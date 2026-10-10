@@ -319,7 +319,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(part(popover, /^In this card/)).not.toContainText(/openrouter/i);
     await expect(part(popover, /^Available, not in this card/)).toContainText(/openrouter/i);
     await expect(part(popover, /^Available, not in this card/), 'QA Opus Fast holds its own access').not.toContainText('qa-opus-fast');
-    await expect(part(popover, /^Available, not in this card/)).toContainText(/Input \$4\/M.*Output \$20\/M/);
+    await expect(part(popover, /^Available, not in this card/)).toContainText(/Input price \$4\/M.*Output price \$20\/M/);
     await expect(popover, 'Facts are readable, not raw parameter JSON').not.toContainText('{"');
     await page.keyboard.press('Escape');
     await page.getByRole('radio', { name: 'Table', exact: true }).click();
@@ -420,7 +420,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     // #69: the key page names the key once and offers one way back.
     expect((await page.locator('body').innerText()).split('QA Development Key').length - 1).toBe(1);
     await expect(page.getByRole('button', { name: /^(All virtual keys|Virtual keys|Back)$/ })).toHaveCount(1);
-    await button('1 provider accesses for QA Code').click();
+    await button('Accesses · 1 · QA Code').click();
     await page.getByText('Inherited · QA Development', { exact: true }).waitFor();
     await page.keyboard.press('Escape');
     await composerStep('Review').click();
@@ -597,7 +597,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
       await scope(new RegExp(`^${t('To add', 'À ajouter')}`)).click();
       await page.getByRole('textbox', { name: t('Search models', 'Rechercher des modèles'), exact: true }).fill('qa-reasoner');
       await accesses('QA Reasoner');
-      await expect(popover).toContainText(language === 'fr' ? /Entrée 0,2\s\$\/M/ : /Input \$0\.2\/M/);
+      await expect(popover).toContainText(language === 'fr' ? /Prix entrée 0,2\s\$\/M/ : /Input price \$0\.2\/M/);
       await expect(popover).not.toContainText('0.19999');
       await sweep(language, 'Accesses popover of a model to add');
       await page.keyboard.press('Escape');

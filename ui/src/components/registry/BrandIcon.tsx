@@ -14,20 +14,19 @@ const providerName: Record<string, string> = {
   runway: "Runway", sarvam: "Sarvam AI", sgl: "SGLang", vertex: "Vertex AI", vllm: "vLLM", wafer: "Wafer", xai: "xAI",
 };
 export type ProviderAppearance = { icon?: ProviderIconType; image?: string };
-type Mark = ProviderAppearance;
 const normalize = (name: string) => name.toLowerCase().replace(/[^a-z0-9]/g, "");
 const asset = (file: string) => `${import.meta.env?.BASE_URL ?? "./"}images/${file}`;
-const marks = new Map<string, Mark>([
+const marks = new Map<string, ProviderAppearance>([
   ...Object.keys(ProviderIcons).map(icon => [normalize(icon), { icon: icon as ProviderIconType }] as const),
   ["google", { image: asset("google.svg") }], ["moonshot", { image: asset("moonshot.svg") }],
 ]);
 // The one identity lookup for creators and providers: "Moonshot AI", "moonshotai" and "x-ai" all resolve; a trailing "AI" is optional.
-export function markFor(name = ""): Mark | undefined {
+export function markFor(name = ""): ProviderAppearance | undefined {
   const key = normalize(name);
   return marks.get(key) ?? marks.get(key.replace(/ai$/, ""));
 }
 // A provider's mark: the appearance chosen in Settings, then a custom provider's base type, then its own name.
-export const providerMark = (id: string, custom?: ProviderAppearance, baseType?: string): Mark | undefined =>
+export const providerMark = (id: string, custom?: ProviderAppearance, baseType?: string): ProviderAppearance | undefined =>
   (custom?.icon || custom?.image ? custom : undefined) ?? markFor(baseType) ?? markFor(id);
 const storageKey = "bifrost-registry.provider-appearance.v1";
 const listeners = new Set<() => void>();
@@ -69,8 +68,8 @@ export function setProviderBaseTypes(providers: { id: string; baseProviderType?:
 }
 export const displayProvider = (id: string) => providerName[id] || id;
 // Black marks turn light on the dark theme.
-const invertInDark = (mark: Mark) => mark.icon === "anthropic" || mark.icon === "openai" || mark.icon === "ollama" || mark.image === asset("moonshot.svg");
-function Logo({ mark = {}, label, fallback, compact = false }: { mark?: Mark; label: string; fallback?: string; compact?: boolean }) {
+const invertInDark = (mark: ProviderAppearance) => mark.icon === "anthropic" || mark.icon === "openai" || mark.icon === "ollama" || mark.image === asset("moonshot.svg");
+function Logo({ mark = {}, label, fallback, compact = false }: { mark?: ProviderAppearance; label: string; fallback?: string; compact?: boolean }) {
   const Icon = mark.icon && ProviderIcons[mark.icon] as ((props: { size: number; className?: string; theme?: string }) => React.ReactNode) | undefined;
   const invert = invertInDark(mark) && "dark:invert";
   return <span role="img" title={label} aria-label={label} className={cn("flex shrink-0 items-center justify-center rounded-sm text-xs font-semibold", compact ? "size-6" : "size-8 border bg-background")}>{mark.image ? <img src={mark.image} alt="" className={cn("size-5 object-contain", invert)} /> : Icon ? <span aria-hidden="true"><Icon size={20} theme="light" className={cn("size-5 object-contain", invert)} /></span> : fallback ?? label.slice(0, 2).toUpperCase()}</span>;

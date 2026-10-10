@@ -8,7 +8,7 @@ import { ProviderAppearance } from "./ProviderAppearance";
 import AssistantSettings from "@/features/assistant/AssistantSettings";
 import { request } from "@/data/api";
 import type { Catalog } from "@/features/catalog/catalog-api";
-import { useCopy, useLanguage } from "@/lib/locale";
+import { useCopy, useFormat } from "@/lib/locale";
 
 type SettingsSection = "general" | "display" | "sources" | "connection" | "assistance" | "help";
 type Page = "gateway" | "catalog" | "snapshot";
@@ -23,8 +23,8 @@ export type RegistrySettingsProps = {
   catalog: Catalog | null;
   catalogError: string;
   providers?: string[];
-  // My models scope counts, as the models page header shows them.
-  modelCounts?: string;
+  // The My models scope switch text with its counts, as the models page shows it.
+  modelScopes?: string;
   initialSection?: "general" | "display" | "sources" | "connection" | "assistance" | "help";
 };
 
@@ -37,13 +37,12 @@ const sections: { id: SettingsSection; icon: typeof Settings2; en: string; fr: s
   { id: "help", icon: BookOpen, en: "Help", fr: "Aide" },
 ];
 
-const formatDate = (value: string | undefined, language: string) => value
-  ? new Date(value).toLocaleString(language === "fr" ? "fr-FR" : "en-US")
-  : language === "fr" ? "Non renseigné" : "Not recorded";
 
-export default function RegistrySettings({ preferences, onPreferencesChange, snapshotMode, onNavigate, onUnauthorized, catalog, catalogError, providers = [], modelCounts, initialSection = "general" }: RegistrySettingsProps) {
+export default function RegistrySettings({ preferences, onPreferencesChange, snapshotMode, onNavigate, onUnauthorized, catalog, catalogError, providers = [], modelScopes, initialSection = "general" }: RegistrySettingsProps) {
   const copy = useCopy();
-  const language = useLanguage();
+  const format = useFormat();
+  const { colon } = format;
+  const dated = (value?: string) => value ? format.date(value) : copy("Not recorded", "Non renseigné");
   const [section, setSection] = useState<SettingsSection>(initialSection);
   const [gatewayProviders, setGatewayProviders] = useState<string[]>([]);
   const [providersError, setProvidersError] = useState("");
@@ -65,7 +64,7 @@ export default function RegistrySettings({ preferences, onPreferencesChange, sna
   const content = () => {
     if (section === "general") return <div className="space-y-4">
       <Card><CardHeader><CardTitle>{copy("Administration", "Administration")}</CardTitle></CardHeader><CardContent className="flex flex-wrap gap-2">{snapshotMode && navigate("gateway")}{navigate("catalog")}{navigate("snapshot")}</CardContent></Card>
-      <Card><CardHeader><CardTitle>{copy("Current workspace", "Espace de travail actuel")}</CardTitle></CardHeader><CardContent className="space-y-3 text-sm text-muted-foreground"><p>{snapshotMode ? copy("You are reviewing a local snapshot. Changes stay in this copy and do not update the connected Bifrost gateway.", "Vous consultez une copie locale. Les changements restent dans cette copie et ne modifient pas le gateway Bifrost connecté.") : copy("Registry catalog and model selections are managed in this workspace. Native Bifrost permissions remain governed by Bifrost.", "Le catalogue Registry et les sélections de modèles sont gérés dans cet espace. Les permissions natives restent régies par Bifrost.")}</p>{modelCounts && <p className="text-foreground">{modelCounts}</p>}<Badge variant={snapshotMode ? "warning" : "success"}>{snapshotMode ? copy("Local snapshot", "Copie locale") : copy("Connected workspace", "Espace connecté")}</Badge></CardContent></Card>
+      <Card><CardHeader><CardTitle>{copy("Current workspace", "Espace de travail actuel")}</CardTitle></CardHeader><CardContent className="space-y-3 text-sm text-muted-foreground"><p>{snapshotMode ? copy("You are reviewing a local snapshot. Changes stay in this copy and do not update the connected Bifrost gateway.", "Vous consultez une copie locale. Les changements restent dans cette copie et ne modifient pas le gateway Bifrost connecté.") : copy("Registry catalog and model selections are managed in this workspace. Native Bifrost permissions remain governed by Bifrost.", "Le catalogue Registry et les sélections de modèles sont gérés dans cet espace. Les permissions natives restent régies par Bifrost.")}</p>{modelScopes && <p className="text-foreground">{modelScopes}</p>}<Badge variant={snapshotMode ? "warning" : "success"}>{snapshotMode ? copy("Local snapshot", "Copie locale") : copy("Connected workspace", "Espace connecté")}</Badge></CardContent></Card>
     </div>;
     if (section === "display") return <div className="space-y-3"><Card><CardHeader><CardTitle>{copy("Default model display", "Affichage par défaut des modèles")}</CardTitle></CardHeader><CardContent className="space-y-3"><p className="text-sm text-muted-foreground">{copy("These local preferences control the default information shown in model lists. A page can still offer its own view controls.", "Ces préférences locales déterminent les informations affichées par défaut dans les listes de modèles. Chaque page peut aussi proposer ses propres options.")}</p><ViewControls value={preferences} onChange={onPreferencesChange} scope={copy("Global", "Général")} catalogFormats /><div className="space-y-2 border-t pt-3"><p className="text-sm font-medium">{copy("Primary logo on model cards", "Logo principal des fiches modèles")}</p><div className="flex flex-wrap gap-2"><Button size="sm" variant={preferences.logo === "creator" ? "default" : "outline"} onClick={() => onPreferencesChange({ ...preferences, logo: "creator" })}>{copy("Creator", "Créateur")}</Button><Button size="sm" variant={preferences.logo === "provider" ? "default" : "outline"} onClick={() => onPreferencesChange({ ...preferences, logo: "provider" })}>{copy("Provider", "Fournisseur d’accès")}</Button></div></div></CardContent></Card>{(providersError || catalogError) && <p role="alert" className="text-sm text-destructive">{providersError || catalogError}</p>}<ProviderAppearance providers={[...providers, ...gatewayProviders, ...(catalog?.accesses.map(access => access.provider) || [])]} /></div>;
     if (section === "sources") return <div className="space-y-4">
@@ -80,7 +79,7 @@ export default function RegistrySettings({ preferences, onPreferencesChange, sna
             const [en, fr] = sourceNames[id];
             const references = catalog.references.filter(reference => Object.values(reference.fields).some(field => field.source === id)).length;
             const accesses = id === "bifrost" ? catalog.accesses.filter(access => access.configured).length : 0;
-            return <div key={id} className="flex flex-wrap items-start justify-between gap-3 rounded-sm border p-3"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><strong>{copy(en, fr)}</strong><Badge variant={status?.error ? "destructive" : status?.lastSuccess ? "success" : "secondary"}>{status?.error ? copy("Sync error", "Erreur de synchro") : status?.lastSuccess ? copy("Synced", "Synchronisée") : copy("No successful sync recorded", "Aucune synchro réussie enregistrée")}</Badge></div>{status?.sourceAt && <p className="mt-1 text-xs text-muted-foreground">{copy("Source date:", "Date de la source :")} {formatDate(status.sourceAt, language)}</p>}{status?.repository && <p className="mt-1 break-all text-xs text-muted-foreground">{copy("Repository:", "Dépôt :")} {status.repository}{status.commit && ` · ${copy("commit", "commit")} ${status.commit}`}</p>}<p className="mt-1 text-xs text-muted-foreground">{copy("Last success:", "Dernière réussite :")} {formatDate(status?.lastSuccess, language)} · {copy("Last attempt:", "Dernière tentative :")} {formatDate(status?.lastAttempt, language)}</p><p className="mt-1 text-xs text-muted-foreground">{id === "models.dev" ? copy(`${references} reference entries`, `${references} fiches de référence`) : copy(`${accesses} configured provider accesses · ${references} reference entries`, `${accesses} accès fournisseurs configurés · ${references} fiches de référence`)}</p>{status?.error && <p role="status" className="mt-1 break-words text-xs text-destructive">{status.error}</p>}</div><span className="text-xs text-muted-foreground">{id === "models.dev" ? copy("Local catalog source", "Source du catalogue local") : copy("Native gateway configuration", "Configuration native du gateway")}</span></div>;
+            return <div key={id} className="flex flex-wrap items-start justify-between gap-3 rounded-sm border p-3"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><strong>{copy(en, fr)}</strong><Badge variant={status?.error ? "destructive" : status?.lastSuccess ? "success" : "secondary"}>{status?.error ? copy("Sync error", "Erreur de synchro") : status?.lastSuccess ? copy("Synced", "Synchronisée") : copy("No successful sync recorded", "Aucune synchro réussie enregistrée")}</Badge></div>{status?.sourceAt && <p className="mt-1 text-xs text-muted-foreground">{copy("Source date", "Date de la source")}{colon} {dated(status.sourceAt)}</p>}{status?.repository && <p className="mt-1 break-all text-xs text-muted-foreground">{copy("Repository", "Dépôt")}{colon} {status.repository}{status.commit && ` · ${copy("commit", "commit")} ${status.commit}`}</p>}<p className="mt-1 text-xs text-muted-foreground">{copy("Last success", "Dernière réussite")}{colon} {dated(status?.lastSuccess)} · {copy("Last attempt", "Dernière tentative")}{colon} {dated(status?.lastAttempt)}</p><p className="mt-1 text-xs text-muted-foreground">{id === "models.dev" ? copy(`${references} reference entries`, `${references} fiches de référence`) : copy(`${accesses} configured provider accesses · ${references} reference entries`, `${accesses} accès fournisseurs configurés · ${references} fiches de référence`)}</p>{status?.error && <p role="status" className="mt-1 break-words text-xs text-destructive">{status.error}</p>}</div><span className="text-xs text-muted-foreground">{id === "models.dev" ? copy("Local catalog source", "Source du catalogue local") : copy("Native gateway configuration", "Configuration native du gateway")}</span></div>;
           })}
         </>}
       </CardContent></Card>

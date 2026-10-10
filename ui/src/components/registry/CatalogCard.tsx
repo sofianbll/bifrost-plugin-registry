@@ -2,6 +2,9 @@ import type { ReactNode } from "react";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+
+// A card action's accessible name ends with its card's distinct label: "Details · QA Chat".
+export const ActionLabel = ({ label }: { label: string }) => <span className="sr-only"> · {label}</span>;
 type CardFormat = "compact" | "square";
 
 // Columns follow the grid's own width (a sheet or a resized panel too), not the window: one column

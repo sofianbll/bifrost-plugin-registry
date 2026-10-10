@@ -1,5 +1,5 @@
 import type { Catalog, CatalogAccess, CatalogRecord } from "./catalog-api";
-import { emptyModelFilters, filterModels, type Access, type Model, type ModelFilters } from "../../domain/registry";
+import { emptyModelFilters, filterModels, sameAccess, type Access, type Model, type ModelFilters } from "../../domain/registry";
 
 export type ReferenceGroup = {
   key: string;
@@ -43,7 +43,7 @@ export function groupReferenceModels(models: Model[], catalog: Catalog, provider
 // beside it: a matching ID or reference alone does not put an access in the card.
 export function cardEntries(group: ReferenceGroup, saved: Model[]) {
   const held = ({ model, access }: ReferenceGroup["entries"][number]) => saved.some(card => card.id === model.id &&
-    (!access || card.accesses.some(row => row.provider === access.provider && row.nativeModel === access.nativeModel)));
+    (!access || card.accesses.some(row => sameAccess(row, access))));
   return { card: group.entries.filter(held), available: group.entries.filter(entry => !held(entry)) };
 }
 

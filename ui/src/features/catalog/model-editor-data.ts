@@ -1,5 +1,5 @@
 import type { Catalog, CatalogRecord } from "./catalog-api";
-import { registryEndpoints, type Access, type Model } from "../../domain/registry";
+import { registryEndpoints, sameAccess, type Access, type Model } from "../../domain/registry";
 import type { SearchOption } from "../../components/registry/SearchableSelect";
 import type { Copy } from "../../lib/locale";
 
@@ -20,7 +20,7 @@ export function modelEditorOptions(catalog: Catalog | null, workspace: Model[], 
     });
   const modelIds = [
     ...referenceOptions,
-    ...workspace.filter(model => /^[a-z0-9][a-z0-9._-]*$/.test(model.id) && !referenceOptions.some(option => option.value === model.id)).map(model => ({ value: model.id, label: model.name, detail: copy("Workspace model", "Fiche modèle enregistrée") })),
+    ...workspace.filter(model => /^[a-z0-9][a-z0-9._-]*$/.test(model.id) && !referenceOptions.some(option => option.value === model.id)).map(model => ({ value: model.id, label: model.name, detail: copy("Model card", "Fiche modèle") })),
     ...accesses.filter(access => !access.referenceId && /^[a-z0-9][a-z0-9._-]*$/.test(access.model) && !referenceOptions.some(option => option.value === access.model) && !workspace.some(model => model.id === access.model)).map(access => ({ value: access.model, label: stringField(access, "name") || access.model, detail: `${copy("Discovered access", "Accès découvert")} ${access.id}`, accessId: access.id })),
   ];
   const values = (field: "creator" | "family", workspaceField: "creator" | "family") => unique([
@@ -104,7 +104,7 @@ export function prefillFromReference(draft: Model, reference: CatalogRecord): Mo
 export function omitUnchangedReferenceIds(draft: Model, workspace: Model[]): Model {
   const original = workspace.find(model => model.id === draft.id);
   return { ...draft, accesses: draft.accesses.map(access => {
-    const before = original?.accesses.find(row => row.provider === access.provider && row.nativeModel === access.nativeModel);
+    const before = original?.accesses.find(row => sameAccess(row, access));
     if (access.referenceId !== before?.referenceId) return access;
     const { referenceId: _unchanged, ...rest } = access;
     return rest;

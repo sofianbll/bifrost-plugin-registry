@@ -84,7 +84,9 @@ const plannedBaseline = keyBaseline(planned, groups, models);
 if (plannedBaseline.source !== "plan" || !same(plannedBaseline.ids, exposed(planned.policy, groups, models))) throw new Error("Without readback the baseline is the last published plan");
 const verifiedBaseline = keyBaseline({ ...planned, publication: { state: "verified", revision: "r", checkedAt: "", expected: [], actual: ["openai/gpt-5"], missing: [], unexpected: [] } }, groups, models);
 if (verifiedBaseline.source !== "readback" || !same(verifiedBaseline.ids, ["openai/gpt-5"])) throw new Error("A verified readback is the preferred baseline");
-const nativeBaseline = keyBaseline({ ...planned, policy: { groups: [], added: [], excluded: [], naming: "both" }, permissions: { allProviders: false, providers: [{ provider: "openai", allModels: false, models: ["gpt-5"] }] } }, groups, models);
+// Native permissions name native models, which workspace accesses carry.
+const withNative = models.map(model => ({ ...model, accesses: model.accesses.map(access => ({ ...access, nativeModel: model.id })) }));
+const nativeBaseline = keyBaseline({ ...planned, policy: { groups: [], added: [], excluded: [], naming: "both" }, permissions: { allProviders: false, providers: [{ provider: "openai", allModels: false, models: ["gpt-5"] }] } }, groups, withNative);
 if (nativeBaseline.source !== "native" || !same(nativeBaseline.ids, ["gpt-5", "openai/gpt-5"])) throw new Error(`Without a plan the baseline is the current Bifrost permissions: ${JSON.stringify(nativeBaseline)}`);
 // An empty plan and unread permissions are no baseline at all, not an empty "last published plan".
 const noBaseline = keyBaseline({ ...planned, policy: { groups: [], added: [], excluded: [], naming: "both" } }, groups, models);

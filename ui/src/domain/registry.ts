@@ -31,16 +31,18 @@ export type Demo = { models: Model[]; groups: Group[]; keys: Key[]; campaigns: C
 export type Campaign = { id: string; model: string; provider: string; accessId: string; scenario: string; outcome: "Pass" | "Fail" | "Inconclusive" | "Not run"; date: string; note: string };
 
 export const copy = <T,>(value: T): T => structuredClone(value);
+// One access: the same native model at the same provider. A catalogue access names it `model`.
+type NativeAccess = { provider: string; nativeModel?: string; model?: string };
+export const sameAccess = (a: NativeAccess, b: NativeAccess) => a.provider === b.provider && (a.nativeModel ?? a.model) === (b.nativeModel ?? b.model);
 // The "To add" shelf: discovered models minus the accesses saved cards hold. A remainder keeps its
 // discovered ID, even when a saved card has the same ID: offered, never merged.
 export const unsavedModels = (registered: Model[], discovered: Model[]) => {
-  const key = (access: Access) => JSON.stringify([access.provider, access.nativeModel || access.id]);
-  const saved = new Set(registered.flatMap(model => model.accesses.map(key)));
+  const saved = registered.flatMap(model => model.accesses);
   const seen = new Set<string>();
   return discovered.flatMap(model => {
     if (seen.has(model.id)) return [];
     seen.add(model.id);
-    const accesses = model.accesses.filter(access => !saved.has(key(access)));
+    const accesses = model.accesses.filter(access => !saved.some(row => sameAccess(row, access)));
     return accesses.length ? [{ ...model, accesses }] : [];
   });
 };
@@ -63,18 +65,22 @@ export const retainedAccesses = (model: Model, policy: Policy) => {
   for (const id of sel.excluded) retained.delete(id);
   return { known: model.accesses.filter(a => retained.has(a.id)).map(a => a.id), unknown };
 };
+// The IDs a key exposes for a model, by its naming: the common ID, its provider/model access IDs, or both.
+export const namedIds = (naming: Policy["naming"], modelId: string, accessIds: string[]) => naming === "model" ? [modelId] : naming === "provider/model" ? accessIds : [modelId, ...accessIds];
 export const exposed = (policy: Policy, groups: Group[], models: Model[]) => members(policy, groups).flatMap(id => {
   const model = models.find(m => m.id === id);
   if (!model) return [];
   const { known } = retainedAccesses(model, policy);
   if (!known.length) return [];
   const prefixed = known.map(accessId => model.accesses.find(a => a.id === accessId)?.id || accessId);
-  return policy.naming === "model" ? [model.id] : policy.naming === "provider/model" ? prefixed : [model.id, ...prefixed];
+  return namedIds(policy.naming, model.id, prefixed);
 });
 export const delta = (before: string[], after: string[]) => ({ added: after.filter(x => !before.includes(x)), removed: before.filter(x => !after.includes(x)) });
 export const keyImpact = (keys: Key[], oldGroups: Group[], nextGroups: Group[], models: Model[]) => keys.map(key => ({ key, before: exposed(key.policy, oldGroups, models), after: exposed(key.policy, nextGroups, models) })).filter(row => !same(row.before, row.after));
-// An empty creator and "Unknown" are one absence: filters and labels key it as "Unknown".
-export const creatorKey = (creator?: unknown) => typeof creator === "string" && creator.trim() && creator !== "Unknown" ? creator : "Unknown";
+// An empty value and "Unknown" are one absence: knownValue reads it as "", creatorKey (filters and
+// labels) as "Unknown".
+export const knownValue = (value?: unknown) => typeof value === "string" && value.trim() && value !== "Unknown" ? value : "";
+export const creatorKey = (creator?: unknown) => knownValue(creator) || "Unknown";
 // A display name shared by several items gains their detail (an ID), so actions named after it stay distinct.
 export function distinctLabels<T>(items: T[], name: (item: T) => string, detail: (item: T) => string) {
   const counts = new Map<string, number>();

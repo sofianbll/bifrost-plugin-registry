@@ -8,14 +8,13 @@ import { CatalogCard, CatalogGrid } from "@/components/registry/CatalogCard";
 import { ProviderSummary } from "@/components/registry/CompactCollection";
 import { cardFormat, gridColumns, ViewControls, type ViewOptions } from "@/components/registry/ViewOptions";
 import { useCopy } from "../../lib/locale";
+import { useSessionState } from "../../lib/session-state";
 import type { Group, Key, Model } from "../../domain/registry";
 
 type Props = {
   groups: Group[];
   models: Model[];
   keys: Key[];
-  search: string;
-  onSearch: (value: string) => void;
   view: ViewOptions;
   onViewChange: (value: ViewOptions) => void;
   onResetView: () => void;
@@ -23,8 +22,10 @@ type Props = {
   onEdit: (group: Group) => void;
 };
 
-export function GroupLibrary({ groups, models, keys, search, onSearch, view, onViewChange, onResetView, onCreate, onEdit }: Props) {
+export function GroupLibrary({ groups, models, keys, view, onViewChange, onResetView, onCreate, onEdit }: Props) {
   const copy = useCopy();
+  // The search survives leaving the page for the session.
+  const [search, onSearch] = useSessionState("groups.search", "");
   const query = search.trim().toLocaleLowerCase();
   const filtered = groups.filter(group => {
     const memberModels = group.members.map(id => models.find(model => model.id === id));
