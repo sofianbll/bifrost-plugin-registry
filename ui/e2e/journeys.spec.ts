@@ -5,7 +5,7 @@
 // Scope: real Registry HTTP server + production React build; synthetic Bifrost, no native ABI
 // or provider inference qualification. The journeys share one page and are destructive, so this
 // is one test of sequential steps run against a fresh fixture (see playwright.config.ts).
-import type { Locator } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 import { expect, test, token } from './fixtures';
 
 test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testInfo) => {
@@ -32,6 +32,9 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await keyHeading().waitFor();
   };
   const shot = async (name: string) => testInfo.attach(name, { body: await page.screenshot({ animations: 'disabled' }), contentType: 'image/png' });
+  // Accessible names of the card actions in the first card grid, read from the accessibility tree.
+  const cardActions = async (on: Page) => [...(await on.locator('[data-slot="card"]').first().locator('xpath=..').ariaSnapshot()).matchAll(/- button "((?:[^"\\]|\\.)*)"/g)].map(match => match[1]);
+  const duplicates = (names: string[]) => names.filter((name, index) => names.indexOf(name) !== index);
   const withinViewport = async (locator: Locator) => {
     await page.waitForFunction(el => {
       const r = (el as Element).getBoundingClientRect();
@@ -110,6 +113,36 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await page.getByRole('option', { name: 'No grouping', exact: true }).click();
     await button('Clear all').click();
     await scope(/^In Registry/).click();
+  });
+
+  await test.step('More filters closes like the other popovers; card actions have unique names', async () => {
+    const more = page.getByRole('button', { name: /^More filters/ });
+    const output = page.getByRole('combobox', { name: 'Output', exact: true });
+    await more.click();
+    await expect(output).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(output).toBeHidden();
+    await expect(more, 'Escape returns focus to the trigger').toBeFocused();
+    // A filter chosen inside keeps the panel open; a click outside closes it.
+    await more.click();
+    await output.click();
+    await page.getByRole('option', { name: 'Text', exact: true }).click();
+    await expect(more).toHaveAccessibleName('More filters (1)');
+    await expect(output).toBeVisible();
+    await page.getByRole('heading', { level: 1 }).click();
+    await expect(output).toBeHidden();
+    await button('Clear all').click();
+    // Every card action names its card: no two "Accesses · 1" or identical summaries.
+    const names = await cardActions(page);
+    expect(names).toEqual(expect.arrayContaining(['Open QA Chat details', 'Accesses · 1 · QA Chat']));
+    expect(duplicates(names), 'In Registry').toEqual([]);
+    await scope(/^To add/).click();
+    expect(duplicates(await cardActions(page)), 'To add').toEqual([]);
+    await scope(/^In Registry/).click();
+    // The legend shows the glyphs it explains.
+    const legend = page.getByLabel('Capability state legend', { exact: true });
+    await expect(legend.locator('svg').first()).toBeVisible();
+    await expect(legend).toContainText('?');
   });
 
   await test.step('creators come from Models.dev references', async () => {
@@ -677,8 +710,9 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     stress.setDefaultTimeout(10_000);
     stress.on('pageerror', e => errors.push(e.message));
     const catalog = await api('catalog');
+    // qa-1 shares qa-0's display name: their card actions must still be told apart.
     const models = Array.from({ length: 65 }, (_, i) => ({
-      ...structuredClone(workspace.data.models[0]), id: `qa-${i}`, name: `QA Model ${i}`,
+      ...structuredClone(workspace.data.models[0]), id: `qa-${i}`, name: `QA Model ${i === 1 ? 0 : i}`,
       accesses: [{ provider: 'synthetic-provider', id: `synthetic-provider/qa-${i}`, nativeModel: `qa-${i}`, status: 'Configured', route: 'Direct provider' }],
     }));
     const large = { ...workspace, data: { ...workspace.data, models }, discovery: [] };
@@ -693,6 +727,9 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     release();
     await stress.getByRole('button', { name: /Show more/ }).click();
     await expect(stress.getByRole('button', { name: /^Open .* details$/ })).toHaveCount(65);
+    const shared = await cardActions(stress);
+    expect(shared).toEqual(expect.arrayContaining(['Open QA Model 0 (qa-0) details', 'Open QA Model 0 (qa-1) details']));
+    expect(duplicates(shared), 'Cards sharing a display name').toEqual([]);
     await stress.getByRole('link', { name: 'Settings', exact: true }).click();
     await stress.getByRole('button', { name: 'Open catalog data', exact: true }).click();
     await stress.getByRole('button', { name: /Show more/ }).click();
@@ -702,7 +739,10 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await stress.getByRole('link', { name: 'My models', exact: true }).click();
     await stress.reload(); // the catalogue is read once per revision: a failure shows on the next load
     await stress.getByText(/Model details unavailable/).waitFor();
-    await stress.getByRole('button', { name: 'View details', exact: true }).first().click();
+    const fallback = await cardActions(stress);
+    expect(fallback).toEqual(expect.arrayContaining(['View details · QA Model 0 (qa-1)']));
+    expect(duplicates(fallback), 'Fallback cards sharing a display name').toEqual([]);
+    await stress.getByRole('button', { name: /^View details/ }).first().click();
     await stress.locator('[data-slot="sheet-content"]').getByRole('button', { name: 'Review', exact: true }).waitFor(); // was Save model
     await stress.close();
   });

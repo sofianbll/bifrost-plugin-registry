@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { LanguageContext } from "@/lib/locale";
-import { ModelCapabilitiesPanel, ModelCapabilitiesSummary, ModelModalitiesPanel, ModelModalitiesSummary } from "./model-capabilities";
+import { ModelCapabilitiesPanel, ModelCapabilitiesSummary, ModelCapabilityLegend, ModelModalitiesPanel, ModelModalitiesSummary } from "./model-capabilities";
 
 const model = { inputModalities: ["Text", "Image", "Audio"], outputModalities: [], capabilities: { Vision: "Unknown" as const, Reasoning: "Unknown" as const } };
 const render = (node: React.ReactNode) => renderToStaticMarkup(<LanguageContext.Provider value="fr">{node}</LanguageContext.Provider>);
@@ -42,4 +42,7 @@ for (const [key, state] of [['Vision', 'Declared'], ['Image generation', 'Declar
 if (/[○◆]/.test(mapped + mixed)) throw new Error('rejected state markers restored');
 const panelWithContext = render(<ModelCapabilitiesPanel model={model} context={{ source: 'catalogue' }} />);
 if (!panelWithContext.includes('Source et portée')) throw new Error('source and scope disclosure missing');
+// The legend shows the glyph a card uses for each state: the capability icon when known, "?" when not specified.
+const legend = render(<ModelCapabilityLegend />);
+if ((legend.match(/<svg/g) ?? []).length !== 2 || !/>\?</.test(legend) || /[○◆]/.test(legend)) throw new Error('legend does not show the glyphs it explains');
 console.log('Capability summaries, full inventory, facts and state semantics: passed');
