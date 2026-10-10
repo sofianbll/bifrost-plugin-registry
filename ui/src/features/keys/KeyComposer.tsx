@@ -11,7 +11,7 @@ import { BrandIcon } from "../../components/registry/BrandIcon";
 import { displayProvider, ProviderMark } from "../../components/registry/BrandIcon";
 import type { ViewOptions } from "../../components/registry/ViewOptions";
 import { delta, exposed, members, origin, same, toggleModel, type Group, type Key, type Model, type Policy, type Publication } from "../../domain/registry";
-import { useCopy } from "../../lib/locale";
+import { useCopy, useFormat } from "../../lib/locale";
 import { accessOrigin, keyBaseline, keyComposition, modelOrigin, toggleAccess, toggleVisibleModels, type AccessOrigin, type AliasBadge, type AliasStatus } from "./KeyComposer.state";
 
 type Props = {
@@ -34,6 +34,7 @@ const formats: Policy["naming"][] = ["model", "provider/model", "both"];
 
 export default function KeyComposer({ virtualKey, draft, onDraftChange, models, groups, preferences, busy, snapshotMode, expert, publishDisabled, onPublish, onDiscard, onReread }: Props) {
   const copy = useCopy();
+  const localized = useFormat();
   const [step, setStep] = useState(0);
   const [tab, setTab] = useState<"models" | "groups">("models");
   const [showReadback, setShowReadback] = useState(false);
@@ -169,7 +170,7 @@ export default function KeyComposer({ virtualKey, draft, onDraftChange, models, 
         {pending.map(([alias, accesses]) => <p key={alias} className="break-all font-mono">{alias} · {accesses.join(" · ")}</p>)}
       </div>}
       {snapshotMode ? <p className="break-all text-xs font-mono">{savedIds.join(" · ") || copy("No saved IDs.", "Aucun ID enregistré.")}</p> : <>
-        <div className="flex flex-wrap items-center gap-2"><Button type="button" variant="outline" size="sm" disabled={busy} onClick={onReread}><RotateCcw className="size-3.5" />{copy("Read again", "Relire")}</Button>{publication?.checkedAt && <span className="break-all text-xs text-muted-foreground">{new Date(publication.checkedAt).toLocaleString()} · {copy("revision", "révision")} {publication.revision.slice(0, 12)}</span>}</div>
+        <div className="flex flex-wrap items-center gap-2"><Button type="button" variant="outline" size="sm" disabled={busy} onClick={onReread}><RotateCcw className="size-3.5" />{copy("Read again", "Relire")}</Button>{publication?.checkedAt && <span className="break-all text-xs text-muted-foreground">{localized.date(publication.checkedAt)} · {copy("revision", "révision")} {publication.revision.slice(0, 12)}</span>}</div>
         {publication?.error && <p role="alert" className="text-xs text-chart-warning-ink">{publication.error}</p>}
         {publication?.state === "drift" && <p className="break-all text-xs text-destructive">{copy("Missing", "Manquants")}: {publication.missing.join(", ") || "—"} · {copy("Unexpected", "Inattendus")}: {publication.unexpected.join(", ") || "—"}</p>}
         <div className="max-h-36 space-y-1 overflow-auto">{(virtualKey.observed || publication?.actual || []).map((id, index) => <p key={`${id}-${index}`} className="break-all rounded-sm border px-2 py-1 font-mono text-xs">{id}</p>)}{!(virtualKey.observed || publication?.actual || []).length && <p className="text-xs text-muted-foreground">{copy("No successful readback is available.", "Aucune relecture réussie disponible.")}</p>}</div>
