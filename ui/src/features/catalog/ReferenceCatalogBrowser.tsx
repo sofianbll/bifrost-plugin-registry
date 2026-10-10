@@ -11,12 +11,12 @@ import { ApiError } from "../../data/api";
 import { getCatalog, type Catalog } from "./catalog-api";
 import { BrandIcon, displayProvider } from "../../components/registry/BrandIcon";
 import { ProviderSummary } from "../../components/registry/CompactCollection";
-import { type Access, type Model, type ModelFilters } from "../../domain/registry";
+import { creatorKey, type Access, type Model, type ModelFilters } from "../../domain/registry";
 import ModelBrowser from "./ModelBrowser";
 import { prefillFromReference } from "./model-editor-data";
 import { cardEntries, filterReferenceGroups, filterReferenceModels, groupReferenceModels, sharedReferenceFacts, type ReferenceGroup } from "./reference-groups";
 import { cardFormat, gridColumns, type ViewOptions } from "../../components/registry/ViewOptions";
-import { useCopy } from "../../lib/locale";
+import { useCopy, useCreatorName } from "../../lib/locale";
 
 const known = (value: unknown): value is string => typeof value === "string" && !!value.trim();
 const unique = (items: string[]) => [...new Set(items)];
@@ -28,10 +28,8 @@ const factValue = (value: unknown): string => value == null ? "Unknown" : typeof
 const factDate = (date?: string | null) => date ? new Date(date).toLocaleString() : "date unknown";
 const price = (value: unknown) => typeof value === "number" && Number.isFinite(value) ? `${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 6 }).format(value)} $/M` : "inconnu";
 const nameOf = (group: ReferenceGroup) => known(group.reference?.fields.name?.value) ? group.reference.fields.name.value : group.entries[0]?.model.name || group.key;
-const creatorOf = (group: ReferenceGroup) => {
-  const creator = known(group.reference?.fields.creator?.value) ? group.reference.fields.creator.value : group.entries[0]?.model.creator;
-  return creator && creator !== "Unknown" ? creator : "Créateur non identifié";
-};
+// A saved card's own creator, else its reference's, else a grouped model's; "Unknown" is missing.
+const creatorOf = (group: ReferenceGroup, saved?: Model) => [saved?.creator, group.reference?.fields.creator?.value, ...group.entries.map(entry => entry.model.creator)].map(creatorKey).find(creator => creator !== "Unknown") ?? "Unknown";
 const familyOf = (group: ReferenceGroup) => {
   const family = known(group.reference?.fields.family?.value) ? group.reference.fields.family.value : group.entries[0]?.model.family;
   return family && family !== "Unknown" ? family : "";
@@ -53,6 +51,7 @@ export function draftFor(group: ReferenceGroup, base: Model): Model {
 
 export default function ReferenceCatalogBrowser({ revision, models, registeredIds, registeredModels, preferences, onOpen, onMetadata, onUnauthorized }: { revision: string; models: Model[]; registeredIds: ReadonlySet<string>; registeredModels: Model[]; preferences: ViewOptions; onOpen: (model: Model) => void; onMetadata: (target: "reference" | "access", id: string) => void; onUnauthorized: () => void }) {
   const copy = useCopy();
+  const creatorName = useCreatorName();
   const [catalog, setCatalog] = useState<Catalog | null>(null);
   const [error, setError] = useState("");
   const [visibleCount, setVisibleCount] = useState(60);
@@ -86,7 +85,7 @@ export default function ReferenceCatalogBrowser({ revision, models, registeredId
     const sections = new Map<string, ReferenceGroup[]>();
     for (const group of shown) {
       const label = groupBy === "provider" ? displayProvider(group.entries.find(entry => entry.access)?.access?.provider || "Fournisseur inconnu")
-        : groupBy === "creator" ? creatorOf(group)
+        : groupBy === "creator" ? creatorName(creatorOf(group))
         : groupBy === "task" ? group.entries[0]?.model.tasks[0] || "Autre" : "";
       sections.set(label, [...(sections.get(label) || []), group]);
     }
@@ -121,9 +120,12 @@ export default function ReferenceCatalogBrowser({ revision, models, registeredId
     const header = (group: ReferenceGroup) => {
       const saved = registeredModels.filter(model => group.entries.some(entry => entry.model.id === model.id));
       const registered = saved?.length === 1 ? saved[0] : undefined;
-      const creator = registered?.creator ?? creatorOf(group);
-      const family = registered?.family ?? familyOf(group);
-      return <div className="flex min-w-0 items-start gap-2"><BrandIcon model={{ ...entriesOf(group)[0].model, creator, accesses: entriesOf(group).flatMap(entry => entry.access ? [entry.access] : []) }} mode={view.logo} /><div className="min-w-0 flex-1"><button type="button" className="block w-full truncate rounded-sm text-left text-sm font-semibold leading-snug hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" title={registered?.name ?? nameOf(group)} aria-label={copy(`Open ${registered?.name ?? nameOf(group)} details`, `Ouvrir la fiche ${registered?.name ?? nameOf(group)}`)} onClick={() => open(group)}>{registered?.name ?? nameOf(group)}</button>{view.metadata && <p className="mt-1 truncate text-xs text-muted-foreground">{creator}{family && ` · ${family}`}</p>}{view.metadata && <p className="truncate font-mono text-xs text-muted-foreground" title={group.reference?.id || group.entries[0].model.id}>{group.reference?.id || group.entries[0].model.id}</p>}</div></div>;
+      const creator = creatorName(creatorOf(group, registered));
+      const family = registered?.family && registered.family !== "Unknown" ? registered.family : familyOf(group);
+      // A saved name equal to the common ID is a slug: the reference name reads better, the ID stays below.
+      const name = registered?.name && registered.name !== registered.id ? registered.name : nameOf(group);
+      const commonId = registered?.id ?? group.entries[0].model.id;
+      return <div className="flex min-w-0 items-start gap-2"><BrandIcon model={{ ...entriesOf(group)[0].model, creator, accesses: entriesOf(group).flatMap(entry => entry.access ? [entry.access] : []) }} mode={view.logo} /><div className="min-w-0 flex-1"><button type="button" className="block w-full truncate rounded-sm text-left text-sm font-semibold leading-snug hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" title={name} aria-label={copy(`Open ${name} details`, `Ouvrir la fiche ${name}`)} onClick={() => open(group)}>{name}</button>{view.metadata && <p className="mt-1 truncate text-xs text-muted-foreground">{creator}{family && ` · ${family}`}</p>}{view.metadata && <p className="truncate font-mono text-xs text-muted-foreground" title={commonId}>{commonId}</p>}</div></div>;
     };
     const card = (group: ReferenceGroup) => {
       const entries = entriesOf(group);
