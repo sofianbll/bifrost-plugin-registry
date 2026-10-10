@@ -30,23 +30,18 @@ export type Demo = { models: Model[]; groups: Group[]; keys: Key[]; campaigns: C
 export type Campaign = { id: string; model: string; provider: string; accessId: string; scenario: string; outcome: "Pass" | "Fail" | "Inconclusive" | "Not run"; date: string; note: string };
 
 export const copy = <T,>(value: T): T => structuredClone(value);
-// A saved card keeps exactly its saved accesses. Discovered accesses it does not hold stay in a
-// separate discovered model, even when that model has the card's ID: offered, never merged.
-export const catalogModels = (registered: Model[], discovered: Model[]) => {
+// The "To add" shelf: discovered models minus the accesses saved cards hold. A remainder keeps its
+// discovered ID, even when a saved card has the same ID: offered, never merged.
+export const unsavedModels = (registered: Model[], discovered: Model[]) => {
   const key = (access: Access) => JSON.stringify([access.provider, access.nativeModel || access.id]);
   const saved = new Set(registered.flatMap(model => model.accesses.map(key)));
-  const cards = new Map(registered.map(model => [model.id, model]));
   const seen = new Set<string>();
-  const models: Model[] = [];
-  for (const model of discovered) {
-    if (seen.has(model.id)) continue;
+  return discovered.flatMap(model => {
+    if (seen.has(model.id)) return [];
     seen.add(model.id);
-    const card = cards.get(model.id);
-    if (card) models.push(card);
     const accesses = model.accesses.filter(access => !saved.has(key(access)));
-    if (accesses.length) models.push({ ...model, accesses });
-  }
-  return [...models, ...registered.filter(model => !seen.has(model.id))];
+    return accesses.length ? [{ ...model, accesses }] : [];
+  });
 };
 export const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 export const members = (policy: Policy, groups: Group[]) => [...new Set([...groups.filter(g => policy.groups.includes(g.id)).flatMap(g => g.members), ...policy.added])].filter(id => !policy.excluded.includes(id));

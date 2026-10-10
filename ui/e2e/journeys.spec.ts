@@ -15,7 +15,12 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     expect(r.status()).toBe(200);
     return r.json();
   };
+  // Reference catalogue reads made by the page (the API helper's own reads are not page requests).
+  const catalogReads: string[] = [];
+  page.on('request', r => { if (r.method() === 'GET' && new URL(r.url()).pathname === '/api/catalog') catalogReads.push(r.url()); });
   const button = (name: string) => page.getByRole('button', { name, exact: true });
+  const scope = (name: RegExp) => page.getByRole('radio', { name });
+  const searchModels = () => page.getByRole('textbox', { name: 'Search models', exact: true });
   const nav = (name: string) => page.getByRole('link', { name, exact: true });
   const sheet = () => page.locator('[data-slot="sheet-content"]');
   const keyCard = (name: string) => page.locator('[data-slot="card"]').filter({ has: page.getByText(name, { exact: true }) });
@@ -50,6 +55,63 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await shot('after-catalog-light');
   });
 
+  await test.step('My models opens on the saved cards; the rest waits in To add', async () => {
+    // 8 saved cards; 68 discovered models are not saved, 66 of them from the openrouter aggregator.
+    const opens = page.getByRole('button', { name: /^Open .* details$/ });
+    const card = (name: string) => page.locator('[data-slot="card"]').filter({ has: button(`Open ${name} details`) });
+    await expect(scope(/^In Registry/)).toHaveAccessibleName('In Registry (8)');
+    await expect(scope(/^In Registry/)).toBeChecked();
+    await expect(scope(/^To add/)).toHaveAccessibleName('To add (68)');
+    await expect(opens).toHaveCount(8);
+    await expect(card('QA Chat')).toContainText('Saved');
+    await expect(card('QA Opus'), 'openrouter serves the same model outside the card').toContainText('Partial');
+    await scope(/^To add/).click();
+    await expect(opens).toHaveCount(60); // first page
+    await searchModels().fill('qa-opus');
+    // Exact IDs: the variant keeps its own; the access sharing QA Opus' reference shows its native ID.
+    await expect(opens).toHaveText(['QA Opus', '~anthropic/qa-opus-latest']);
+    await expect(card('QA Opus')).toContainText('anthropic/qa-opus');
+    await expect(card('QA Opus')).toContainText('Partial');
+    await searchModels().fill(':batch');
+    await expect(opens).toHaveText(['openai/qa-codex:batch']);
+    await expect(card('openai/qa-codex:batch')).toContainText('Not saved');
+    await searchModels().fill('');
+    // Settings counts the same scopes.
+    await nav('Settings').click();
+    await expect(page.getByText('In Registry (8) · To add (68)', { exact: true })).toBeVisible();
+    await nav('My models').click();
+    await scope(/^In Registry/).click();
+    await button('Open QA Chat details').waitFor();
+  });
+
+  await test.step('the reference catalogue loads once per Registry revision', async () => {
+    await nav('Groups').click();
+    await nav('My models').click();
+    await button('Open QA Chat details').click();
+    await sheet().getByRole('button', { name: 'Access', exact: true }).waitFor();
+    await button('Cancel').click();
+    await sheet().waitFor({ state: 'hidden' });
+    expect(catalogReads, 'No refetch when returning to My models or opening a card').toHaveLength(1);
+  });
+
+  await test.step('scope, search, filters and grouping survive leaving the page', async () => {
+    const grouping = page.getByRole('combobox', { name: 'Group models by', exact: true });
+    await scope(/^To add/).click();
+    await searchModels().fill('qwen');
+    await grouping.click();
+    await page.getByRole('option', { name: 'Group by creator', exact: true }).click();
+    await nav('Virtual keys').click();
+    await nav('My models').click();
+    await expect(scope(/^To add/)).toBeChecked();
+    await expect(searchModels()).toHaveValue('qwen');
+    await expect(grouping).toHaveText('Group by creator');
+    await expect(page.getByRole('heading', { name: /^Creator not identified/ })).toBeVisible();
+    await grouping.click();
+    await page.getByRole('option', { name: 'No grouping', exact: true }).click();
+    await button('Clear all').click();
+    await scope(/^In Registry/).click();
+  });
+
   await test.step('creators come from Models.dev references', async () => {
     // Subscription cards were saved from discovery: slug name, creator "Unknown", no modalities.
     // They show the reference name over the common ID, and the creator from the reference
@@ -59,13 +121,19 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(card('QA Opus').getByText('qa-opus', { exact: true })).toBeVisible();
     await expect(card('QA Opus').getByText('? → ?')).toHaveCount(0);
     await expect(card('qa-codex-mini')).toContainText('Creator not identified'); // no reference
-    await page.getByRole('combobox', { name: 'Creator', exact: true }).click();
-    // Counts are models, saved and discovered (#70 splits them into scopes).
-    await expect(page.getByRole('option')).toHaveText(['Creator: all', 'Anthropic (3)', 'DeepSeek (1)', 'Fixture Labs (4)', 'Google (2)', 'Meituan (1)', 'OpenAI (1)', 'Tencent (1)', 'Creator not identified (63)']);
+    const creators = page.getByRole('combobox', { name: 'Creator', exact: true });
+    await creators.click();
+    // Counts are the models of the current scope: saved cards here, discovered ones in To add.
+    await expect(page.getByRole('option')).toHaveText(['Creator: all', 'Anthropic (2)', 'Fixture Labs (3)', 'Google (1)', 'OpenAI (1)', 'Creator not identified (1)']);
+    await page.keyboard.press('Escape');
+    await scope(/^To add/).click();
+    await creators.click();
+    await expect(page.getByRole('option')).toHaveText(['Creator: all', 'Anthropic (1)', 'DeepSeek (1)', 'Fixture Labs (1)', 'Google (1)', 'Meituan (1)', 'Tencent (1)', 'Creator not identified (62)']);
     await page.getByRole('option', { name: 'Tencent (1)', exact: true }).click();
     await expect(page.getByRole('button', { name: /^Open .* details$/ })).toHaveText(['QA Hunyuan']);
     await expect(card('QA Hunyuan')).toContainText('Tencent · qa-hunyuan');
     await button('Clear all').click();
+    await scope(/^In Registry/).click();
     await button('Open QA Chat details').waitFor();
   });
 
@@ -78,11 +146,10 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await logo(card('QA Opus'), 'Anthropic');
     await logo(card('QA Codex'), 'OpenAI');
     await logo(card('QA Gemini'), 'Google');
-    await logo(card('QA Reasoner'), 'DeepSeek');
     await expect(marks(card('QA Chat'), 'Fixture Labs')).toHaveText('FI');
     await expect(marks(card('qa-codex-mini'), 'Creator not identified')).toHaveText('?');
     // Serving providers in the footer: custom ones through their base type, one display name.
-    for (const [model, provider] of [['QA Opus', 'Claude'], ['QA Codex', 'Codex'], ['QA Gemini', 'Google'], ['QA Reasoner', 'OpenRouter']]) await logo(card(model), provider);
+    for (const [model, provider] of [['QA Opus', 'Claude'], ['QA Codex', 'Codex'], ['QA Gemini', 'Google']]) await logo(card(model), provider);
     await button('Use dark theme').click();
     await expect(marks(card('QA Opus'), 'Anthropic').locator('svg'), 'black marks turn light on the dark theme').toHaveCSS('filter', /invert\(1\)/);
     await button('Use light theme').click();
@@ -95,12 +162,19 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     const sectionNames = async () => (await page.getByRole('heading', { level: 3 }).allTextContents()).map(text => text.replace(/\s*\d+$/, '')).sort();
     await group('Group by provider');
     await section('Claude').waitFor();
-    expect(await sectionNames()).toEqual(['Claude', 'Codex', 'Google', 'OpenRouter', 'synthetic-provider']);
+    expect(await sectionNames()).toEqual(['Claude', 'Codex', 'Google', 'synthetic-provider']); // saved cards; OpenRouter waits in To add
     await expect(section('Claude').getByRole('button', { name: 'Open QA Opus details', exact: true }), 'a saved card sits under its own access, not a matching one').toBeVisible();
     await group('Group by creator');
     await section('Anthropic').waitFor();
     await expect(section('Anthropic').getByRole('button', { name: 'Open QA Opus details', exact: true })).toBeVisible();
     await group('No grouping');
+    // The aggregator's models wait in To add, with the same creator and provider marks.
+    await scope(/^To add/).click();
+    await searchModels().fill('qa-reasoner');
+    await logo(card('QA Reasoner'), 'DeepSeek');
+    await logo(card('QA Reasoner'), 'OpenRouter');
+    await searchModels().fill('');
+    await scope(/^In Registry/).click();
 
     // Provider logos: the card's own serving providers replace the creator mark.
     await nav('Settings').click();
@@ -138,10 +212,32 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
   });
 
   await test.step('unchanged discovery closes without false discard warning', async () => {
+    await scope(/^To add/).click(); // a discovered model now waits in To add
     await button('Open QA Unregistered details').click(); // was "Review & add"
     await button('Cancel').click();
     await sheet().waitFor({ state: 'hidden' });
     await expect(page.getByRole('heading', { name: 'Discard changes?' })).toHaveCount(0);
+  });
+
+  await test.step('registering from To add preselects the operations Bifrost declares', async () => {
+    // Google/qa-image declares mode image_generation in its Bifrost parameters datasheet.
+    await searchModels().fill('qa-image');
+    await button('Open QA Image details').click();
+    const inCard = sheet().getByRole('heading', { name: /^In this card/ }).locator('..');
+    await expect(inCard.getByRole('checkbox', { name: /^Image generation/ })).toBeChecked();
+    await expect(inCard.getByRole('checkbox', { name: /^Chat Completions/ })).not.toBeChecked();
+    await button('Prepare model card').click();
+    await button('Review').click();
+    const write = page.waitForRequest(r => r.method() === 'PUT' && r.url().endsWith('/api/workspace'));
+    await button('Save model').click();
+    const saved = (await write).postDataJSON().data.models.find((m: { id: string }) => m.id === 'qa-image');
+    expect(saved.accesses.map((a: { id: string; endpoints: string[] }) => [a.id, a.endpoints])).toEqual([['Google/qa-image', ['images/generations']]]);
+    await sheet().waitFor({ state: 'hidden' });
+    await expect(scope(/^To add/)).toHaveAccessibleName('To add (67)');
+    await searchModels().fill('');
+    await scope(/^In Registry/).click();
+    await expect(scope(/^In Registry/)).toHaveAccessibleName('In Registry (9)');
+    await expect(page.locator('[data-slot="card"]').filter({ has: button('Open QA Image details') })).toContainText('Saved');
   });
 
   await test.step('saved card keeps its own accesses; matching ones are offered, never merged', async () => {
@@ -191,7 +287,8 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(part(sheet(), /^Also available/), 'A removed saved access can be added back').toContainText('Claude');
     await sheet().getByRole('button', { name: /^Add openrouter/i }).click();
     await expect(part(sheet(), /^Also available/)).not.toContainText(/openrouter/i);
-    await part(sheet(), /^In this card/).getByRole('checkbox', { name: /Chat Completions/ }).check();
+    // Preselected from the native chat mode declared by Bifrost.
+    await expect(part(sheet(), /^In this card/).getByRole('checkbox', { name: /Chat Completions/ })).toBeChecked();
     await button('Review').click();
     await sheet().getByText(/^Access added : openrouter · anthropic\/qa-opus$/i).waitFor();
     await sheet().getByText(/^Access removed : Claude · qa-opus$/).waitFor();
@@ -221,6 +318,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await button('Cancel').click();
     await button('Discard draft').click();
     await sheet().waitFor({ state: 'hidden' });
+    await scope(/^In Registry/).click();
   });
 
   await test.step('group filter retains hidden selections and cancel protects draft', async () => {
@@ -465,8 +563,12 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     const references = models.map(m => ({ ...structuredClone(catalog.references[0]), id: `fixture/${m.id}`, fields: { name: { value: m.name, source: 'fixture', kind: 'declared' } } }));
     const accesses = models.map(m => ({ id: `synthetic-provider/${m.id}`, provider: 'synthetic-provider', model: m.id, referenceId: `fixture/${m.id}`, configured: true, fields: {}, overrides: {} }));
     await stress.route('**/api/workspace', r => r.fulfill({ json: large }));
-    await stress.route('**/api/catalog', r => r.fulfill({ json: { ...catalog, references, accesses } }));
+    let release!: () => void;
+    const held = new Promise<void>(resolve => { release = resolve; });
+    await stress.route('**/api/catalog', async r => { await held; await r.fulfill({ json: { ...catalog, references, accesses } }); });
     await stress.goto('/');
+    await expect(stress.getByRole('status', { name: 'Loading model cards…' }), 'A skeleton holds the place of the cards').toBeVisible();
+    release();
     await stress.getByRole('button', { name: /Show more/ }).click();
     await expect(stress.getByRole('button', { name: /^Open .* details$/ })).toHaveCount(65);
     await stress.getByRole('link', { name: 'Settings', exact: true }).click();
@@ -476,6 +578,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await stress.unroute('**/api/catalog');
     await stress.route('**/api/catalog', r => r.fulfill({ status: 503, json: { error: 'Synthetic metadata offline' } }));
     await stress.getByRole('link', { name: 'My models', exact: true }).click();
+    await stress.reload(); // the catalogue is read once per revision: a failure shows on the next load
     await stress.getByText(/Model details unavailable/).waitFor();
     await stress.getByRole('button', { name: 'View details', exact: true }).first().click();
     await stress.locator('[data-slot="sheet-content"]').getByRole('button', { name: 'Review', exact: true }).waitFor(); // was Save model

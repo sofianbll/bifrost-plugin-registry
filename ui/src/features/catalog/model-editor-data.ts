@@ -43,6 +43,17 @@ export function firstRegistrationIssue(model: Model): RegistrationIssue | undefi
   if (model.accesses.some(access => !access.endpoints?.length || access.endpoints.some(endpoint => !(registryEndpoints as readonly string[]).includes(endpoint)))) return "operations";
 }
 
+// Registry endpoints implied by the mode Bifrost declares for a native model (its parameters
+// datasheet). A missing or unknown mode preselects nothing; saved accesses keep their own.
+const modeEndpoints: Record<string, string[]> = {
+  chat: ["chat/completions"], completion: ["completions"], responses: ["responses"], embedding: ["embeddings"],
+  image_generation: ["images/generations"], audio_speech: ["audio/speech"], rerank: ["rerank"], ocr: ["ocr"],
+};
+export function declaredEndpoints(access?: CatalogRecord): string[] {
+  const parameters = access?.fields.parameters?.value as { mode?: unknown } | undefined;
+  return typeof parameters?.mode === "string" ? [...(modeEndpoints[parameters.mode] ?? [])] : [];
+}
+
 export type AccessCandidate = Pick<Access, "provider" | "nativeModel" | "status"> & { source: string };
 
 export function canonicalCapabilities(values: Model["capabilities"]): Model["capabilities"] {

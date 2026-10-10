@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import { Plus, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,11 +10,10 @@ import { SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/compo
 import { Textarea } from "@/components/ui/textarea";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { EditorJourney } from "../../components/registry/EditorJourney";
-import { ApiError } from "../../data/api";
-import { getCatalog, type Catalog, type CatalogAccess, type CatalogField, type CatalogRecord } from "./catalog-api";
+import { type Catalog, type CatalogAccess, type CatalogField, type CatalogRecord } from "./catalog-api";
 import { registryEndpoints, type Access, type Capability, type Model, type PricingProof } from "../../domain/registry";
 import { parsePropertyValue, pricingApplicationState, proposedAccessValue, stageCatalogOverride, type CatalogOverride, type EditableProperty } from "./model-card-fields";
-import { applyModelId, canonicalCapabilities, changeAccessProvider, firstRegistrationIssue, modelEditorOptions, prefillFromReference } from "./model-editor-data";
+import { applyModelId, canonicalCapabilities, changeAccessProvider, declaredEndpoints, firstRegistrationIssue, modelEditorOptions, prefillFromReference } from "./model-editor-data";
 import { SearchableSelect, type SearchOption } from "../../components/registry/SearchableSelect";
 import { BrandIcon, displayProvider } from "../../components/registry/BrandIcon";
 import { ModelCapabilitiesSummary, ModelModalitiesSummary } from "../../components/registry/model-capabilities";
@@ -103,11 +102,14 @@ function EndpointChoices({ access, invalid, onChange }: { access: Access; invali
 
 type EditSection = "identity" | "details" | "capabilities" | "access" | null;
 
-export default function ModelEditor({ draft, onChange, creating, workspace, pricingProofs, baseline, error, busy, snapshotMode = false, expert = false, onExpertChange, canExpert, onSave, onOverridesChange, onCancel, onDelete, onUnauthorized, actionSlot }: {
+export default function ModelEditor({ draft, onChange, creating, workspace, catalog, catalogError, pricingProofs, baseline, error, busy, snapshotMode = false, expert = false, onExpertChange, canExpert, onSave, onOverridesChange, onCancel, onDelete, actionSlot }: {
   draft: Model;
   onChange: (draft: Model) => void;
   creating: boolean;
   workspace: Model[];
+  // The reference catalogue the app loads once per revision.
+  catalog: Catalog | null;
+  catalogError: string;
   pricingProofs: PricingProof[];
   baseline?: Model;
   error: string;
@@ -120,12 +122,9 @@ export default function ModelEditor({ draft, onChange, creating, workspace, pric
   onOverridesChange?: (overrides: CatalogOverride[]) => void;
   onCancel: () => void;
   onDelete: (model: Model) => void;
-  onUnauthorized: () => void;
   actionSlot?: ReactNode;
 }) {
-  const [catalog, setCatalog] = useState<Catalog | null>(null);
   const [stagedOverrides, setStagedOverrides] = useState<CatalogOverride[]>([]);
-  const [catalogError, setCatalogError] = useState("");
   const [step, setStep] = useState<"choose" | "card" | "review">(creating ? "choose" : "card");
   const [cardTab, setCardTab] = useState<"overview" | "access" | "properties" | "sources">("overview");
   const [selectedAccessId, setSelectedAccessId] = useState("");
@@ -140,16 +139,6 @@ export default function ModelEditor({ draft, onChange, creating, workspace, pric
   const term = useTerm();
   const editOpener = useRef<HTMLElement | null>(null);
   const propertyOpener = useRef<HTMLElement | null>(null);
-  useEffect(() => {
-    let active = true;
-    getCatalog().then(result => { if (active) { setCatalog(result); setCatalogError(""); } }).catch(cause => {
-      if (!active) return;
-      if (cause instanceof ApiError && cause.status === 401) onUnauthorized();
-      else setCatalogError(cause instanceof Error ? cause.message : copy("Reference catalog unavailable.", "Catalogue de référence indisponible."));
-    });
-    return () => { active = false; };
-  }, []);
-
   const viewCatalog = useMemo(() => {
     if (!catalog) return null;
     const view = { ...catalog, references: catalog.references.map(record => ({ ...record, fields: { ...record.fields } })), accesses: catalog.accesses.map(record => ({ ...record, fields: { ...record.fields } })) };
@@ -208,7 +197,9 @@ export default function ModelEditor({ draft, onChange, creating, workspace, pric
   };
   const toggleCatalogAccess = (access: CatalogAccess, checked: boolean) => {
     const remaining = draft.accesses.filter(row => row.provider && row.nativeModel && !(row.provider === access.provider && row.nativeModel === access.model));
-    const row: Access = { provider: access.provider, nativeModel: access.model, id: `${access.provider}/${draft.id}`, route: "Direct provider", status: "Configured", ...(access.referenceId ? { referenceId: access.referenceId } : {}) };
+    // A saved access comes back as saved; a new one starts with the operations its native mode implies.
+    const saved = creating ? undefined : baseline?.accesses.find(row => row.provider === access.provider && row.nativeModel === access.model);
+    const row: Access = saved ?? { provider: access.provider, nativeModel: access.model, id: `${access.provider}/${draft.id}`, route: "Direct provider", status: "Configured", endpoints: declaredEndpoints(access), ...(access.referenceId ? { referenceId: access.referenceId } : {}) };
     update({ accesses: checked ? [...remaining, row] : remaining });
   };
   const original = creating ? undefined : baseline ?? workspace.find(model => model.id === draft.id);

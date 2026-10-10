@@ -1,4 +1,4 @@
-import { useId, useMemo, useState } from "react";
+import { useId, useMemo } from "react";
 import { ArrowRight, KeyRound, Plus, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { exposed, members, type Group, type Key, type Model } from "../../domain
 import { displayProvider } from "../../components/registry/BrandIcon";
 import { useCopy } from "../../lib/locale";
 import { filterKeys } from "./key-library-state";
+import { useSessionState } from "../../lib/session-state";
 
 // One line for what Bifrost allows a key today: all providers, or N providers and M models.
 export function permissionSummary(permissions: Key["permissions"], copy: ReturnType<typeof useCopy>) {
@@ -47,9 +48,10 @@ type Props = {
 export function KeyLibrary({ keys, groups, models, search, onSearch, view, onViewChange, onResetView, busy, snapshotMode, onCreate, onOpen }: Props) {
   const copy = useCopy();
   const filterId = useId();
-  const [groupFilter, setGroupFilter] = useState("all");
-  const [clientFilter, setClientFilter] = useState("all");
-  const [sort, setSort] = useState("name");
+  // Filters survive leaving the page for the session, like the search.
+  const [groupFilter, setGroupFilter] = useSessionState("keys.group", "all");
+  const [clientFilter, setClientFilter] = useSessionState("keys.client", "all");
+  const [sort, setSort] = useSessionState("keys.sort", "name");
   const clients = [...new Set(keys.map(key => key.client).filter(Boolean))].sort((a, b) => a.localeCompare(b));
   const shown = useMemo(() => filterKeys(keys, groups, models, search, groupFilter, clientFilter, sort), [keys, groups, models, search, groupFilter, clientFilter, sort]);
   const format = cardFormat(view);
