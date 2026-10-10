@@ -86,6 +86,7 @@ export function ModelModalitiesPanel({ model }: { model: CapabilityFacts }) {
 // label: the card the summary belongs to, so its trigger is not named like every other card's.
 function Summary({ model, kind, context, label }: { model: CapabilityFacts; kind: "modalities" | "capabilities"; context?: EvidenceContext; label?: string }) {
   const copy = useCopy();
+  const colon = copy(":", " :");
   const term = useTerm();
   const [open, setOpen] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -108,9 +109,9 @@ function Summary({ model, kind, context, label }: { model: CapabilityFacts; kind
   const known = entries.filter(([, status]) => status !== "Unknown");
   const shown = known.slice(0, 4);
   const hidden = entries.length - shown.length;
-  const capabilityLabel = `${copy("Model capabilities", "Capacités du modèle")}: ${entries.length ? entries.map(([name, status]) => `${term(name)} (${stateText(status, copy)})`).join(", ") : copy("not specified", "non renseignées")}. ${copy("Show details", "Afficher les détails")}`;
-  const modalityLabel = `${copy("Input", "Entrée")}: ${model.inputModalities.map(term).join(", ") || copy("unknown", "inconnue")}; ${copy("Output", "Sortie")}: ${model.outputModalities.map(term).join(", ") || copy("unknown", "inconnue")}. ${copy("Show details", "Afficher les détails")}`;
-  const modality = (names: string[], direction: string) => names.length ? <>{names.slice(0, 2).map(name => <span key={name} className="inline-flex size-5 items-center justify-center" title={`${direction}: ${term(name)}`}><CapabilityIcon name={name} /></span>)}{names.length > 2 && <span className="text-muted-foreground">+{names.length - 2}</span>}</> : <span className="text-muted-foreground">?</span>;
+  const capabilityLabel = `${copy("Model capabilities", "Capacités du modèle")}${colon} ${entries.length ? entries.map(([name, status]) => `${term(name)} (${stateText(status, copy)})`).join(", ") : copy("not specified", "non renseignées")}. ${copy("Show details", "Afficher les détails")}`;
+  const modalityLabel = `${copy("Input", "Entrée")}${colon} ${model.inputModalities.map(term).join(", ") || copy("unknown", "inconnue")}; ${copy("Output", "Sortie")}${colon} ${model.outputModalities.map(term).join(", ") || copy("unknown", "inconnue")}. ${copy("Show details", "Afficher les détails")}`;
+  const modality = (names: string[], direction: string) => names.length ? <>{names.slice(0, 2).map(name => <span key={name} className="inline-flex size-5 items-center justify-center" title={`${direction}${colon} ${term(name)}`}><CapabilityIcon name={name} /></span>)}{names.length > 2 && <span className="text-muted-foreground">+{names.length - 2}</span>}</> : <span className="text-muted-foreground">?</span>;
   return <Popover open={open} onOpenChange={next => { if (!next) close(); else setOpen(true); }}><PopoverTrigger asChild><button ref={trigger} type="button" aria-label={`${label ? `${label} · ` : ""}${kind === "modalities" ? modalityLabel : capabilityLabel}`}
     onPointerEnter={event => { if (event.pointerType !== "touch") { cancelClose(); cancelOpen(); openTimer.current = setTimeout(() => setOpen(true), 500); } }} onPointerLeave={() => { cancelOpen(); scheduleClose(); }}
     onFocus={() => { cancelOpen(); cancelClose(); if (!suppressFocus.current) setOpen(true); }} onBlur={() => { suppressFocus.current = false; scheduleClose(); }}
