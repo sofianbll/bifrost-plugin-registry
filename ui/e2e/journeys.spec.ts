@@ -89,6 +89,62 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(page.getByRole('heading', { name: 'Discard changes?' })).toHaveCount(0);
   });
 
+  await test.step('saved card keeps its own accesses; matching ones are offered, never merged', async () => {
+    // Claude/qa-opus is saved; openrouter's anthropic/qa-opus shares its reference and is not.
+    const before = (await api('workspace')).data.models;
+    const openOpus = page.getByRole('button', { name: /^Open qa[- ]opus details$/i });
+    const card = page.locator('[data-slot="card"]').filter({ has: openOpus });
+    const part = (scope: Locator, heading: RegExp) => scope.getByRole('heading', { name: heading }).locator('..');
+    await expect(card.getByLabel('Access providers').getByLabel(/openrouter/i)).toHaveCount(0);
+    await card.getByRole('button', { name: /^Accesses/ }).click();
+    const popover = page.locator('[data-slot="popover-content"]');
+    await expect(part(popover, /^In this card/)).toContainText('Claude');
+    await expect(part(popover, /^In this card/)).not.toContainText(/openrouter/i);
+    await expect(part(popover, /^Available, not in this card/)).toContainText(/openrouter/i);
+    await expect(part(popover, /^Available, not in this card/)).toContainText(/Input 4\b.*Output 20\b/);
+    await expect(popover, 'Facts are readable, not raw parameter JSON').not.toContainText('{"');
+    await page.keyboard.press('Escape');
+    await page.getByRole('radio', { name: 'Table', exact: true }).click();
+    const row = page.getByRole('row').filter({ has: page.getByRole('button', { name: /^Open qa[- ]opus details$/i }) });
+    await expect(row).toContainText('1 available, not in this card');
+    await expect(row.getByText(/openrouter/i)).toHaveCount(0);
+    await page.getByRole('radio', { name: 'Grid', exact: true }).click();
+
+    // Re-saving after a rename writes exactly the saved accesses.
+    await openOpus.click();
+    await page.getByRole('textbox', { name: 'Display name *', exact: true }).fill('QA Opus saved');
+    await button('Review').click();
+    await sheet().getByText(/Display name : .* → QA Opus saved/).waitFor();
+    await expect(sheet().getByText(/^Access (added|removed)/)).toHaveCount(0);
+    const write = page.waitForRequest(r => r.method() === 'PUT' && r.url().endsWith('/api/workspace'));
+    await button('Save model').click();
+    const payload = (await write).postDataJSON();
+    await sheet().waitFor({ state: 'hidden' });
+    const accessIds = (models: { id: string; accesses: { id: string; nativeModel: string }[] }[]) => models.map(m => [m.id, m.accesses.map(a => `${a.id}=${a.nativeModel}`)]);
+    expect(accessIds(payload.data.models), 'The write contains no access the user did not choose').toEqual(accessIds(before));
+    expect(payload.data.models.find((m: { id: string }) => m.id === 'qa-opus').name).toBe('QA Opus saved');
+
+    // The card sheet offers the matching access; adding and removing are explicit and reviewed.
+    await page.getByRole('button', { name: 'Open QA Opus saved details', exact: true }).click();
+    await sheet().getByRole('button', { name: 'Access', exact: true }).click();
+    await expect(part(sheet(), /^Also available/)).toContainText(/openrouter/i);
+    await button('Edit accesses').click();
+    await expect(part(sheet(), /^In this card/)).toContainText('qa-opus');
+    await expect(part(sheet(), /^In this card/)).not.toContainText(/openrouter/i);
+    await expect(part(sheet(), /^Also available/)).toContainText(/Input price 4\b.*Output price 20\b/);
+    await sheet().getByRole('button', { name: /^Remove Claude/ }).click();
+    await expect(part(sheet(), /^Also available/), 'A removed saved access can be added back').toContainText('Claude');
+    await sheet().getByRole('button', { name: /^Add openrouter/i }).click();
+    await expect(part(sheet(), /^Also available/)).not.toContainText(/openrouter/i);
+    await part(sheet(), /^In this card/).getByRole('checkbox', { name: /Chat Completions/ }).check();
+    await button('Review').click();
+    await sheet().getByText(/^Access added : openrouter · anthropic\/qa-opus$/i).waitFor();
+    await sheet().getByText(/^Access removed : Claude · qa-opus$/).waitFor();
+    await button('Cancel').click();
+    await button('Discard draft').click();
+    await sheet().waitFor({ state: 'hidden' });
+  });
+
   await test.step('custom provider derives exposed ID and validation stays beside Save', async () => {
     // "Add model > Advanced: custom model" is now "Register a model > Advanced: enter an access
     // manually"; the access form keeps its Save action (Keep changes) disabled beside the error.
