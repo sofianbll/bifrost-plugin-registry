@@ -27,14 +27,23 @@ export type Demo = { models: Model[]; groups: Group[]; keys: Key[]; campaigns: C
 export type Campaign = { id: string; model: string; provider: string; accessId: string; scenario: string; outcome: "Pass" | "Fail" | "Inconclusive" | "Not run"; date: string; note: string };
 
 export const copy = <T,>(value: T): T => structuredClone(value);
+// A saved card keeps exactly its saved accesses. Discovered accesses it does not hold stay in a
+// separate discovered model, even when that model has the card's ID: offered, never merged.
 export const catalogModels = (registered: Model[], discovered: Model[]) => {
-  const byId = new Map(discovered.map(model => [model.id, model]));
-  for (const model of registered) {
-    const accesses = new Map((byId.get(model.id)?.accesses || []).map(access => [JSON.stringify([access.provider, access.nativeModel || access.id]), access]));
-    for (const access of model.accesses) accesses.set(JSON.stringify([access.provider, access.nativeModel || access.id]), access);
-    byId.set(model.id, { ...model, accesses: [...accesses.values()] });
+  const key = (access: Access) => JSON.stringify([access.provider, access.nativeModel || access.id]);
+  const saved = new Set(registered.flatMap(model => model.accesses.map(key)));
+  const cards = new Map(registered.map(model => [model.id, model]));
+  const seen = new Set<string>();
+  const models: Model[] = [];
+  for (const model of discovered) {
+    if (seen.has(model.id)) continue;
+    seen.add(model.id);
+    const card = cards.get(model.id);
+    if (card) models.push(card);
+    const accesses = model.accesses.filter(access => !saved.has(key(access)));
+    if (accesses.length) models.push({ ...model, accesses });
   }
-  return [...byId.values()];
+  return [...models, ...registered.filter(model => !seen.has(model.id))];
 };
 export const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 export const members = (policy: Policy, groups: Group[]) => [...new Set([...groups.filter(g => policy.groups.includes(g.id)).flatMap(g => g.members), ...policy.added])].filter(id => !policy.excluded.includes(id));
