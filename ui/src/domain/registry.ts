@@ -21,8 +21,9 @@ export type Group = { id: string; name: string; description: string; members: st
 export type Policy = { groups: string[]; added: string[]; excluded: string[]; naming: "model" | "provider/model" | "both"; prefer?: Record<string, string>; accessSelection?: Record<string, AccessSelector> };
 export type Publication = { state: "verified" | "drift" | "not_verified"; revision: string; checkedAt: string; observedAt?: string; observedRevision?: string; expected: string[]; actual: string[] | null; missing: string[]; unexpected: string[]; error?: string };
 export type PricingProof = { access: string; state: string; checkedAt: string; error?: string };
-// What Bifrost lets a key use today, from its native provider rows; allModels stands for "*".
-export type NativePermissions = { allProviders: boolean; providers: { provider: string; allModels: boolean; models: string[] }[] };
+// What Bifrost lets a key use today, from its native provider rows; allModels stands for "*",
+// versionDependent for an empty list (all or none depending on the Bifrost version).
+export type NativePermissions = { allProviders: boolean; providers: { provider: string; allModels: boolean; models: string[]; versionDependent?: boolean }[] };
 // pendingAccessSelection: saved models withheld until an access is chosen, with their candidate access IDs.
 // permissions: absent when Bifrost's answer carried no provider rows (not read yet).
 export type Key = { id: string; name: string; client: string; active: boolean; policy: Policy; observed: string[] | null; readError: boolean; revision: number; managed?: boolean; publication?: Publication; pendingAccessSelection?: Record<string, string[]>; permissions?: NativePermissions };

@@ -66,11 +66,8 @@ func referenceFields(ref registry.CatalogReference) map[string]registry.CatalogV
 
 func catalogModelFields(m *modelDTO, fields map[string]registry.CatalogValue) {
 	getString := func(key string) string { var v string; _ = json.Unmarshal(fields[key].Value, &v); return v }
-	// A name equal to the common ID is the slug discovery registered, not a chosen display name.
-	if m.Name == "" || m.Name == m.ID {
-		if v := getString("name"); v != "" {
-			m.Name = v
-		}
+	if m.Name == "" {
+		m.Name = getString("name")
 	}
 	if m.Creator == "" || m.Creator == "Unknown" {
 		if v := getString("creator"); v != "" {

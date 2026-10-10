@@ -13,6 +13,8 @@ const summaries: [Key["permissions"], string][] = [
   [{ allProviders: false, providers: [] }, "No provider"],
   [{ allProviders: false, providers: [{ provider: "Codex", allModels: false, models: ["qa-codex", "qa-codex-mini"] }] }, "1 provider · 2 models"],
   [{ allProviders: false, providers: [{ provider: "Claude", allModels: true, models: [] }, { provider: "Codex", allModels: false, models: ["qa-codex"] }] }, "2 providers · 1 model · all models of Claude"],
+  // An empty native list means all or none depending on the Bifrost version: never "0 models".
+  [{ allProviders: false, providers: [{ provider: "Google", allModels: false, models: [], versionDependent: true }] }, "1 provider · models depend on the Bifrost version for Google"],
 ];
 for (const layout of ["grid", "table"] as const) {
   for (const [permissions, summary] of summaries) {

@@ -125,12 +125,13 @@ export function keyComposition(policy: Policy, groups: Group[], models: Model[])
 
 
 // What Review compares the draft with: the last verified readback, else the last published plan,
-// else the models Bifrost allows today, in the key's ID format.
-export function keyBaseline(key: Key, groups: Group[], models: Model[]): { source: "readback" | "plan" | "native"; ids: string[] } {
+// else the models Bifrost allows today, in the key's ID format; none when neither is known.
+export function keyBaseline(key: Key, groups: Group[], models: Model[]): { source: "readback" | "plan" | "native" | "none"; ids: string[] } {
   if (key.publication?.state === "verified" && key.publication.actual) return { source: "readback", ids: key.publication.actual };
   const plan = exposed(key.policy, groups, models);
   const permissions = key.permissions;
-  if (plan.length || !permissions) return { source: "plan", ids: plan };
+  if (plan.length) return { source: "plan", ids: plan };
+  if (!permissions) return { source: "none", ids: [] };
   const ids = models.flatMap(model => {
     const allowed = model.accesses.filter(access => permissions.allProviders || permissions.providers.some(p => p.provider === access.provider && (p.allModels || p.models.includes(access.nativeModel || access.id.slice(access.provider.length + 1))))).map(access => access.id);
     if (!allowed.length) return [];

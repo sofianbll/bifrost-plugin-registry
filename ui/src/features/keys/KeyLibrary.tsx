@@ -22,11 +22,14 @@ export function permissionSummary(permissions: Key["permissions"], copy: ReturnT
   const providers = permissions.providers;
   if (!providers.length) return copy("No provider", "Aucun fournisseur");
   const all = providers.filter(p => p.allModels).map(p => displayProvider(p.provider));
-  const count = providers.reduce((sum, p) => sum + (p.allModels ? 0 : p.models.length), 0);
+  const unknown = providers.filter(p => p.versionDependent).map(p => displayProvider(p.provider));
+  const listed = providers.filter(p => !p.allModels && !p.versionDependent);
+  const count = listed.reduce((sum, p) => sum + p.models.length, 0);
   return [
     `${providers.length} ${copy(providers.length === 1 ? "provider" : "providers", providers.length === 1 ? "fournisseur" : "fournisseurs")}`,
-    all.length < providers.length ? `${count} ${copy(count === 1 ? "model" : "models", count === 1 ? "modèle" : "modèles")}` : "",
+    listed.length ? `${count} ${copy(count === 1 ? "model" : "models", count === 1 ? "modèle" : "modèles")}` : "",
     all.length ? `${copy("all models of", "tous les modèles de")} ${all.join(", ")}` : "",
+    unknown.length ? `${copy("models depend on the Bifrost version for", "modèles selon la version de Bifrost pour")} ${unknown.join(", ")}` : "",
   ].filter(Boolean).join(" · ");
 }
 

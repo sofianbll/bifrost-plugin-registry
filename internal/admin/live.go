@@ -126,6 +126,8 @@ type providerPermission struct {
 	Provider  string   `json:"provider"`
 	AllModels bool     `json:"allModels"`
 	Models    []string `json:"models"`
+	// An empty native allowed_models list: its meaning depends on the Bifrost version (as in adoption).
+	VersionDependent bool `json:"versionDependent,omitempty"`
 }
 type demoDTO struct {
 	Models    []modelDTO `json:"models"`
@@ -177,14 +179,15 @@ type nativeProviderConfig struct {
 	} `json:"keys"`
 }
 
-// permissions summarises the native provider rows; "*" allows every model, blacklisted names are left out.
+// permissions summarises the native provider rows; "*" allows every model, blacklisted names are left
+// out, and an empty list is version-dependent.
 func (vk nativeVK) permissions() *nativePermissions {
 	if vk.ProviderConfigs == nil && !vk.AllowAllProviders {
 		return nil
 	}
 	out := &nativePermissions{AllProviders: vk.AllowAllProviders, Providers: []providerPermission{}}
 	for _, pc := range vk.ProviderConfigs {
-		p := providerPermission{Provider: pc.Provider, AllModels: registry.Has(pc.AllowedModels, "*"), Models: []string{}}
+		p := providerPermission{Provider: pc.Provider, AllModels: registry.Has(pc.AllowedModels, "*"), Models: []string{}, VersionDependent: len(pc.AllowedModels) == 0}
 		for _, name := range pc.AllowedModels {
 			if !p.AllModels && !registry.Has(pc.BlacklistedModels, name) {
 				p.Models = append(p.Models, name)

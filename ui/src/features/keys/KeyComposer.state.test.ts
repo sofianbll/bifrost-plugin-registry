@@ -86,5 +86,8 @@ const verifiedBaseline = keyBaseline({ ...planned, publication: { state: "verifi
 if (verifiedBaseline.source !== "readback" || !same(verifiedBaseline.ids, ["openai/gpt-5"])) throw new Error("A verified readback is the preferred baseline");
 const nativeBaseline = keyBaseline({ ...planned, policy: { groups: [], added: [], excluded: [], naming: "both" }, permissions: { allProviders: false, providers: [{ provider: "openai", allModels: false, models: ["gpt-5"] }] } }, groups, models);
 if (nativeBaseline.source !== "native" || !same(nativeBaseline.ids, ["gpt-5", "openai/gpt-5"])) throw new Error(`Without a plan the baseline is the current Bifrost permissions: ${JSON.stringify(nativeBaseline)}`);
+// An empty plan and unread permissions are no baseline at all, not an empty "last published plan".
+const noBaseline = keyBaseline({ ...planned, policy: { groups: [], added: [], excluded: [], naming: "both" } }, groups, models);
+if (noBaseline.source !== "none" || noBaseline.ids.length) throw new Error(`Without plan nor permissions there is no baseline: ${JSON.stringify(noBaseline)}`);
 
 console.log("Key composer state checks passed");

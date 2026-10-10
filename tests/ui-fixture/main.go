@@ -49,6 +49,8 @@ var providers = []gatewayProvider{
 	}},
 	{name: "Claude", baseType: "anthropic", key: "claude-subscription-key", models: []nativeModel{
 		{name: "qa-opus", reference: "anthropic/qa-opus", mode: "chat"}, {name: "qa-haiku", reference: "anthropic/qa-haiku", mode: "chat"},
+		// A second native name for the same Models.dev model, saved as its own card.
+		{name: "qa-opus-fast", reference: "anthropic/qa-opus", mode: "chat"},
 	}},
 	{name: "Codex", baseType: "openai", key: "codex-subscription-key", models: []nativeModel{
 		{name: "qa-codex", reference: "openai/qa-codex", mode: "chat"}, {name: "qa-codex-mini", mode: "chat"},
@@ -290,10 +292,13 @@ func model(id, name, creator, family, kind string) registry.Model {
 }
 
 // subscriptionCard is saved the way the real gateway's cards were registered from discovery:
-// its name is the common ID and its creator is unknown.
-func subscriptionCard(provider, id string) registry.Model {
+// its creator is unknown and, without a chosen name, its name is the common ID.
+func subscriptionCard(provider, id, name string) registry.Model {
 	p := findProvider(provider)
-	ui, _ := json.Marshal(map[string]any{"id": id, "name": id, "creator": "Unknown", "family": "Unknown", "kind": "Unknown", "inputModalities": []string{}, "outputModalities": []string{}, "tasks": []string{}, "context": "Unknown", "capabilities": map[string]string{}})
+	if name == "" {
+		name = id
+	}
+	ui, _ := json.Marshal(map[string]any{"id": id, "name": name, "creator": "Unknown", "family": "Unknown", "kind": "Unknown", "inputModalities": []string{}, "outputModalities": []string{}, "tasks": []string{}, "context": "Unknown", "capabilities": map[string]string{}})
 	return registry.Model{ID: id, Alias: id, Provider: p.name, ProviderKeyIDs: []string{p.key}, UpstreamModel: id, Endpoints: []string{"chat/completions", "responses"}, Enabled: true, Configured: true, Evidence: "Synthetic browser fixture only", Metadata: map[string]json.RawMessage{"ui": ui}}
 }
 
@@ -343,9 +348,11 @@ func seed() registry.Config {
 		model("qa-code", "QA Code", "Fixture Labs", "QA", "Chat"),
 		model("qa-chat", "QA Chat", "Fixture Labs", "QA", "Chat"),
 		model("qa-vision", "QA Vision", "Fixture Labs", "QA", "Vision"),
-		subscriptionCard("Claude", "qa-opus"), subscriptionCard("Claude", "qa-haiku"),
-		subscriptionCard("Codex", "qa-codex"), subscriptionCard("Codex", "qa-codex-mini"),
-		subscriptionCard("Google", "qa-gemini"),
+		subscriptionCard("Claude", "qa-opus", ""), subscriptionCard("Claude", "qa-haiku", ""),
+		// Two saved cards on one reference: one tile each, never folded together.
+		subscriptionCard("Claude", "qa-opus-fast", "QA Opus Fast"),
+		subscriptionCard("Codex", "qa-codex", ""), subscriptionCard("Codex", "qa-codex-mini", ""),
+		subscriptionCard("Google", "qa-gemini", ""),
 	}
 	return registry.Config{SchemaVersion: 1, DefaultNaming: "provider/model", Models: models,
 		Groups: []registry.Group{{ID: "qa-development", Name: "QA Development", ModelIDs: []string{"qa-code", "qa-chat"}}, {ID: "qa-visual", Name: "QA Visual", ModelIDs: []string{"qa-vision"}}},

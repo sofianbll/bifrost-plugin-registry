@@ -22,15 +22,16 @@ import { useSessionState } from "../../lib/session-state";
 const filterLabels = (field: keyof ModelFilters, copy: ReturnType<typeof useCopy>) => ({ search: copy("Search", "Rechercher"), creator: copy("Creator", "Créateur"), provider: copy("Serving provider", "Fournisseur de service"), task: copy("Usage / task", "Usage / tâche"), input: copy("Input", "Entrée"), output: copy("Output", "Sortie"), capability: copy("Capability", "Capacité") })[field];
 const unique = (items: string[]) => [...new Set(items)].sort((a, b) => a.localeCompare(b));
 const series = (family: string) => family && family !== "Unknown" ? ` · ${family}` : "";
-export type ModelBrowserProps = { models: Model[]; registeredIds?: ReadonlySet<string>; selected?: string[]; selectionDetails?: (id: string) => { source: string; action: string }; onToggle?: (id: string) => void; onSetSelected?: (ids: string[]) => void; onOpen?: (model: Model) => void; preferences?: ViewOptions; compact?: boolean; label?: string; tourFirst?: boolean; filter?: (models: Model[], filters: ModelFilters) => Model[]; renderResults?: (models: Model[], view: ViewOptions, groupBy: string, filters: ModelFilters) => ReactNode; providerFilterLabel?: string; selectionNote?: string; stateKey?: string };
-export default function ModelBrowser({ models, registeredIds, selected, selectionDetails, onToggle, onSetSelected, onOpen, preferences = defaultViewOptions, compact = false, label, tourFirst = false, filter, renderResults, providerFilterLabel: providerFilterLabelProp, selectionNote, stateKey }: ModelBrowserProps) {
+export type ModelBrowserProps = { models: Model[]; registeredIds?: ReadonlySet<string>; selected?: string[]; selectionDetails?: (id: string) => { source: string; action: string }; onToggle?: (id: string) => void; onSetSelected?: (ids: string[]) => void; onOpen?: (model: Model) => void; preferences?: ViewOptions; compact?: boolean; label?: string; tourFirst?: boolean; filter?: (models: Model[], filters: ModelFilters) => Model[]; renderResults?: (models: Model[], view: ViewOptions, groupBy: string, filters: ModelFilters) => ReactNode; providerFilterLabel?: string; selectionNote?: string; stateKey?: string; filterKey?: string };
+export default function ModelBrowser({ models, registeredIds, selected, selectionDetails, onToggle, onSetSelected, onOpen, preferences = defaultViewOptions, compact = false, label, tourFirst = false, filter, renderResults, providerFilterLabel: providerFilterLabelProp, selectionNote, stateKey, filterKey = stateKey }: ModelBrowserProps) {
   const copy = useCopy();
   const colon = copy(":", " :");
   const creatorName = useCreatorName();
   const term = useTerm();
   const selectVisibleId = useId();
-  // With a stateKey, search, filters, grouping and view survive leaving the page (session memory).
-  const [filters, setFilters] = useSessionState<ModelFilters>(stateKey && `${stateKey}.filters`, emptyModelFilters);
+  // With a stateKey, search, filters, grouping and view survive leaving the page (session memory);
+  // a filterKey keeps search and filters apart from lists sharing the grouping and view.
+  const [filters, setFilters] = useSessionState<ModelFilters>(filterKey && `${filterKey}.filters`, emptyModelFilters);
   const [groupBy, setGroupBy] = useSessionState(stateKey && `${stateKey}.groupBy`, "none");
   const [override, setOverride] = useSessionState<Partial<ViewOptions>>(stateKey && `${stateKey}.view`, {});
   const view = { ...preferences, ...override };

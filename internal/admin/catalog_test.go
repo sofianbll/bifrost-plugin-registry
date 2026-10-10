@@ -380,7 +380,8 @@ func TestModelsDevReferencesNameTheirCreatorFromTheNamespace(t *testing.T) {
 
 // A registry file saved before references stored a creator names it on read, without a refresh:
 // in the catalogue, on the saved card whose creator is "Unknown", and on discovery. A manual
-// correction still wins. The saved card's name equals its common ID, so the reference name shows.
+// correction still wins. The saved name stays as saved, even equal to the common ID: the UI picks
+// the reference name for display, data.models[].name keeps its meaning.
 func TestCreatorsShowWithoutRefreshAndCorrectionsWin(t *testing.T) {
 	s := setup(t)
 	ui, _ := json.Marshal(map[string]any{"id": "qa-opus", "name": "qa-opus", "creator": "Unknown", "family": "Unknown"})
@@ -453,7 +454,7 @@ func TestCreatorsShowWithoutRefreshAndCorrectionsWin(t *testing.T) {
 	if string(references["anthropic/qa-opus"].Value) != `"Anthropic"` || references["anthropic/qa-opus"].Source != "models.dev" || string(references["tencent/qa-hunyuan"].Value) != `"Tencent"` {
 		t.Fatalf("reference creators: %+v", references)
 	}
-	if card.Creator != "Anthropic" || card.Name != "QA Opus" {
+	if card.Creator != "Anthropic" || card.Name != "qa-opus" {
 		t.Fatalf("saved card creator %q, name %q", card.Creator, card.Name)
 	}
 	if discovered.Creator != "Tencent" {

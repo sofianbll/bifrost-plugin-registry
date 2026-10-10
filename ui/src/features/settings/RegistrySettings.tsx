@@ -6,8 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ViewControls, type ViewOptions } from "@/components/registry/ViewOptions";
 import { ProviderAppearance } from "./ProviderAppearance";
 import AssistantSettings from "@/features/assistant/AssistantSettings";
-import { ApiError, request } from "@/data/api";
-import { getCatalog, type Catalog } from "@/features/catalog/catalog-api";
+import { request } from "@/data/api";
+import type { Catalog } from "@/features/catalog/catalog-api";
 import { useCopy, useLanguage } from "@/lib/locale";
 
 type SettingsSection = "general" | "display" | "sources" | "connection" | "assistance" | "help";
@@ -19,6 +19,9 @@ export type RegistrySettingsProps = {
   snapshotMode: boolean;
   onNavigate: (page: Page) => void;
   onUnauthorized: () => void;
+  // The reference catalogue the app loads once per revision.
+  catalog: Catalog | null;
+  catalogError: string;
   providers?: string[];
   // My models scope counts, as the models page header shows them.
   modelCounts?: string;
@@ -38,26 +41,19 @@ const formatDate = (value: string | undefined, language: string) => value
   ? new Date(value).toLocaleString(language === "fr" ? "fr-FR" : "en-US")
   : language === "fr" ? "Non renseigné" : "Not recorded";
 
-export default function RegistrySettings({ preferences, onPreferencesChange, snapshotMode, onNavigate, onUnauthorized, providers = [], modelCounts, initialSection = "general" }: RegistrySettingsProps) {
+export default function RegistrySettings({ preferences, onPreferencesChange, snapshotMode, onNavigate, onUnauthorized, catalog, catalogError, providers = [], modelCounts, initialSection = "general" }: RegistrySettingsProps) {
   const copy = useCopy();
   const language = useLanguage();
   const [section, setSection] = useState<SettingsSection>(initialSection);
-  const [catalog, setCatalog] = useState<Catalog | null>(null);
   const [gatewayProviders, setGatewayProviders] = useState<string[]>([]);
-  const [catalogError, setCatalogError] = useState("");
-  const [loadingCatalog, setLoadingCatalog] = useState(false);
+  const [providersError, setProvidersError] = useState("");
+  const loadingCatalog = !catalog && !catalogError;
 
   useEffect(() => {
-    if (section !== "sources" && section !== "display") return;
+    if (section !== "display" || !snapshotMode) return;
     let active = true;
-    setLoadingCatalog(true);
-    setCatalogError("");
-    if (section === "display" && snapshotMode) void request<{ providers: { name: string }[] }>("review-context").then(value => { if (active) setGatewayProviders(value.providers.map(provider => provider.name)); }).catch(() => { if (active) setCatalogError(copy("Some providers could not be loaded. Reopen Appearance to retry.", "Certains fournisseurs n’ont pas pu être chargés. Rouvrez Affichage pour réessayer.")); });
-    void getCatalog().then(value => { if (active) setCatalog(value); }).catch(cause => {
-      if (!active) return;
-      if (cause instanceof ApiError && cause.status === 401) onUnauthorized();
-      setCatalogError(cause instanceof Error ? cause.message : copy("Catalog status unavailable.", "État du catalogue indisponible."));
-    }).finally(() => { if (active) setLoadingCatalog(false); });
+    setProvidersError("");
+    void request<{ providers: { name: string }[] }>("review-context").then(value => { if (active) setGatewayProviders(value.providers.map(provider => provider.name)); }).catch(() => { if (active) setProvidersError(copy("Some providers could not be loaded. Reopen Appearance to retry.", "Certains fournisseurs n’ont pas pu être chargés. Rouvrez Affichage pour réessayer.")); });
     return () => { active = false; };
   }, [section]);
 
@@ -71,7 +67,7 @@ export default function RegistrySettings({ preferences, onPreferencesChange, sna
       <Card><CardHeader><CardTitle>{copy("Administration", "Administration")}</CardTitle></CardHeader><CardContent className="flex flex-wrap gap-2">{snapshotMode && navigate("gateway")}{navigate("catalog")}{navigate("snapshot")}</CardContent></Card>
       <Card><CardHeader><CardTitle>{copy("Current workspace", "Espace de travail actuel")}</CardTitle></CardHeader><CardContent className="space-y-3 text-sm text-muted-foreground"><p>{snapshotMode ? copy("You are reviewing a local snapshot. Changes stay in this copy and do not update the connected Bifrost gateway.", "Vous consultez une copie locale. Les changements restent dans cette copie et ne modifient pas le gateway Bifrost connecté.") : copy("Registry catalog and model selections are managed in this workspace. Native Bifrost permissions remain governed by Bifrost.", "Le catalogue Registry et les sélections de modèles sont gérés dans cet espace. Les permissions natives restent régies par Bifrost.")}</p>{modelCounts && <p className="text-foreground">{modelCounts}</p>}<Badge variant={snapshotMode ? "warning" : "success"}>{snapshotMode ? copy("Local snapshot", "Copie locale") : copy("Connected workspace", "Espace connecté")}</Badge></CardContent></Card>
     </div>;
-    if (section === "display") return <div className="space-y-3"><Card><CardHeader><CardTitle>{copy("Default model display", "Affichage par défaut des modèles")}</CardTitle></CardHeader><CardContent className="space-y-3"><p className="text-sm text-muted-foreground">{copy("These local preferences control the default information shown in model lists. A page can still offer its own view controls.", "Ces préférences locales déterminent les informations affichées par défaut dans les listes de modèles. Chaque page peut aussi proposer ses propres options.")}</p><ViewControls value={preferences} onChange={onPreferencesChange} scope={copy("Global", "Général")} catalogFormats /><div className="space-y-2 border-t pt-3"><p className="text-sm font-medium">{copy("Primary logo on model cards", "Logo principal des fiches modèles")}</p><div className="flex flex-wrap gap-2"><Button size="sm" variant={preferences.logo === "creator" ? "default" : "outline"} onClick={() => onPreferencesChange({ ...preferences, logo: "creator" })}>{copy("Creator", "Créateur")}</Button><Button size="sm" variant={preferences.logo === "provider" ? "default" : "outline"} onClick={() => onPreferencesChange({ ...preferences, logo: "provider" })}>{copy("Provider", "Fournisseur d’accès")}</Button></div></div></CardContent></Card>{catalogError && <p role="alert" className="text-sm text-destructive">{catalogError}</p>}<ProviderAppearance providers={[...providers, ...gatewayProviders, ...(catalog?.accesses.map(access => access.provider) || [])]} /></div>;
+    if (section === "display") return <div className="space-y-3"><Card><CardHeader><CardTitle>{copy("Default model display", "Affichage par défaut des modèles")}</CardTitle></CardHeader><CardContent className="space-y-3"><p className="text-sm text-muted-foreground">{copy("These local preferences control the default information shown in model lists. A page can still offer its own view controls.", "Ces préférences locales déterminent les informations affichées par défaut dans les listes de modèles. Chaque page peut aussi proposer ses propres options.")}</p><ViewControls value={preferences} onChange={onPreferencesChange} scope={copy("Global", "Général")} catalogFormats /><div className="space-y-2 border-t pt-3"><p className="text-sm font-medium">{copy("Primary logo on model cards", "Logo principal des fiches modèles")}</p><div className="flex flex-wrap gap-2"><Button size="sm" variant={preferences.logo === "creator" ? "default" : "outline"} onClick={() => onPreferencesChange({ ...preferences, logo: "creator" })}>{copy("Creator", "Créateur")}</Button><Button size="sm" variant={preferences.logo === "provider" ? "default" : "outline"} onClick={() => onPreferencesChange({ ...preferences, logo: "provider" })}>{copy("Provider", "Fournisseur d’accès")}</Button></div></div></CardContent></Card>{(providersError || catalogError) && <p role="alert" className="text-sm text-destructive">{providersError || catalogError}</p>}<ProviderAppearance providers={[...providers, ...gatewayProviders, ...(catalog?.accesses.map(access => access.provider) || [])]} /></div>;
     if (section === "sources") return <div className="space-y-4">
       <Card><CardHeader><CardTitle>{copy("Where model information comes from", "Origine des informations sur les modèles")}</CardTitle></CardHeader><CardContent className="space-y-3 text-sm text-muted-foreground"><p>{copy("Models.dev is the reference source for shared model information. Registry keeps its own catalog so corrections and explicit matches can be preserved across refreshes.", "Models.dev est la source de référence des informations communes sur les modèles. Registry conserve son propre catalogue afin de préserver les corrections et les associations explicites lors des actualisations.")}</p><p>{copy("Bifrost contributes native provider and model configuration. That configuration is separate from documentary model data and does not make an unconfigured model available.", "Bifrost fournit la configuration native des fournisseurs et modèles. Elle reste distincte des données documentaires et ne rend pas disponible un modèle non configuré.")}</p></CardContent></Card>
       <Card><CardHeader className="flex flex-row items-center justify-between gap-3"><CardTitle>{copy("Synchronization status", "État des synchronisations")}</CardTitle>{navigate("catalog")}</CardHeader><CardContent className="space-y-3">
