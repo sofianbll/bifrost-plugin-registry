@@ -1,5 +1,6 @@
 import { parsePropertyValue, pricingApplicationState, proposedAccessValue, stageCatalogOverride } from "./model-card-fields";
 import type { PricingProof } from "../../domain/registry";
+import { formatPrice, formatValue } from "../../lib/locale";
 
 const equal = (actual: unknown, expected: unknown) => { if (JSON.stringify(actual) !== JSON.stringify(expected)) throw new Error(`Expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`); };
 const rejects = (work: () => unknown) => { try { work(); } catch { return; } throw new Error("Expected invalid value to be rejected"); };
@@ -38,4 +39,9 @@ equal(pricingApplicationState([verifiedProof], access, "input_cost_usd_per_milli
 equal(pricingApplicationState([errorProof], access, "input_cost_usd_per_million", "manual"), { error: "Native write failed" });
 equal(pricingApplicationState([verifiedProof, errorProof], access, "input_cost_usd_per_million", "manual"), { error: "Native write failed" });
 equal(pricingApplicationState([errorProof], access, "context_length"), null);
+
+// Card values read in the UI language, without float noise (Bifrost's 2e-7 per token × 1e6).
+equal([formatPrice("en", 0.19999999999999998), formatPrice("fr", 0.19999999999999998).replace(/\s/g, " "), formatPrice("en", 4)], ["$0.2/M", "0,2 $/M", "$4/M"]);
+equal([true, false, undefined, "Unknown", 131072].map(value => formatValue("en", value, value === 131072 ? "tokens" : "")), ["Yes", "No", "Unknown", "Unknown", "131,072 tokens"]);
+equal([true, false, null, [], 131072].map(value => formatValue("fr", value).replace(/\s/g, " ")), ["Oui", "Non", "Inconnu", "Inconnu", "131 072"]);
 console.log("Model card property checks passed");

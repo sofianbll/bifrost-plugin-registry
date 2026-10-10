@@ -285,7 +285,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(part(popover, /^In this card/)).toContainText('Claude');
     await expect(part(popover, /^In this card/)).not.toContainText(/openrouter/i);
     await expect(part(popover, /^Available, not in this card/)).toContainText(/openrouter/i);
-    await expect(part(popover, /^Available, not in this card/)).toContainText(/Input 4\b.*Output 20\b/);
+    await expect(part(popover, /^Available, not in this card/)).toContainText(/Input \$4\/M.*Output \$20\/M/);
     await expect(popover, 'Facts are readable, not raw parameter JSON').not.toContainText('{"');
     await page.keyboard.press('Escape');
     await page.getByRole('radio', { name: 'Table', exact: true }).click();
@@ -315,7 +315,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await button('Edit accesses').click();
     await expect(part(sheet(), /^In this card/)).toContainText('qa-opus');
     await expect(part(sheet(), /^In this card/)).not.toContainText(/openrouter/i);
-    await expect(part(sheet(), /^Also available/)).toContainText(/Input price 4\b.*Output price 20\b/);
+    await expect(part(sheet(), /^Also available/)).toContainText(/Input price \$4\/M.*Output price \$20\/M/);
     await sheet().getByRole('button', { name: /^Remove Claude/ }).click();
     await expect(part(sheet(), /^Also available/), 'A removed saved access can be added back').toContainText('Claude');
     await sheet().getByRole('button', { name: /^Add openrouter/i }).click();
@@ -534,7 +534,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     // English sentinels avoid its words; proper names (Registry, Bifrost, Models.dev) are shared.
     const sentinels = {
       en: /[àâçéèêëîïôûùœ«»]|\b(Oui|Non|Autre|[Ii]nconnue?|nouveau|Fournisseur|[Ff]iche)\b/,
-      fr: /\b(Unknown|unknown|Yes|No|Other|Saved|Partial|Loading|Search|Creator|Provider|Reference|Model|Models(?!\.dev)|Review|Cancel|Save|Open|Edit|Declared|declared|Configured|available|[Dd]etails|Input|Output|[Pp]rice|the|and|with|of)\b/,
+      fr: /\b(Unknown|unknown|Yes|No|Other|Saved|Partial|Loading|Search|Creator|Provider|Reference|Model|Models(?!\.dev)|Native|Workspace|Catalog|Access|Accesses|Capabilities|Modalities|Series|Tasks|Settings|Show|View|Create|Delete|Name|Review|Cancel|Save|Open|Edit|Declared|declared|Configured|available|[Dd]etails|Input|Output|[Pp]rice|the|and|with|of)\b/,
     };
     const sweep = async (language: 'en' | 'fr', where: string) => {
       const text = await page.evaluate(() => [document.body.innerText, ...[...document.querySelectorAll('[aria-label], [title], [placeholder]')]
@@ -588,6 +588,13 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
       await sheet().waitFor({ state: 'hidden' });
       await nav(t('Virtual keys', 'Clés virtuelles')).click();
       await sweep(language, 'Virtual keys');
+      // The adoption dialog reads the reasons Bifrost sends (allow_all_providers blocks this one).
+      await keyCard('QA All Providers Key').getByRole('button', { name: t('Review', 'Examiner'), exact: true }).click();
+      await button(t('Review adoption', 'Examiner l’adoption')).click();
+      await expect(page.getByRole('dialog')).toContainText('allow_all_providers');
+      await sweep(language, 'Adoption dialog');
+      await page.getByRole('dialog').getByRole('button', { name: t('Cancel', 'Annuler'), exact: true }).click();
+      await button(t('All virtual keys', 'Toutes les clés virtuelles')).click();
       await keyCard('QA Development Key').getByRole('button', { name: t('Open', 'Ouvrir'), exact: true }).click();
       await sweep(language, 'Key page');
       await page.getByRole('list', { name: t('Key composition steps', 'Étapes de composition de la clé') }).getByRole('button', { name: new RegExp(`^\\d ${t('Review', 'Vérifier')}`) }).click();

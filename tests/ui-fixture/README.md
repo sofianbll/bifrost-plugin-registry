@@ -34,7 +34,9 @@ an aggregator that cross-lists them, variant IDs, unmanaged keys), not its data.
   the common ID, creator `Unknown`, no modalities.
 - `openrouter/anthropic/qa-opus` is linked to the same reference as the saved card
   `Claude/qa-opus` and carries a documented price ($4 / $20 per million tokens). The
-  `~…-latest` and `:batch` variants have no reference.
+  `~…-latest` and `:batch` variants have no reference. `openrouter/deepseek/qa-reasoner`
+  costs 2e-7 per input token, stored per million with its float noise (0.19999999999999998)
+  so the UI's number formatting is exercised.
 - The `qwen/` fillers push the aggregator past one 60-card page and sort after the `qa-*`
   cards. Discovery holds 76 models.
 - Each native model declares a `mode` (`chat`, or `image_generation` for `Google/qa-image`)
