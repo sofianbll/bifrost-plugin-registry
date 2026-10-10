@@ -65,13 +65,15 @@ export const exposed = (policy: Policy, groups: Group[], models: Model[]) => mem
 });
 export const delta = (before: string[], after: string[]) => ({ added: after.filter(x => !before.includes(x)), removed: before.filter(x => !after.includes(x)) });
 export const keyImpact = (keys: Key[], oldGroups: Group[], nextGroups: Group[], models: Model[]) => keys.map(key => ({ key, before: exposed(key.policy, oldGroups, models), after: exposed(key.policy, nextGroups, models) })).filter(row => !same(row.before, row.after));
+// An empty creator and "Unknown" are one absence: filters and labels key it as "Unknown".
+export const creatorKey = (creator?: unknown) => typeof creator === "string" && creator.trim() && creator !== "Unknown" ? creator : "Unknown";
 export type ModelFilters = { search: string; creator: string; provider: string; task: string; input: string; output: string; capability: string };
 export const emptyModelFilters: ModelFilters = { search: "", creator: "", provider: "", task: "", input: "", output: "", capability: "" };
 export const filterModels = (models: Model[], filters: ModelFilters) => models.filter(model => {
   const query = filters.search.trim().toLocaleLowerCase();
   const searchable = [model.name, model.id, model.creator, model.family, ...model.accesses.flatMap(access => [access.provider, access.id])].join(" ").toLocaleLowerCase();
   return (!query || searchable.includes(query)) &&
-    (!filters.creator || model.creator === filters.creator) &&
+    (!filters.creator || creatorKey(model.creator) === filters.creator) &&
     (!filters.provider || model.accesses.some(access => access.provider === filters.provider)) &&
     (!filters.task || model.tasks.includes(filters.task)) &&
     (!filters.input || model.inputModalities.includes(filters.input)) &&

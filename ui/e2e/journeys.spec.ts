@@ -49,6 +49,25 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await shot('after-catalog-light');
   });
 
+  await test.step('creators come from Models.dev references', async () => {
+    // Subscription cards were saved from discovery: slug name, creator "Unknown", no modalities.
+    // They show the reference name over the common ID, and the creator from the reference
+    // namespace (anthropic/… has a Models.dev provider record, tencent/… does not).
+    const card = (name: string) => page.locator('[data-slot="card"]').filter({ has: button(`Open ${name} details`) });
+    await expect(card('QA Opus')).toContainText('Anthropic · qa-claude');
+    await expect(card('QA Opus').getByText('qa-opus', { exact: true })).toBeVisible();
+    await expect(card('QA Opus').getByText('? → ?')).toHaveCount(0);
+    await expect(card('qa-codex-mini')).toContainText('Creator not identified'); // no reference
+    await page.getByRole('combobox', { name: 'Creator', exact: true }).click();
+    // Counts are models, saved and discovered (#70 splits them into scopes).
+    await expect(page.getByRole('option')).toHaveText(['Creator: all', 'Anthropic (3)', 'DeepSeek (1)', 'Fixture Labs (4)', 'Google (2)', 'Meituan (1)', 'OpenAI (1)', 'Tencent (1)', 'Creator not identified (63)']);
+    await page.getByRole('option', { name: 'Tencent (1)', exact: true }).click();
+    await expect(page.getByRole('button', { name: /^Open .* details$/ })).toHaveText(['QA Hunyuan']);
+    await expect(card('QA Hunyuan')).toContainText('Tencent · qa-hunyuan');
+    await button('Clear all').click();
+    await button('Open QA Chat details').waitFor();
+  });
+
   await test.step('model cancel protects draft; focus stays in editor', async () => {
     await button('Open QA Chat details').click();
     await page.getByRole('textbox', { name: 'Display name *', exact: true }).fill('QA draft preserved');
