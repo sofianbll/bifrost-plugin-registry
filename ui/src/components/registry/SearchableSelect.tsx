@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
+import { useCopy } from "@/lib/locale";
 
 export type SearchOption = { value: string; label?: string; detail?: string; referenceId?: string; accessId?: string };
 
@@ -13,6 +14,7 @@ export function SearchableSelect({ label, value, options, onChange, placeholder,
   disabled?: boolean;
 }) {
   const id = useId();
+  const copy = useCopy();
   const list = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
@@ -36,9 +38,9 @@ export function SearchableSelect({ label, value, options, onChange, placeholder,
       if (event.key === "ArrowUp" && count) { event.preventDefault(); setOpen(true); setActive(index => index < 0 ? count - 1 : (index - 1 + count) % count); }
       if (event.key === "Enter" && open && active >= 0 && active < count) { event.preventDefault(); choose(active); }
     }} /></PopoverAnchor>
-    <PopoverContent ref={list} id={`${id}-options`} role="listbox" aria-label={`${label} suggestions`} align="start" sideOffset={4} collisionPadding={8} onOpenAutoFocus={event => event.preventDefault()} onCloseAutoFocus={event => event.preventDefault()} onInteractOutside={event => { if (event.detail.originalEvent.target === input.current) event.preventDefault(); }} className="max-h-52 w-(--radix-popover-trigger-width) min-w-48 max-w-[calc(100vw-2rem)] overflow-y-auto p-1">
+    <PopoverContent ref={list} id={`${id}-options`} role="listbox" aria-label={copy(`${label} suggestions`, `Suggestions : ${label}`)} align="start" sideOffset={4} collisionPadding={8} onOpenAutoFocus={event => event.preventDefault()} onCloseAutoFocus={event => event.preventDefault()} onInteractOutside={event => { if (event.detail.originalEvent.target === input.current) event.preventDefault(); }} className="max-h-52 w-(--radix-popover-trigger-width) min-w-48 max-w-[calc(100vw-2rem)] overflow-y-auto p-1">
       {matches.map((option, index) => <button key={`${option.value}/${option.referenceId || option.accessId || ""}`} id={`${id}-option-${index}`} role="option" aria-selected={active === index} type="button" className={`block w-full rounded-sm px-3 py-2 text-left text-sm hover:bg-accent focus:bg-accent ${active === index ? "bg-accent" : ""}`} onMouseEnter={() => setActive(index)} onMouseDown={event => event.preventDefault()} onClick={() => choose(index)}><span className="block break-all font-medium">{option.label || option.value}</span>{option.label && option.label !== option.value && <span className="block break-all font-mono text-xs text-muted-foreground">{option.value}</span>}{option.detail && <span className="block break-words text-xs text-muted-foreground">{option.detail}</span>}</button>)}
-      {custom && <button id={`${id}-option-${matches.length}`} role="option" aria-selected={active === matches.length} type="button" className={`block w-full rounded-sm px-3 py-2 text-left text-sm hover:bg-accent ${active === matches.length ? "bg-accent" : ""}`} onMouseDown={event => event.preventDefault()} onClick={() => choose(matches.length)}>Use custom value: {value.trim()}</button>}
+      {custom && <button id={`${id}-option-${matches.length}`} role="option" aria-selected={active === matches.length} type="button" className={`block w-full rounded-sm px-3 py-2 text-left text-sm hover:bg-accent ${active === matches.length ? "bg-accent" : ""}`} onMouseDown={event => event.preventDefault()} onClick={() => choose(matches.length)}>{copy("Use custom value:", "Utiliser la valeur saisie :")} {value.trim()}</button>}
     </PopoverContent>
   </Popover>;
 }

@@ -115,6 +115,17 @@ type keyDTO struct {
 	Revision    int         `json:"revision"`
 	// Models withheld until an access is chosen, with their candidate access IDs.
 	PendingAccessSelection map[string][]string `json:"pendingAccessSelection,omitempty"`
+	// What Bifrost lets the key use today; absent when the native answer carried no provider rows.
+	Permissions *nativePermissions `json:"permissions,omitempty"`
+}
+type nativePermissions struct {
+	AllProviders bool                 `json:"allProviders"`
+	Providers    []providerPermission `json:"providers"`
+}
+type providerPermission struct {
+	Provider  string   `json:"provider"`
+	AllModels bool     `json:"allModels"`
+	Models    []string `json:"models"`
 }
 type demoDTO struct {
 	Models    []modelDTO `json:"models"`
@@ -127,10 +138,16 @@ type workspace struct {
 	Data          demoDTO           `json:"data"`
 	Discovery     []modelDTO        `json:"discovery"`
 	PricingProofs []pricingProofDTO `json:"pricingProofs"`
-	Connection    struct {
+	// Native providers with the Bifrost base type of custom ones, for their marks; read-only.
+	Providers  []providerDTO `json:"providers"`
+	Connection struct {
 		Connected bool   `json:"connected"`
 		Version   string `json:"version"`
 	} `json:"connection"`
+}
+type providerDTO struct {
+	ID               string `json:"id"`
+	BaseProviderType string `json:"baseProviderType,omitempty"`
 }
 type nativeModel struct {
 	Name             string   `json:"name"`
@@ -160,6 +177,23 @@ type nativeProviderConfig struct {
 	} `json:"keys"`
 }
 
+// permissions summarises the native provider rows; "*" allows every model, blacklisted names are left out.
+func (vk nativeVK) permissions() *nativePermissions {
+	if vk.ProviderConfigs == nil && !vk.AllowAllProviders {
+		return nil
+	}
+	out := &nativePermissions{AllProviders: vk.AllowAllProviders, Providers: []providerPermission{}}
+	for _, pc := range vk.ProviderConfigs {
+		p := providerPermission{Provider: pc.Provider, AllModels: registry.Has(pc.AllowedModels, "*"), Models: []string{}}
+		for _, name := range pc.AllowedModels {
+			if !p.AllModels && !registry.Has(pc.BlacklistedModels, name) {
+				p.Models = append(p.Models, name)
+			}
+		}
+		out.Providers = append(out.Providers, p)
+	}
+	return out
+}
 func (p nativeProviderConfig) keyIDs() []string {
 	if p.AllowAllKeys {
 		return []string{"*"}
@@ -309,19 +343,28 @@ func (s *Server) nativeKeys(ctx context.Context) ([]nativeVK, error) {
 	return v.VirtualKeys, nil
 }
 func (s *Server) nativeModels(ctx context.Context) ([]nativeModel, error) {
+	_, models, e := s.nativeProvidersAndModels(ctx)
+	return models, e
+}
+func (s *Server) nativeProvidersAndModels(ctx context.Context) ([]providerDTO, []nativeModel, error) {
 	out := []nativeModel{}
+	listed := []providerDTO{}
 	var providers struct {
 		Providers []struct {
-			Name string `json:"name"`
+			Name   string `json:"name"`
+			Custom struct {
+				BaseProviderType string `json:"base_provider_type"`
+			} `json:"custom_provider_config"`
 		} `json:"providers"`
 	}
 	if e := s.live.client.call(ctx, "GET", "/api/providers", nil, &providers); e != nil {
-		return nil, e
+		return nil, nil, e
 	}
 	for _, provider := range providers.Providers {
 		if provider.Name == "" {
 			continue
 		}
+		listed = append(listed, providerDTO{ID: provider.Name, BaseProviderType: provider.Custom.BaseProviderType})
 		var keys struct {
 			Keys []struct {
 				ID      string `json:"id"`
@@ -329,7 +372,7 @@ func (s *Server) nativeModels(ctx context.Context) ([]nativeModel, error) {
 			} `json:"keys"`
 		}
 		if e := s.live.client.call(ctx, "GET", "/api/providers/"+url.PathEscape(provider.Name)+"/keys", nil, &keys); e != nil {
-			return nil, e
+			return nil, nil, e
 		}
 		ids := []string{}
 		for _, key := range keys.Keys {
@@ -347,7 +390,7 @@ func (s *Server) nativeModels(ctx context.Context) ([]nativeModel, error) {
 			}
 			query := url.Values{"provider": {provider.Name}, "keys": {strings.Join(ids, ",")}, "limit": {"100"}, "offset": {fmt.Sprint(offset)}}
 			if e := s.live.client.callQuery(ctx, "/api/models", query, &page); e != nil {
-				return nil, e
+				return nil, nil, e
 			}
 			out = append(out, page.Models...)
 			if offset+len(page.Models) >= page.Total || len(page.Models) == 0 {
@@ -355,7 +398,7 @@ func (s *Server) nativeModels(ctx context.Context) ([]nativeModel, error) {
 			}
 		}
 	}
-	return out, nil
+	return listed, out, nil
 }
 func (c *liveClient) callQuery(ctx context.Context, path string, query url.Values, out any) error {
 	u := *c.base
@@ -429,7 +472,7 @@ func nativeToDiscovery(rows []nativeModel) []modelDTO {
 func (s *Server) workspace(ctx context.Context) (workspace, error) {
 	snap := s.Store.Load()
 	config := snap.Config()
-	rows, e := s.nativeModels(ctx)
+	providers, rows, e := s.nativeProvidersAndModels(ctx)
 	if e != nil {
 		return workspace{}, e
 	}
@@ -442,6 +485,7 @@ func (s *Server) workspace(ctx context.Context) (workspace, error) {
 		for j := range discovered[i].Accesses {
 			a := &discovered[i].Accesses[j]
 			a.ReferenceID = workspaceReferenceID(config.Catalog, a.Provider, a.NativeModel)
+			catalogModelFields(&discovered[i], catalogFieldsForAccess(config.Catalog, a.Provider, a.NativeModel))
 		}
 	}
 	dto := demoDTO{Models: []modelDTO{}, Groups: []groupDTO{}, Keys: []keyDTO{}, Campaigns: []any{}}
@@ -494,6 +538,7 @@ func (s *Server) workspace(ctx context.Context) (workspace, error) {
 		p, managed := policies[vk.ID]
 		active := vk.IsActive == nil || *vk.IsActive
 		key := keyDTO{ID: vk.ID, Name: vk.Name, Client: vk.Description, Active: active, Managed: managed, Policy: policyDTO{Groups: []string{}, Added: []string{}, Excluded: []string{}, Naming: config.DefaultNaming}, Publication: publication{State: "not_verified", Revision: snap.Revision(), Expected: []string{}, Missing: []string{}, Unexpected: []string{}}, Revision: 1}
+		key.Permissions = vk.permissions()
 		if managed {
 			key.Policy = policyDTO{Groups: p.Groups, Added: refsToAliases(p.Added, refs), Excluded: refsToAliases(p.Excluded, refs), Naming: p.Naming, Prefer: p.Prefer, AccessSelection: accessSelectionToDTO(p.AccessSelection, config.Models)}
 			if key.Policy.Naming == "" {
@@ -531,7 +576,7 @@ func (s *Server) workspace(ctx context.Context) (workspace, error) {
 		dto.Keys = append(dto.Keys, key)
 	}
 	sort.Slice(dto.Keys, func(i, j int) bool { return dto.Keys[i].Name < dto.Keys[j].Name })
-	ws := workspace{Revision: snap.Revision(), Data: dto, Discovery: discovered}
+	ws := workspace{Revision: snap.Revision(), Data: dto, Discovery: discovered, Providers: providers}
 	for name, proof := range s.live.proofs {
 		if !strings.HasPrefix(name, "registry/") {
 			continue

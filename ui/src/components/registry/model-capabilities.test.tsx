@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { LanguageContext } from "@/lib/locale";
-import { ModelCapabilitiesPanel, ModelCapabilitiesSummary, ModelModalitiesPanel, ModelModalitiesSummary } from "./model-capabilities";
+import { ModelCapabilitiesPanel, ModelCapabilitiesSummary, ModelCapabilityLegend, ModelModalitiesPanel, ModelModalitiesSummary } from "./model-capabilities";
 
 const model = { inputModalities: ["Text", "Image", "Audio"], outputModalities: [], capabilities: { Vision: "Unknown" as const, Reasoning: "Unknown" as const } };
 const render = (node: React.ReactNode) => renderToStaticMarkup(<LanguageContext.Provider value="fr">{node}</LanguageContext.Provider>);
@@ -13,7 +13,7 @@ if (!/aria-label="[^"]*Raisonnement/.test(mixed) || !/aria-label="[^"]*Outils/.t
 if (/>Raisonnement<|>Outils</.test(mixed)) throw new Error("capability labels visible in icon-only summary");
 const modalities = render(<ModelModalitiesSummary model={model} />);
 if (!/\+1/.test(modalities)) throw new Error("modality overflow hidden");
-if (!/aria-label="Entrée: Texte, Image, Audio; Sortie: inconnue/.test(modalities) || />Texte<|>Image<|>Audio</.test(modalities)) throw new Error("modality icons lack full accessible names or show duplicate text");
+if (!/aria-label="Entrée : Texte, Image, Audio; Sortie : inconnue/.test(modalities) || />Texte<|>Image<|>Audio</.test(modalities)) throw new Error("modality icons lack full accessible names or show duplicate text");
 const modalityPanel = render(<ModelModalitiesPanel model={{ ...model, outputModalities: ["Video", "Image"] }} />);
 for (const item of ["Entrées", "Sorties", "Texte", "Image", "Audio", "Vidéo"]) if (!modalityPanel.includes(item)) throw new Error(`actual modality missing: ${item}`);
 if (/Fonctionnalités|Raisonnement|Vision|data-capability=|Source et portée/.test(modalityPanel)) throw new Error("modality details include capability inventory");
@@ -42,4 +42,7 @@ for (const [key, state] of [['Vision', 'Declared'], ['Image generation', 'Declar
 if (/[○◆]/.test(mapped + mixed)) throw new Error('rejected state markers restored');
 const panelWithContext = render(<ModelCapabilitiesPanel model={model} context={{ source: 'catalogue' }} />);
 if (!panelWithContext.includes('Source et portée')) throw new Error('source and scope disclosure missing');
+// The legend shows the glyph a card uses for each state: the capability icon when known, "?" when not specified.
+const legend = render(<ModelCapabilityLegend />);
+if ((legend.match(/<svg/g) ?? []).length !== 2 || !/>\?</.test(legend) || /[○◆]/.test(legend)) throw new Error('legend does not show the glyphs it explains');
 console.log('Capability summaries, full inventory, facts and state semantics: passed');

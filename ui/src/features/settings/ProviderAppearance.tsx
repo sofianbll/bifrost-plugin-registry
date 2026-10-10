@@ -63,7 +63,7 @@ function ProviderRow({ provider }: { provider: string }) {
           <SelectGroup>
           <SelectItem value="__default">{copy("Provider default", "Logo fournisseur par défaut")}</SelectItem>
           {appearance?.image && <SelectItem value="__image">{copy("Uploaded image", "Image importée")}</SelectItem>}
-          {Object.keys(ProviderIcons).map(icon => <SelectItem key={icon} value={icon}>{icon.replace(/[-_]/g, " ").replace(/\b\w/g, letter => letter.toUpperCase())}</SelectItem>)}
+          {Object.keys(ProviderIcons).map(icon => <SelectItem key={icon} value={icon}>{displayProvider(icon)}</SelectItem>)}
           </SelectGroup>
         </SelectContent>
       </Select>

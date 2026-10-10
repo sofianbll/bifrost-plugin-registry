@@ -10,7 +10,10 @@ import (
 	"io"
 	"sort"
 	"strings"
+	"sync"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	"bifrost-registry/internal/registry"
 )
@@ -108,6 +111,9 @@ func modelsDevRows(current *registry.Catalog, at string, snapshot modelsDevSnaps
 	for id, model := range snapshot.Models {
 		ref := registry.CatalogReference{ID: id}
 		modelsDevFields(&ref.CatalogRecord, at, model.Resolved)
+		if creator := modelsDevCreator(id); creator != "" {
+			putField(&ref.CatalogRecord, "models.dev", at, "creator", creator)
+		}
 		refs = append(refs, ref)
 	}
 
@@ -140,6 +146,56 @@ func modelsDevRows(current *registry.Catalog, at string, snapshot modelsDevSnaps
 		accesses = append(accesses, a)
 	}
 	return refs, accesses, nil
+}
+
+// curatedCreators names namespaces without a Models.dev provider record where title case falls short.
+var curatedCreators = map[string]string{
+	"aisingapore": "AI Singapore", "arcee-ai": "Arcee AI", "bytedance-seed": "ByteDance Seed", "deepreinforce": "DeepReinforce",
+	"ibm": "IBM", "inclusionai": "inclusionAI", "nex-agi": "Nex AGI", "openbmb": "OpenBMB", "quiverai": "QuiverAI",
+	"sdaia": "SDAIA", "swiss-ai": "Swiss AI",
+}
+
+// modelsDevProviderNames maps the embedded snapshot's provider records to their names, without
+// qualifiers such as "MiniMax (minimax.io)". Parsed once: catalogue reads derive creators too.
+var modelsDevProviderNames = sync.OnceValue(func() map[string]string {
+	names := map[string]string{}
+	body, err := embeddedModelsDevSnapshot()
+	if err != nil {
+		return names
+	}
+	snapshot, err := parseModelsDevSnapshot(body)
+	if err != nil {
+		return names
+	}
+	for id, provider := range snapshot.Providers {
+		var name string
+		if json.Unmarshal(provider.Resolved["name"], &name) == nil {
+			name, _, _ = strings.Cut(name, " (")
+			names[id] = strings.TrimSpace(name)
+		}
+	}
+	return names
+})
+
+// modelsDevCreator names who made a Models.dev reference: Models.dev has no creator field, only
+// the ID namespace (anthropic/…). Provider record name, else curated name, else title case.
+func modelsDevCreator(id string) string {
+	namespace, _, ok := strings.Cut(id, "/")
+	if !ok || namespace == "" {
+		return ""
+	}
+	if name := modelsDevProviderNames()[namespace]; name != "" {
+		return name
+	}
+	if name := curatedCreators[namespace]; name != "" {
+		return name
+	}
+	words := strings.FieldsFunc(namespace, func(r rune) bool { return r == '-' || r == '_' })
+	for i, word := range words {
+		first, size := utf8.DecodeRuneInString(word)
+		words[i] = string(unicode.ToUpper(first)) + word[size:]
+	}
+	return strings.Join(words, " ")
 }
 
 func authoredResolvedFields(authored, resolved map[string]json.RawMessage) map[string]json.RawMessage {

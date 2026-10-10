@@ -21,20 +21,27 @@ export type Group = { id: string; name: string; description: string; members: st
 export type Policy = { groups: string[]; added: string[]; excluded: string[]; naming: "model" | "provider/model" | "both"; prefer?: Record<string, string>; accessSelection?: Record<string, AccessSelector> };
 export type Publication = { state: "verified" | "drift" | "not_verified"; revision: string; checkedAt: string; observedAt?: string; observedRevision?: string; expected: string[]; actual: string[] | null; missing: string[]; unexpected: string[]; error?: string };
 export type PricingProof = { access: string; state: string; checkedAt: string; error?: string };
+// What Bifrost lets a key use today, from its native provider rows; allModels stands for "*".
+export type NativePermissions = { allProviders: boolean; providers: { provider: string; allModels: boolean; models: string[] }[] };
 // pendingAccessSelection: saved models withheld until an access is chosen, with their candidate access IDs.
-export type Key = { id: string; name: string; client: string; active: boolean; policy: Policy; observed: string[] | null; readError: boolean; revision: number; managed?: boolean; publication?: Publication; pendingAccessSelection?: Record<string, string[]> };
+// permissions: absent when Bifrost's answer carried no provider rows (not read yet).
+export type Key = { id: string; name: string; client: string; active: boolean; policy: Policy; observed: string[] | null; readError: boolean; revision: number; managed?: boolean; publication?: Publication; pendingAccessSelection?: Record<string, string[]>; permissions?: NativePermissions };
 export type Demo = { models: Model[]; groups: Group[]; keys: Key[]; campaigns: Campaign[] };
 export type Campaign = { id: string; model: string; provider: string; accessId: string; scenario: string; outcome: "Pass" | "Fail" | "Inconclusive" | "Not run"; date: string; note: string };
 
 export const copy = <T,>(value: T): T => structuredClone(value);
-export const catalogModels = (registered: Model[], discovered: Model[]) => {
-  const byId = new Map(discovered.map(model => [model.id, model]));
-  for (const model of registered) {
-    const accesses = new Map((byId.get(model.id)?.accesses || []).map(access => [JSON.stringify([access.provider, access.nativeModel || access.id]), access]));
-    for (const access of model.accesses) accesses.set(JSON.stringify([access.provider, access.nativeModel || access.id]), access);
-    byId.set(model.id, { ...model, accesses: [...accesses.values()] });
-  }
-  return [...byId.values()];
+// The "To add" shelf: discovered models minus the accesses saved cards hold. A remainder keeps its
+// discovered ID, even when a saved card has the same ID: offered, never merged.
+export const unsavedModels = (registered: Model[], discovered: Model[]) => {
+  const key = (access: Access) => JSON.stringify([access.provider, access.nativeModel || access.id]);
+  const saved = new Set(registered.flatMap(model => model.accesses.map(key)));
+  const seen = new Set<string>();
+  return discovered.flatMap(model => {
+    if (seen.has(model.id)) return [];
+    seen.add(model.id);
+    const accesses = model.accesses.filter(access => !saved.has(key(access)));
+    return accesses.length ? [{ ...model, accesses }] : [];
+  });
 };
 export const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 export const members = (policy: Policy, groups: Group[]) => [...new Set([...groups.filter(g => policy.groups.includes(g.id)).flatMap(g => g.members), ...policy.added])].filter(id => !policy.excluded.includes(id));
@@ -65,13 +72,21 @@ export const exposed = (policy: Policy, groups: Group[], models: Model[]) => mem
 });
 export const delta = (before: string[], after: string[]) => ({ added: after.filter(x => !before.includes(x)), removed: before.filter(x => !after.includes(x)) });
 export const keyImpact = (keys: Key[], oldGroups: Group[], nextGroups: Group[], models: Model[]) => keys.map(key => ({ key, before: exposed(key.policy, oldGroups, models), after: exposed(key.policy, nextGroups, models) })).filter(row => !same(row.before, row.after));
+// An empty creator and "Unknown" are one absence: filters and labels key it as "Unknown".
+export const creatorKey = (creator?: unknown) => typeof creator === "string" && creator.trim() && creator !== "Unknown" ? creator : "Unknown";
+// A display name shared by several items gains their detail (an ID), so actions named after it stay distinct.
+export function distinctLabels<T>(items: T[], name: (item: T) => string, detail: (item: T) => string) {
+  const counts = new Map<string, number>();
+  for (const item of items) counts.set(name(item), (counts.get(name(item)) ?? 0) + 1);
+  return (item: T) => (counts.get(name(item)) ?? 0) > 1 ? `${name(item)} (${detail(item)})` : name(item);
+}
 export type ModelFilters = { search: string; creator: string; provider: string; task: string; input: string; output: string; capability: string };
 export const emptyModelFilters: ModelFilters = { search: "", creator: "", provider: "", task: "", input: "", output: "", capability: "" };
 export const filterModels = (models: Model[], filters: ModelFilters) => models.filter(model => {
   const query = filters.search.trim().toLocaleLowerCase();
   const searchable = [model.name, model.id, model.creator, model.family, ...model.accesses.flatMap(access => [access.provider, access.id])].join(" ").toLocaleLowerCase();
   return (!query || searchable.includes(query)) &&
-    (!filters.creator || model.creator === filters.creator) &&
+    (!filters.creator || creatorKey(model.creator) === filters.creator) &&
     (!filters.provider || model.accesses.some(access => access.provider === filters.provider)) &&
     (!filters.task || model.tasks.includes(filters.task)) &&
     (!filters.input || model.inputModalities.includes(filters.input)) &&

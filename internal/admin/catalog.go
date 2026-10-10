@@ -31,13 +31,46 @@ func catalogFieldsForAccess(c *registry.Catalog, provider, model string) map[str
 	if access == nil {
 		return fields
 	}
-	return registry.EffectiveAccessCatalogFields(c, *access)
+	fields = registry.EffectiveAccessCatalogFields(c, *access)
+	if _, ok := fields["creator"]; !ok && access.ReferenceID != "" {
+		for _, ref := range c.References {
+			if ref.ID == access.ReferenceID {
+				if creator, ok := referenceFields(ref)["creator"]; ok {
+					fields["creator"] = creator
+				}
+				break
+			}
+		}
+	}
+	return fields
+}
+
+// referenceFields adds the namespace creator to Models.dev references saved before a refresh
+// stored it, so older registry files show creators without a refresh. Any stored value wins.
+func referenceFields(ref registry.CatalogReference) map[string]registry.CatalogValue {
+	fields := registry.EffectiveCatalogFields(ref.CatalogRecord)
+	if _, ok := fields["creator"]; ok {
+		return fields
+	}
+	for _, sources := range ref.Candidates {
+		if _, ok := sources["models.dev"]; ok {
+			if creator := modelsDevCreator(ref.ID); creator != "" {
+				raw, _ := json.Marshal(creator)
+				fields["creator"] = registry.CatalogValue{Value: raw, Source: "models.dev", UpdatedAt: ref.UpdatedAt["models.dev"], Kind: "declared"}
+			}
+			break
+		}
+	}
+	return fields
 }
 
 func catalogModelFields(m *modelDTO, fields map[string]registry.CatalogValue) {
 	getString := func(key string) string { var v string; _ = json.Unmarshal(fields[key].Value, &v); return v }
-	if m.Name == "" {
-		m.Name = getString("name")
+	// A name equal to the common ID is the slug discovery registered, not a chosen display name.
+	if m.Name == "" || m.Name == m.ID {
+		if v := getString("name"); v != "" {
+			m.Name = v
+		}
 	}
 	if m.Creator == "" || m.Creator == "Unknown" {
 		if v := getString("creator"); v != "" {
@@ -179,7 +212,7 @@ func catalogView(snap *registry.Snapshot) catalogDTO {
 		return out
 	}
 	for _, r := range cfg.Catalog.References {
-		out.References = append(out.References, catalogReferenceDTO{r.ID, registry.EffectiveCatalogFields(r.CatalogRecord), rawOverrides(r.Overrides)})
+		out.References = append(out.References, catalogReferenceDTO{r.ID, referenceFields(r), rawOverrides(r.Overrides)})
 	}
 	for _, a := range cfg.Catalog.Accesses {
 		out.Accesses = append(out.Accesses, catalogAccessDTO{a.ID, a.Provider, a.Model, a.Configured, a.ReferenceID, a.MappingManual, a.MatchConflict, a.OmittedFields, registry.EffectiveCatalogFields(a.CatalogRecord), rawOverrides(a.Overrides)})

@@ -1,18 +1,22 @@
 import { fixture } from "../dev/fixtures/registry";
-import { catalogModels, copy, delta, exposed, filterModels, keyImpact, members, modelImpact, toggleModel, emptyModelFilters } from "./registry";
+import { copy, unsavedModels, creatorKey, delta, distinctLabels, exposed, filterModels, keyImpact, members, modelImpact, toggleModel, emptyModelFilters } from "./registry";
 
 const assert = (condition: boolean) => { if (!condition) throw Error("Demo state check failed"); };
 const deepEqual = (a: unknown, b: unknown) => assert(JSON.stringify(a) === JSON.stringify(b));
 
 const state = copy(fixture);
 const discovered = { ...state.models[0], name: "Discovery label", summary: "Unreviewed metadata" };
-deepEqual(catalogModels([state.models[0]], [discovered, state.models[1], state.models[1]]).map(m => m.id), [state.models[0].id, state.models[1].id]);
-deepEqual(catalogModels([state.models[0]], [discovered]).find(m => m.id === discovered.id), state.models[0]);
+// The "To add" shelf: discovered models minus the accesses saved cards hold, each discovered ID once.
+deepEqual(unsavedModels([state.models[0]], [discovered, state.models[1], state.models[1]]).map(m => m.id), [state.models[1].id]);
 const additionalAccess = { provider: "second-provider", id: "second-provider/gpt-5", nativeModel: "native-gpt-5", route: "Direct provider", status: "Configured" as const };
 const expandedDiscovery = { ...discovered, accesses: [...discovered.accesses, additionalAccess] };
-const merged = catalogModels([state.models[0]], [expandedDiscovery])[0];
-assert(merged.name === state.models[0].name && merged.accesses.some(access => access.nativeModel === "native-gpt-5"));
-assert(merged.accesses.length === state.models[0].accesses.length + 1);
+// A discovered access the saved card does not hold is offered beside it under its discovered ID, never merged into it.
+deepEqual(unsavedModels([state.models[0]], [expandedDiscovery]).map(m => [m.id, m.accesses]), [[state.models[0].id, [additionalAccess]]]);
+// An access already saved under another card ID is not offered again.
+deepEqual(unsavedModels([state.models[1]], [{ ...state.models[1], id: "other-id" }]), []);
+// A display name shared by several cards gains the card's ID, so actions named after it stay distinct.
+const label = distinctLabels([{ name: "QA", id: "a" }, { name: "QA", id: "b" }, { name: "Other", id: "c" }], m => m.name, m => m.id);
+deepEqual([label({ name: "QA", id: "b" }), label({ name: "Other", id: "c" })], ["QA (b)", "Other"]);
 assert(state.models[0].accesses.length === 2);
 assert(state.campaigns.every(c => state.models.find(m => m.id === c.model)?.accesses.some(a => a.provider === c.provider && a.id === c.accessId)));
 const hermes = state.keys[0];
@@ -28,6 +32,8 @@ assert(!exposed(hermes.policy, nextGroups, state.models).includes("claude-sonnet
 deepEqual(delta(["a", "b"], ["b", "c"]), { added: ["c"], removed: ["a"] });
 deepEqual(filterModels(state.models, { ...emptyModelFilters, search: "azure/gpt-5" }).map(m => m.id), ["gpt-5"]);
 deepEqual(filterModels(state.models, { ...emptyModelFilters, creator: "OpenAI", provider: "azure" }).map(m => m.id), ["gpt-5"]);
+// An empty creator and "Unknown" are the same absence under one filter value.
+deepEqual(filterModels([{ ...state.models[0], creator: "" }, { ...state.models[1], creator: "Unknown" }, state.models[2]], { ...emptyModelFilters, creator: creatorKey("") }).map(m => m.id), [state.models[0].id, state.models[1].id]);
 deepEqual(filterModels(state.models, { ...emptyModelFilters, input: "Image", task: "Reasoning" }).map(m => m.id), ["gpt-5", "claude-sonnet-4", "gemini-2.5-pro", "claude-opus-4"]);
 deepEqual(modelImpact(hermes, state.groups, nextGroups), { added: ["kimi-k2"], removed: [], unchanged: ["gpt-5", "gpt-5-mini", "gemini-2.5-pro"], exclusions: ["claude-sonnet-4"] });
 assert(state.models.every(model => model.creator && model.family && model.inputModalities.length && model.outputModalities.length && model.tasks.length));

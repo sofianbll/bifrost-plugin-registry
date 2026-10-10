@@ -1,6 +1,7 @@
 import type { Catalog, CatalogRecord } from "./catalog-api";
 import { registryEndpoints, type Access, type Model } from "../../domain/registry";
 import type { SearchOption } from "../../components/registry/SearchableSelect";
+import type { Copy } from "../../lib/locale";
 
 const stringField = (record: CatalogRecord, name: string) => {
   const value = record.fields[name]?.value;
@@ -8,19 +9,19 @@ const stringField = (record: CatalogRecord, name: string) => {
 };
 const unique = (options: SearchOption[]) => [...new Map(options.map(option => [option.value.toLocaleLowerCase(), option])).values()];
 
-export function modelEditorOptions(catalog: Catalog | null, workspace: Model[]) {
+export function modelEditorOptions(catalog: Catalog | null, workspace: Model[], copy: Copy) {
   const references = catalog?.references || [];
   const accesses = catalog?.accesses || [];
   const referenceOptions = references.flatMap(reference => {
       const linked = accesses.find(access => access.referenceId === reference.id)?.model;
       const tail = reference.id.split("/").at(-1) || "";
       const id = linked && /^[a-z0-9][a-z0-9._-]*$/.test(linked) ? linked : tail;
-      return /^[a-z0-9][a-z0-9._-]*$/.test(id) ? [{ value: id, label: stringField(reference, "name") || id, detail: `Reference ${reference.id}`, referenceId: reference.id }] : [];
+      return /^[a-z0-9][a-z0-9._-]*$/.test(id) ? [{ value: id, label: stringField(reference, "name") || id, detail: `${copy("Reference", "Fiche documentaire")} ${reference.id}`, referenceId: reference.id }] : [];
     });
   const modelIds = [
     ...referenceOptions,
-    ...workspace.filter(model => /^[a-z0-9][a-z0-9._-]*$/.test(model.id) && !referenceOptions.some(option => option.value === model.id)).map(model => ({ value: model.id, label: model.name, detail: "Workspace model" })),
-    ...accesses.filter(access => !access.referenceId && /^[a-z0-9][a-z0-9._-]*$/.test(access.model) && !referenceOptions.some(option => option.value === access.model) && !workspace.some(model => model.id === access.model)).map(access => ({ value: access.model, label: stringField(access, "name") || access.model, detail: `Discovered access ${access.id}`, accessId: access.id })),
+    ...workspace.filter(model => /^[a-z0-9][a-z0-9._-]*$/.test(model.id) && !referenceOptions.some(option => option.value === model.id)).map(model => ({ value: model.id, label: model.name, detail: copy("Workspace model", "Fiche modèle enregistrée") })),
+    ...accesses.filter(access => !access.referenceId && /^[a-z0-9][a-z0-9._-]*$/.test(access.model) && !referenceOptions.some(option => option.value === access.model) && !workspace.some(model => model.id === access.model)).map(access => ({ value: access.model, label: stringField(access, "name") || access.model, detail: `${copy("Discovered access", "Accès découvert")} ${access.id}`, accessId: access.id })),
   ];
   const values = (field: "creator" | "family", workspaceField: "creator" | "family") => unique([
     ...references.map(reference => stringField(reference, field)),
@@ -41,6 +42,17 @@ export function firstRegistrationIssue(model: Model): RegistrationIssue | undefi
   if (!model.name.trim()) return "name";
   if (!model.accesses.length || model.accesses.some(access => !access.provider.trim() || !access.nativeModel || !access.nativeModel.trim() || access.id !== `${access.provider}/${model.id}`)) return "access";
   if (model.accesses.some(access => !access.endpoints?.length || access.endpoints.some(endpoint => !(registryEndpoints as readonly string[]).includes(endpoint)))) return "operations";
+}
+
+// Registry endpoints implied by the mode Bifrost declares for a native model (its parameters
+// datasheet). A missing or unknown mode preselects nothing; saved accesses keep their own.
+const modeEndpoints: Record<string, string[]> = {
+  chat: ["chat/completions"], completion: ["completions"], responses: ["responses"], embedding: ["embeddings"],
+  image_generation: ["images/generations"], audio_speech: ["audio/speech"], rerank: ["rerank"], ocr: ["ocr"],
+};
+export function declaredEndpoints(access?: CatalogRecord): string[] {
+  const parameters = access?.fields.parameters?.value as { mode?: unknown } | undefined;
+  return typeof parameters?.mode === "string" ? [...(modeEndpoints[parameters.mode] ?? [])] : [];
 }
 
 export type AccessCandidate = Pick<Access, "provider" | "nativeModel" | "status"> & { source: string };

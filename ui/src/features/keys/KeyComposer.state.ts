@@ -1,4 +1,4 @@
-import { exposed, members, origin, retainedAccesses, toggleModel, type Group, type Model, type Policy } from "../../domain/registry";
+import { exposed, members, origin, retainedAccesses, toggleModel, type Group, type Key, type Model, type Policy } from "../../domain/registry";
 
 export function toggleVisibleModels(policy: Policy, visible: string[], target: string[], models: Model[], groups: Group[]): Policy {
   const visibleIds = new Set(visible);
@@ -123,6 +123,21 @@ export function keyComposition(policy: Policy, groups: Group[], models: Model[])
   };
 }
 
+
+// What Review compares the draft with: the last verified readback, else the last published plan,
+// else the models Bifrost allows today, in the key's ID format.
+export function keyBaseline(key: Key, groups: Group[], models: Model[]): { source: "readback" | "plan" | "native"; ids: string[] } {
+  if (key.publication?.state === "verified" && key.publication.actual) return { source: "readback", ids: key.publication.actual };
+  const plan = exposed(key.policy, groups, models);
+  const permissions = key.permissions;
+  if (plan.length || !permissions) return { source: "plan", ids: plan };
+  const ids = models.flatMap(model => {
+    const allowed = model.accesses.filter(access => permissions.allProviders || permissions.providers.some(p => p.provider === access.provider && (p.allModels || p.models.includes(access.nativeModel || access.id.slice(access.provider.length + 1))))).map(access => access.id);
+    if (!allowed.length) return [];
+    return key.policy.naming === "model" ? [model.id] : key.policy.naming === "provider/model" ? allowed : [model.id, ...allowed];
+  });
+  return { source: "native", ids };
+}
 
 export function preserveAdoptionDraft(adopted: Policy, draft: Policy): Policy {
   return {

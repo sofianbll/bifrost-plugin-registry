@@ -223,6 +223,93 @@ func TestLiveWorkspacePublishAndReadback(t *testing.T) {
 	}
 }
 
+// #69: each key card says what Bifrost lets the key use today, read from its native provider rows.
+func TestWorkspaceSummarizesNativeKeyPermissions(t *testing.T) {
+	s := setup(t)
+	if err := s.ConnectBifrost("http://bifrost.local", "Bearer native-admin"); err != nil {
+		t.Fatal(err)
+	}
+	s.live.client.http.Transport = nativeRoundTrip(func(r *http.Request) (*http.Response, error) {
+		switch r.URL.Path {
+		case "/api/version":
+			return nativeResponse(200, `"2.2.6"`), nil
+		case "/api/providers":
+			return nativeResponse(200, `{"providers":[]}`), nil
+		case "/api/governance/virtual-keys":
+			return nativeResponse(200, `{"virtual_keys":[
+				{"id":"vk-all","name":"All","allow_all_providers":true,"provider_configs":[]},
+				{"id":"vk-some","name":"Some","provider_configs":[{"provider":"Codex","allowed_models":["gpt-a","gpt-b","gpt-c"],"blacklisted_models":["gpt-c"]},{"provider":"Claude","allowed_models":["*"]}]},
+				{"id":"vk-none","name":"None","provider_configs":[]},
+				{"id":"vk-unread","name":"Unread"}]}`), nil
+		}
+		t.Fatal("unexpected native route", r.URL.String())
+		return nil, nil
+	})
+	w := perform(s, "GET", "/api/workspace", "", authorized())
+	if w.Code != 200 {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	var ws struct {
+		Data struct {
+			Keys []struct {
+				ID          string          `json:"id"`
+				Permissions json.RawMessage `json:"permissions"`
+			} `json:"keys"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &ws); err != nil {
+		t.Fatal(err)
+	}
+	got := map[string]string{}
+	for _, k := range ws.Data.Keys {
+		got[k.ID] = string(k.Permissions)
+	}
+	want := map[string]string{
+		"vk-all":    `{"allProviders":true,"providers":[]}`,
+		"vk-some":   `{"allProviders":false,"providers":[{"provider":"Codex","allModels":false,"models":["gpt-a","gpt-b"]},{"provider":"Claude","allModels":true,"models":[]}]}`,
+		"vk-none":   `{"allProviders":false,"providers":[]}`,
+		"vk-unread": "", // no provider rows in the native answer: not read, not "no access"
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("native permission summaries:\n got %v\nwant %v", got, want)
+	}
+}
+
+// #71: custom providers resolve their marks through the base provider type Bifrost already returns.
+func TestWorkspaceListsNativeProvidersWithBaseType(t *testing.T) {
+	s := setup(t)
+	if err := s.ConnectBifrost("http://bifrost.local", "Bearer native-admin"); err != nil {
+		t.Fatal(err)
+	}
+	s.live.client.http.Transport = nativeRoundTrip(func(r *http.Request) (*http.Response, error) {
+		switch r.URL.Path {
+		case "/api/version":
+			return nativeResponse(200, `"2.2.6"`), nil
+		case "/api/providers":
+			return nativeResponse(200, `{"providers":[{"name":"Claude","custom_provider_config":{"base_provider_type":"anthropic","is_key_less":false}},{"name":"openrouter"},{"name":""}]}`), nil
+		case "/api/providers/Claude/keys", "/api/providers/openrouter/keys":
+			return nativeResponse(200, `{"keys":[]}`), nil
+		case "/api/governance/virtual-keys":
+			return nativeResponse(200, `{"virtual_keys":[]}`), nil
+		}
+		t.Fatal("unexpected native route", r.URL.String())
+		return nil, nil
+	})
+	w := perform(s, "GET", "/api/workspace", "", authorized())
+	if w.Code != 200 {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	var ws struct {
+		Providers json.RawMessage `json:"providers"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &ws); err != nil {
+		t.Fatal(err)
+	}
+	if want := `[{"id":"Claude","baseProviderType":"anthropic"},{"id":"openrouter"}]`; string(ws.Providers) != want {
+		t.Fatalf("native providers:\n got %s\nwant %s", ws.Providers, want)
+	}
+}
+
 func TestStatusReportsUnreachableBifrost(t *testing.T) {
 	s := setup(t)
 	if err := s.ConnectBifrost("http://bifrost.local", ""); err != nil {

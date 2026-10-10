@@ -343,3 +343,130 @@ func TestModelsDevOmissionsAndNormalizedSnapshotFitConfig(t *testing.T) {
 		t.Fatalf("authored omission %s survived access composition", offerID)
 	}
 }
+
+// Models.dev references have no creator field: the creator is the ID namespace, named from its
+// Models.dev provider record, else a curated name, else the title-cased namespace.
+func TestModelsDevReferencesNameTheirCreatorFromTheNamespace(t *testing.T) {
+	body, err := embeddedModelsDevSnapshot()
+	if err != nil {
+		t.Fatal(err)
+	}
+	snapshot, err := parseModelsDevSnapshot(body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	refs, _, err := modelsDevRows(&registry.Catalog{}, snapshot.Source.SourceAt, snapshot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	creators := map[string]registry.CatalogValue{}
+	for _, ref := range refs {
+		creators[ref.ID] = registry.EffectiveCatalogFields(ref.CatalogRecord)["creator"]
+	}
+	for id, want := range map[string]string{
+		"anthropic/claude-haiku-4-5": `"Anthropic"`, // provider record
+		"minimax/MiniMax-M2":         `"MiniMax"`,   // provider record, qualifier dropped
+		"ibm/granite-4-h-micro":      `"IBM"`,       // no record, curated
+		"tencent/hy3":                `"Tencent"`,   // no record, title-cased
+	} {
+		if got := creators[id]; string(got.Value) != want || got.Source != "models.dev" {
+			t.Errorf("%s creator = %s from %q, want %s from models.dev", id, got.Value, got.Source, want)
+		}
+	}
+	if got := modelsDevCreator("acme-labs/model"); got != "Acme Labs" {
+		t.Errorf("title-cased fallback = %q", got)
+	}
+}
+
+// A registry file saved before references stored a creator names it on read, without a refresh:
+// in the catalogue, on the saved card whose creator is "Unknown", and on discovery. A manual
+// correction still wins. The saved card's name equals its common ID, so the reference name shows.
+func TestCreatorsShowWithoutRefreshAndCorrectionsWin(t *testing.T) {
+	s := setup(t)
+	ui, _ := json.Marshal(map[string]any{"id": "qa-opus", "name": "qa-opus", "creator": "Unknown", "family": "Unknown"})
+	modelsDev := func(name string) registry.CatalogRecord {
+		return registry.CatalogRecord{Candidates: map[string]map[string]json.RawMessage{"name": {"models.dev": json.RawMessage(`"` + name + `"`)}}}
+	}
+	initial, err := registry.Compile(registry.Config{SchemaVersion: 1, DefaultNaming: "provider/model",
+		Models: []registry.Model{{ID: "access-opus", Alias: "qa-opus", Provider: "Claude", ProviderKeyIDs: []string{"claude-key"}, UpstreamModel: "qa-opus", Endpoints: []string{"chat/completions"}, Enabled: true, Configured: true, Metadata: map[string]json.RawMessage{"ui": ui}}},
+		Catalog: &registry.Catalog{
+			References: []registry.CatalogReference{{ID: "anthropic/qa-opus", CatalogRecord: modelsDev("QA Opus")}, {ID: "tencent/qa-hunyuan", CatalogRecord: modelsDev("QA Hunyuan")}},
+			Accesses: []registry.CatalogAccess{
+				{ID: "Claude/qa-opus", Provider: "Claude", Model: "qa-opus", Configured: true, ReferenceID: "anthropic/qa-opus"},
+				{ID: "openrouter/tencent/qa-hunyuan", Provider: "openrouter", Model: "tencent/qa-hunyuan", Configured: true, ReferenceID: "tencent/qa-hunyuan"},
+			},
+		}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.Store.Save(initial.JSON(), s.Store.Load().Revision()); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.ConnectBifrost("http://bifrost.local", "Bearer native-admin"); err != nil {
+		t.Fatal(err)
+	}
+	s.live.client.http.Transport = nativeRoundTrip(func(r *http.Request) (*http.Response, error) {
+		switch r.URL.Path {
+		case "/api/providers":
+			return nativeResponse(200, `{"providers":[{"name":"Claude"},{"name":"openrouter"}]}`), nil
+		case "/api/providers/Claude/keys":
+			return nativeResponse(200, `{"keys":[{"id":"claude-key"}]}`), nil
+		case "/api/providers/openrouter/keys":
+			return nativeResponse(200, `{"keys":[{"id":"openrouter-key"}]}`), nil
+		case "/api/models":
+			if r.URL.Query().Get("provider") == "Claude" {
+				return nativeResponse(200, `{"models":[{"name":"qa-opus","provider":"Claude","accessible_by_keys":["claude-key"]}],"total":1}`), nil
+			}
+			return nativeResponse(200, `{"models":[{"name":"tencent/qa-hunyuan","provider":"openrouter","accessible_by_keys":["openrouter-key"]}],"total":1}`), nil
+		case "/api/governance/virtual-keys":
+			return nativeResponse(200, `{"virtual_keys":[],"total_count":0}`), nil
+		case "/api/version":
+			return nativeResponse(200, `"2.2.6"`), nil
+		default:
+			t.Fatal("unexpected Bifrost request", r.URL.String())
+			return nil, nil
+		}
+	})
+	read := func() (references map[string]registry.CatalogValue, card, discovered modelDTO) {
+		t.Helper()
+		var catalog catalogDTO
+		if w := perform(s, "GET", "/api/catalog", "", authorized()); w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &catalog) != nil {
+			t.Fatal("catalog", w.Code, w.Body.String())
+		}
+		references = map[string]registry.CatalogValue{}
+		for _, ref := range catalog.References {
+			references[ref.ID] = ref.Fields["creator"]
+		}
+		var ws workspace
+		if w := perform(s, "GET", "/api/workspace", "", authorized()); w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &ws) != nil || len(ws.Data.Models) != 1 || len(ws.Discovery) != 2 {
+			t.Fatal("workspace", w.Code, w.Body.String())
+		}
+		for _, m := range ws.Discovery {
+			if m.Accesses[0].Provider == "openrouter" {
+				discovered = m
+			}
+		}
+		return references, ws.Data.Models[0], discovered
+	}
+
+	references, card, discovered := read()
+	if string(references["anthropic/qa-opus"].Value) != `"Anthropic"` || references["anthropic/qa-opus"].Source != "models.dev" || string(references["tencent/qa-hunyuan"].Value) != `"Tencent"` {
+		t.Fatalf("reference creators: %+v", references)
+	}
+	if card.Creator != "Anthropic" || card.Name != "QA Opus" {
+		t.Fatalf("saved card creator %q, name %q", card.Creator, card.Name)
+	}
+	if discovered.Creator != "Tencent" {
+		t.Fatalf("discovered creator %q", discovered.Creator)
+	}
+
+	headers := authorized()
+	headers["If-Match"] = s.Store.Load().Revision()
+	if w := perform(s, "PUT", "/api/catalog/override", `{"target":"reference","id":"anthropic/qa-opus","field":"creator","value":"Anthropic PBC"}`, headers); w.Code != 200 {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	references, card, _ = read()
+	if references["anthropic/qa-opus"].Source != "manual" || card.Creator != "Anthropic PBC" {
+		t.Fatalf("manual correction lost: %+v, card %q", references["anthropic/qa-opus"], card.Creator)
+	}
+}
