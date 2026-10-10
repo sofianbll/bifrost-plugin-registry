@@ -1,6 +1,6 @@
 import { fixture } from "../../dev/fixtures/registry";
-import { emptyModelFilters, exposed, filterModels, members, type Policy } from "../../domain/registry";
-import { accessOrigin, aliasStatus, keyComposition, modelOrigin, preserveAdoptionDraft, toggleAccess, toggleVisibleModels } from "./KeyComposer.state";
+import { emptyModelFilters, exposed, filterModels, members, same, type Key, type Policy } from "../../domain/registry";
+import { accessOrigin, aliasStatus, keyBaseline, keyComposition, modelOrigin, preserveAdoptionDraft, toggleAccess, toggleVisibleModels } from "./KeyComposer.state";
 
 const groups = fixture.groups.slice(0, 2);
 const models = fixture.models;
@@ -76,5 +76,15 @@ const aliasedStatus = aliasStatus(aliasedPinned, [aliasedGroup], aliasedModels)[
 if (aliasedStatus?.status !== "pinned" || aliasedStatus?.count !== 2) throw new Error("Expected pinned status keyed by alias when internal id differs");
 const aliasedShared = aliasStatus({ ...sharedPolicy, groups: [aliasedGroup.id] }, [aliasedGroup], aliasedModels)["gpt-5"];
 if (aliasedShared?.status !== "shared" || aliasedShared?.count !== 2) throw new Error("Expected shared status keyed by alias when internal id differs");
+
+// #69: Review compares the draft with the last verified readback, else the last published plan,
+// else what Bifrost allows today (expressed in the key's ID format).
+const planned: Key = { ...fixture.keys[0], managed: true, policy: { groups: [groups[0].id], added: [], excluded: [], naming: "provider/model" } };
+const plannedBaseline = keyBaseline(planned, groups, models);
+if (plannedBaseline.source !== "plan" || !same(plannedBaseline.ids, exposed(planned.policy, groups, models))) throw new Error("Without readback the baseline is the last published plan");
+const verifiedBaseline = keyBaseline({ ...planned, publication: { state: "verified", revision: "r", checkedAt: "", expected: [], actual: ["openai/gpt-5"], missing: [], unexpected: [] } }, groups, models);
+if (verifiedBaseline.source !== "readback" || !same(verifiedBaseline.ids, ["openai/gpt-5"])) throw new Error("A verified readback is the preferred baseline");
+const nativeBaseline = keyBaseline({ ...planned, policy: { groups: [], added: [], excluded: [], naming: "both" }, permissions: { allProviders: false, providers: [{ provider: "openai", allModels: false, models: ["gpt-5"] }] } }, groups, models);
+if (nativeBaseline.source !== "native" || !same(nativeBaseline.ids, ["gpt-5", "openai/gpt-5"])) throw new Error(`Without a plan the baseline is the current Bifrost permissions: ${JSON.stringify(nativeBaseline)}`);
 
 console.log("Key composer state checks passed");
