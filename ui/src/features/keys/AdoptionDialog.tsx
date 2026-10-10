@@ -6,13 +6,35 @@ import { ApiError, applyKeyAdoption, previewKeyAdoption, type AdoptionOperation,
 import { useCopy } from "../../lib/locale";
 
 const missingAccess = /^Native route (.+) needs a configured direct Registry access with the same native name$/;
+// The other reasons the server gives, in French; the English UI shows them as sent.
+const frenchReasons: [RegExp, string][] = [
+  [/^Native key identity changed$/, "L’identité de la clé native a changé."],
+  [/^Native key is inactive or expired$/, "La clé native est inactive ou expirée."],
+  [/^Native key is controlled by an external access profile$/, "La clé native dépend d’un profil d’accès externe."],
+  [/^Full native key credential is unavailable$/, "Le secret complet de la clé native est indisponible."],
+  [/^Registry policy is disabled$/, "La politique Registry est désactivée."],
+  [/^Registry binding already matches the native key$/, "L’association Registry correspond déjà à la clé native."],
+  [/^Native model readback is unavailable$/, "La relecture des modèles natifs est indisponible."],
+  [/^Native model list differs from configured access; import or reconcile the missing routes first$/, "La liste des modèles natifs diffère des accès configurés ; importez ou réconciliez d’abord les routes manquantes."],
+  [/^allow_all_providers grants future providers and cannot be represented safely$/, "allow_all_providers accorde aussi les futurs fournisseurs : impossible de le reprendre fidèlement."],
+  [/^Duplicate native model discovery for (.+)$/, "Modèle natif découvert en double pour $1."],
+  [/^Native provider configuration is missing or duplicated$/, "Configuration native du fournisseur absente ou en double."],
+  [/^Empty native allowed_models has version-dependent meaning for (.+)$/, "allowed_models vide pour $1 : sens variable selon la version de Bifrost."],
+  [/^Empty native provider key list has version-dependent meaning for (.+)$/, "Liste de clés fournisseur vide pour $1 : sens variable selon la version de Bifrost."],
+  [/^Dynamic native blacklist is unsupported for (.+)$/, "$1 : liste d’exclusion dynamique non prise en charge."],
+  [/^Duplicate native model route (.+)$/, "Route de modèle native en double : $1."],
+  [/^Native route (.+) is absent from provider discovery$/, "La route native $1 est absente de la découverte du fournisseur."],
+  [/^No enabled native provider key for (.+)$/, "Aucune clé fournisseur native active pour $1."],
+];
 function adoptionReason(reason: string, copyText: ReturnType<typeof useCopy>) {
   const dynamicProvider = reason.match(/^Dynamic native model allowlist is unsupported for (.+)$/)?.[1];
   if (dynamicProvider) return copyText(`${dynamicProvider}: dynamic model list; adoption is unsupported.`, `${dynamicProvider} : liste de modèles dynamique ; adoption non prise en charge.`);
   if (reason === "Native key has no representable configured model access") return copyText("No configured access can be safely transferred to a Registry selection from this key.", "Aucun accès configuré de cette clé ne peut être repris fidèlement dans une sélection Registry.");
   const route = reason.match(missingAccess)?.[1];
   const split = route?.indexOf("/") ?? -1;
-  return split > 0 ? copyText(`Also register the “${route!.slice(split + 1)}” model from provider “${route!.slice(0, split)}” to preserve this key’s permissions.`, `Enregistrez aussi le modèle « ${route!.slice(split + 1)} » du fournisseur « ${route!.slice(0, split)} » pour conserver les permissions de cette clé.`) : reason;
+  if (split > 0) return copyText(`Also register the “${route!.slice(split + 1)}” model from provider “${route!.slice(0, split)}” to preserve this key’s permissions.`, `Enregistrez aussi le modèle « ${route!.slice(split + 1)} » du fournisseur « ${route!.slice(0, split)} » pour conserver les permissions de cette clé.`);
+  const french = frenchReasons.find(([pattern]) => pattern.test(reason));
+  return french ? copyText(reason, reason.replace(...french)) : reason;
 }
 
 export default function AdoptionDialog({ keyId, operation, onClose, onUnauthorized, onApplied, onGoToModels }: { keyId: string; operation: AdoptionOperation; onClose: () => void; onUnauthorized: () => void; onApplied: (receipt: AdoptionReceipt) => void; onGoToModels?: () => void }) {
@@ -53,7 +75,7 @@ export default function AdoptionDialog({ keyId, operation, onClose, onUnauthoriz
     const route = reason.match(missingAccess)?.[1];
     if (!route) return providers;
     const split = route.indexOf("/");
-    const provider = split > 0 ? route.slice(0, split) : "Other";
+    const provider = split > 0 ? route.slice(0, split) : copyText("Other", "Autre");
     (providers[provider] ||= []).push(split > 0 ? route.slice(split + 1) : route);
     return providers;
   }, {}));

@@ -45,10 +45,12 @@ equal(JSON.parse(calls[7].init.body as string), { accessId: "provider/model", re
 equal(calls[8].url, "./api/catalog/reference");
 equal(new Headers(calls[8].init.headers).get("If-Match"), "catalog-4");
 equal(JSON.parse(calls[8].init.body as string), { id: "custom/my-model", fields: { name: "My Model" } });
-equal(parseCatalogValue("reasoning", "false"), false);
-equal(parseCatalogValue("input_modalities", '["text","image"]'), ["text", "image"]);
+const english = (text: string) => text;
+const french = (_: string, text: string) => text;
+equal(parseCatalogValue("reasoning", "false", english), false);
+equal(parseCatalogValue("input_modalities", '["text","image"]', english), ["text", "image"]);
 let rejected = false;
-try { parseCatalogValue("context_length", ""); } catch { rejected = true; }
+try { parseCatalogValue("context_length", "", french); } catch (cause) { rejected = (cause as Error).message === "Saisissez un nombre fini."; }
 equal(rejected, true);
 setAdminToken("test-admin-token");
 await getSnapshot();
@@ -93,5 +95,5 @@ equal(new Headers(calls.at(-1)?.init.headers).get("If-Match"), "draft-revision")
 equal(isWellFormedAdminToken("abc123-_.~+/=XYZ"), true);
 equal(["abc     │ def", "abc def", "abc\tdef", "jéton", ""].map(isWellFormedAdminToken), [false, false, false, false, false]);
 let unknownBooleanRejected = false;
-try { parseCatalogValue("reasoning", ""); } catch { unknownBooleanRejected = true; }
+try { parseCatalogValue("reasoning", "", english); } catch { unknownBooleanRejected = true; }
 equal(unknownBooleanRejected, true);
