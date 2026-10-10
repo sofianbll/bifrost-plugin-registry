@@ -74,6 +74,12 @@ export const delta = (before: string[], after: string[]) => ({ added: after.filt
 export const keyImpact = (keys: Key[], oldGroups: Group[], nextGroups: Group[], models: Model[]) => keys.map(key => ({ key, before: exposed(key.policy, oldGroups, models), after: exposed(key.policy, nextGroups, models) })).filter(row => !same(row.before, row.after));
 // An empty creator and "Unknown" are one absence: filters and labels key it as "Unknown".
 export const creatorKey = (creator?: unknown) => typeof creator === "string" && creator.trim() && creator !== "Unknown" ? creator : "Unknown";
+// A display name shared by several items gains their detail (an ID), so actions named after it stay distinct.
+export function distinctLabels<T>(items: T[], name: (item: T) => string, detail: (item: T) => string) {
+  const counts = new Map<string, number>();
+  for (const item of items) counts.set(name(item), (counts.get(name(item)) ?? 0) + 1);
+  return (item: T) => (counts.get(name(item)) ?? 0) > 1 ? `${name(item)} (${detail(item)})` : name(item);
+}
 export type ModelFilters = { search: string; creator: string; provider: string; task: string; input: string; output: string; capability: string };
 export const emptyModelFilters: ModelFilters = { search: "", creator: "", provider: "", task: "", input: "", output: "", capability: "" };
 export const filterModels = (models: Model[], filters: ModelFilters) => models.filter(model => {
