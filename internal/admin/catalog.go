@@ -32,7 +32,8 @@ func catalogFieldsForAccess(c *registry.Catalog, provider, model string) map[str
 		return fields
 	}
 	fields = registry.EffectiveAccessCatalogFields(c, *access)
-	if _, ok := fields["creator"]; !ok && access.ReferenceID != "" {
+	// The read-time reference creator follows the same rule: an access that omits it does not inherit it.
+	if _, ok := fields["creator"]; !ok && access.ReferenceID != "" && !registry.Has(access.OmittedFields, "creator") {
 		for _, ref := range c.References {
 			if ref.ID == access.ReferenceID {
 				if creator, ok := referenceFields(ref)["creator"]; ok {

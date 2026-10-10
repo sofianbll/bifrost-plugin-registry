@@ -378,6 +378,25 @@ func TestModelsDevReferencesNameTheirCreatorFromTheNamespace(t *testing.T) {
 	}
 }
 
+// An access that omits a field from its reference never gets it back, the read-time creator included.
+func TestAccessOmittingCreatorKeepsItOmitted(t *testing.T) {
+	ref := registry.CatalogReference{ID: "anthropic/qa-opus", CatalogRecord: registry.CatalogRecord{Candidates: map[string]map[string]json.RawMessage{"name": {"models.dev": json.RawMessage(`"QA Opus"`)}}}}
+	c := &registry.Catalog{References: []registry.CatalogReference{ref}, Accesses: []registry.CatalogAccess{
+		{ID: "Claude/qa-opus", Provider: "Claude", Model: "qa-opus", ReferenceID: ref.ID},
+		{ID: "openrouter/anthropic/qa-opus", Provider: "openrouter", Model: "anthropic/qa-opus", ReferenceID: ref.ID, OmittedFields: []string{"creator"}},
+	}}
+	if got := catalogFieldsForAccess(c, "Claude", "qa-opus")["creator"]; string(got.Value) != `"Anthropic"` {
+		t.Fatalf("linked access creator = %s, want the namespace creator", got.Value)
+	}
+	fields := catalogFieldsForAccess(c, "openrouter", "anthropic/qa-opus")
+	if got, ok := fields["creator"]; ok {
+		t.Fatalf("omitted creator came back: %s", got.Value)
+	}
+	if string(fields["name"].Value) != `"QA Opus"` {
+		t.Fatalf("other reference fields lost: %v", fields)
+	}
+}
+
 // A registry file saved before references stored a creator names it on read, without a refresh:
 // in the catalogue, on the saved card whose creator is "Unknown", and on discovery. A manual
 // correction still wins. The saved name stays as saved, even equal to the common ID: the UI picks
