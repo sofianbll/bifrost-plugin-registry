@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { useCopyToClipboard } from "../../hooks/useCopyToClipboard";
 import ModelBrowser from "../catalog/ModelBrowser";
 import { BrandIcon } from "../../components/registry/BrandIcon";
-import { ProviderMark } from "../../components/registry/BrandIcon";
+import { displayProvider, ProviderMark } from "../../components/registry/BrandIcon";
 import type { ViewOptions } from "../../components/registry/ViewOptions";
 import { delta, exposed, members, origin, same, toggleModel, type Group, type Key, type Model, type Policy, type Publication } from "../../domain/registry";
 import { useCopy } from "../../lib/locale";
@@ -85,7 +85,7 @@ export default function KeyComposer({ virtualKey, draft, onDraftChange, models, 
               {draft.added.includes(id) && <Badge>{copy("Added directly", "Ajouté directement")}</Badge>}
               {isExcluded && <Badge variant="warning">{copy("Excluded locally", "Exclu pour cette clé")}</Badge>}
             </div>
-            {model && <div className="space-y-1">{model.accesses.length ? model.accesses.map(access => <p key={access.id} className="break-all text-xs text-muted-foreground">{access.provider} · {copy("access ID", "ID d’accès")} {access.id} · {copy("native model", "modèle natif")} {access.nativeModel || "—"} <span>({copy(access.status, access.status === "Configured" ? "Configuré" : "Inconnu")})</span></p>) : <p className="text-xs text-muted-foreground">{copy("No provider access recorded", "Aucun accès fournisseur enregistré")}</p>}</div>}
+            {model && <div className="space-y-1">{model.accesses.length ? model.accesses.map(access => <p key={access.id} className="break-all text-xs text-muted-foreground">{displayProvider(access.provider)} · {copy("access ID", "ID d’accès")} {access.id} · {copy("native model", "modèle natif")} {access.nativeModel || "—"} <span>({copy(access.status, access.status === "Configured" ? "Configuré" : "Inconnu")})</span></p>) : <p className="text-xs text-muted-foreground">{copy("No provider access recorded", "Aucun accès fournisseur enregistré")}</p>}</div>}
             {model && composition.selected.includes(id) && (model.accesses.length > 1 || draft.accessSelection?.[id]) && <div className="mt-2 space-y-1">
               <p className="text-xs font-medium">{copy("Accesses", "Accès")}</p>
               {model.accesses.map(access => {

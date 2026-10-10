@@ -82,16 +82,16 @@ export default function ReferenceCatalogBrowser({ revision, models, registeredId
     if (!catalog) return <div role="status" className="rounded-sm border p-5 text-sm text-muted-foreground">{copy("Loading model cards…", "Chargement des fiches…")}</div>;
     const groups = filterReferenceGroups(filtered, catalog, filters);
     const shown = groups.slice(0, visibleCount);
+    // A saved card shows only the accesses it holds; the others are available beside it.
+    const entriesOf = (group: ReferenceGroup) => { const { card } = cardEntries(group, registeredModels); return card.length ? card : group.entries; };
     const sections = new Map<string, ReferenceGroup[]>();
     for (const group of shown) {
-      const label = groupBy === "provider" ? displayProvider(group.entries.find(entry => entry.access)?.access?.provider || "Fournisseur inconnu")
+      const label = groupBy === "provider" ? displayProvider(entriesOf(group).find(entry => entry.access)?.access?.provider || copy("Unknown provider", "Fournisseur inconnu"))
         : groupBy === "creator" ? creatorName(creatorOf(group))
         : groupBy === "task" ? group.entries[0]?.model.tasks[0] || "Autre" : "";
       sections.set(label, [...(sections.get(label) || []), group]);
     }
 
-    // A saved card shows only the accesses it holds; the others are available beside it.
-    const entriesOf = (group: ReferenceGroup) => { const { card } = cardEntries(group, registeredModels); return card.length ? card : group.entries; };
     const status = (group: ReferenceGroup) => {
       const count = cardEntries(group, registeredModels).card.length;
       return count === group.entries.length ? "registered" : count ? "partial" : "to-create";

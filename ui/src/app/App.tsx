@@ -35,7 +35,7 @@ import { preserveAdoptionDraft } from "../features/keys/KeyComposer.state";
 import { keyFormState, type KeyFormDraft } from "../features/keys/key-form";
 import { KeyCreateForm } from "../features/keys/KeyCreateForm";
 import KeyLibrary, { permissionSummary } from "../features/keys/KeyLibrary";
-import { displayProvider } from "../components/registry/BrandIcon";
+import { displayProvider, setProviderBaseTypes } from "../components/registry/BrandIcon";
 import { GroupLibrary } from "../features/groups/GroupLibrary";
 import { GroupEditor } from "../features/groups/GroupEditor";
 
@@ -143,6 +143,7 @@ function RegistryApp({ language, onLanguageChange }: { language: Language; onLan
     setRevision(workspace.revision);
     setDiscovery(workspace.discovery);
     setPricingProofs(workspace.pricingProofs || []);
+    setProviderBaseTypes(workspace.providers);
     setConnection(workspace.connection);
     setApiError("");
   };

@@ -69,6 +69,61 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await button('Open QA Chat details').waitFor();
   });
 
+  await test.step('creator and provider marks resolve to real logos; grouping names match', async () => {
+    // Claude, Codex and Google are custom providers with base types anthropic, openai, gemini.
+    const card = (name: string) => page.locator('[data-slot="card"]').filter({ has: button(`Open ${name} details`) });
+    const marks = (scope: Locator, name: string) => scope.getByRole('img', { name, exact: true });
+    const logo = (scope: Locator, name: string) => expect(marks(scope, name).first().locator('svg, img'), `${name} shows a logo, not initials`).toHaveCount(1);
+    // Creator logos (default): normalized creator names against the full icon set, initials last.
+    await logo(card('QA Opus'), 'Anthropic');
+    await logo(card('QA Codex'), 'OpenAI');
+    await logo(card('QA Gemini'), 'Google');
+    await logo(card('QA Reasoner'), 'DeepSeek');
+    await expect(marks(card('QA Chat'), 'Fixture Labs')).toHaveText('FI');
+    await expect(marks(card('qa-codex-mini'), 'Creator not identified')).toHaveText('?');
+    // Serving providers in the footer: custom ones through their base type, one display name.
+    for (const [model, provider] of [['QA Opus', 'Claude'], ['QA Codex', 'Codex'], ['QA Gemini', 'Google'], ['QA Reasoner', 'OpenRouter']]) await logo(card(model), provider);
+    await button('Use dark theme').click();
+    await expect(marks(card('QA Opus'), 'Anthropic').locator('svg'), 'black marks turn light on the dark theme').toHaveCSS('filter', /invert\(1\)/);
+    await button('Use light theme').click();
+
+    const group = async (by: string) => {
+      await page.getByRole('combobox', { name: 'Group models by', exact: true }).click();
+      await page.getByRole('option', { name: by, exact: true }).click();
+    };
+    const section = (name: string) => page.locator('section').filter({ has: page.getByRole('heading', { level: 3, name: new RegExp(`^${name} \\d+$`) }) });
+    const sectionNames = async () => (await page.getByRole('heading', { level: 3 }).allTextContents()).map(text => text.replace(/\s*\d+$/, '')).sort();
+    await group('Group by provider');
+    await section('Claude').waitFor();
+    expect(await sectionNames()).toEqual(['Claude', 'Codex', 'Google', 'OpenRouter', 'synthetic-provider']);
+    await expect(section('Claude').getByRole('button', { name: 'Open QA Opus details', exact: true }), 'a saved card sits under its own access, not a matching one').toBeVisible();
+    await group('Group by creator');
+    await section('Anthropic').waitFor();
+    await expect(section('Anthropic').getByRole('button', { name: 'Open QA Opus details', exact: true })).toBeVisible();
+    await group('No grouping');
+
+    // Provider logos: the card's own serving providers replace the creator mark.
+    await nav('Settings').click();
+    await button('Appearance').click();
+    await logo(page.locator('section').filter({ has: page.getByRole('heading', { name: 'Claude', exact: true }) }), 'Claude');
+    await button('Provider').click();
+    await nav('My models').click();
+    await expect(marks(card('QA Opus'), 'Claude')).toHaveCount(2); // header and footer
+    await expect(marks(card('QA Opus'), 'Anthropic')).toHaveCount(0);
+    await logo(card('QA Opus'), 'Claude');
+    await nav('Settings').click();
+    await button('Appearance').click();
+    await button('Creator').click();
+    await nav('My models').click();
+
+    // Keys show the same marks and display names.
+    await nav('Virtual keys').click();
+    await logo(keyCard('QA Claude Key'), 'Claude');
+    await expect(keyCard('QA Claude Key')).toContainText('all models of Claude');
+    await nav('My models').click();
+    await button('Open QA Chat details').waitFor();
+  });
+
   await test.step('model cancel protects draft; focus stays in editor', async () => {
     await button('Open QA Chat details').click();
     await page.getByRole('textbox', { name: 'Display name *', exact: true }).fill('QA draft preserved');
