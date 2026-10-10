@@ -21,6 +21,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
   const keyCard = (name: string) => page.locator('[data-slot="card"]').filter({ has: page.getByText(name, { exact: true }) });
   const composerStep = (label: string) => page.getByRole('list', { name: 'Key composition steps' }).getByRole('button', { name: new RegExp(`^\\d ${label}`) });
   const keyHeading = () => page.getByRole('heading', { name: 'QA Development Key', exact: true });
+  const keyChanges = () => page.getByRole('region', { name: 'Changes before publishing' });
   const openDevelopmentKey = async () => {
     await keyCard('QA Development Key').getByRole('button', { name: 'Open', exact: true }).click();
     await keyHeading().waitFor();
@@ -137,17 +138,26 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     // The composer is three steps (Models, Groups, Review); publication lives in Review. The
     // origin is shown in the access menu, the exclusion as a card checkbox.
     await nav('Virtual keys').click();
+    await expect(keyCard('QA Development Key')).toContainText('Bifrost allows · 1 provider · 2 models');
     await openDevelopmentKey();
+    // #69: the key page names the key once and offers one way back.
+    expect((await page.locator('body').innerText()).split('QA Development Key').length - 1).toBe(1);
+    await expect(page.getByRole('button', { name: /^(All virtual keys|Virtual keys|Back)$/ })).toHaveCount(1);
     await button('1 provider accesses for QA Code').click();
     await page.getByText('Inherited · QA Development', { exact: true }).waitFor();
     await page.keyboard.press('Escape');
     await composerStep('Review').click();
     await expect(button('Publish changes')).toBeDisabled();
     await expect(page.getByText('Unpublished draft', { exact: true }), 'No draft changes despite absent readback').toHaveCount(0);
+    await expect(keyChanges()).toContainText('No change.');
     await composerStep('Models').click();
     await page.getByRole('checkbox', { name: 'Exclude from this key: QA Code', exact: true }).click();
     await composerStep('Review').click();
     await page.getByRole('heading', { name: 'Local exclusions' }).waitFor();
+    // #69: Review diffs the draft against a labelled baseline; nothing is read back yet.
+    await expect(keyChanges().getByText('Compared with the last published plan', { exact: true })).toBeVisible();
+    await expect(keyChanges().getByRole('list', { name: 'Will lose' })).toContainText('synthetic-provider/qa-code');
+    await expect(keyChanges().getByRole('list', { name: 'Will gain' })).toHaveCount(0);
     await button('Publish changes').click();
     await page.getByText('Verified', { exact: true }).waitFor();
     const keys = (await api('workspace')).data.keys;
@@ -198,6 +208,9 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
 
   await test.step('publication failure retains key draft and recovery action', async () => {
     await button('Restore QA Code').click();
+    // #69: once read back, the verified readback is the baseline.
+    await expect(keyChanges().getByText('Compared with the last verified readback', { exact: true })).toBeVisible();
+    await expect(keyChanges().getByRole('list', { name: 'Will gain' })).toContainText('synthetic-provider/qa-code');
     await page.route('**/api/workspace', route => route.request().method() === 'PUT'
       ? route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'Synthetic unavailable response' }) })
       : route.continue());
@@ -208,19 +221,29 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await button('Discard draft').click();
   });
 
-  await test.step('unmanaged key does not present a fabricated catalog', async () => {
-    // The composer now stays available to prepare a selection, so the claim becomes: nothing is
-    // pre-selected, nothing is published, and adoption is the offered action.
+  await test.step('unmanaged key opens on adoption; the composer follows adoption', async () => {
+    // #69: each card says what Bifrost allows today. An unmanaged key starts with adoption as its
+    // single primary action: nothing to compose, nothing published, until the key is adopted.
     await button('All virtual keys').click();
+    await expect(keyCard('QA All Providers Key')).toContainText('All providers');
+    await expect(keyCard('QA Claude Key')).toContainText('1 provider · all models of Claude');
+    await expect(keyCard('QA Unmanaged Key')).toContainText('No provider');
+    await expect(keyCard('QA Codex Key')).toContainText('1 provider · 2 models');
     await keyCard('QA Unmanaged Key').getByRole('button', { name: 'Review', exact: true }).click();
-    await button('Review adoption').first().waitFor();
     await expect(page.getByText('Synthetic unmanaged client · Bifrost key · Registry policy not adopted')).toBeVisible();
-    await expect(page.getByText('0 models selected · 0 groups inherited')).toBeVisible();
-    await expect(page.getByText('Unpublished draft', { exact: true })).toHaveCount(0);
+    await expect(button('Review adoption')).toHaveCount(1);
+    await expect(page.getByRole('list', { name: 'Key composition steps' })).toHaveCount(0);
     await expect(button('Publish changes')).toHaveCount(0);
-    await expect(page.getByText('Compose catalog', { exact: true })).toHaveCount(0);
-    await expect(page.getByText('Draft preview', { exact: true })).toHaveCount(0);
+    await expect(page.getByText('Unpublished draft', { exact: true })).toHaveCount(0);
     await shot('after-unmanaged-key');
+    await button('All virtual keys').click();
+    await keyCard('QA Codex Key').getByRole('button', { name: 'Review', exact: true }).click();
+    await expect(page.getByRole('list', { name: 'Bifrost allows today' })).toContainText('Codex · qa-codex, qa-codex-mini');
+    await button('Review adoption').click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Use this key with Registry', exact: true }).click();
+    await composerStep('Review').click();
+    await expect(keyChanges()).toContainText('No change.');
+    expect((await api('workspace')).data.keys.find((k: { id: string }) => k.id === 'vk-qa-codex').managed).toBe(true);
   });
 
   await test.step('search recovery clears filter instead of starting creation', async () => {

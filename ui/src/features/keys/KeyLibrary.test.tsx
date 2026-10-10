@@ -2,14 +2,29 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { LanguageContext } from "../../lib/locale";
 import { cardFormat, defaultViewOptions, gridColumns } from "../../components/registry/ViewOptions";
 import { fixture } from "../../dev/fixtures/registry";
+import type { Key } from "../../domain/registry";
 import { KeyLibrary } from "./KeyLibrary";
 
 const native = { ...fixture.keys[0], managed: false, policy: { ...fixture.keys[0].policy, groups: [], added: [], excluded: [] } };
+// #69: an unmanaged key says what Bifrost allows today, or that its permissions were not read.
+const summaries: [Key["permissions"], string][] = [
+  [undefined, "Not read yet"],
+  [{ allProviders: true, providers: [] }, "All providers"],
+  [{ allProviders: false, providers: [] }, "No provider"],
+  [{ allProviders: false, providers: [{ provider: "Codex", allModels: false, models: ["qa-codex", "qa-codex-mini"] }] }, "1 provider · 2 models"],
+  [{ allProviders: false, providers: [{ provider: "Claude", allModels: true, models: [] }, { provider: "Codex", allModels: false, models: ["qa-codex"] }] }, "2 providers · 1 model · all models of Claude"],
+];
 for (const layout of ["grid", "table"] as const) {
-  const html = renderToStaticMarkup(<LanguageContext.Provider value="en"><KeyLibrary keys={[native]} groups={fixture.groups} models={fixture.models} search="" onSearch={() => {}} view={{ ...defaultViewOptions, layout }} onViewChange={() => {}} onResetView={() => {}} busy={false} snapshotMode onCreate={() => {}} onOpen={() => {}} /></LanguageContext.Provider>);
-  if (!html.includes("Bifrost permissions") || !html.includes("Registry selection to prepare")) throw new Error(`${layout}: native scope must be explicit`);
-  if (html.includes("0 models") || html.includes("No active provider") || html.includes("0 IDs")) throw new Error(`${layout}: Registry emptiness must not describe native permissions`);
+  for (const [permissions, summary] of summaries) {
+    const html = renderToStaticMarkup(<LanguageContext.Provider value="en"><KeyLibrary keys={[{ ...native, permissions }]} groups={fixture.groups} models={fixture.models} search="" onSearch={() => {}} view={{ ...defaultViewOptions, layout }} onViewChange={() => {}} onResetView={() => {}} busy={false} snapshotMode onCreate={() => {}} onOpen={() => {}} /></LanguageContext.Provider>);
+    if (!html.includes(summary)) throw new Error(`${layout}: native permissions must read "${summary}"`);
+    if (html.includes("0 models") || html.includes("No active provider") || html.includes("0 IDs")) throw new Error(`${layout}: Registry emptiness must not describe native permissions`);
+  }
 }
+const frenchSummary = renderToStaticMarkup(<LanguageContext.Provider value="fr"><KeyLibrary keys={[{ ...native, permissions: summaries[3][0] }]} groups={fixture.groups} models={fixture.models} search="" onSearch={() => {}} view={defaultViewOptions} onViewChange={() => {}} onResetView={() => {}} busy={false} snapshotMode onCreate={() => {}} onOpen={() => {}} /></LanguageContext.Provider>);
+if (!frenchSummary.includes("1 fournisseur · 2 modèles")) throw new Error("French native permissions summary is missing");
+const managedSummary = renderToStaticMarkup(<LanguageContext.Provider value="en"><KeyLibrary keys={[{ ...fixture.keys[0], managed: true, permissions: summaries[3][0] }]} groups={fixture.groups} models={fixture.models} search="" onSearch={() => {}} view={defaultViewOptions} onViewChange={() => {}} onResetView={() => {}} busy={false} snapshotMode onCreate={() => {}} onOpen={() => {}} /></LanguageContext.Provider>);
+if (!managedSummary.includes("Bifrost allows · 1 provider · 2 models")) throw new Error("A managed key card must also say what Bifrost allows today");
 for (const shape of ["rectangle", "square"] as const) {
   const view = { ...defaultViewOptions, layout: "grid" as const, shape: shape as "rectangle" | "square", size: "medium" as const };
   const html = renderToStaticMarkup(<LanguageContext.Provider value="en"><KeyLibrary keys={[native]} groups={fixture.groups} models={fixture.models} search="" onSearch={() => {}} view={view} onViewChange={() => {}} onResetView={() => {}} busy={false} snapshotMode onCreate={() => {}} onOpen={() => {}} /></LanguageContext.Provider>);
