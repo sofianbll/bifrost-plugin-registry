@@ -115,6 +115,17 @@ type keyDTO struct {
 	Revision    int         `json:"revision"`
 	// Models withheld until an access is chosen, with their candidate access IDs.
 	PendingAccessSelection map[string][]string `json:"pendingAccessSelection,omitempty"`
+	// What Bifrost lets the key use today; absent when the native answer carried no provider rows.
+	Permissions *nativePermissions `json:"permissions,omitempty"`
+}
+type nativePermissions struct {
+	AllProviders bool                 `json:"allProviders"`
+	Providers    []providerPermission `json:"providers"`
+}
+type providerPermission struct {
+	Provider  string   `json:"provider"`
+	AllModels bool     `json:"allModels"`
+	Models    []string `json:"models"`
 }
 type demoDTO struct {
 	Models    []modelDTO `json:"models"`
@@ -160,6 +171,23 @@ type nativeProviderConfig struct {
 	} `json:"keys"`
 }
 
+// permissions summarises the native provider rows; "*" allows every model, blacklisted names are left out.
+func (vk nativeVK) permissions() *nativePermissions {
+	if vk.ProviderConfigs == nil && !vk.AllowAllProviders {
+		return nil
+	}
+	out := &nativePermissions{AllProviders: vk.AllowAllProviders, Providers: []providerPermission{}}
+	for _, pc := range vk.ProviderConfigs {
+		p := providerPermission{Provider: pc.Provider, AllModels: registry.Has(pc.AllowedModels, "*"), Models: []string{}}
+		for _, name := range pc.AllowedModels {
+			if !p.AllModels && !registry.Has(pc.BlacklistedModels, name) {
+				p.Models = append(p.Models, name)
+			}
+		}
+		out.Providers = append(out.Providers, p)
+	}
+	return out
+}
 func (p nativeProviderConfig) keyIDs() []string {
 	if p.AllowAllKeys {
 		return []string{"*"}
@@ -494,6 +522,7 @@ func (s *Server) workspace(ctx context.Context) (workspace, error) {
 		p, managed := policies[vk.ID]
 		active := vk.IsActive == nil || *vk.IsActive
 		key := keyDTO{ID: vk.ID, Name: vk.Name, Client: vk.Description, Active: active, Managed: managed, Policy: policyDTO{Groups: []string{}, Added: []string{}, Excluded: []string{}, Naming: config.DefaultNaming}, Publication: publication{State: "not_verified", Revision: snap.Revision(), Expected: []string{}, Missing: []string{}, Unexpected: []string{}}, Revision: 1}
+		key.Permissions = vk.permissions()
 		if managed {
 			key.Policy = policyDTO{Groups: p.Groups, Added: refsToAliases(p.Added, refs), Excluded: refsToAliases(p.Excluded, refs), Naming: p.Naming, Prefer: p.Prefer, AccessSelection: accessSelectionToDTO(p.AccessSelection, config.Models)}
 			if key.Policy.Naming == "" {
