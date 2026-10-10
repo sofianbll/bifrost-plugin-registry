@@ -138,10 +138,16 @@ type workspace struct {
 	Data          demoDTO           `json:"data"`
 	Discovery     []modelDTO        `json:"discovery"`
 	PricingProofs []pricingProofDTO `json:"pricingProofs"`
-	Connection    struct {
+	// Native providers with the Bifrost base type of custom ones, for their marks; read-only.
+	Providers  []providerDTO `json:"providers"`
+	Connection struct {
 		Connected bool   `json:"connected"`
 		Version   string `json:"version"`
 	} `json:"connection"`
+}
+type providerDTO struct {
+	ID               string `json:"id"`
+	BaseProviderType string `json:"baseProviderType,omitempty"`
 }
 type nativeModel struct {
 	Name             string   `json:"name"`
@@ -337,19 +343,28 @@ func (s *Server) nativeKeys(ctx context.Context) ([]nativeVK, error) {
 	return v.VirtualKeys, nil
 }
 func (s *Server) nativeModels(ctx context.Context) ([]nativeModel, error) {
+	_, models, e := s.nativeProvidersAndModels(ctx)
+	return models, e
+}
+func (s *Server) nativeProvidersAndModels(ctx context.Context) ([]providerDTO, []nativeModel, error) {
 	out := []nativeModel{}
+	listed := []providerDTO{}
 	var providers struct {
 		Providers []struct {
-			Name string `json:"name"`
+			Name   string `json:"name"`
+			Custom struct {
+				BaseProviderType string `json:"base_provider_type"`
+			} `json:"custom_provider_config"`
 		} `json:"providers"`
 	}
 	if e := s.live.client.call(ctx, "GET", "/api/providers", nil, &providers); e != nil {
-		return nil, e
+		return nil, nil, e
 	}
 	for _, provider := range providers.Providers {
 		if provider.Name == "" {
 			continue
 		}
+		listed = append(listed, providerDTO{ID: provider.Name, BaseProviderType: provider.Custom.BaseProviderType})
 		var keys struct {
 			Keys []struct {
 				ID      string `json:"id"`
@@ -357,7 +372,7 @@ func (s *Server) nativeModels(ctx context.Context) ([]nativeModel, error) {
 			} `json:"keys"`
 		}
 		if e := s.live.client.call(ctx, "GET", "/api/providers/"+url.PathEscape(provider.Name)+"/keys", nil, &keys); e != nil {
-			return nil, e
+			return nil, nil, e
 		}
 		ids := []string{}
 		for _, key := range keys.Keys {
@@ -375,7 +390,7 @@ func (s *Server) nativeModels(ctx context.Context) ([]nativeModel, error) {
 			}
 			query := url.Values{"provider": {provider.Name}, "keys": {strings.Join(ids, ",")}, "limit": {"100"}, "offset": {fmt.Sprint(offset)}}
 			if e := s.live.client.callQuery(ctx, "/api/models", query, &page); e != nil {
-				return nil, e
+				return nil, nil, e
 			}
 			out = append(out, page.Models...)
 			if offset+len(page.Models) >= page.Total || len(page.Models) == 0 {
@@ -383,7 +398,7 @@ func (s *Server) nativeModels(ctx context.Context) ([]nativeModel, error) {
 			}
 		}
 	}
-	return out, nil
+	return listed, out, nil
 }
 func (c *liveClient) callQuery(ctx context.Context, path string, query url.Values, out any) error {
 	u := *c.base
@@ -457,7 +472,7 @@ func nativeToDiscovery(rows []nativeModel) []modelDTO {
 func (s *Server) workspace(ctx context.Context) (workspace, error) {
 	snap := s.Store.Load()
 	config := snap.Config()
-	rows, e := s.nativeModels(ctx)
+	providers, rows, e := s.nativeProvidersAndModels(ctx)
 	if e != nil {
 		return workspace{}, e
 	}
@@ -561,7 +576,7 @@ func (s *Server) workspace(ctx context.Context) (workspace, error) {
 		dto.Keys = append(dto.Keys, key)
 	}
 	sort.Slice(dto.Keys, func(i, j int) bool { return dto.Keys[i].Name < dto.Keys[j].Name })
-	ws := workspace{Revision: snap.Revision(), Data: dto, Discovery: discovered}
+	ws := workspace{Revision: snap.Revision(), Data: dto, Discovery: discovered, Providers: providers}
 	for name, proof := range s.live.proofs {
 		if !strings.HasPrefix(name, "registry/") {
 			continue
