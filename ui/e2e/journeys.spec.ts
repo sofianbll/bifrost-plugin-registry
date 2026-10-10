@@ -37,7 +37,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
   };
 
   const workspace = await api('workspace');
-  expect(workspace.connection.version, 'This destructive QA is restricted to the synthetic fixture').toBe('2.2.3-fixture');
+  expect(workspace.connection.version, 'This destructive QA is restricted to the synthetic fixture').toBe('2.2.6-fixture');
 
   await test.step('authentication and catalog', async () => {
     await page.getByLabel('Admin token', { exact: true }).fill('invalid-fixture-token');

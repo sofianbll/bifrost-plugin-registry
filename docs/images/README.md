@@ -36,7 +36,7 @@ Same six views with the interface in French.
 
 ## Confidentiality
 
-Only the synthetic fixture data (Fixture Labs · QA models, synthetic-provider)
-is visible, and the spec never opens a screen that could expose a key secret
+Only the synthetic fixture data (QA models on the synthetic providers listed in
+[tests/ui-fixture](../../tests/ui-fixture/README.md)) is visible, and the spec never opens a screen that could expose a key secret
 (e.g. the reveal dialog). Look at regenerated images before committing them: no
 secret, token, password, internal URL or private data may appear in any file.
