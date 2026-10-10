@@ -540,6 +540,47 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await page.setViewportSize({ width: 390, height: 844 });
   });
 
+  await test.step('a phone folds the view controls and shows the first card; no gateway dead end', async () => {
+    // Wide: View, Shape and Density sit in the toolbar, density with its column count.
+    await page.setViewportSize({ width: 1440, height: 950 });
+    await expect(page.getByRole('radio', { name: 'Small · 4 columns', exact: true })).toBeVisible();
+    // Live mode has no gateway inventory, so Settings offers no way to it.
+    await nav('Settings').click();
+    await expect(button('Open catalog data')).toBeVisible();
+    await expect(button('View gateway')).toHaveCount(0);
+    await button('Help').click();
+    await expect(page.getByText('Need the gateway details?')).toBeVisible();
+    await expect(button('View gateway')).toHaveCount(0);
+    await nav('My models').click();
+    // 375 px: one column, so the controls fold into View options and density loses its counts.
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.locator('.content-container').evaluate(el => el.scrollTo(0, 0));
+    await expect(page.getByRole('radio', { name: 'Table', exact: true })).toHaveCount(0);
+    await withinViewport(page.getByRole('button', { name: /^Open .* details$/ }).first());
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await shot('after-mobile-catalogue-375');
+    await button('View options').click();
+    for (const name of ['Grid', 'Table', 'Rectangle', 'Square', 'Small', 'Medium', 'Large']) await expect(page.getByRole('radio', { name, exact: true })).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('radio', { name: 'Small', exact: true })).toHaveCount(0);
+    // An empty Groups page: one Create, no search or view toolbar.
+    const empty = await browser.newPage({ baseURL, viewport: { width: 375, height: 812 } });
+    empty.on('pageerror', e => errors.push(e.message));
+    const catalog = await api('catalog');
+    await empty.route('**/api/workspace', r => r.fulfill({ json: { ...workspace, data: { ...workspace.data, groups: [] } } }));
+    await empty.route('**/api/catalog', r => r.fulfill({ json: catalog }));
+    await empty.goto('/#/groups');
+    await empty.getByText('No groups yet', { exact: true }).waitFor();
+    await expect(empty.getByRole('button', { name: 'Create group', exact: true })).toHaveCount(1);
+    await expect(empty.getByRole('textbox', { name: 'Search groups', exact: true })).toHaveCount(0);
+    await expect(empty.getByRole('button', { name: 'View options', exact: true })).toHaveCount(0);
+    const create = await empty.getByRole('button', { name: 'Create group', exact: true }).boundingBox();
+    expect(create && create.y >= 0 && create.y + create.height <= 812, JSON.stringify(create)).toBeTruthy();
+    await testInfo.attach('after-mobile-empty-groups', { body: await empty.screenshot({ animations: 'disabled' }), contentType: 'image/png' });
+    await empty.close();
+    await page.setViewportSize({ width: 390, height: 844 });
+  });
+
   await test.step('dark theme and logout clear secrets and workspace', async () => {
     await button('Use dark theme').click();
     await shot('after-catalog-dark-mobile');
