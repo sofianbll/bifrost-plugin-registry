@@ -243,7 +243,7 @@ func TestFixtureModelParametersDeclareMode(t *testing.T) {
 	if refreshed["source bifrost"] != "" || len(refreshed) != len(seeded) {
 		t.Fatalf("Bifrost refresh: %q, %d accesses, want %d", refreshed["source bifrost"], len(refreshed), len(seeded))
 	}
-	for id, want := range map[string]string{"Google/qa-image": "image_generation 0", "Claude/qa-opus": "chat 0", "openrouter/anthropic/qa-opus": "chat 4"} {
+	for id, want := range map[string]string{"Google/qa-image": "image_generation 0", "Claude/qa-opus": "chat 0", "openrouter/anthropic/qa-opus": "chat 4", "openrouter/deepseek/qa-reasoner": "chat 0.19999999999999998"} {
 		if seeded[id] != want || refreshed[id] != want {
 			t.Errorf("%s: seeded %q, refreshed %q, want %q", id, seeded[id], refreshed[id], want)
 		}

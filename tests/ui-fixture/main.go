@@ -67,7 +67,8 @@ func aggregatorModels() []nativeModel {
 		{name: "anthropic/qa-opus", reference: "anthropic/qa-opus", mode: "chat", input: 4, output: 20},
 		{name: "~anthropic/qa-opus-latest", mode: "chat"},
 		{name: "openai/qa-codex:batch", mode: "chat"},
-		{name: "deepseek/qa-reasoner", reference: "deepseek/qa-reasoner", mode: "chat"},
+		// Bifrost declares 2e-7 per token; read per million it carries float noise the UI must not show.
+		{name: "deepseek/qa-reasoner", reference: "deepseek/qa-reasoner", mode: "chat", input: 0.19999999999999998, output: 0.6},
 		{name: "tencent/qa-hunyuan", reference: "tencent/qa-hunyuan", mode: "chat"},
 		{name: "meituan/qa-longcat", reference: "meituan/qa-longcat", mode: "chat"},
 	}
