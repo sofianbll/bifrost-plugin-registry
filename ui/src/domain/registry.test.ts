@@ -1,5 +1,5 @@
 import { fixture } from "../dev/fixtures/registry";
-import { catalogModels, copy, delta, exposed, filterModels, keyImpact, members, modelImpact, toggleModel, emptyModelFilters } from "./registry";
+import { catalogModels, copy, creatorKey, delta, exposed, filterModels, keyImpact, members, modelImpact, toggleModel, emptyModelFilters } from "./registry";
 
 const assert = (condition: boolean) => { if (!condition) throw Error("Demo state check failed"); };
 const deepEqual = (a: unknown, b: unknown) => assert(JSON.stringify(a) === JSON.stringify(b));
@@ -28,6 +28,8 @@ assert(!exposed(hermes.policy, nextGroups, state.models).includes("claude-sonnet
 deepEqual(delta(["a", "b"], ["b", "c"]), { added: ["c"], removed: ["a"] });
 deepEqual(filterModels(state.models, { ...emptyModelFilters, search: "azure/gpt-5" }).map(m => m.id), ["gpt-5"]);
 deepEqual(filterModels(state.models, { ...emptyModelFilters, creator: "OpenAI", provider: "azure" }).map(m => m.id), ["gpt-5"]);
+// An empty creator and "Unknown" are the same absence under one filter value.
+deepEqual(filterModels([{ ...state.models[0], creator: "" }, { ...state.models[1], creator: "Unknown" }, state.models[2]], { ...emptyModelFilters, creator: creatorKey("") }).map(m => m.id), [state.models[0].id, state.models[1].id]);
 deepEqual(filterModels(state.models, { ...emptyModelFilters, input: "Image", task: "Reasoning" }).map(m => m.id), ["gpt-5", "claude-sonnet-4", "gemini-2.5-pro", "claude-opus-4"]);
 deepEqual(modelImpact(hermes, state.groups, nextGroups), { added: ["kimi-k2"], removed: [], unchanged: ["gpt-5", "gpt-5-mini", "gemini-2.5-pro"], exclusions: ["claude-sonnet-4"] });
 assert(state.models.every(model => model.creator && model.family && model.inputModalities.length && model.outputModalities.length && model.tasks.length));

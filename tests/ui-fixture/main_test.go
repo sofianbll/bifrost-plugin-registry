@@ -250,8 +250,9 @@ func TestFixtureModelParametersDeclareMode(t *testing.T) {
 	}
 }
 
-// Like Models.dev references, the new ones carry no creator: only their namespace, which has a
-// provider record in the embedded Models.dev snapshot for some and none for others.
+// Like Models.dev references, the new ones store no creator: only their namespace, which has a
+// provider record in the embedded Models.dev snapshot for some and none for others. The catalogue
+// names their creator from that namespace on read.
 func TestFixtureReferenceNamespaces(t *testing.T) {
 	_, call := fixture(t)
 	var c struct {
@@ -278,14 +279,18 @@ func TestFixtureReferenceNamespaces(t *testing.T) {
 	if err := json.NewDecoder(gz).Decode(&snapshot); err != nil {
 		t.Fatal(err)
 	}
+	stored := map[string]bool{}
+	for _, r := range seed().Catalog.References {
+		_, stored[r.ID] = r.Candidates["creator"]
+	}
 	record := map[string]bool{}
 	for _, r := range c.References {
 		namespace, _, _ := strings.Cut(r.ID, "/")
 		if namespace == "fixture" {
 			continue
 		}
-		if _, ok := r.Fields["creator"]; ok {
-			t.Errorf("reference %s carries a creator", r.ID)
+		if creator, _ := r.Fields["creator"].(map[string]any); stored[r.ID] || creator["source"] != "models.dev" {
+			t.Errorf("reference %s: stored creator %v, catalogue creator %v", r.ID, stored[r.ID], creator)
 		}
 		_, record[r.ID] = snapshot.Providers[namespace]
 	}

@@ -1,4 +1,5 @@
 import { createContext, useContext } from "react";
+import { creatorKey } from "../domain/registry";
 
 export type Language = "en" | "fr";
 export const LanguageContext = createContext<Language>("en");
@@ -6,6 +7,15 @@ export function useLanguage() { return useContext(LanguageContext); }
 export function useCopy() {
   const language = useLanguage();
   return (english: string, french: string) => language === "fr" ? french : english;
+}
+
+// The one label for a missing creator, wherever a creator is shown or listed.
+export function useCreatorName() {
+  const copy = useCopy();
+  return (creator?: unknown) => {
+    const key = creatorKey(creator);
+    return key === "Unknown" ? copy("Creator not identified", "Créateur non identifié") : key;
+  };
 }
 
 const terms: Record<string, string> = {
