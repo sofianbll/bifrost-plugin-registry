@@ -27,6 +27,12 @@ const frenchSummary = renderToStaticMarkup(<LanguageContext.Provider value="fr">
 if (!frenchSummary.includes("1 fournisseur · 2 modèles")) throw new Error("French native permissions summary is missing");
 const managedSummary = renderToStaticMarkup(<LanguageContext.Provider value="en"><KeyLibrary keys={[{ ...fixture.keys[0], managed: true, permissions: summaries[3][0] }]} groups={fixture.groups} models={fixture.models} view={defaultViewOptions} onViewChange={() => {}} onResetView={() => {}} busy={false} snapshotMode onCreate={() => {}} onOpen={() => {}} /></LanguageContext.Provider>);
 if (!managedSummary.includes("Bifrost allows · 1 provider · 2 models")) throw new Error("A managed key card must also say what Bifrost allows today");
+// #92: a managed key that keeps a provider in Bifrost says so on its card, in both languages.
+const keptKey: Key = { ...fixture.keys[0], managed: true, policy: { ...fixture.keys[0].policy, keptNative: ["mistral"] }, permissions: { allProviders: false, providers: [{ provider: "mistral", allModels: false, models: ["a", "b", "c"] }, { provider: "Claude", allModels: false, models: ["qa-haiku"] }] } };
+for (const [language, line] of [["en", "Mistral · kept in Bifrost · 3 models"], ["fr", "Mistral · conservé dans Bifrost · 3 modèles"]] as const) {
+  const html = renderToStaticMarkup(<LanguageContext.Provider value={language}><KeyLibrary keys={[keptKey]} groups={fixture.groups} models={fixture.models} view={defaultViewOptions} onViewChange={() => {}} onResetView={() => {}} busy={false} snapshotMode onCreate={() => {}} onOpen={() => {}} /></LanguageContext.Provider>);
+  if (!html.split(/<[^>]*>/).join("").includes(line)) throw new Error(`${language}: the key card must read "${line}"`);
+}
 // #87: every unmanaged key says ready, blocked (and why) or empty, in grid and table, in both languages.
 const verdicts: [string, Key, string, string, string][] = [
   ["ready", { ...native, name: "Ready Key", readiness: { state: "ready", blockers: [] } }, "Ready to adopt", "Prête à adopter", ""],

@@ -83,6 +83,8 @@ type policyDTO struct {
 	Naming          string                             `json:"naming"`
 	Prefer          map[string]string                  `json:"prefer,omitempty"`
 	AccessSelection map[string]registry.AccessSelector `json:"accessSelection,omitempty"`
+	// Providers of an adopted key whose permissions stay in Bifrost; read-only, set by adoption.
+	KeptNative []string `json:"keptNative,omitempty"`
 }
 type publication struct {
 	State            string   `json:"state"`
@@ -545,11 +547,11 @@ func (s *Server) workspace(ctx context.Context) (workspace, error) {
 		key := keyDTO{ID: vk.ID, Name: vk.Name, Client: vk.Description, Active: active, Managed: managed, Policy: policyDTO{Groups: []string{}, Added: []string{}, Excluded: []string{}, Naming: config.DefaultNaming}, Publication: publication{State: "not_verified", Revision: snap.Revision(), Expected: []string{}, Missing: []string{}, Unexpected: []string{}}, Revision: 1}
 		key.Permissions = vk.permissions()
 		if !managed && key.Permissions != nil {
-			_, _, blockers := adoptionSelection(config, vk, rows)
+			_, _, blockers := adoptionSelection(config, vk, rows, nil)
 			key.Readiness = adoptionReadinessOf(vk, append(nativeKeyBlockers(vk), blockers...))
 		}
 		if managed {
-			key.Policy = policyDTO{Groups: p.Groups, Added: refsToAliases(p.Added, refs), Excluded: refsToAliases(p.Excluded, refs), Naming: p.Naming, Prefer: p.Prefer, AccessSelection: accessSelectionToDTO(p.AccessSelection, config.Models)}
+			key.Policy = policyDTO{Groups: p.Groups, Added: refsToAliases(p.Added, refs), Excluded: refsToAliases(p.Excluded, refs), Naming: p.Naming, Prefer: p.Prefer, AccessSelection: accessSelectionToDTO(p.AccessSelection, config.Models), KeptNative: p.KeptNative}
 			if key.Policy.Naming == "" {
 				key.Policy.Naming = config.DefaultNaming
 			}
@@ -568,11 +570,8 @@ func (s *Server) workspace(ctx context.Context) (workspace, error) {
 					proof.CheckedAt = ""
 					proof.Expected = []string{}
 					if view, ok := snap.View(vk.ID); ok {
-						for _, route := range view.Routes {
-							proof.Expected = append(proof.Expected, route.ExposedID)
-						}
+						proof.Expected = expectedRoutes(view, vk)
 					}
-					sort.Strings(proof.Expected)
 					proof.Missing = []string{}
 					proof.Unexpected = []string{}
 					proof.Error = "Registry configuration changed; readback required"
@@ -891,11 +890,8 @@ func (s *Server) putWorkspace(w http.ResponseWriter, r *http.Request) {
 		prior := s.live.proofs[pp.VirtualKeyID]
 		p := publication{State: "not_verified", Revision: saved.Revision(), Expected: []string{}, Actual: prior.Actual, Missing: []string{}, Unexpected: []string{}, ObservedAt: prior.ObservedAt, ObservedRevision: prior.ObservedRevision, Error: "Readback required"}
 		if view, ok := saved.View(pp.VirtualKeyID); ok {
-			for _, route := range view.Routes {
-				p.Expected = append(p.Expected, route.ExposedID)
-			}
+			p.Expected = expectedRoutes(view, nativeByID[pp.VirtualKeyID])
 		}
-		sort.Strings(p.Expected)
 		s.live.proofs[pp.VirtualKeyID] = p
 	}
 	// The optimistic Registry save must win before any native side effect.
@@ -907,7 +903,9 @@ func (s *Server) putWorkspace(w http.ResponseWriter, r *http.Request) {
 	for _, pp := range plan.VirtualKeys {
 		if oldPolicy[pp.VirtualKeyID].Adopted {
 			// Adoption only binds an existing native key. Registry edits may narrow
-			// its own view, but must never rewrite its Bifrost permissions.
+			// its own view, but must never rewrite its Bifrost permissions, so the provider rows of
+			// kept-native providers (policy.KeptNative) stay untouched. A future native write for an
+			// adopted key must repost those rows as read (full-key repost rule), never rebuild them.
 			continue
 		}
 		vk := nativeByID[pp.VirtualKeyID]
@@ -1177,10 +1175,7 @@ func (s *Server) readback(w http.ResponseWriter, r *http.Request, id string) {
 	}
 	prior := s.live.proofs[id]
 	p := publication{State: "not_verified", Revision: snap.Revision(), CheckedAt: time.Now().UTC().Format(time.RFC3339), Expected: []string{}, Missing: []string{}, Unexpected: []string{}, ObservedAt: prior.ObservedAt, ObservedRevision: prior.ObservedRevision}
-	for _, route := range view.Routes {
-		p.Expected = append(p.Expected, route.ExposedID)
-	}
-	sort.Strings(p.Expected)
+	p.Expected = expectedRoutes(view, nativeVK{})
 	finish := func() {
 		if p.State == "not_verified" && p.Actual == nil {
 			p.Actual = prior.Actual
@@ -1201,6 +1196,8 @@ func (s *Server) readback(w http.ResponseWriter, r *http.Request, id string) {
 		finish()
 		return
 	}
+	// Kept providers are read live: Bifrost owns their permissions, so Registry expects what the key allows now.
+	p.Expected = expectedRoutes(view, response.VirtualKey)
 	secret := response.VirtualKey.Value
 	if len(p.Expected) == 0 {
 		p.Error = "No native provider access selected"
@@ -1236,18 +1233,7 @@ func (s *Server) readback(w http.ResponseWriter, r *http.Request, id string) {
 				sort.Strings(p.Actual)
 				p.ObservedAt = p.CheckedAt
 				p.ObservedRevision = p.Revision
-				want := map[string]bool{}
-				for _, v := range p.Expected {
-					want[v] = true
-					if !seen[v] {
-						p.Missing = append(p.Missing, v)
-					}
-				}
-				for _, v := range p.Actual {
-					if !want[v] {
-						p.Unexpected = append(p.Unexpected, v)
-					}
-				}
+				p.Missing, p.Unexpected = diffModels(p.Expected, p.Actual, view.Policy.KeptNative)
 				p.State = "verified"
 				if len(p.Missing)+len(p.Unexpected) > 0 {
 					p.State = "drift"

@@ -14,6 +14,7 @@ import { useCopy, useFormat } from "../../lib/locale";
 import { filterKeys } from "./key-library-state";
 import { readinessLabel, readinessReason, readinessState, readinessVariant, type ReadinessState } from "./key-readiness";
 import { permissionSummary } from "./KeyComposer.state";
+import { KeptNative } from "./KeptNative";
 import { useSessionState } from "../../lib/session-state";
 
 type Props = {
@@ -71,6 +72,7 @@ export function KeyLibrary({ keys, groups, models, view, onViewChange, onResetVi
       {key.managed === false ? <><p className="text-sm font-medium">{copy("Bifrost allows today", "Bifrost autorise aujourd’hui")}</p><p className="text-xs text-muted-foreground">{permissionSummary(key.permissions, copy)}</p>{reasonLine(key)}{view.providers && !!key.permissions?.providers.length &&<div className="flex min-h-8 min-w-0 items-center"><ProviderSummary ids={key.permissions.providers.map(p => p.provider)} /></div>}</> : <>
         <div className="flex flex-wrap items-center justify-between gap-2"><p className="text-sm font-semibold">{selected.length} {copy(selected.length === 1 ? "model" : "models", selected.length === 1 ? "modèle" : "modèles")}</p><span className="text-xs text-muted-foreground">{ids.length} {copy(ids.length === 1 ? "ID" : "IDs", "ID")}</span></div>
         <p className="truncate text-xs text-muted-foreground">{copy("Bifrost allows", "Bifrost autorise")} · {permissionSummary(key.permissions, copy)}</p>
+        <KeptNative virtualKey={key} />
         {view.metadata && format === "compact" && <p className="text-xs text-muted-foreground">{copy("ID format", "Format des ID")} · {key.policy.naming === "both" ? copy("both", "les deux") : key.policy.naming === "model" ? copy("model", "modèle") : copy("provider/model", "fournisseur/modèle")}</p>}
         {view.providers && <><div className="flex min-h-8 min-w-0 items-center"><ProviderSummary ids={providers} /></div><GroupSummary names={groupNames} /></>}
         {view.description && format === "compact" && key.publication?.checkedAt && <p className="text-xs text-muted-foreground">{copy("Readback", "Relecture")} · {localized.date(key.publication.checkedAt, { year: "numeric", month: "numeric", day: "numeric" })}</p>}

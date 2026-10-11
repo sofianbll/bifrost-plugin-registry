@@ -290,6 +290,17 @@ func (b *syntheticBifrost) roundTrip(r *http.Request) (*http.Response, error) {
 					}
 				}
 			}
+			// A provider without discoverable models (a disabled one) still lists the names a key allows
+			// explicitly, managed or not: that is how a kept-native provider shows in the readback.
+			for _, pc := range key.ProviderConfigs {
+				if p := findProvider(pc.Provider); p != nil && len(p.models) == 0 {
+					for _, name := range pc.AllowedModels {
+						if name != "*" {
+							visible = append(visible, map[string]string{"id": pc.Provider + "/" + name})
+						}
+					}
+				}
+			}
 			return respond(200, map[string]any{"data": visible})
 		}
 		return respond(401, map[string]string{"error": "unknown fixture key"})

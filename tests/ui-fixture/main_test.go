@@ -331,6 +331,62 @@ func TestFixtureKeysCoverAdoptionCases(t *testing.T) {
 	}
 }
 
+// A key keeps the disabled provider native and adopts the rest: the fixture's /v1/models lists the
+// explicit names the key allows on a provider without discoverable models, for the unmanaged key and
+// once it is managed, so the readback of the managed routes plus the kept ones is Verified (#92).
+func TestFixtureKeptNativeMistralKeyReadsVerified(t *testing.T) {
+	_, call := fixture(t)
+	adopt := func(phase, token, revision string) *httptest.ResponseRecorder {
+		body := map[string]any{"keyId": "vk-qa-mistral", "operation": "adopt", "phase": phase, "keepNative": []string{"mistral"}}
+		if token != "" {
+			body["previewToken"] = token
+		}
+		return call("POST", "/api/keys/adopt", body, revision)
+	}
+	var p struct {
+		Revision, PreviewToken string
+		CanApply               bool
+		SelectedRoutes         []string
+		NativeRoutes           []string
+	}
+	if w := adopt("preview", "", ""); w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &p) != nil || !p.CanApply {
+		t.Fatalf("keeping mistral native did not unblock the key: %d %s", w.Code, w.Body.String())
+	}
+	if want := []string{"Claude/qa-haiku", "Claude/qa-sonnet"}; !reflect.DeepEqual(p.SelectedRoutes, want) {
+		t.Fatalf("selected routes = %v, want %v", p.SelectedRoutes, want)
+	}
+	if w := adopt("apply", p.PreviewToken, p.Revision); w.Code != 200 {
+		t.Fatalf("adoption failed: %d %s", w.Code, w.Body.String())
+	}
+	var ws struct {
+		Data struct {
+			Keys []struct {
+				ID          string
+				Managed     bool
+				Policy      struct{ KeptNative []string }
+				Publication struct {
+					State    string
+					Expected []string
+				}
+			}
+		}
+	}
+	if w := call("POST", "/api/keys/vk-qa-mistral/readback", nil, ""); w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &ws) != nil {
+		t.Fatalf("readback failed: %d %s", w.Code, w.Body.String())
+	}
+	for _, k := range ws.Data.Keys {
+		if k.ID != "vk-qa-mistral" {
+			continue
+		}
+		want := []string{"Claude/qa-haiku", "Claude/qa-sonnet", "mistral/qa-mistral-code", "mistral/qa-mistral-large", "mistral/qa-mistral-small"}
+		if !k.Managed || k.Publication.State != "verified" || !reflect.DeepEqual(k.Publication.Expected, want) || !reflect.DeepEqual(k.Policy.KeptNative, []string{"mistral"}) {
+			t.Fatalf("kept-native key = %+v, want verified with %v", k, want)
+		}
+		return
+	}
+	t.Fatal("vk-qa-mistral missing from the workspace")
+}
+
 // Saved cards without a Models.dev reference sit on custom subscription providers, one per base
 // type, and stay creator "Unknown" in the raw data (creator inference has something to infer);
 // one of them is served by two subscriptions.

@@ -898,6 +898,12 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
         await button(t('Review adoption', 'Examiner l’adoption')).click();
         await page.getByRole('dialog').getByText(t('Show model names', 'Afficher les noms des modèles'), { exact: true }).click();
         await sweep(language, `Adoption dialog of ${name}`);
+        if (name === 'QA Mistral Key') {
+          // #92: the offer and its consequence are swept above; keeping the provider shows the kept section.
+          await page.getByRole('dialog').getByRole('button', { name: t('Keep Mistral in Bifrost', 'Garder Mistral dans Bifrost'), exact: true }).click();
+          await page.getByRole('dialog').getByRole('region', { name: t('Kept in Bifrost', 'Conservés dans Bifrost') }).waitFor();
+          await sweep(language, `Adoption dialog of ${name}, provider kept`);
+        }
         await page.getByRole('dialog').getByRole('button', { name: t('Cancel', 'Annuler'), exact: true }).click();
         await button(t('All virtual keys', 'Toutes les clés virtuelles')).click();
       }
@@ -920,6 +926,53 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await tour('fr');
     await page.getByRole('combobox', { name: 'Langue : français', exact: true }).click();
     await page.getByRole('option', { name: 'English', exact: true }).click();
+  });
+
+  await test.step('adoption keeps a provider native: the rest of the key is adopted and reads Verified', async () => {
+    // #92, the Hermes case: Mistral is disabled in Bifrost, so its models can never become cards. Keeping the
+    // provider native adopts the rest; Registry leaves Mistral's permissions alone and the readback expects them.
+    await nav('Virtual keys').click();
+    await keyCard('QA Mistral Key').getByRole('button', { name: 'Review · QA Mistral Key', exact: true }).click();
+    await button('Review adoption').click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toContainText('Mistral · 3 models not discovered');
+    await expect(dialog).toContainText('Registry will not manage or change Mistral’s permissions');
+    await expect(dialog.getByRole('button', { name: 'Use this key with Registry', exact: true })).toBeDisabled();
+    await dialog.getByRole('button', { name: 'Keep Mistral in Bifrost', exact: true }).click();
+    // The blocker leaves the list; what is kept and what Registry adopts are both stated.
+    const kept = dialog.getByRole('region', { name: 'Kept in Bifrost' });
+    await expect(kept).toContainText('Mistral · 3 models kept in Bifrost');
+    await expect(dialog).toContainText('Ready to apply');
+    await expect(dialog).not.toContainText('not discovered');
+    await expect(dialog.getByRole('heading', { name: 'Selected Registry accesses (2)' })).toBeVisible();
+    await expect(dialog.getByText('Claude/qa-haiku', { exact: true }).first()).toBeVisible();
+    await expect(dialog.getByText('mistral/qa-mistral-large', { exact: true })).toBeVisible();
+    // The choice can be undone, and made again.
+    await dialog.getByRole('button', { name: 'Stop keeping Mistral in Bifrost', exact: true }).click();
+    await expect(dialog).toContainText('Mistral · 3 models not discovered');
+    await expect(dialog.getByRole('button', { name: 'Use this key with Registry', exact: true })).toBeDisabled();
+    await dialog.getByRole('button', { name: 'Keep Mistral in Bifrost', exact: true }).click();
+    await expect(kept).toBeVisible();
+    await shot('after-keep-native-preview');
+    const apply = page.waitForRequest(r => r.method() === 'POST' && r.url().endsWith('/api/keys/adopt') && r.postDataJSON().phase === 'apply');
+    await dialog.getByRole('button', { name: 'Use this key with Registry', exact: true }).click();
+    expect((await apply).postDataJSON()).toMatchObject({ keyId: 'vk-qa-mistral', operation: 'adopt', phase: 'apply', keepNative: ['mistral'] });
+    // The managed key says which provider stays in Bifrost, on its page and on its card.
+    await expect(page.getByRole('list', { name: 'Kept in Bifrost' })).toContainText('Mistral · kept in Bifrost · 3 models');
+    await composerStep('Review').click();
+    await button('Read again').click();
+    await page.getByText('Verified', { exact: true }).first().waitFor();
+    const key = (await api('workspace')).data.keys.find((k: { id: string }) => k.id === 'vk-qa-mistral');
+    expect(key.managed).toBe(true);
+    expect(key.policy.keptNative).toEqual(['mistral']);
+    expect(key.publication.state).toBe('verified');
+    expect(key.publication.expected).toEqual(['Claude/qa-haiku', 'Claude/qa-sonnet', 'mistral/qa-mistral-code', 'mistral/qa-mistral-large', 'mistral/qa-mistral-small']);
+    // Registry never rewrote Bifrost's permissions for the kept provider.
+    expect(key.permissions.providers.find((p: { provider: string }) => p.provider === 'mistral').models).toEqual(['qa-mistral-large', 'qa-mistral-small', 'qa-mistral-code']);
+    await button('All virtual keys').click();
+    await expect(keyCard('QA Mistral Key')).toContainText('Mistral · kept in Bifrost · 3 models');
+    await expect(keyCard('QA Mistral Key')).toContainText('Verified');
+    await shot('after-keep-native-key-card');
   });
 
   await test.step('mobile sheet, footer, focus and metadata detail fit viewport', async () => {

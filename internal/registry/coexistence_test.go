@@ -42,6 +42,25 @@ func TestAdoptedPolicyNeverExceedsNativeModelCeiling(t *testing.T) {
 	}
 }
 
+func TestKeptNativeProvidersNeedAdoptionAndSurviveSaving(t *testing.T) {
+	c := fixture()
+	c.Policies[0].KeptNative = []string{"mistral"}
+	if _, err := Compile(c); err == nil {
+		t.Fatal("kept native providers accepted on a key that is not adopted")
+	}
+	c.Policies[0].Adopted, c.Policies[0].NativeModelIDs = true, []string{"a"}
+	c.Policies[0].KeptNative = []string{"mistral", "mistral"}
+	if _, err := Compile(c); err == nil {
+		t.Fatal("duplicate kept native provider accepted")
+	}
+	c.Policies[0].KeptNative = []string{"mistral"}
+	s := mustCompile(t, c)
+	reloaded, err := Compile(s.Config())
+	if err != nil || !slices.Equal(reloaded.Config().Policies[0].KeptNative, []string{"mistral"}) {
+		t.Fatalf("kept native providers lost in the registry file: %v", err)
+	}
+}
+
 func TestNativeKeyCandidateNeedsGovernanceIdentity(t *testing.T) {
 	s := mustCompile(t, fixture())
 	original := []byte(` { "model": "native/only", "native_extension": { "x": 1 } } `)
