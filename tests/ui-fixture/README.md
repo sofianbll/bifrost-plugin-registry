@@ -86,16 +86,24 @@ embedded Models.dev snapshot; `tencent/qa-hunyuan`, `meituan/qa-longcat` and
 | QA Claude Key (`vk-qa-claude`) | unmanaged | `Claude`: `*` (all models), `allow_all_keys` |
 | QA Google Key (`vk-qa-google`) | unmanaged | `Google`: `qa-gemini`, `qa-flash`, `allow_all_keys` (adoptable as is, a second ready key) |
 | QA Mistral Key (`vk-qa-mistral`) | unmanaged | `mistral`: `qa-mistral-large`, `qa-mistral-small`, `qa-mistral-code` (never discovered) and `Claude`: `qa-haiku`, `qa-sonnet` (saved); blocked by the three undiscovered models |
+| QA Hermes Key (`vk-qa-hermes`) | unmanaged | `mistral`: `qa-mistral-large`, `qa-mistral-small` (never discovered) and `Claude`: `qa-haiku`, `qa-opus` (saved); the same case as QA Mistral Key, kept apart so two journeys can each adopt one (the native permission edit adopts this one) |
 | QA To Add Key (`vk-qa-unsaved`) | unmanaged | `synthetic-provider`: `qa-vision` (saved) and `qa-unregistered` (discovered, no card); blocked by the unsaved model |
 
 Adoption cases among the unmanaged keys: **ready** (`vk-qa-codex`, `vk-qa-google`),
 **empty** (`vk-qa-unmanaged`), **all providers** (`vk-qa-all-providers`), **all models of a
-provider** (`vk-qa-claude`), **blocked by undiscovered models** (`vk-qa-mistral`), **blocked
-by discovered models without a card** (`vk-qa-unsaved`). The journeys adopt `vk-qa-codex`;
-`vk-qa-google` stays ready. No journey saves `qa-unregistered`.
+provider** (`vk-qa-claude`), **blocked by undiscovered models** (`vk-qa-mistral`,
+`vk-qa-hermes`), **blocked by discovered models without a card** (`vk-qa-unsaved`). The
+journeys adopt `vk-qa-codex`, and, after a native permission edit, `vk-qa-hermes` and
+`vk-qa-all-providers`; `vk-qa-google` stays ready. No journey saves `qa-unregistered`.
 
 `/v1/models` answers a managed key with its Registry routes allowed natively, and an
 unmanaged key with every `provider/model` its native permissions allow.
+
+**Native key updates.** A virtual key `PUT` behaves like Bifrost: every provider row gets an
+`id`, `key_ids: ["*"]` reads back as `allow_all_keys` and other IDs as `keys`. The fixture
+records each update exactly as sent and serves them at `GET /__fixture/native-writes` as
+`[{"keyId": …, "body": …}]` (fixture only, no secret), so a journey can assert what the panel
+wrote to Bifrost.
 
 Run `go test ./tests/ui-fixture` to check workspace save, native permission
 updates and readback, key creation and reveal, reference catalog reads, the provider

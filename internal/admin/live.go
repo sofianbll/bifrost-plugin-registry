@@ -320,6 +320,8 @@ func (s *Server) liveHandler(w http.ResponseWriter, r *http.Request) {
 		s.createKey(w, r)
 	case r.URL.Path == "/api/keys/adopt" && r.Method == http.MethodPost:
 		s.adoptKey(w, r)
+	case r.URL.Path == "/api/keys/native-permissions" && r.Method == http.MethodPost:
+		s.editNativePermissions(w, r)
 	case strings.HasPrefix(r.URL.Path, "/api/keys/") && strings.HasSuffix(r.URL.Path, "/secret") && r.Method == http.MethodPost:
 		id := strings.TrimSuffix(strings.TrimPrefix(r.URL.Path, "/api/keys/"), "/secret")
 		if id == "" || strings.Contains(id, "/") {

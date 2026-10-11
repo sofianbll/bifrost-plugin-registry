@@ -168,7 +168,7 @@ func run(args []string) error {
 			writeJSON(w, 200, native.context())
 			return
 		}
-		if strings.HasSuffix(r.URL.Path, "/secret") || strings.HasSuffix(r.URL.Path, "/readback") || (r.URL.Path == "/api/keys" && r.Method == http.MethodPost) || strings.HasPrefix(r.URL.Path, "/api/assistant/") || r.URL.Path == "/api/catalog/refresh" {
+		if strings.HasSuffix(r.URL.Path, "/secret") || strings.HasSuffix(r.URL.Path, "/readback") || r.URL.Path == "/api/keys/native-permissions" || (r.URL.Path == "/api/keys" && r.Method == http.MethodPost) || strings.HasPrefix(r.URL.Path, "/api/assistant/") || r.URL.Path == "/api/catalog/refresh" {
 			writeJSON(w, 409, map[string]string{"error": "Unavailable in offline snapshot review: no native secret, inference, AI, or verified readback"})
 			return
 		}
