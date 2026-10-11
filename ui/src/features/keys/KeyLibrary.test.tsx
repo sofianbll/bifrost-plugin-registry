@@ -53,3 +53,14 @@ for (const [language, label] of [["en", "Access choice needed"], ["fr", "Choix d
     if (layout === "grid" && !html.includes("deepseek-v4.1-flash")) throw new Error(`${language}: the card must name the withheld model`);
   }
 }
+
+// Story 39: every key action is named after its key, in grid and table, in both languages.
+const named = [{ ...native, id: "a", name: "Key A" }, { ...native, id: "b", name: "Key B" }, { ...fixture.keys[0], id: "c", name: "Key C", managed: true }, { ...fixture.keys[0], id: "d", name: "Key D", managed: true }];
+for (const language of ["en", "fr"] as const) {
+  for (const layout of ["grid", "table"] as const) {
+    const html = renderToStaticMarkup(<LanguageContext.Provider value={language}><KeyLibrary keys={named} groups={fixture.groups} models={fixture.models} view={{ ...defaultViewOptions, layout }} onViewChange={() => {}} onResetView={() => {}} busy={false} snapshotMode onCreate={() => {}} onOpen={() => {}} /></LanguageContext.Provider>);
+    const actions = [...html.matchAll(/<button[^>]*>(.*?)<\/button>/g)].map(match => match[1].replace(/<[^>]+>/g, "")).filter(name => /^(Review|Open|Examiner|Ouvrir)\b/.test(name));
+    const expected = language === "en" ? ["Review · Key A", "Review · Key B", "Open · Key C", "Open · Key D"] : ["Examiner · Key A", "Examiner · Key B", "Ouvrir · Key C", "Ouvrir · Key D"];
+    if (JSON.stringify(actions) !== JSON.stringify(expected)) throw new Error(`${language} ${layout}: key actions must name their key, got ${JSON.stringify(actions)}`);
+  }
+}
