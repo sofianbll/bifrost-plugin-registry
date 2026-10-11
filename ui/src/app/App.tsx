@@ -535,7 +535,7 @@ function RegistryApp({ language, onLanguageChange }: { language: Language; onLan
               : <div className="space-y-4"><KeySummary virtualKey={key} models={namedModels} groups={data.groups} /><PublicationCard virtualKey={key} savedIds={exposed(key.policy, data.groups, namedModels)} busy={!!busy} snapshotMode={snapshotMode} onReread={() => void reread()} /></div>}
           </>}
         </>}
-        {page === "settings" && <RegistrySettings onStartTour={startTour} preferences={preferences} onPreferencesChange={setPreferences} snapshotMode={snapshotMode} onNavigate={destination => { if (destination === "catalog") setCatalogFocus(null); go(destination); }} onUnauthorized={requireLogin} catalog={referenceCatalog} catalogError={referenceError} providers={catalog.flatMap(model => model.accesses.map(access => access.provider))} modelScopes={`${scopeLabels.registry} · ${scopeLabels.toAdd}`} />}
+        {page === "settings" && <RegistrySettings expert={effectiveExpert} onStartTour={startTour} preferences={preferences} onPreferencesChange={setPreferences} snapshotMode={snapshotMode} onNavigate={destination => { if (destination === "catalog") setCatalogFocus(null); go(destination); }} onUnauthorized={requireLogin} catalog={referenceCatalog} catalogError={referenceError} providers={catalog.flatMap(model => model.accesses.map(access => access.provider))} modelScopes={`${scopeLabels.registry} · ${scopeLabels.toAdd}`} />}
 
       </main></div></div>
     <HelpSheet open={helpOpen} onOpenChange={setHelpOpen} canStart={!isDirty} onStart={startTour} />
