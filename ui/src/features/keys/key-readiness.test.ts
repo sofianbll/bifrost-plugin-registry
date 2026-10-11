@@ -37,7 +37,7 @@ equal(blockerLine(block("", "other", [], ["Native key is inactive or expired"]),
 equal(readinessReason({ state: "blocked", blockers: [mistral] }, english), "Mistral · 3 models not discovered", "one blocker");
 equal(readinessReason({ state: "blocked", blockers: [mistral, unsaved] }, english), "Mistral · 3 models not discovered; Synthetic Provider · 1 model to add", "two blockers");
 equal(readinessReason({ state: "blocked", blockers: [mistral, unsaved, everyProvider] }, english), "Mistral · 3 models not discovered; Synthetic Provider · 1 model to add; +1 more", "three blockers");
-equal(readinessReason({ state: "blocked", blockers: [mistral, unsaved, everyProvider] }, french), "Mistral · 3 modèles non découverts; Synthetic Provider · 1 modèle à ajouter; +1 de plus", "three blockers in French");
+equal(readinessReason({ state: "blocked", blockers: [mistral, unsaved, everyProvider] }, french), "Mistral · 3 modèles non découverts ; Synthetic Provider · 1 modèle à ajouter ; +1", "three blockers in French, French spacing");
 equal(readinessReason({ state: "ready", blockers: [] }, english), "", "ready needs no reason");
 equal(readinessReason({ state: "empty", blockers: [] }, english), "", "empty needs no reason");
 equal(readinessReason(undefined, english), "", "no verdict");

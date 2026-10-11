@@ -32,8 +32,8 @@ export function blockerLine(blocker: ReadinessBlocker, copy: Copy) {
 export function readinessReason(readiness: Readiness | undefined, copy: Copy) {
   if (readiness?.state !== "blocked") return "";
   const lines = readiness.blockers.slice(0, 2).map(blocker => blockerLine(blocker, copy));
-  if (readiness.blockers.length > 2) lines.push(copy(`+${readiness.blockers.length - 2} more`, `+${readiness.blockers.length - 2} de plus`));
-  return lines.join("; ");
+  if (readiness.blockers.length > 2) lines.push(copy(`+${readiness.blockers.length - 2} more`, `+${readiness.blockers.length - 2}`));
+  return lines.join(copy("; ", " ; "));
 }
 
 // The models the models page can add: discovered by Bifrost, no Registry card yet.
