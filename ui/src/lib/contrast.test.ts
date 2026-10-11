@@ -81,3 +81,13 @@ for (const theme of ["light", "dark"] as const) {
   console.log(`${theme}: button text ${onHover.toFixed(2)}:1 hovered`);
 }
 console.log("Button contrast checks passed");
+
+// #85 round 2: the primary button keeps the brand green in dark mode (it had turned light grey), and the
+// same token read as text (links, the active sidebar entry) stays legible on the dark card.
+const lch = (value: string) => value.match(/^oklch\(\s*([\d.]+)\s+([\d.]+)\s+([\d.]+)\s*\)$/)!.slice(1).map(Number);
+const [, lightChroma, lightHue] = lch(token("light", "primary")!);
+const [, darkChroma, darkHue] = lch(token("dark", "primary")!);
+assert(lightChroma > 0.08 && darkChroma > 0.08 && Math.abs(darkHue - lightHue) < 5, `dark --primary must be the brand green (hue ${lightHue}), got ${token("dark", "primary")}`);
+const asText = ratio(token("dark", "primary")!, token("dark", "card")!);
+assert(asText >= 4.5, `dark: --primary as text on --card is ${asText.toFixed(2)}:1, under 4.5:1`);
+console.log(`dark: brand primary, ${asText.toFixed(2)}:1 as text on the card`);
