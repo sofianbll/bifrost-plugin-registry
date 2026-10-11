@@ -1,4 +1,4 @@
-import { attentionOf, cardEntries, cardsHolding, filterReferenceGroups, filterReferenceModels, groupReferenceModels, sharedReferenceFacts } from "./reference-groups";
+import { attentionOf, cardEntries, cardsHolding, filterReferenceGroups, filterReferenceModels, groupReferenceModels, sectionsOf, sharedReferenceFacts, sortItems } from "./reference-groups";
 import type { Catalog } from "./catalog-api";
 import { emptyModelFilters, type Model } from "../../domain/registry";
 
@@ -105,3 +105,34 @@ if (kinds(pair, 2) !== JSON.stringify([{ kind: "available", count: 2 }])) throw 
 if (kinds(groupReferenceModels([models[2]], catalog)[0], 0) !== JSON.stringify([{ kind: "no-reference" }])) throw new Error("A card without reference was not announced");
 if (kinds(groupReferenceModels([models[2]], catalog)[0], 1) !== JSON.stringify([{ kind: "available", count: 1 }, { kind: "no-reference" }])) throw new Error("Attention badges lost their order");
 console.log("Saved cards get attention badges only: OK");
+
+// The To add count counts the same tiles before and after the catalogue loads: without it, grouping
+// follows the reference each access already carries.
+const carried = models.map((row, index) => ({ ...row, accesses: [{ ...row.accesses[0], referenceId: linkedTo[index] }] }));
+if (groupReferenceModels(carried, null).length !== 2 || groupReferenceModels(carried, cardCatalog).length !== 2) throw new Error("The tile count moved when the catalogue arrived");
+if (groupReferenceModels(carried, null).map(group => group.entries.length).join(",") !== "3,1") throw new Error("Grouping without the catalogue lost accesses");
+console.log("Tiles are counted the same way before and after the catalogue loads: OK");
+
+// Sort: name, creator, provider or recently added (the last saved card first); an unknown creator or
+// provider goes last, ties fall back to the name, and the list is never mutated.
+type Row = { name: string; creator: string; provider: string };
+const rows: Row[] = [{ name: "Zed", creator: "Acme", provider: "b" }, { name: "alpha", creator: "", provider: "a" }, { name: "Mid", creator: "Acme", provider: "" }];
+const by = { name: (row: Row) => row.name, creator: (row: Row) => row.creator, provider: (row: Row) => row.provider };
+const order = (sort: Parameters<typeof sortItems>[1]) => sortItems(rows, sort, by).map(row => row.name).join(",");
+if (order("default") !== "Zed,alpha,Mid") throw new Error("Default order changed the list");
+if (order("name") !== "alpha,Mid,Zed") throw new Error(`Name sort: ${order("name")}`);
+if (order("creator") !== "Mid,Zed,alpha") throw new Error(`Creator sort: ${order("creator")}`);
+if (order("provider") !== "alpha,Zed,Mid") throw new Error(`Provider sort: ${order("provider")}`);
+if (order("recent") !== "Mid,alpha,Zed") throw new Error(`Recently added sort: ${order("recent")}`);
+if (rows.map(row => row.name).join(",") !== "Zed,alpha,Mid") throw new Error("Sorting mutated the list");
+console.log("Sorting by name, creator, provider and recently added: OK");
+
+// Sections cover the whole list: an item sits under each of its keys (counted once by the caller),
+// sections are sorted by label, shelves come after the others and "last" sections at the very end.
+type Card = { name: string; providers: string[] };
+const shelfCards: Card[] = [{ name: "shared", providers: ["claude", "codex"] }, { name: "solo", providers: ["codex"] }, { name: "routed", providers: ["openrouter"] }, { name: "free", providers: [] }];
+const sections = sectionsOf(shelfCards, card => card.providers.length ? card.providers : [""], key => ({ label: key || "Unknown", shelf: key === "openrouter", last: key === "" }));
+if (sections.map(section => `${section.label}:${section.items.map(card => card.name)}`).join("|") !== "claude:shared|codex:shared,solo|openrouter:routed|Unknown:free") throw new Error(`Sections: ${sections.map(section => section.label)}`);
+if (sections.map(section => section.shelf).join() !== "false,false,true,false") throw new Error("Only the aggregator is a shelf");
+if (new Set(sections.flatMap(section => section.items)).size !== shelfCards.length) throw new Error("A card went missing from the sections");
+console.log("Sections hold every card under each of its providers, sorted, shelves after: OK");

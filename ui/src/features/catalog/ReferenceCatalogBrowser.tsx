@@ -1,3 +1,4 @@
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,13 +9,13 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { documentedPrice, type Catalog } from "./catalog-api";
-import { BrandIcon, displayProvider } from "../../components/registry/BrandIcon";
+import { BrandIcon, displayProvider, isAggregator } from "../../components/registry/BrandIcon";
 import { ProviderSummary } from "../../components/registry/CompactCollection";
 import { creatorKey, distinctLabels, knownValue, type Access, type Model, type ModelFilters } from "../../domain/registry";
 import ModelBrowser from "./ModelBrowser";
 import { FactLine } from "./FactLine";
 import { declaredEndpoints, prefillFromReference } from "./model-editor-data";
-import { attentionOf, cardEntries, cardName, cardsHolding, filterReferenceGroups, filterReferenceModels, groupReferenceModels, sharedReferenceFacts, type ReferenceGroup } from "./reference-groups";
+import { attentionOf, cardEntries, cardName, cardsHolding, filterReferenceGroups, filterReferenceModels, groupReferenceModels, sectionsOf, sharedReferenceFacts, sortItems, type ReferenceGroup, type SortKey } from "./reference-groups";
 import { cardFormat, gridColumns, type ViewOptions } from "../../components/registry/ViewOptions";
 import { useCopy, useCreatorName, useFormat, useTerm } from "../../lib/locale";
 
@@ -43,13 +44,15 @@ export function draftFor(group: ReferenceGroup, base: Model): Model {
 // models: the scope being browsed (saved cards, or To add); allModels: both, so a card still knows
 // the accesses available beside it. In Registry shows one tile per saved card; To add groups by
 // reference. The catalogue is loaded once per revision by the app.
-export default function ReferenceCatalogBrowser({ scope, models, allModels, catalog, error, onRetry, registeredIds, registeredModels, preferences, onOpen, onMetadata }: { scope: "registry" | "to-add"; models: Model[]; allModels: Model[]; catalog: Catalog | null; error: string; onRetry: () => void; registeredIds: ReadonlySet<string>; registeredModels: Model[]; preferences: ViewOptions; onOpen: (model: Model, tab?: "access") => void; onMetadata: (target: "reference" | "access", id: string) => void }) {
+export default function ReferenceCatalogBrowser({ scope, models, allModels, catalog, error, onRetry, registeredIds, registeredModels, preferences, onPreferencesChange, onOpen, onMetadata }: { scope: "registry" | "to-add"; models: Model[]; allModels: Model[]; catalog: Catalog | null; error: string; onRetry: () => void; registeredIds: ReadonlySet<string>; registeredModels: Model[]; preferences: ViewOptions; onPreferencesChange?: (preferences: ViewOptions) => void; onOpen: (model: Model, tab?: "access") => void; onMetadata: (target: "reference" | "access", id: string) => void }) {
   const copy = useCopy();
   const format = useFormat();
   const { colon } = format;
   const term = useTerm();
   const creatorName = useCreatorName();
-  const [visibleCount, setVisibleCount] = useState(60);
+  // Tiles shown per section (a page of 60, per section) and the shelves the user opened or closed.
+  const [more, setMore] = useState<Record<string, number>>({});
+  const [shelves, setShelves] = useState<Record<string, boolean>>({});
   const [choice, setChoice] = useState<ReferenceGroup | null>(null);
   // A To add tile that fits several saved cards: the cards to choose from, and the tile.
   const [pick, setPick] = useState<{ cards: Model[]; group: ReferenceGroup } | null>(null);
@@ -76,20 +79,11 @@ export default function ReferenceCatalogBrowser({ scope, models, allModels, cata
     if (base) onOpen(registeredIds.has(base.id) ? base : draftFor(complete, base));
   };
 
-  const render = (filtered: Model[], view: ViewOptions, groupBy: string, filters: ModelFilters) => {
+  const render = (filtered: Model[], view: ViewOptions, groupBy: string, filters: ModelFilters, sort: SortKey) => {
     if (!catalog) return <div role="status" aria-label={copy("Loading model cards…", "Chargement des fiches…")}><CatalogGrid format={cardFormat(view)} columns={gridColumns(view.size)}>{Array.from({ length: 8 }, (_, index) => <Skeleton key={index} className="h-36" />)}</CatalogGrid></div>;
     const groups = filterReferenceGroups(filtered, catalog, filters, byCard);
     // Reference groups across both scopes: what a card has beside it, whether a model is partly saved.
     const full = new Map(groupReferenceModels(allModels, catalog).map(group => [group.key, group]));
-    const shown = groups.slice(0, visibleCount);
-    const sections = new Map<string, ReferenceGroup[]>();
-    for (const group of shown) {
-      const label = groupBy === "provider" ? displayProvider(group.entries.find(entry => entry.access)?.access?.provider || copy("Unknown provider", "Fournisseur inconnu"))
-        : groupBy === "creator" ? creatorName(creatorOf(group))
-        : groupBy === "task" ? term(group.entries[0]?.model.tasks[0] || copy("Other", "Autre")) : "";
-      sections.set(label, [...(sections.get(label) || []), group]);
-    }
-
     // The accesses no saved card holds that share one of its references are available beside it.
     const isCard = (group: ReferenceGroup) => !!savedOf(group);
     const availableBeside = (group: ReferenceGroup) => {
@@ -138,19 +132,19 @@ export default function ReferenceCatalogBrowser({ scope, models, allModels, cata
       return { registered, name, idLine };
     };
     // Card actions are named after their card; a display name shared by two shown cards gains its ID line.
-    const labelOf = distinctLabels(shown, group => identity(group).name, group => identity(group).idLine);
+    const labelOf = distinctLabels(groups, group => identity(group).name, group => identity(group).idLine);
     const header = (group: ReferenceGroup) => {
       const { registered, name, idLine } = identity(group);
       const creator = creatorName(creatorOf(group, registered));
       const family = knownValue(registered?.family) || familyOf(group);
       return <div className="flex min-w-0 flex-1 items-start gap-2"><BrandIcon model={{ ...group.entries[0].model, creator, accesses: group.entries.flatMap(entry => entry.access ? [entry.access] : []) }} mode={view.logo} /><div className="min-w-0 flex-1"><button type="button" className="line-clamp-2 w-full rounded-sm text-left text-sm font-semibold leading-snug [overflow-wrap:anywhere] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" title={name} aria-label={copy(`Open ${labelOf(group)} details`, `Ouvrir la fiche ${labelOf(group)}`)} onClick={() => open(group)}>{name}</button>{view.metadata && <p className="mt-1 truncate text-xs text-muted-foreground">{creator}{family && ` · ${family}`}</p>}{view.metadata && idLine !== name && <p className="truncate font-mono text-xs text-muted-foreground" title={idLine}>{idLine}</p>}{badges(group).length > 0 && <div className="mt-1.5 flex flex-wrap gap-1">{badges(group).map(badge => <Badge key={badge.key} variant="secondary" data-attention={badge.key} title={badge.title} className="max-w-full"><span className="truncate">{badge.text}</span></Badge>)}</div>}</div></div>;
     };
-    const card = (group: ReferenceGroup) => {
+    const card = (group: ReferenceGroup, tour = false) => {
       const entries = group.entries;
       const first = entries[0].model;
       const common = sharedReferenceFacts({ ...group, entries });
       const format = cardFormat(view);
-      return <CatalogCard key={group.key} format={format} dataTour={group === groups[0] ? "first-model" : undefined}
+      return <CatalogCard key={group.key} format={format} dataTour={tour ? "first-model" : undefined}
         header={header(group)}
         footer={<>{view.providers && <ProviderSummary ids={entries.flatMap(entry => entry.access ? [entry.access.provider] : [])} />}{accessMenu(group)}{joinable(group).length > 0 && <Button size="sm" variant="outline" className="h-8" onClick={() => open(group)}>{copy("Add to card", "Ajouter à la fiche")}<ActionLabel label={labelOf(group)} /></Button>}</>}>
         {view.description && (common.summary && first.summary ? <p className="line-clamp-2 text-xs leading-relaxed text-foreground/80" title={first.summary}>{first.summary}</p> : !common.summary ? <p className="text-xs text-muted-foreground">{copy("Descriptions vary by access", "Descriptions variables selon les accès")}</p> : null)}
@@ -158,12 +152,30 @@ export default function ReferenceCatalogBrowser({ scope, models, allModels, cata
         {view.evidence && (common.capabilities ? <ModelCapabilitiesSummary model={first} label={labelOf(group)} stacked={format === "square"} /> : <p className="text-xs text-muted-foreground">{copy("Capabilities vary by access", "Capacités variables selon les accès")}</p>)}
       </CatalogCard>;
     };
-    return <div className="space-y-4"><p className="text-xs text-muted-foreground">{copy(`${shown.length} of ${groups.length} shown`, `${shown.length} affichés sur ${groups.length}`)}</p>{[...sections.entries()].map(([section, items]) => <section key={section || "all"} className="space-y-3">{section && <h3 className="text-base font-semibold">{section} <span className="text-sm font-normal text-muted-foreground">{items.length}</span></h3>}{view.layout === "grid" ? <CatalogGrid format={cardFormat(view)} columns={gridColumns(view.size)}>{items.map(card)}</CatalogGrid> : <div className="min-w-0 max-w-full overflow-x-auto rounded-sm border bg-card"><Table><TableHeader className="bg-muted/50"><TableRow><TableHead className="sticky left-0 z-20 bg-muted">{copy("Model", "Modèle")}</TableHead>{view.providers && <TableHead>{copy("Providers", "Fournisseurs")}</TableHead>}{view.modalities && <TableHead>{copy("Inputs → outputs", "Entrées → sorties")}</TableHead>}{view.evidence && <TableHead>{copy("Capabilities", "Capacités")}</TableHead>}<TableHead className="text-right">{copy("Action", "Action")}</TableHead></TableRow></TableHeader><TableBody>{items.map(group => { const entries = group.entries; const first = entries[0].model; const common = sharedReferenceFacts(group); const others = availableBeside(group).length; return <TableRow key={group.key} data-tour={group === groups[0] ? "first-model" : undefined}><TableCell className="sticky left-0 z-10 min-w-52 max-w-72 whitespace-normal bg-card"><div className="flex items-center gap-2">{header(group)}</div>{view.description && common.summary && <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{first.summary}</p>}{view.metadata && <div className="mt-2">{details(group, entries)}</div>}</TableCell>{view.providers && <TableCell className="min-w-40 align-top">{accessLine(entries)}{others > 0 && <p className="mt-1.5 text-xs text-muted-foreground">{copy(`${others} available, not in this card`, `${others} disponible${others > 1 ? "s" : ""}, hors de cette fiche`)}</p>}</TableCell>}{view.modalities && <TableCell className="align-top">{common.modalities ? <ModelModalitiesSummary model={first} label={labelOf(group)} /> : copy("Varies", "Variable")}</TableCell>}{view.evidence && <TableCell className="align-top">{common.capabilities ? <ModelCapabilitiesSummary model={first} label={labelOf(group)} /> : copy("Varies", "Variable")}</TableCell>}<TableCell className="text-right align-top"><Button size="sm" variant="outline" onClick={() => open(group)}>{joinable(group).length ? copy("Add to card", "Ajouter à la fiche") : copy(status(group) === "to-create" ? "Register" : "Details", status(group) === "to-create" ? "Enregistrer" : "Détails")}<ActionLabel label={labelOf(group)} /></Button></TableCell></TableRow>; })}</TableBody></Table></div>}</section>)}{shown.length < groups.length && <Button variant="outline" onClick={() => setVisibleCount(count => count + 60)}>{copy(`Show more (${groups.length - shown.length})`, `Voir plus (${groups.length - shown.length})`)}</Button>}</div>;
+    // Sorted, then split into sections over the WHOLE filtered list: paging only trims what each section shows.
+    const providersOf = (group: ReferenceGroup) => unique(group.entries.flatMap(entry => entry.access ? [entry.access.provider] : []));
+    const creatorIn = (group: ReferenceGroup) => creatorOf(group, identity(group).registered);
+    const sorted = sortItems(groups, sort, { name: group => identity(group).name, creator: group => creatorIn(group) === "Unknown" ? "" : creatorName(creatorIn(group)), provider: group => providersOf(group)[0] ? displayProvider(providersOf(group)[0]) : "" });
+    // A card sits under each of its serving providers; To add folds the aggregators into shelves.
+    const sections = groupBy === "none" ? [{ key: "", label: "", shelf: false, items: sorted }]
+      : groupBy === "provider" ? sectionsOf(sorted, group => providersOf(group).length ? providersOf(group) : [""], key => ({ label: key ? displayProvider(key) : copy("Unknown provider", "Fournisseur inconnu"), shelf: !byCard && !!key && isAggregator(key), last: !key }))
+      : groupBy === "creator" ? sectionsOf(sorted, group => [creatorIn(group)], key => ({ label: creatorName(key), last: key === "Unknown" }))
+      : sectionsOf(sorted, group => [group.entries[0]?.model.tasks[0] || ""], key => ({ label: key ? term(key) : copy("Other", "Autre"), last: !key }));
+    const filtering = Object.values(filters).some(Boolean); // a search or filter opens the shelves: results are never hidden
+    const idOf = (section: { key: string }) => `${groupBy}:${section.key}`;
+    const shelfId = (section: { key: string }) => `${filtering}:${idOf(section)}`; // a choice holds while browsing, or while searching
+    const isOpen = (section: { key: string; shelf: boolean }) => !section.shelf || (shelves[shelfId(section)] ?? filtering);
+    const visible = (section: { key: string; shelf: boolean; items: ReferenceGroup[] }) => isOpen(section) ? section.items.slice(0, more[idOf(section)] ?? 60) : [];
+    const firstOpen = sections.find(section => visible(section).length);
+    const shown = new Set(sections.flatMap(visible)).size;
+    return <div className="space-y-4"><p className="text-xs text-muted-foreground">{copy(`${shown} of ${groups.length} shown`, `${shown} affichés sur ${groups.length}`)}</p>{sections.map(section => { const items = visible(section); const expanded = isOpen(section); const count = <span className="text-sm font-normal text-muted-foreground">{section.items.length}</span>; return <section key={idOf(section) || "all"} className="space-y-3">{section.label && <h3 className="text-base font-semibold">{section.shelf ? <button type="button" aria-expanded={expanded} className="inline-flex items-center gap-1 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onClick={() => setShelves({ ...shelves, [shelfId(section)]: !expanded })}>{expanded ? <ChevronDown className="size-4" aria-hidden="true" /> : <ChevronRight className="size-4" aria-hidden="true" />}{section.label} {count}</button> : <>{section.label} {count}</>}</h3>}{items.length > 0 && (view.layout === "grid" ? <CatalogGrid format={cardFormat(view)} columns={gridColumns(view.size)}>{items.map(group => card(group, section === firstOpen && group === items[0]))}</CatalogGrid> : <div className="min-w-0 max-w-full overflow-x-auto rounded-sm border bg-card"><Table><TableHeader className="bg-muted/50"><TableRow><TableHead className="sticky left-0 z-20 bg-muted">{copy("Model", "Modèle")}</TableHead>{view.providers && <TableHead>{copy("Providers", "Fournisseurs")}</TableHead>}{view.modalities && <TableHead>{copy("Inputs → outputs", "Entrées → sorties")}</TableHead>}{view.evidence && <TableHead>{copy("Capabilities", "Capacités")}</TableHead>}<TableHead className="text-right">{copy("Action", "Action")}</TableHead></TableRow></TableHeader><TableBody>{items.map(group => { const entries = group.entries; const first = entries[0].model; const common = sharedReferenceFacts(group); const others = availableBeside(group).length; return <TableRow key={group.key} data-tour={section === firstOpen && group === items[0] ? "first-model" : undefined}><TableCell className="sticky left-0 z-10 min-w-52 max-w-72 whitespace-normal bg-card"><div className="flex items-center gap-2">{header(group)}</div>{view.description && common.summary && <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{first.summary}</p>}{view.metadata && <div className="mt-2">{details(group, entries)}</div>}</TableCell>{view.providers && <TableCell className="min-w-40 align-top">{accessLine(entries)}{others > 0 && <p className="mt-1.5 text-xs text-muted-foreground">{copy(`${others} available, not in this card`, `${others} disponible${others > 1 ? "s" : ""}, hors de cette fiche`)}</p>}</TableCell>}{view.modalities && <TableCell className="align-top">{common.modalities ? <ModelModalitiesSummary model={first} label={labelOf(group)} /> : copy("Varies", "Variable")}</TableCell>}{view.evidence && <TableCell className="align-top">{common.capabilities ? <ModelCapabilitiesSummary model={first} label={labelOf(group)} /> : copy("Varies", "Variable")}</TableCell>}<TableCell className="text-right align-top"><Button size="sm" variant="outline" onClick={() => open(group)}>{joinable(group).length ? copy("Add to card", "Ajouter à la fiche") : copy(status(group) === "to-create" ? "Register" : "Details", status(group) === "to-create" ? "Enregistrer" : "Détails")}<ActionLabel label={labelOf(group)} /></Button></TableCell></TableRow>; })}</TableBody></Table></div>)}{expanded && items.length < section.items.length && <Button variant="outline" onClick={() => setMore({ ...more, [idOf(section)]: items.length + 60 })}>{copy(`Show more (${section.items.length - items.length})`, `Voir plus (${section.items.length - items.length})`)}</Button>}</section>; })}</div>;
   };
 
-  if (error && !catalog) return <div className="space-y-3"><div role="alert" className="flex flex-wrap items-center gap-2 rounded-sm border border-destructive/40 bg-destructive/10 p-3 text-sm">{copy(`Model details unavailable: ${error}. Your known models are still available.`, `Détails des modèles indisponibles : ${error}. Vos modèles connus restent disponibles.`)} <Button variant="outline" size="sm" onClick={onRetry}>{copy("Retry", "Réessayer")}</Button></div><ModelBrowser key={scope} models={models} registeredIds={registeredIds} preferences={preferences} onOpen={onOpen} tourFirst stateKey="models" filterKey={`models.${scope}`} /></div>;
+  // Models page defaults: sorted by name, To add by serving provider, the logo a panel preference; In Registry lists cards in the order they were saved.
+  const browsing = { defaultSort: "name" as const, defaultGroupBy: byCard ? "none" : "provider", recentSort: byCard, onLogoChange: onPreferencesChange && ((logo: ViewOptions["logo"]) => onPreferencesChange({ ...preferences, logo })) };
+  if (error && !catalog) return <div className="space-y-3"><div role="alert" className="flex flex-wrap items-center gap-2 rounded-sm border border-destructive/40 bg-destructive/10 p-3 text-sm">{copy(`Model details unavailable: ${error}. Your known models are still available.`, `Détails des modèles indisponibles : ${error}. Vos modèles connus restent disponibles.`)} <Button variant="outline" size="sm" onClick={onRetry}>{copy("Retry", "Réessayer")}</Button></div><ModelBrowser key={scope} models={models} registeredIds={registeredIds} preferences={preferences} onOpen={onOpen} tourFirst stateKey="models" filterKey={`models.${scope}`} {...browsing} /></div>;
   // Keyed by scope: each scope keeps its own search and filters, so a To add filter never empties In Registry.
-  return <><ModelBrowser key={scope} models={models} registeredIds={registeredIds} preferences={preferences} onOpen={onOpen} filter={(rows, filters) => catalog ? filterReferenceModels(rows, catalog, filters, byCard) : rows} renderResults={render} tourFirst stateKey="models" filterKey={`models.${scope}`} />
+  return <><ModelBrowser key={scope} models={models} registeredIds={registeredIds} preferences={preferences} onOpen={onOpen} filter={(rows, filters) => catalog ? filterReferenceModels(rows, catalog, filters, byCard) : rows} renderResults={render} tourFirst stateKey="models" filterKey={`models.${scope}`} {...browsing} />
     <Dialog open={!!choice} onOpenChange={open => { if (!open) setChoice(null); }}><DialogContent><DialogHeader><DialogTitle>{copy("Choose the model identifier", "Choisir l’identifiant du modèle")}</DialogTitle><DialogDescription>{choice && unique(choice.entries.map(entry => entry.model.id)).filter(id => registeredIds.has(id)).length > 1 ? copy("These accesses already belong to distinct registered models. Open one card without changing the others.", "Ces accès appartiennent déjà à des modèles enregistrés distincts. Ouvrez une fiche sans modifier les autres.") : copy("Choose the exposed identifier. Conflicting provider accesses stay in separate cards.", "Choisissez l’identifiant exposé. Les accès fournisseurs en conflit restent dans des fiches séparées.")}</DialogDescription></DialogHeader><div className="space-y-2">{choice && unique(choice.entries.map(entry => entry.model.id)).map(id => { const base = registeredModels.find(model => model.id === id) ?? choice.entries.find(entry => entry.model.id === id)!.model; const existing = unique(choice.entries.map(entry => entry.model.id)).filter(value => registeredIds.has(value)); const grouped = choice.entries.flatMap(entry => entry.access ? [entry.access] : []); const duplicateProvider = unique(grouped.map(access => access.provider)).length !== grouped.length; const combine = existing.length === 0 && !duplicateProvider; return <Button key={id} variant="outline" className="h-auto w-full justify-start whitespace-normal text-left" onClick={() => { onOpen(combine ? draftFor(choice, base) : base); setChoice(null); }}>{id}{registeredIds.has(id) ? copy(" · saved", " · enregistré") : copy(" · new", " · nouveau")}{!combine ? copy(" · opens separately", " · ouvre séparément") : copy(" · combines the accesses", " · regroupe les accès")}</Button>; })}</div></DialogContent></Dialog>
     <Dialog open={!!pick} onOpenChange={open => { if (!open) setPick(null); }}><DialogContent><DialogHeader><DialogTitle>{copy("Add to which card?", "Ajouter à quelle fiche ?")}</DialogTitle><DialogDescription>{copy("Several saved cards hold this model. The access stays out of the card until you add it.", "Plusieurs fiches enregistrées détiennent ce modèle. L’accès reste hors de la fiche tant que vous ne l’ajoutez pas.")}</DialogDescription></DialogHeader><div className="space-y-2">{pick?.cards.map(card => <Button key={card.id} variant="outline" className="h-auto w-full justify-start whitespace-normal text-left" onClick={() => { onOpen(card, "access"); setPick(null); }}>{cardName(card, catalog)} · {card.id}</Button>)}{pick && <Button variant="ghost" className="w-full justify-start" onClick={() => { onOpen(pick.group.entries[0].model); setPick(null); }}>{copy("Create a separate card instead", "Créer une fiche distincte à la place")}</Button>}</div></DialogContent></Dialog>
   </>;

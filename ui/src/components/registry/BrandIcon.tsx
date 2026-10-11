@@ -66,6 +66,8 @@ export function setProviderBaseTypes(providers: { id: string; baseProviderType?:
   baseTypes = Object.fromEntries(providers.flatMap(provider => provider.baseProviderType ? [[provider.id, provider.baseProviderType]] : []));
   notifyAppearance();
 }
+// Aggregators resell other creators' models; To add collapses them into shelves.
+export const isAggregator = (id: string) => [id, baseTypes[id]].some(name => name === "openrouter" || name === "vertex");
 // Any other ID reads the way the server names a creator without a Models.dev record (modelsDevCreator):
 // words split on "-" and "_", each capitalised ("typesafe" → "Typesafe", "Claude" stays "Claude").
 export const displayProvider = (id: string) => Object.hasOwn(providerName, id) ? providerName[id]

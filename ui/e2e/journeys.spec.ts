@@ -78,10 +78,23 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     for (const name of ['qa-sonnet', 'qa-codex-mini', 'qa-flash', 'QA Shared']) await expect(badges(name)).toHaveText(['no reference']);
     await expect(page.locator('[data-attention]')).toHaveCount(6);
     await scope(/^To add/).click();
-    await expect(opens).toHaveCount(60); // first page
-    await searchModels().fill('qa-opus');
+    // To add is organised by subscription: the aggregator waits on a collapsed shelf, so the
+    // subscriptions come first (sections are sorted, a count is the whole list, not the page).
+    await expect(page.getByRole('heading', { level: 3 })).toHaveText(['Google 1', 'Synthetic Provider 1', 'Typesafe 1', 'OpenRouter 66']);
+    await expect(opens).toHaveCount(3);
+    const shelf = page.getByRole('button', { name: 'OpenRouter 66', exact: true });
+    await expect(shelf).toHaveAttribute('aria-expanded', 'false');
+    await shelf.focus(); // the shelf opens from the keyboard
+    await page.keyboard.press('Enter');
+    await expect(shelf).toHaveAttribute('aria-expanded', 'true');
+    await expect(opens).toHaveCount(63); // a first page of 60 in the shelf
+    await button('Show more (6)').click();
+    await expect(opens).toHaveCount(69);
+    await shelf.press('Space');
+    await expect(opens).toHaveCount(3);
+    await searchModels().fill('qa-opus'); // a search opens the shelves: its results are not hidden
     // Exact IDs: the variant keeps its own; the access sharing QA Opus' reference shows its native ID.
-    await expect(opens).toHaveText(['QA Opus', '~anthropic/qa-opus-latest']);
+    await expect(opens).toHaveText(['~anthropic/qa-opus-latest', 'QA Opus']); // sorted by name: punctuation first
     await expect(card('QA Opus')).toContainText('anthropic/qa-opus');
     // Two saved cards share this reference: the tile offers a card, never "Partial" or "Not saved".
     await expect(card('QA Opus').locator('[data-attention]')).toHaveText(['Add to a card']);
@@ -105,7 +118,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     page.on('request', r => { if (r.method() === 'PUT' && r.url().endsWith('/api/workspace')) writes++; });
     await scope(/^To add/).click();
     await searchModels().fill('qa-opus');
-    await expect(page.getByRole('button', { name: /^Open .* details$/ })).toHaveText(['QA Opus', '~anthropic/qa-opus-latest']);
+    await expect(page.getByRole('button', { name: /^Open .* details$/ })).toHaveText(['~anthropic/qa-opus-latest', 'QA Opus']);
     // openrouter's anthropic/qa-opus fits QA Opus and QA Opus Fast: choose the card.
     await button('Add to card · QA Opus').click();
     const dialog = page.getByRole('dialog');
@@ -129,7 +142,8 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await solo.goto('/');
     await solo.getByRole('radio', { name: /^To add/ }).click();
     await solo.getByRole('textbox', { name: 'Search models', exact: true }).fill('qa-opus');
-    const tile = solo.locator('[data-slot="card"]').filter({ has: solo.getByRole('button', { name: 'Open QA Opus details', exact: true }) });
+    // The tile joins Claude (qa-opus-fast is no longer saved) and OpenRouter: it sits under each; take the first.
+    const tile = solo.locator('[data-slot="card"]').filter({ has: solo.getByRole('button', { name: 'Open QA Opus details', exact: true }) }).first();
     await expect(tile.locator('[data-attention]')).toHaveText(['Add to QA Opus']);
     await tile.getByRole('button', { name: 'Add to card · QA Opus', exact: true }).click();
     const soloSheet = solo.locator('[data-slot="sheet-content"]');
@@ -160,6 +174,89 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await nav('My models').click();
     await button('Open QA Chat details').waitFor();
     expect(catalogReads, 'No refetch when returning to My models, opening a card, Settings or catalog data').toHaveLength(1);
+  });
+
+  await test.step('browsing by subscription: whole-list sections, sort, To add shelves, the logo choice, a stable count', async () => {
+    const opens = page.getByRole('button', { name: /^Open .* details$/ });
+    const headings = page.getByRole('heading', { level: 3 });
+    const grouping = page.getByRole('combobox', { name: 'Group models by', exact: true });
+    const sorting = page.getByRole('combobox', { name: 'Sort models by', exact: true });
+    const choose = async (box: Locator, option: string) => { await box.click(); await page.getByRole('option', { name: option, exact: true }).click(); };
+    const section = (name: string) => page.locator('section').filter({ has: page.getByRole('heading', { level: 3, name: new RegExp(`^${name} \\d+$`) }) });
+    const card = (name: string) => page.locator('[data-slot="card"]').filter({ has: button(`Open ${name} details`) });
+
+    // A card served by two subscriptions sits under each, and the totals count it once.
+    await expect(grouping).toHaveText('No grouping'); // In Registry opens flat
+    await choose(grouping, 'Group by provider');
+    await expect(headings).toHaveText(['Claude 5', 'Codex 3', 'Google 2', 'Synthetic Provider 3']);
+    await expect(section('Claude').getByRole('button', { name: 'Open QA Shared details', exact: true })).toBeVisible();
+    await expect(section('Codex').getByRole('button', { name: 'Open QA Shared details', exact: true })).toBeVisible();
+    await expect(page.getByText('12 of 12 shown', { exact: true })).toBeVisible();
+    // Sorted sections, sorted cards inside: the sort control orders both.
+    await expect(sorting).toHaveText('Sort by name');
+    await expect(opens).toHaveText(['QA Haiku', 'QA Opus', 'QA Opus Fast', 'QA Shared', 'qa-sonnet', 'QA Codex', 'QA Shared', 'qa-codex-mini', 'QA Gemini', 'qa-flash', 'QA Chat', 'QA Code', 'QA Vision']);
+    await choose(sorting, 'Recently added');
+    await expect(opens).toHaveText(['QA Shared', 'qa-sonnet', 'QA Opus Fast', 'QA Haiku', 'QA Opus', 'QA Shared', 'qa-codex-mini', 'QA Codex', 'qa-flash', 'QA Gemini', 'QA Vision', 'QA Chat', 'QA Code']);
+    await choose(grouping, 'No grouping');
+    await expect(opens).toHaveText(['QA Shared', 'qa-flash', 'qa-sonnet', 'QA Gemini', 'qa-codex-mini', 'QA Codex', 'QA Opus Fast', 'QA Haiku', 'QA Opus', 'QA Vision', 'QA Chat', 'QA Code']);
+    await choose(sorting, 'Sort by creator');
+    await expect(opens).toHaveText(['QA Haiku', 'QA Opus', 'QA Opus Fast', 'QA Chat', 'QA Code', 'QA Vision', 'QA Gemini', 'QA Codex', 'QA Shared', 'qa-codex-mini', 'qa-flash', 'qa-sonnet']);
+    await choose(sorting, 'Sort by provider');
+    await expect(opens).toHaveText(['QA Haiku', 'QA Opus', 'QA Opus Fast', 'QA Shared', 'qa-sonnet', 'QA Codex', 'qa-codex-mini', 'QA Gemini', 'qa-flash', 'QA Chat', 'QA Code', 'QA Vision']);
+    await choose(sorting, 'Sort by name');
+    await expect(opens.first()).toHaveText('QA Chat');
+    // To add has no date to sort by: it offers no "Recently added".
+    await scope(/^To add/).click();
+    await sorting.click();
+    await expect(page.getByRole('option')).toHaveText(['Default order', 'Sort by name', 'Sort by creator', 'Sort by provider']);
+    await page.keyboard.press('Escape');
+    await scope(/^In Registry/).click();
+
+    // The primary logo is chosen in the page's View options and stored as the same preference.
+    const logoChoice = (name: string) => page.getByRole('radio', { name, exact: true });
+    const storedLogo = () => page.evaluate(() => JSON.parse(localStorage.getItem('registry-prototype-view') || '{}').logo);
+    expect(await storedLogo()).not.toBe('provider');
+    await button('View options').click();
+    await expect(logoChoice('Creator')).toBeChecked();
+    await logoChoice('Provider').click();
+    await page.keyboard.press('Escape');
+    await expect(card('QA Opus').getByRole('img', { name: 'Claude', exact: true })).toHaveCount(2); // header and footer
+    await expect(card('QA Opus').getByRole('img', { name: 'Anthropic', exact: true })).toHaveCount(0);
+    expect(await storedLogo()).toBe('provider');
+    await nav('Settings').click();
+    await button('Appearance').click();
+    await page.getByRole('button', { name: 'View options', exact: true }).click();
+    await expect(logoChoice('Provider'), 'Settings reads the same preference').toBeChecked();
+    await logoChoice('Creator').click();
+    await nav('My models').click();
+    expect(await storedLogo()).toBe('creator');
+    await expect(card('QA Opus').getByRole('img', { name: 'Anthropic', exact: true })).toHaveCount(1);
+
+    // The To add count counts tiles before and after the catalogue arrives, even where several
+    // discovered models share one reference (a twin of QA Hunyuan joins its tile).
+    const current = await api('workspace');
+    const hunyuan = current.discovery.find((model: { accesses: { nativeModel?: string }[] }) => model.accesses.some(access => access.nativeModel === 'tencent/qa-hunyuan'));
+    const twin = structuredClone(hunyuan);
+    twin.id = 'qa-hunyuan-twin';
+    twin.accesses = twin.accesses.map((access: { id: string; nativeModel: string }) => ({ ...access, id: `openrouter/${twin.id}`, nativeModel: 'tencent/qa-hunyuan-twin' }));
+    const full = await api('catalog');
+    const linked = full.accesses.find((access: { id: string }) => access.id === 'openrouter/tencent/qa-hunyuan');
+    const stable = { workspace: { ...current, discovery: [...current.discovery, twin] }, catalog: { ...full, accesses: [...full.accesses, { ...structuredClone(linked), id: 'openrouter/tencent/qa-hunyuan-twin', model: 'tencent/qa-hunyuan-twin' }] } };
+    const loading = await browser.newPage({ baseURL, viewport: { width: 1440, height: 950 } });
+    loading.setDefaultTimeout(10_000);
+    loading.on('pageerror', e => errors.push(e.message));
+    let release!: () => void;
+    const held = new Promise<void>(resolve => { release = resolve; });
+    await loading.route('**/api/workspace', r => r.fulfill({ json: stable.workspace }));
+    await loading.route('**/api/catalog', async r => { await held; await r.fulfill({ json: stable.catalog }); });
+    await loading.goto('/');
+    await expect(loading.getByRole('status', { name: 'Loading model cards…' })).toBeVisible();
+    const toAdd = loading.getByRole('radio', { name: /^To add/ });
+    await expect(toAdd, 'before the catalogue: the tiles, not the 70 discovered models').toHaveAccessibleName('To add (69)');
+    release();
+    await expect(loading.getByRole('status', { name: 'Loading model cards…' })).toBeHidden();
+    await expect(toAdd).toHaveAccessibleName('To add (69)');
+    await loading.close();
   });
 
   await test.step('scope, search, filters and grouping survive leaving the page', async () => {
@@ -309,14 +406,18 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await nav('Settings').click();
     await button('Appearance').click();
     await logo(page.locator('section').filter({ has: page.getByRole('heading', { name: 'Claude', exact: true }) }), 'Claude');
-    await button('Provider').click();
+    await button('View options').click();
+    await page.getByRole('radio', { name: 'Provider', exact: true }).click(); // the primary logo is part of View options
+    await page.keyboard.press('Escape');
     await nav('My models').click();
     await expect(marks(card('QA Opus'), 'Claude')).toHaveCount(2); // header and footer
     await expect(marks(card('QA Opus'), 'Anthropic')).toHaveCount(0);
     await logo(card('QA Opus'), 'Claude');
     await nav('Settings').click();
     await button('Appearance').click();
-    await button('Creator').click();
+    await button('View options').click();
+    await page.getByRole('radio', { name: 'Creator', exact: true }).click();
+    await page.keyboard.press('Escape');
     await nav('My models').click();
 
     // Keys show the same marks and display names.

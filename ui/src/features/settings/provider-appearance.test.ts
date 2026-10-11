@@ -1,5 +1,5 @@
 import { providerImageFileError } from "./ProviderAppearance";
-import { displayProvider, markFor, providerMark } from "@/components/registry/BrandIcon";
+import { displayProvider, isAggregator, markFor, providerMark, setProviderBaseTypes } from "@/components/registry/BrandIcon";
 
 const equal = (actual: unknown, expected: unknown) => {
   if (actual !== expected) throw new Error(`Expected ${String(expected)}, got ${String(actual)}`);
@@ -31,4 +31,11 @@ equal(displayProvider("typesafe"), "Typesafe");
 equal(displayProvider("synthetic-provider"), "Synthetic Provider");
 equal(displayProvider("my_gateway-eu"), "My Gateway Eu");
 equal(displayProvider("constructor"), "Constructor");
+// Aggregators (OpenRouter, Vertex) resell other creators' models: recognised by their ID or Bifrost base type.
+setProviderBaseTypes([{ id: "Claude", baseProviderType: "anthropic" }, { id: "Router", baseProviderType: "openrouter" }]);
+equal(isAggregator("openrouter"), true);
+equal(isAggregator("vertex"), true);
+equal(isAggregator("Router"), true);
+equal(isAggregator("Claude"), false);
+equal(isAggregator("synthetic-provider"), false);
 console.log("provider appearance checks passed");
