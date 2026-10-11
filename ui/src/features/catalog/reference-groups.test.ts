@@ -104,6 +104,9 @@ if (kinds(pair, 0) !== "[]") throw new Error("An ordinary saved card got a badge
 if (kinds(pair, 2) !== JSON.stringify([{ kind: "available", count: 2 }])) throw new Error("Available accesses were not announced");
 if (kinds(groupReferenceModels([models[2]], catalog)[0], 0) !== JSON.stringify([{ kind: "no-reference" }])) throw new Error("A card without reference was not announced");
 if (kinds(groupReferenceModels([models[2]], catalog)[0], 1) !== JSON.stringify([{ kind: "available", count: 1 }, { kind: "no-reference" }])) throw new Error("Attention badges lost their order");
+const guessed = [{ ...models[2], creatorSource: "inferred" as const }];
+if (kinds(groupReferenceModels(guessed, catalog)[0], 1) !== JSON.stringify([{ kind: "available", count: 1 }, { kind: "no-reference" }, { kind: "inferred-creator" }])) throw new Error("An inferred creator was not announced after the other badges");
+if (kinds(groupReferenceModels([{ ...models[0], creatorSource: "inferred" as const }], catalog)[0], 0) !== JSON.stringify([{ kind: "inferred-creator" }])) throw new Error("An inferred creator needs no missing reference to be announced");
 console.log("Saved cards get attention badges only: OK");
 
 // The To add count counts the same tiles before and after the catalogue loads: without it, grouping

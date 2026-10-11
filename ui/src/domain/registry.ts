@@ -6,6 +6,9 @@ export type Model = {
   alias?: string;
   name: string;
   creator: string;
+  // Where a saved card's creator comes from. "inferred" is a guess from its single first-party provider;
+  // a manual edit sets "manual" (with no creator, that clears the guess for good).
+  creatorSource?: "manual" | "reference" | "inferred";
   family: string;
   inputModalities: string[];
   outputModalities: string[];
@@ -24,9 +27,16 @@ export type PricingProof = { access: string; state: string; checkedAt: string; e
 // What Bifrost lets a key use today, from its native provider rows; allModels stands for "*",
 // versionDependent for an empty list (all or none depending on the Bifrost version).
 export type NativePermissions = { allProviders: boolean; providers: { provider: string; allModels: boolean; models: string[]; versionDependent?: boolean }[] };
+// Whether an unmanaged key can be adopted, from the adoption plan. A blocker groups one provider's
+// models of one kind ("" provider = the whole key): undiscovered = Bifrost does not list them,
+// unsaved = discovered but no Registry card, all-providers, other = any other reason (see `reasons`,
+// as sent). count = models.length for the first two kinds, reasons.length for the others.
+export type ReadinessBlocker = { provider: string; kind: "undiscovered" | "unsaved" | "all-providers" | "other"; count: number; models: string[]; reasons?: string[] };
+export type Readiness = { state: "ready" | "blocked" | "empty"; blockers: ReadinessBlocker[] };
 // pendingAccessSelection: saved models withheld until an access is chosen, with their candidate access IDs.
 // permissions: absent when Bifrost's answer carried no provider rows (not read yet).
-export type Key = { id: string; name: string; client: string; active: boolean; policy: Policy; observed: string[] | null; readError: boolean; revision: number; managed?: boolean; publication?: Publication; pendingAccessSelection?: Record<string, string[]>; permissions?: NativePermissions };
+// readiness: only for unmanaged keys whose permissions were read.
+export type Key = { id: string; name: string; client: string; active: boolean; policy: Policy; observed: string[] | null; readError: boolean; revision: number; managed?: boolean; publication?: Publication; pendingAccessSelection?: Record<string, string[]>; permissions?: NativePermissions; readiness?: Readiness };
 export type Demo = { models: Model[]; groups: Group[]; keys: Key[]; campaigns: Campaign[] };
 export type Campaign = { id: string; model: string; provider: string; accessId: string; scenario: string; outcome: "Pass" | "Fail" | "Inconclusive" | "Not run"; date: string; note: string };
 
@@ -87,12 +97,15 @@ export function distinctLabels<T>(items: T[], name: (item: T) => string, detail:
   for (const item of items) counts.set(name(item), (counts.get(name(item)) ?? 0) + 1);
   return (item: T) => (counts.get(name(item)) ?? 0) > 1 ? `${name(item)} (${detail(item)})` : name(item);
 }
-export type ModelFilters = { search: string; creator: string; provider: string; task: string; input: string; output: string; capability: string };
-export const emptyModelFilters: ModelFilters = { search: "", creator: "", provider: "", task: "", input: "", output: "", capability: "" };
+// routes: exact "provider/native" accesses, one per line (a key's unsaved models); empty = no restriction.
+export type ModelFilters = { search: string; creator: string; provider: string; task: string; input: string; output: string; capability: string; routes: string };
+export const emptyModelFilters: ModelFilters = { search: "", creator: "", provider: "", task: "", input: "", output: "", capability: "", routes: "" };
 export const filterModels = (models: Model[], filters: ModelFilters) => models.filter(model => {
   const query = filters.search.trim().toLocaleLowerCase();
   const searchable = [model.name, model.id, model.creator, model.family, ...model.accesses.flatMap(access => [access.provider, access.id])].join(" ").toLocaleLowerCase();
+  const routes = filters.routes ? filters.routes.split("\n") : [];
   return (!query || searchable.includes(query)) &&
+    (!routes.length || model.accesses.some(access => routes.includes(`${access.provider}/${access.nativeModel}`))) &&
     (!filters.creator || creatorKey(model.creator) === filters.creator) &&
     (!filters.provider || model.accesses.some(access => access.provider === filters.provider)) &&
     (!filters.task || model.tasks.includes(filters.task)) &&
