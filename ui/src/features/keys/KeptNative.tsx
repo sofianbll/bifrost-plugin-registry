@@ -23,14 +23,15 @@ export function KeptNative({ virtualKey }: { virtualKey: Key }) {
 // Extension point for #93: the sibling action (remove the models from the key) sits beside the blocker line in AdoptionBlockers.
 export function KeptProviders({ readiness, onKeep }: { readiness?: Readiness; onKeep?: (provider: string, keep: boolean) => void }) {
   const copy = useCopy();
+  // A provider that allows every model (dynamic) names no model: it counts as "all models" (-1).
   const kept = new Map<string, number>();
-  for (const blocker of readiness?.blockers ?? []) if (blocker.kept && blocker.provider) kept.set(blocker.provider, (kept.get(blocker.provider) ?? 0) + blocker.models.length);
+  for (const blocker of readiness?.blockers ?? []) if (blocker.kept && blocker.provider) kept.set(blocker.provider, blocker.kind === "dynamic" || kept.get(blocker.provider) === -1 ? -1 : (kept.get(blocker.provider) ?? 0) + blocker.models.length);
   if (!kept.size) return null;
   return <section aria-label={copy("Kept in Bifrost", "Conservés dans Bifrost")} className="rounded-sm border bg-primary/5 p-3"><h3 className="font-medium">{copy("Kept in Bifrost", "Conservés dans Bifrost")}</h3>
     <ul className="mt-2 space-y-3">{[...kept].map(([provider, count]) => {
       const name = displayProvider(provider);
       return <li key={provider}>
-        <p className="font-medium">{name} · {count} {copy(count === 1 ? "model" : "models", count === 1 ? "modèle conservé" : "modèles conservés")}{copy(" kept in Bifrost", " dans Bifrost")}</p>
+        <p className="font-medium">{name} · {count < 0 ? copy("all models", "tous les modèles conservés") : `${count} ${copy(count === 1 ? "model" : "models", count === 1 ? "modèle conservé" : "modèles conservés")}`}{copy(" kept in Bifrost", " dans Bifrost")}</p>
         <p className="text-xs">{copy(`Registry will not manage or change ${name}’s permissions. Bifrost keeps them as they are, outside the catalog; the rest of the key is adopted.`, `Registry ne gérera ni ne modifiera les permissions du fournisseur ${name}. Bifrost les conserve telles quelles, hors du catalogue ; le reste de la clé est adopté.`)}</p>
         {onKeep && <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => onKeep(provider, false)}>{copy(`Stop keeping ${name} in Bifrost`, `Ne plus garder ${name} dans Bifrost`)}</Button>}
       </li>;

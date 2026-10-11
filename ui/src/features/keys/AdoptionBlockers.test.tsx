@@ -4,8 +4,8 @@ import type { Readiness } from "../../domain/registry";
 import { AdoptionBlockers } from "./AdoptionBlockers";
 
 // #87: the adoption dialog lists blockers per provider, with counts, model names and the way forward.
-const render = (language: "en" | "fr", readiness: Readiness | undefined, reasons: string[], onShowToAdd?: (routes: string[]) => void, onKeep?: (provider: string, keep: boolean) => void) =>
-  renderToStaticMarkup(<LanguageContext.Provider value={language}><AdoptionBlockers readiness={readiness} reasons={reasons} onShowToAdd={onShowToAdd} onKeep={onKeep} /></LanguageContext.Provider>);
+const render = (language: "en" | "fr", readiness: Readiness | undefined, reasons: string[], onShowToAdd?: (routes: string[]) => void, onKeep?: (provider: string, keep: boolean) => void, onEditNative?: () => void) =>
+  renderToStaticMarkup(<LanguageContext.Provider value={language}><AdoptionBlockers readiness={readiness} reasons={reasons} onShowToAdd={onShowToAdd} onKeep={onKeep} onEditNative={onEditNative} /></LanguageContext.Provider>);
 const text = (html: string) => html.split(/<[^>]*>/).join("");
 const must = (condition: boolean, message: string) => { if (!condition) throw new Error(message); };
 
@@ -60,4 +60,16 @@ const dynamic = ["Dynamic native model allowlist is unsupported for Claude"];
 const dynamicEn = text(render("en", undefined, dynamic, () => {}));
 must(dynamicEn.includes("Claude: this key allows every model, including future ones") && !dynamicEn.includes("dynamic"), "a dynamic allowlist reads in plain words");
 must(text(render("fr", undefined, dynamic, () => {})).includes("Claude : cette clé autorise tous les modèles, y compris les futurs"), "and in French");
+// Both ways forward sit beside that blocker, like for models Bifrost does not list: keep the provider in Bifrost,
+// or replace "all models" by the models saved in Registry (a native edit, previewed and confirmed).
+const star: Readiness = { state: "blocked", blockers: [{ provider: "Claude", kind: "dynamic", count: 1, models: [], reasons: dynamic }] };
+const starOffer = render("en", star, dynamic, () => {}, () => {}, () => {});
+const starText = text(starOffer);
+must(starText.includes("Claude · all models allowed") && starText.includes("Claude: this key allows every model, including future ones"), `the blocker line and its reason, got ${starText}`);
+must((starOffer.match(/Keep Claude in Bifrost/g) || []).length === 1 && starText.includes("Registry will not manage or change Claude’s permissions"), "the keep offer and its consequence");
+must(starText.includes("Replace “all models” by the models saved in Registry"), "the replace offer");
+must(!starText.includes("review a key that lists its models one by one"), "no dead-end advice once actions are offered");
+must(!text(render("en", star, dynamic, () => {})).includes("Keep Claude in Bifrost"), "no keep offer without a handler");
+const starFrench = text(render("fr", star, dynamic, () => {}, () => {}, () => {}));
+for (const line of ["Claude · tous les modèles autorisés", "Garder Claude dans Bifrost", "Remplacer « tous les modèles » par les modèles enregistrés dans Registry"]) must(starFrench.includes(line), `French dialog must read "${line}"`);
 console.log("Adoption blockers checks passed");

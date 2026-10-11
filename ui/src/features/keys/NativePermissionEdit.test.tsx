@@ -24,6 +24,10 @@ const everyProvider: Readiness = { state: "blocked", blockers: [
 ] };
 must(nativeEditFor(everyProvider.blockers[0], everyProvider)?.operation === "replace-all-providers", "all providers can be replaced by the explicit list");
 must(nativeEditFor(everyProvider.blockers[1], everyProvider) === null, "models are removed only once the key no longer allows every provider (removing a row would open that provider)");
+const star: Readiness = { state: "blocked", blockers: [{ provider: "Claude", kind: "dynamic", count: 1, models: [], reasons: ["Dynamic native model allowlist is unsupported for Claude"] }] };
+must(nativeEditFor(star.blockers[0], star)?.operation === "replace-all-models" && nativeEditFor(star.blockers[0], star)?.provider === "Claude", "all models of a provider can be replaced by the models saved in Registry");
+must(nativeEditFor(star.blockers[0], { ...star, blockers: [...star.blockers, everyProvider.blockers[0]] }) === null, "all providers is replaced first");
+must(nativeEditLabel({ operation: "replace-all-models", provider: "Claude" }, english("en")) === "Replace “all models” by the models saved in Registry", "replace all models label");
 must(nativeEditLabel({ operation: "remove-models", provider: "mistral" }, english("en")) === "Remove these models from the key in Bifrost", "remove label");
 must(nativeEditLabel({ operation: "replace-all-providers", provider: "" }, english("en")) === "Replace “all providers” by the explicit list", "replace label");
 
@@ -70,4 +74,17 @@ for (const line of ["Mistral · 3 modèles", "Codex · 1 modèle", "Autorisé au
 for (const word of ["the", "and", "of", "with", "Yes", "No", "Other"]) must(!new RegExp(`\\b${word}\\b`).test(french), `French preview must not contain "${word}"`);
 const frenchReplaced = text(render("fr", replacement));
 must(frenchReplaced.includes("Tous les fournisseurs") && frenchReplaced.includes("Les fournisseurs ajoutés plus tard à Bifrost ne seront pas autorisés"), "French replacement preview");
+
+// Replacing "all models" of one provider: the provider stops allowing future models; what it loses is named.
+const allModels: NativeEditPreview = { ...base, operation: "replace-all-models", provider: "Claude",
+  remove: [{ provider: "Claude", models: ["qa-new"] }],
+  before: { allProviders: false, providers: [{ provider: "Claude", allModels: true, models: [] }, { provider: "Codex", allModels: false, models: ["gpt-saved"] }] },
+  after: { allProviders: false, providers: [{ provider: "Claude", allModels: false, models: ["qa-haiku", "qa-opus"] }, { provider: "Codex", allModels: false, models: ["gpt-saved"] }] } };
+const narrowed = text(render("en", allModels));
+for (const line of ["Claude · all models", "Claude · 2 models", "Claude · 1 model", "qa-new"]) must(narrowed.includes(line), `the all-models preview must read "${line}"`);
+must(narrowed.includes("Claude stops allowing every model") && narrowed.includes("Models Claude adds later are not allowed") && narrowed.includes("no longer allowed"), `the consequence names the loss, got ${narrowed}`);
+must(!narrowed.includes("budgets") && !narrowed.includes("is removed from it"), "the row stays, so its limits stay");
+const narrowedFrench = text(render("fr", allModels));
+must(narrowedFrench.includes("Claude n’autorise plus tous ses modèles") && narrowedFrench.includes("Claude · tous les modèles"), `French all-models preview, got ${narrowedFrench}`);
+for (const word of ["the", "and", "of", "with"]) must(!new RegExp(`\\b${word}\\b`).test(narrowedFrench), `French all-models preview must not contain "${word}"`);
 console.log("Native permission edit checks passed");
