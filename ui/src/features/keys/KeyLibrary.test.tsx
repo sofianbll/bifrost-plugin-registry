@@ -59,7 +59,7 @@ const named = [{ ...native, id: "a", name: "Key A" }, { ...native, id: "b", name
 for (const language of ["en", "fr"] as const) {
   for (const layout of ["grid", "table"] as const) {
     const html = renderToStaticMarkup(<LanguageContext.Provider value={language}><KeyLibrary keys={named} groups={fixture.groups} models={fixture.models} view={{ ...defaultViewOptions, layout }} onViewChange={() => {}} onResetView={() => {}} busy={false} snapshotMode onCreate={() => {}} onOpen={() => {}} /></LanguageContext.Provider>);
-    const actions = [...html.matchAll(/<button[^>]*>(.*?)<\/button>/g)].map(match => match[1].replace(/<[^>]+>/g, "")).filter(name => /^(Review|Open|Examiner|Ouvrir)\b/.test(name));
+    const actions = [...html.matchAll(/<button[^>]*>(.*?)<\/button>/g)].map(match => match[1].split(/<[^>]*>/).join("")).filter(name => /^(Review|Open|Examiner|Ouvrir)\b/.test(name));
     const expected = language === "en" ? ["Review · Key A", "Review · Key B", "Open · Key C", "Open · Key D"] : ["Examiner · Key A", "Examiner · Key B", "Ouvrir · Key C", "Ouvrir · Key D"];
     if (JSON.stringify(actions) !== JSON.stringify(expected)) throw new Error(`${language} ${layout}: key actions must name their key, got ${JSON.stringify(actions)}`);
   }
