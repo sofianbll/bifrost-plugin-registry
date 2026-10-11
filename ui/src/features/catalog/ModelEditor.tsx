@@ -79,7 +79,7 @@ function EndpointChoices({ access, invalid, onChange }: { access: Access; invali
 
 type EditSection = "identity" | "details" | "capabilities" | "access" | null;
 
-export default function ModelEditor({ draft, onChange, creating, workspace, catalog, catalogError, pricingProofs, saved, error, busy, snapshotMode = false, expert = false, onExpertChange, canExpert, onSave, onOverridesChange, onCancel, onDelete, onDiscardEdits = revert => revert(), actionSlot }: {
+export default function ModelEditor({ draft, onChange, creating, workspace, catalog, catalogError, pricingProofs, saved, error, busy, snapshotMode = false, expert = false, onExpertChange, canExpert, onSave, onOverridesChange, onCancel, onDelete, onDiscardEdits = revert => revert(), actionSlot, initialTab }: {
   draft: Model;
   onChange: (draft: Model) => void;
   creating: boolean;
@@ -103,6 +103,8 @@ export default function ModelEditor({ draft, onChange, creating, workspace, cata
   // Cancel in the editor of a saved card: the app asks before dropping a change, then calls revert.
   onDiscardEdits?: (revert: () => void) => void;
   actionSlot?: ReactNode;
+  // An existing card opens on the Overview unless the caller wants the accesses ("Add to card").
+  initialTab?: "access";
 }) {
   const [stagedOverrides, setStagedOverrides] = useState<CatalogOverride[]>([]);
   const [step, setStep] = useState<"choose" | "card" | "review">(creating ? "choose" : "card");
@@ -110,7 +112,7 @@ export default function ModelEditor({ draft, onChange, creating, workspace, cata
   const readOnly = mode === "read";
   // Expert shows every step at once, in the editor only.
   const all = expert && !readOnly;
-  const [cardTab, setCardTab] = useState<"overview" | "access" | "properties" | "sources">("overview");
+  const [cardTab, setCardTab] = useState<"overview" | "access" | "properties" | "sources">(initialTab ?? "overview");
   const [selectedAccessId, setSelectedAccessId] = useState("");
   const [editing, setEditing] = useState<EditSection>(null);
   const [editDraft, setEditDraft] = useState<Model | null>(null);
