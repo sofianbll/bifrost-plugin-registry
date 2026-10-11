@@ -689,7 +689,7 @@ func accessSelectionToDTO(sel map[string]registry.AccessSelector, models []regis
 	}
 	out := map[string]registry.AccessSelector{}
 	for alias, s := range sel {
-		dto := registry.AccessSelector{}
+		dto := registry.AccessSelector{Added: []string{}, Excluded: []string{}} // the panel reads both as lists
 		for _, id := range s.Added {
 			if access := idToAccess[id]; access != "" {
 				dto.Added = append(dto.Added, access)

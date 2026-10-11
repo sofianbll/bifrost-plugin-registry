@@ -670,6 +670,10 @@ func TestAliasCollisionIsResolvedByKeepingOneProviderNative(t *testing.T) {
 	if !strings.Contains(read.Body.String(), `"state":"verified"`) {
 		t.Fatalf("the adopted key must read verified: %s", read.Body.String())
 	}
+	// The panel reads which access was adopted: the card's Codex access stays out of the key's draft.
+	if !strings.Contains(read.Body.String(), `"accessSelection":{"gpt-saved":{"added":[],"excluded":["Codex/gpt-saved"]}}`) {
+		t.Fatalf("the adopted access choice must reach the panel: %s", read.Body.String())
+	}
 }
 
 // Bifrost discovers no model of a provider it has disabled (no enabled key, or not listed at all): the blocker says so.

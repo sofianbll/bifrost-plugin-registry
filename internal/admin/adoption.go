@@ -241,7 +241,7 @@ func (s *Server) adoptionPlan(ctx context.Context, input adoptionInput) (adoptio
 		plan.policy = registry.Policy{
 			VirtualKeyID: input.KeyID, Name: vk.Name, TokenSHA256: registry.TokenHash(secret),
 			Naming: "provider/model", Added: selected, Groups: []string{}, Enabled: true,
-			Adopted: true, NativeModelIDs: selected, KeptNative: keep,
+			Adopted: true, NativeModelIDs: selected, KeptNative: keep, AccessSelection: adoptedAccesses(cfg, selected),
 		}
 		if secret != "" && !hasBlocking(blocked, "") {
 			ids, err := s.nativeModelIDs(ctx, secret)
@@ -294,6 +294,33 @@ func (s *Server) nativeModelIDs(ctx context.Context, secret string) ([]string, e
 	}
 	sort.Strings(ids)
 	return ids, nil
+}
+
+// adoptedAccesses records, for each adopted model whose alias other accesses share (a card served by two
+// providers), that those accesses are out: the key adopted one access per model, and the panel's draft
+// must not read the whole card as added. Nil when no alias is shared.
+func adoptedAccesses(cfg registry.Config, selected []string) map[string]registry.AccessSelector {
+	var out map[string]registry.AccessSelector
+	for _, id := range selected {
+		var alias string
+		for _, m := range cfg.Models {
+			if m.ID == id {
+				alias = m.Alias
+			}
+		}
+		for _, m := range cfg.Models {
+			if m.Alias == alias && m.ID != id && !registry.Has(selected, m.ID) {
+				if out == nil {
+					out = map[string]registry.AccessSelector{}
+				}
+				sel := out[alias]
+				sel.Added = []string{}
+				sel.Excluded = append(sel.Excluded, m.ID)
+				out[alias] = sel
+			}
+		}
+	}
+	return out
 }
 
 // keptProviders is the sorted, de-duplicated choice of providers to keep native.
