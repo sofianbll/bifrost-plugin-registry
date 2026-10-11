@@ -1,11 +1,19 @@
 import type { Catalog, CatalogAccess, CatalogRecord } from "./catalog-api";
-import { emptyModelFilters, filterModels, sameAccess, type Access, type Model, type ModelFilters } from "../../domain/registry";
+import { emptyModelFilters, filterModels, knownValue, sameAccess, type Access, type Model, type ModelFilters } from "../../domain/registry";
 
 export type ReferenceGroup = {
   key: string;
   reference?: CatalogRecord;
   entries: { model: Model; access?: Access; catalogAccess?: CatalogAccess }[];
 };
+
+// How the UI names a saved card: its saved name, unless empty or equal to the common ID (a slug);
+// then the linked reference's name, else the ID. data.models keeps the saved name as is.
+export function cardName(model: Model, catalog?: Catalog | null) {
+  if (model.name.trim() && model.name !== model.id) return model.name;
+  const referenceId = model.accesses.find(access => access.referenceId)?.referenceId;
+  return knownValue(catalog?.references.find(reference => reference.id === referenceId)?.fields.name?.value) || model.id;
+}
 
 export function sharedReferenceFacts(group: ReferenceGroup) {
   const first = group.entries[0]?.model;
