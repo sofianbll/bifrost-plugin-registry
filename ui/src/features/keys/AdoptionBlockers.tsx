@@ -3,6 +3,7 @@ import { displayProvider } from "../../components/registry/BrandIcon";
 import type { Readiness } from "../../domain/registry";
 import { useCopy, type Copy } from "../../lib/locale";
 import { blockerLine } from "./key-readiness";
+import { NativeEditButton, type NativeEditRequest } from "./NativePermissionEdit";
 
 // The server writes its adoption reasons as English text in about twenty places
 // (internal/admin/adoption.go), so they are mapped to UI copy here, in one table:
@@ -37,7 +38,8 @@ export function adoptionReason(reason: string, copyText: Copy) {
 
 // What stops a key from being adopted, one entry per provider and kind, with counts and model names.
 // Models Bifrost lists but Registry has no card for lead to the models page ("To add").
-export function AdoptionBlockers({ readiness, reasons: plain, onShowToAdd }: { readiness?: Readiness; reasons: string[]; onShowToAdd?: (routes: string[]) => void }) {
+// Extension point for actions on a blocker: render them as the last child of its <li>, as NativeEditButton does (#93).
+export function AdoptionBlockers({ readiness, reasons: plain, onShowToAdd, onEditNative }: { readiness?: Readiness; reasons: string[]; onShowToAdd?: (routes: string[]) => void; onEditNative?: (request: NativeEditRequest) => void }) {
   const copyText = useCopy();
   return <div className="rounded-sm border border-destructive/40 bg-destructive/10 p-3"><h3 className="font-medium">{copyText("Before continuing", "Avant de continuer")}</h3>
     {readiness?.state === "empty" ? <p className="mt-1">{copyText("This key allows no model in Bifrost yet, so there is nothing to adopt. Add models to the key in Bifrost first.", "Cette clé n’autorise encore aucun modèle dans Bifrost : rien à adopter. Ajoutez d’abord des modèles à la clé dans Bifrost.")}</p>
@@ -50,6 +52,7 @@ export function AdoptionBlockers({ readiness, reasons: plain, onShowToAdd }: { r
           {names}
           {blocker.kind === "unsaved" && onShowToAdd && <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => onShowToAdd(blocker.models.map(model => `${blocker.provider}/${model}`))}>{copyText("Show in To add", "Voir dans À ajouter")}<span className="sr-only"> · {displayProvider(blocker.provider)}</span></Button>}
         </> : (blocker.reasons ?? []).map((reason, index) => <p key={`${index}/${reason}`} className="break-words">{adoptionReason(reason, copyText)}</p>)}
+        <NativeEditButton blocker={blocker} readiness={readiness} onEdit={onEditNative} />
       </li>;
     })}</ul>
     : plain.map((reason, index) => <p key={`${index}/${reason}`} className="mt-2 break-words">{adoptionReason(reason, copyText)}</p>)}

@@ -538,7 +538,7 @@ function RegistryApp({ language, onLanguageChange }: { language: Language; onLan
         if (error instanceof ApiError && error.status === 401) requireLogin();
         else setApiError(error instanceof Error ? error.message : copyText("Could not refresh the key selection.", "Impossible d’actualiser la sélection de la clé."));
       });
-    }} />}
+    }} onNativeEdited={() => void getWorkspace().then(applyWorkspace).catch(error => { if (error instanceof ApiError && error.status === 401) requireLogin(); })} />}
     <Toaster closeButton position={isMobile ? "bottom-center" : "bottom-right"} offset={isMobile ? { bottom: "calc(env(safe-area-inset-bottom) + 128px)" } : undefined} mobileOffset={{ bottom: "calc(env(safe-area-inset-bottom) + 128px)" }} visibleToasts={isMobile ? 1 : undefined} richColors />
   </SidebarProvider></TooltipProvider>;
 }

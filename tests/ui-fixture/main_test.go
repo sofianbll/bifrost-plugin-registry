@@ -63,7 +63,7 @@ func TestFixtureWorkspaceAndNativeReadback(t *testing.T) {
 		Discovery []any          `json:"discovery"`
 	}
 	get := call("GET", "/api/workspace", nil, "")
-	if get.Code != 200 || json.Unmarshal(get.Body.Bytes(), &ws) != nil || len(ws.Data["models"].([]any)) != 12 || len(ws.Data["groups"].([]any)) != 2 || len(ws.Data["keys"].([]any)) != 9 || len(ws.Discovery) != 81 {
+	if get.Code != 200 || json.Unmarshal(get.Body.Bytes(), &ws) != nil || len(ws.Data["models"].([]any)) != 12 || len(ws.Data["groups"].([]any)) != 2 || len(ws.Data["keys"].([]any)) != 10 || len(ws.Discovery) != 81 {
 		t.Fatalf("workspace: %d %s", get.Code, get.Body.String())
 	}
 	group := ws.Data["groups"].([]any)[0].(map[string]any)
@@ -302,6 +302,7 @@ func TestFixtureKeysCoverAdoptionCases(t *testing.T) {
 		"vk-qa-unmanaged": "empty", "vk-qa-all-providers": "all-providers", "vk-qa-claude": "all-models",
 		"vk-qa-codex": "ready", "vk-qa-google": "ready",
 		"vk-qa-mistral": "undiscovered 3, saved 2, unsaved 0", // the Hermes case: a disabled provider plus discovered models
+		"vk-qa-hermes":  "undiscovered 2, saved 2, unsaved 0",
 		"vk-qa-unsaved": "unsaved 1, saved 1",
 	}
 	if !reflect.DeepEqual(got, want) {
@@ -311,13 +312,13 @@ func TestFixtureKeysCoverAdoptionCases(t *testing.T) {
 	wantReadiness := map[string]string{
 		"vk-qa-unmanaged": "empty", "vk-qa-all-providers": "blocked /all-providers 1", "vk-qa-claude": "blocked Claude/other 1",
 		"vk-qa-codex": "ready", "vk-qa-google": "ready",
-		"vk-qa-mistral": "blocked mistral/undiscovered 3", "vk-qa-unsaved": "blocked synthetic-provider/unsaved 1",
+		"vk-qa-mistral": "blocked mistral/undiscovered 3", "vk-qa-hermes": "blocked mistral/undiscovered 2", "vk-qa-unsaved": "blocked synthetic-provider/unsaved 1",
 	}
 	if !reflect.DeepEqual(readiness, wantReadiness) {
 		t.Fatalf("unmanaged key readiness = %v, want %v", readiness, wantReadiness)
 	}
 	// Adoption agrees: only the ready keys can be adopted as they are.
-	for id, apply := range map[string]bool{"vk-qa-codex": true, "vk-qa-google": true, "vk-qa-mistral": false, "vk-qa-unsaved": false, "vk-qa-unmanaged": false} {
+	for id, apply := range map[string]bool{"vk-qa-codex": true, "vk-qa-google": true, "vk-qa-mistral": false, "vk-qa-hermes": false, "vk-qa-unsaved": false, "vk-qa-unmanaged": false} {
 		var p struct {
 			CanApply bool `json:"canApply"`
 		}

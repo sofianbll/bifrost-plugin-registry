@@ -1,4 +1,4 @@
-import type { Demo, Model, PricingProof, Publication, Readiness } from "../domain/registry";
+import type { Demo, Model, NativePermissions, PricingProof, Publication, Readiness } from "../domain/registry";
 import type { CatalogOverride } from "../features/catalog/model-card-fields";
 
 export type Workspace = {
@@ -59,4 +59,18 @@ export const previewKeyAdoption = (keyId: string, operation: AdoptionOperation) 
 export const applyKeyAdoption = (preview: AdoptionPreview) => request<AdoptionReceipt>("keys/adopt", {
   method: "POST", headers: { "Content-Type": "application/json", "If-Match": preview.revision },
   body: JSON.stringify({ keyId: preview.keyId, operation: preview.operation, phase: "apply", previewToken: preview.previewToken }),
+});
+
+// Native permission edit before adoption (#93): remove the models Registry cannot represent from one
+// provider of an unmanaged key, or replace its "all providers". Preview first; the apply carries the
+// preview token and an explicit confirmation, and only then writes to Bifrost.
+export type NativeEditOperation = "remove-models" | "replace-all-providers";
+export type NativeEditPreview = { keyId: string; operation: NativeEditOperation; provider?: string; revision: string; previewToken?: string; remove: { provider: string; models: string[] }[]; before: NativePermissions | null; after?: NativePermissions | null; canApply: boolean; blocked: string[] };
+export type NativeEditReceipt = { keyId: string; operation: NativeEditOperation; applied: true; permissions: NativePermissions };
+export const previewNativeEdit = (keyId: string, operation: NativeEditOperation, provider = "") => request<NativeEditPreview>("keys/native-permissions", {
+  method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ keyId, operation, provider, phase: "preview" }),
+});
+export const applyNativeEdit = (preview: NativeEditPreview) => request<NativeEditReceipt>("keys/native-permissions", {
+  method: "POST", headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ keyId: preview.keyId, operation: preview.operation, provider: preview.provider ?? "", phase: "apply", previewToken: preview.previewToken, confirm: true }),
 });
