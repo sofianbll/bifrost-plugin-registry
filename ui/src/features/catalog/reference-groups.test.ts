@@ -1,4 +1,4 @@
-import { cardEntries, filterReferenceGroups, filterReferenceModels, groupReferenceModels, sharedReferenceFacts } from "./reference-groups";
+import { attentionOf, cardEntries, cardsHolding, filterReferenceGroups, filterReferenceModels, groupReferenceModels, sharedReferenceFacts } from "./reference-groups";
 import type { Catalog } from "./catalog-api";
 import { emptyModelFilters, type Model } from "../../domain/registry";
 
@@ -90,3 +90,18 @@ if (common({ ...facts, inputModalities: ["Text"] }).modalities || common({ ...fa
 if (common({ ...facts, capabilities: { Vision: "Declared", Reasoning: "Declared" } }).capabilities) throw new Error("Different capabilities were presented as shared facts");
 if (!common({ ...facts, capabilities: { Reasoning: "Unknown", Vision: "Declared" } }).capabilities) throw new Error("Capability key order changed the facts");
 console.log("Reference summaries require shared facts across accesses: OK");
+
+// A To add tile belongs to the saved cards holding an access of its reference (one, or several when
+// cards share a reference); a card gets a badge only for what needs attention.
+const pair = groupReferenceModels([models[0], models[1]], cardCatalog)[0];
+if (cardsHolding(sharedGroup, [saved, models[3]]).map(card => card.id).join(",") !== saved.id) throw new Error("A card holding none of the group's accesses was offered");
+if (cardsHolding(pair, [models[0], models[1], models[3]]).map(card => card.id).join(",") !== "alias-one,alias-two") throw new Error("Cards sharing a reference were not all offered");
+if (cardsHolding(pair, []).length) throw new Error("A group without a saved card was offered a card");
+console.log("To add tiles find the saved cards they could join: OK");
+
+const kinds = (group: Parameters<typeof attentionOf>[0], available: number) => JSON.stringify(attentionOf(group, available));
+if (kinds(pair, 0) !== "[]") throw new Error("An ordinary saved card got a badge");
+if (kinds(pair, 2) !== JSON.stringify([{ kind: "available", count: 2 }])) throw new Error("Available accesses were not announced");
+if (kinds(groupReferenceModels([models[2]], catalog)[0], 0) !== JSON.stringify([{ kind: "no-reference" }])) throw new Error("A card without reference was not announced");
+if (kinds(groupReferenceModels([models[2]], catalog)[0], 1) !== JSON.stringify([{ kind: "available", count: 1 }, { kind: "no-reference" }])) throw new Error("Attention badges lost their order");
+console.log("Saved cards get attention badges only: OK");
