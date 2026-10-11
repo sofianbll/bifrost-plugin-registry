@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { LanguageContext } from "../../lib/locale";
 import { HelpContent } from "./HelpContent";
-import { markTourSeen, pickAnchor, tourKey, tourSeen, tourSteps } from "./tour";
+import { markTourSeen, pickAnchor, tourKey, tourSeen, tourSteps } from "./tourSteps";
 
 // #96: the tour is offered once per browser (and never nags when the browser keeps nothing), its
 // steps fall back to a page anchor, and the help text describes what the panel does today.

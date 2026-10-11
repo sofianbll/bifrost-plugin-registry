@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCopy, type Copy } from "../../lib/locale";
-import { pickAnchor, tourSteps, type TourStep } from "./tour";
+import { pickAnchor, tourSteps, type TourStep } from "./tourSteps";
 
 const stepCopy = (id: TourStep["id"], copy: Copy) => ({
   models: { title: copy("My models", "Mes modèles"), text: copy("These are your saved model cards. Open one to read it; use Edit to change it. “To add” lists what Bifrost found and you have not saved yet.", "Voici vos fiches modèles enregistrées. Ouvrez-en une pour la lire, puis Modifier pour la changer. « À ajouter » liste ce que Bifrost a trouvé et que vous n’avez pas encore enregistré.") },

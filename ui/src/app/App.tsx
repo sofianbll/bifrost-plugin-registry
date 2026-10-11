@@ -47,7 +47,7 @@ import { GroupLibrary } from "../features/groups/GroupLibrary";
 import { GroupEditor } from "../features/groups/GroupEditor";
 import { HelpSheet } from "../features/help/HelpSheet";
 import { Tour, TourOffer } from "../features/help/Tour";
-import { markTourSeen, tourSeen } from "../features/help/tour";
+import { markTourSeen, tourSeen } from "../features/help/tourSteps";
 
 type Page = "gateway" | "models" | "catalog" | "groups" | "keys" | "settings" | "snapshot";
 type Confirm = { title: string; text: string; action: () => void; confirmLabel?: string; cancelLabel?: string } | null;
