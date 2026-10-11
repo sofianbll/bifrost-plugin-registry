@@ -14,7 +14,7 @@ export function HelpContent() {
       <li className="flex gap-3"><Badge>2</Badge><span><strong>{copy("Groups", "Groupes")}</strong> — {copy("save a set of models once, use it on many keys.", "enregistrez une fois un ensemble de modèles, utilisez-le sur plusieurs clés.")}</span></li>
       <li className="flex gap-3"><Badge>3</Badge><span><strong>{copy("Virtual keys", "Clés virtuelles")}</strong> — {copy("choose the models each key can call.", "choisissez les modèles que chaque clé peut appeler.")}</span></li>
       <li className="flex gap-3"><Badge>4</Badge><span><strong>{copy("Adopt a key", "Adopter une clé")}</strong> — {copy("a key made in Bifrost is adopted first. Registry never gives it more access than Bifrost does.", "une clé créée dans Bifrost s’adopte d’abord. Registry ne lui donne jamais plus d’accès que Bifrost.")}</span></li>
-      <li className="flex gap-3"><Badge>5</Badge><span><strong>{copy("Preview and publish", "Aperçu et publication")}</strong> — {copy("check the change, publish, then read /v1/models back to verify.", "vérifiez le changement, publiez, puis relisez /v1/models pour contrôler.")}</span></li>
+      <li className="flex gap-3"><Badge>5</Badge><span><strong>{copy("Preview and publish", "Aperçu et publication")}</strong> — {copy("check the change, publish; Registry then confirms with Bifrost that the key lists what you chose.", "vérifiez le changement, publiez ; Registry confirme ensuite auprès de Bifrost que la clé liste bien ce que vous avez choisi.")}</span></li>
     </ol>
     <section className="space-y-2">
       <h3 className="font-semibold">{copy("Adopting a key", "Adopter une clé")}</h3>

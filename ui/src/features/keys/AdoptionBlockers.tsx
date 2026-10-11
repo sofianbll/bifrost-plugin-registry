@@ -10,7 +10,7 @@ import { NativeEditButton, type NativeEditRequest } from "./NativePermissionEdit
 // [pattern, English, French], with $1 for a capture and $& for the reason as sent.
 // A reason missing from the table shows as sent.
 const reasons: [RegExp, string, string][] = [
-  [/^Dynamic native model allowlist is unsupported for (.+)$/, "$1: dynamic model list; adoption is unsupported.", "$1 : liste de modèles dynamique ; adoption non prise en charge."],
+  [/^Dynamic native model allowlist is unsupported for (.+)$/, "$1: this key allows every model, including future ones, so it cannot be adopted as is.", "$1 : cette clé autorise tous les modèles, y compris les futurs, elle ne peut donc pas être adoptée telle quelle."],
   [/^Native key has no representable configured model access$/, "No configured access can be safely transferred to a Registry selection from this key.", "Aucun accès configuré de cette clé ne peut être repris fidèlement dans une sélection Registry."],
   [/^Native key identity changed$/, "$&", "L’identité de la clé native a changé."],
   [/^Native key is inactive or expired$/, "$&", "La clé native est inactive ou expirée."],
@@ -20,7 +20,7 @@ const reasons: [RegExp, string, string][] = [
   [/^Registry binding already matches the native key$/, "$&", "L’association Registry correspond déjà à la clé native."],
   [/^Native model readback is unavailable$/, "$&", "La relecture des modèles natifs est indisponible."],
   [/^Native model list differs from configured access; import or reconcile the missing routes first$/, "$&", "La liste des modèles natifs diffère des accès configurés ; importez ou réconciliez d’abord les routes manquantes."],
-  [/^allow_all_providers grants future providers and cannot be represented safely$/, "$&", "allow_all_providers accorde aussi les futurs fournisseurs : impossible de le reprendre fidèlement."],
+  [/^allow_all_providers grants future providers and cannot be represented safely$/, "This key allows every provider, including ones added later, and Registry cannot carry that over safely.", "Cette clé autorise tous les fournisseurs, y compris ceux ajoutés plus tard : Registry ne peut pas le reprendre fidèlement."],
   [/^Duplicate native model discovery for (.+)$/, "$&", "Modèle natif découvert en double pour $1."],
   [/^Native provider configuration is missing or duplicated$/, "$&", "Configuration native du fournisseur absente ou en double."],
   [/^Empty native allowed_models has version-dependent meaning for (.+)$/, "$&", "allowed_models vide pour $1 : sens variable selon la version de Bifrost."],
@@ -63,6 +63,6 @@ export function AdoptionBlockers({ readiness, reasons: plain, onShowToAdd, onKee
       </li>;
     })}</ul>
     : plain.map((reason, index) => <p key={`${index}/${reason}`} className="mt-2 break-words">{adoptionReason(reason, copyText)}</p>)}
-    {plain.some(reason => reason.startsWith("Dynamic native model allowlist")) && <p className="mt-3 text-xs">{copyText("Keep this native key as it is, or review a key with explicit model permissions. Registry cannot safely reproduce this dynamic selection.", "Gardez cette clé native en l’état, ou examinez une clé aux permissions de modèles explicites. Registry ne sait pas reproduire fidèlement cette sélection dynamique.")}</p>}
+    {plain.some(reason => reason.startsWith("Dynamic native model allowlist")) && <p className="mt-3 text-xs">{copyText("Keep this key as it is in Bifrost, or review a key that lists its models one by one. Registry cannot safely copy an “every model” permission.", "Gardez cette clé telle quelle dans Bifrost, ou examinez une clé qui liste ses modèles un par un. Registry ne sait pas reprendre fidèlement une permission « tous les modèles ».")}</p>}
   </div>;
 }

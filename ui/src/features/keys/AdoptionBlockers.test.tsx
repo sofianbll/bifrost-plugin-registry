@@ -20,7 +20,7 @@ const english = render("en", hermes, hermesReasons, () => {});
 const plain = text(english);
 for (const line of ["Mistral · 3 models not discovered", "Synthetic Provider · 1 model to add"]) must(plain.includes(line), `the dialog must list "${line}"`);
 must(plain.includes("Bifrost does not list these models") && plain.includes("Registry has no card for them yet"), "each kind explains itself");
-must(plain.includes("allow_all_providers"), "the reason as sent stays visible for all-providers");
+must(plain.includes("allows every provider, including ones added later") && !plain.includes("allow_all_providers"), "the all-providers reason reads in plain words");
 // Names sit behind a disclosure; only models the models page can add get a way there.
 must(english.split(/<details[\s\S]*?<\/details>/).join("").includes("qa-mistral-large") === false, "model names stay behind their disclosure");
 must(english.includes("qa-mistral-large, qa-mistral-small, qa-mistral-code") && english.includes("qa-unregistered"), "model names are listed");
@@ -54,5 +54,10 @@ must(!render("en", hermes, hermesReasons, () => {}).includes("Keep Mistral in Bi
 must(text(render("fr", hermes, hermesReasons, () => {}, () => {})).includes("Garder Mistral dans Bifrost"), "offer in French");
 // A kept provider is no longer a blocker: the list shows what remains.
 const rest = text(render("en", { state: "blocked", blockers: [{ ...hermes.blockers[0], kept: true }, hermes.blockers[2]] }, ["allow_all_providers grants future providers and cannot be represented safely"], () => {}, () => {}));
-must(!rest.includes("Mistral") && rest.includes("allow_all_providers"), "kept providers leave the blocker list");
+must(!rest.includes("Mistral") && rest.includes("allows every provider"), "kept providers leave the blocker list");
+// A key that allows every model of a provider says so, in both languages, without the word "dynamic".
+const dynamic = ["Dynamic native model allowlist is unsupported for Claude"];
+const dynamicEn = text(render("en", undefined, dynamic, () => {}));
+must(dynamicEn.includes("Claude: this key allows every model, including future ones") && !dynamicEn.includes("dynamic"), "a dynamic allowlist reads in plain words");
+must(text(render("fr", undefined, dynamic, () => {})).includes("Claude : cette clé autorise tous les modèles, y compris les futurs"), "and in French");
 console.log("Adoption blockers checks passed");

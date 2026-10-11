@@ -29,7 +29,7 @@ export function NativeEditButton({ blocker, readiness, onEdit }: { blocker: Read
   const request = readiness && onEdit ? nativeEditFor(blocker, readiness) : null;
   if (!request || !onEdit) return null;
   return <div className="mt-2">
-    <Button type="button" variant="outline" size="sm" onClick={() => onEdit(request)}>{nativeEditLabel(request, copy)}{request.provider && <span className="sr-only"> · {displayProvider(request.provider)}</span>}</Button>
+    <Button type="button" variant="outline" size="sm" className="h-auto min-h-8 whitespace-normal text-left" onClick={() => onEdit(request)}>{nativeEditLabel(request, copy)}{request.provider && <span className="sr-only"> · {displayProvider(request.provider)}</span>}</Button>
     <p className="mt-1 text-xs">{request.operation === "remove-models"
       ? copy("Changes the key in Bifrost once you confirm a preview: requests for these models will be refused.", "Modifie la clé dans Bifrost après confirmation d’un aperçu : les requêtes vers ces modèles seront refusées.")
       : copy("Changes the key in Bifrost once you confirm a preview: it will no longer allow every provider, only the list shown.", "Modifie la clé dans Bifrost après confirmation d’un aperçu : elle n’autorisera plus tous les fournisseurs, seulement la liste affichée.")}</p>

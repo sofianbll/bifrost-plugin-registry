@@ -15,7 +15,7 @@ const stepCopy = (id: TourStep["id"], copy: Copy) => ({
 export function TourOffer({ canStart, onStart, onDismiss }: { canStart: boolean; onStart: () => void; onDismiss: () => void }) {
   const copy = useCopy();
   return <section aria-label={copy("Guided tour", "Visite guidée")} onKeyDown={event => { if (event.key === "Escape") onDismiss(); }} className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-sm border bg-muted/30 p-3 text-sm">
-    <div className="min-w-0 flex-1"><p className="font-medium">{copy("New here? Take a one-minute tour.", "Nouveau ici ? Faites un tour d’une minute.")}</p><p className="text-muted-foreground">{canStart ? copy("Models, Groups, Keys, then adopting a key.", "Modèles, groupes, clés, puis l’adoption d’une clé.") : copy("Save or discard your key draft first.", "Enregistrez ou abandonnez d’abord votre brouillon de clé.")}</p></div>
+    <div className="min-w-0 flex-1"><p className="font-medium">{copy("New here? Take a one-minute tour.", "Nouveau ici ? Faites un tour d’une minute.")}</p><p className={canStart ? "text-muted-foreground max-sm:hidden" : "text-muted-foreground"}>{canStart ? copy("Models, Groups, Keys, then adopting a key.", "Modèles, groupes, clés, puis l’adoption d’une clé.") : copy("Save or discard your key draft first.", "Enregistrez ou abandonnez d’abord votre brouillon de clé.")}</p></div>
     <div className="flex flex-wrap items-center gap-2"><Button size="sm" disabled={!canStart} onClick={onStart}>{copy("Start the tour", "Commencer la visite")}</Button><Button size="sm" variant="outline" onClick={onDismiss}>{copy("Not now", "Pas maintenant")}</Button></div>
   </section>;
 }
@@ -100,7 +100,7 @@ export function Tour({ page, pageId, go, onClose }: { page: string; pageId?: str
   const { title, text } = stepCopy(tourSteps[shown.index].id, copy);
   const last = shown.index === tourSteps.length - 1;
   return <>
-    {rect && <div aria-hidden className="pointer-events-none fixed z-40 rounded-sm outline-2 outline-offset-4 outline-primary" style={{ top: rect.top, left: rect.left, width: rect.width, height: rect.height }} />}
+    {rect && <div aria-hidden data-tour-ring className="pointer-events-none fixed z-40 rounded-sm outline-solid outline-2 outline-offset-4 outline-primary" style={{ top: rect.top, left: rect.left, width: rect.width, height: rect.height }} />}
     <div ref={card} role="dialog" aria-modal="false" aria-labelledby={titleId} aria-describedby={textId} tabIndex={-1} className="fixed inset-x-4 bottom-4 z-40 space-y-3 rounded-sm border bg-card p-4 text-sm shadow-lg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:right-6 sm:bottom-6 sm:left-auto sm:w-96">
       <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-xs text-muted-foreground">{copy("Guided tour", "Visite guidée")} · {copy(`Step ${shown.index + 1} of ${tourSteps.length}`, `Étape ${shown.index + 1} sur ${tourSteps.length}`)}</p><p id={titleId} className="font-semibold">{title}</p></div><Button type="button" variant="ghost" size="icon" className="-mt-1 -mr-2 size-8 shrink-0" aria-label={copy("Close the tour", "Fermer la visite")} onClick={close}><X className="size-4" /></Button></div>
       <p id={textId} aria-live="polite" className="text-muted-foreground">{text}</p>
