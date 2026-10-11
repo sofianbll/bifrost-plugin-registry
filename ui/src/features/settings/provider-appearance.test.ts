@@ -26,4 +26,9 @@ equal(providerMark("openrouter")?.icon, "openrouter");
 equal(providerMark("typesafe"), undefined);
 equal(displayProvider("openrouter"), "OpenRouter");
 equal(displayProvider("Claude"), "Claude");
+// Any other ID reads like a creator without a Models.dev record: words split on - and _, capitalised.
+equal(displayProvider("typesafe"), "Typesafe");
+equal(displayProvider("synthetic-provider"), "Synthetic Provider");
+equal(displayProvider("my_gateway-eu"), "My Gateway Eu");
+equal(displayProvider("constructor"), "Constructor");
 console.log("provider appearance checks passed");

@@ -28,7 +28,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
   const keyHeading = () => page.getByRole('heading', { name: 'QA Development Key', exact: true });
   const keyChanges = () => page.getByRole('region', { name: 'Changes before publishing' });
   const openDevelopmentKey = async () => {
-    await keyCard('QA Development Key').getByRole('button', { name: 'Open', exact: true }).click();
+    await keyCard('QA Development Key').getByRole('button', { name: 'Open · QA Development Key', exact: true }).click();
     await keyHeading().waitFor();
   };
   const shot = async (name: string) => testInfo.attach(name, { body: await page.screenshot({ animations: 'disabled' }), contentType: 'image/png' });
@@ -159,6 +159,12 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await scope(/^To add/).click();
     expect(duplicates(await cardActions(page)), 'To add').toEqual([]);
     await scope(/^In Registry/).click();
+    // Key cards too: each Review/Open names its key.
+    await nav('Virtual keys').click();
+    const keyActions = await cardActions(page);
+    expect(keyActions).toEqual(expect.arrayContaining(['Open · QA Development Key', 'Review · QA Codex Key']));
+    expect(duplicates(keyActions), 'Virtual keys').toEqual([]);
+    await nav('My models').click();
     // The legend shows the glyphs it explains.
     const legend = page.getByLabel('Capability state legend', { exact: true });
     await expect(legend.locator('svg').first()).toBeVisible();
@@ -234,7 +240,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     const sectionNames = async () => (await page.getByRole('heading', { level: 3 }).allTextContents()).map(text => text.replace(/\s*\d+$/, '')).sort();
     await group('Group by provider');
     await section('Claude').waitFor();
-    expect(await sectionNames()).toEqual(['Claude', 'Codex', 'Google', 'synthetic-provider']); // saved cards; OpenRouter waits in To add
+    expect(await sectionNames()).toEqual(['Claude', 'Codex', 'Google', 'Synthetic Provider']); // saved cards; OpenRouter waits in To add
     await expect(section('Claude').getByRole('button', { name: 'Open QA Opus details', exact: true }), 'a saved card sits under its own access, not a matching one').toBeVisible();
     await group('Group by creator');
     await section('Anthropic').waitFor();
@@ -514,7 +520,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(keyCard('QA Claude Key')).toContainText('1 provider · all models of Claude');
     await expect(keyCard('QA Unmanaged Key')).toContainText('No provider');
     await expect(keyCard('QA Codex Key')).toContainText('1 provider · 2 models');
-    await keyCard('QA Unmanaged Key').getByRole('button', { name: 'Review', exact: true }).click();
+    await keyCard('QA Unmanaged Key').getByRole('button', { name: 'Review · QA Unmanaged Key', exact: true }).click();
     await expect(page.getByText('Synthetic unmanaged client · Bifrost key · Registry policy not adopted')).toBeVisible();
     await expect(button('Review adoption')).toHaveCount(1);
     await expect(page.getByRole('list', { name: 'Key composition steps' })).toHaveCount(0);
@@ -522,7 +528,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(page.getByText('Unpublished draft', { exact: true })).toHaveCount(0);
     await shot('after-unmanaged-key');
     await button('All virtual keys').click();
-    await keyCard('QA Codex Key').getByRole('button', { name: 'Review', exact: true }).click();
+    await keyCard('QA Codex Key').getByRole('button', { name: 'Review · QA Codex Key', exact: true }).click();
     await expect(page.getByRole('list', { name: 'Bifrost allows today' })).toContainText('Codex · qa-codex, qa-codex-mini');
     await button('Review adoption').click();
     await page.getByRole('dialog').getByRole('button', { name: 'Use this key with Registry', exact: true }).click();
@@ -573,11 +579,12 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
 
   await test.step('one language per UI: the English UI shows no French, the French UI no English', async () => {
     // Sentinels: UI words of the other language, in visible text and accessible names. Fixture data
-    // is English in both UIs ("QA Development Key", "Synthetic … client", "QA Opus saved"), so the
-    // English sentinels avoid its words; proper names (Registry, Bifrost, Models.dev) are shared.
+    // is English in both UIs ("QA Development Key", "Synthetic … client", "QA Opus saved", "Synthetic
+    // Provider"), so the English sentinels avoid its words; proper names (Registry, Bifrost, Models.dev)
+    // are shared.
     const sentinels = {
       en: /[àâçéèêëîïôûùœ«»]|\b(Oui|Non|Autre|[Ii]nconnue?|nouveau|Fournisseur|[Ff]iche)\b/,
-      fr: /\b(Unknown|unknown|Yes|No|Other|Saved|Partial|Loading|Search|Creator|Provider|Reference|Model|Models(?!\.dev)|Native|Workspace|Catalog|Access|Accesses|Capabilities|Modalities|Series|Tasks|Settings|Show|View|Create|Delete|Name|Review|Cancel|Save|Open|Edit|Declared|declared|Configured|available|[Dd]etails|Input|Output|[Pp]rice|the|and|with|of)\b/,
+      fr: /\b(Unknown|unknown|Yes|No|Other|Saved|Partial|Loading|Search|Creator|(?<!Synthetic )Provider|Reference|Model|Models(?!\.dev)|Native|Workspace|Catalog|Access|Accesses|Capabilities|Modalities|Series|Tasks|Settings|Show|View|Create|Delete|Name|Review|Cancel|Save|Open|Edit|Declared|declared|Configured|available|[Dd]etails|Input|Output|[Pp]rice|the|and|with|of)\b/,
     };
     const sweep = async (language: 'en' | 'fr', where: string) => {
       const text = await page.evaluate(() => [document.body.innerText, ...[...document.querySelectorAll('[aria-label], [title], [placeholder]')]
@@ -595,6 +602,8 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
       };
       await nav(t('My models', 'Mes modèles')).click();
       await sweep(language, 'My models');
+      // "+1 available" agrees with its count ("+1 disponible", never "+1 disponibles").
+      await expect(card('QA Opus saved').getByRole('button', { name: new RegExp(`^${t('Accesses', 'Accès')}`) })).toHaveAccessibleName(language === 'fr' ? /\+1 disponible · QA Opus saved$/ : /\+1 available · QA Opus saved$/);
       await accesses('QA Opus saved');
       await sweep(language, 'Accesses popover of a saved card');
       await page.keyboard.press('Escape');
@@ -632,13 +641,13 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
       await nav(t('Virtual keys', 'Clés virtuelles')).click();
       await sweep(language, 'Virtual keys');
       // The adoption dialog reads the reasons Bifrost sends (allow_all_providers blocks this one).
-      await keyCard('QA All Providers Key').getByRole('button', { name: t('Review', 'Examiner'), exact: true }).click();
+      await keyCard('QA All Providers Key').getByRole('button', { name: t('Review · QA All Providers Key', 'Examiner · QA All Providers Key'), exact: true }).click();
       await button(t('Review adoption', 'Examiner l’adoption')).click();
       await expect(page.getByRole('dialog')).toContainText('allow_all_providers');
       await sweep(language, 'Adoption dialog');
       await page.getByRole('dialog').getByRole('button', { name: t('Cancel', 'Annuler'), exact: true }).click();
       await button(t('All virtual keys', 'Toutes les clés virtuelles')).click();
-      await keyCard('QA Development Key').getByRole('button', { name: t('Open', 'Ouvrir'), exact: true }).click();
+      await keyCard('QA Development Key').getByRole('button', { name: t('Open · QA Development Key', 'Ouvrir · QA Development Key'), exact: true }).click();
       await sweep(language, 'Key page');
       await page.getByRole('list', { name: t('Key composition steps', 'Étapes de composition de la clé') }).getByRole('button', { name: new RegExp(`^\\d ${t('Review', 'Vérifier')}`) }).click();
       await sweep(language, 'Key review');

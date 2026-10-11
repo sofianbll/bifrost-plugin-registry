@@ -66,7 +66,10 @@ export function setProviderBaseTypes(providers: { id: string; baseProviderType?:
   baseTypes = Object.fromEntries(providers.flatMap(provider => provider.baseProviderType ? [[provider.id, provider.baseProviderType]] : []));
   notifyAppearance();
 }
-export const displayProvider = (id: string) => providerName[id] || id;
+// Any other ID reads the way the server names a creator without a Models.dev record (modelsDevCreator):
+// words split on "-" and "_", each capitalised ("typesafe" → "Typesafe", "Claude" stays "Claude").
+export const displayProvider = (id: string) => Object.hasOwn(providerName, id) ? providerName[id]
+  : id.split(/[-_]/).filter(Boolean).map(word => word[0].toUpperCase() + word.slice(1)).join(" ");
 // Black marks turn light on the dark theme.
 const invertInDark = (mark: ProviderAppearance) => mark.icon === "anthropic" || mark.icon === "openai" || mark.icon === "ollama" || mark.image === asset("moonshot.svg");
 function Logo({ mark = {}, label, fallback, compact = false }: { mark?: ProviderAppearance; label: string; fallback?: string; compact?: boolean }) {
