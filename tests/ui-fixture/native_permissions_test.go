@@ -112,3 +112,73 @@ func TestFixtureNativePermissionEdit(t *testing.T) {
 		t.Fatalf("served writes: %s", w.Body.String())
 	}
 }
+
+// A Claude row of "*": vk-qa-wildcard is adopted keeping Claude in Bifrost and reads Verified; vk-qa-claude has
+// "*" replaced by the Claude models saved in Registry (a confirmed native edit), then is adopted.
+func TestFixtureWildcardKeys(t *testing.T) {
+	b, call := fixture(t)
+	type preview struct {
+		Revision, PreviewToken string
+		CanApply               bool
+		SelectedRoutes         []string
+		Remove                 []struct{ Models []string }
+		After                  struct {
+			Providers []struct {
+				Provider string
+				Models   []string
+			}
+		}
+	}
+	post := func(path string, body map[string]any, revision string, out any) {
+		t.Helper()
+		w := call("POST", path, body, revision)
+		if w.Code != 200 || out != nil && json.Unmarshal(w.Body.Bytes(), out) != nil {
+			t.Fatalf("%s %v: %d %s", path, body, w.Code, w.Body.String())
+		}
+	}
+	var p preview
+	keep := map[string]any{"keyId": "vk-qa-wildcard", "operation": "adopt", "phase": "preview", "keepNative": []string{"Claude"}}
+	post("/api/keys/adopt", keep, "", &p)
+	if !p.CanApply || strings.Join(p.SelectedRoutes, ",") != "Codex/qa-codex" {
+		t.Fatalf("keeping Claude must leave Codex to adopt: %+v", p)
+	}
+	keep["phase"], keep["previewToken"] = "apply", p.PreviewToken
+	post("/api/keys/adopt", keep, p.Revision, nil)
+	var ws struct {
+		Data struct {
+			Keys []struct {
+				ID          string
+				Publication struct{ State string }
+			}
+		}
+	}
+	post("/api/keys/vk-qa-wildcard/readback", nil, "", &ws)
+	verified := false
+	for _, k := range ws.Data.Keys {
+		verified = verified || k.ID == "vk-qa-wildcard" && k.Publication.State == "verified"
+	}
+	if !verified {
+		t.Fatalf("the kept wildcard key must read verified: %+v", ws.Data.Keys)
+	}
+
+	edit := map[string]any{"keyId": "vk-qa-claude", "operation": "replace-all-models", "provider": "Claude", "phase": "preview"}
+	p = preview{}
+	post("/api/keys/native-permissions", edit, "", &p)
+	if !p.CanApply || len(p.Remove) != 0 || len(p.After.Providers) != 1 || strings.Join(p.After.Providers[0].Models, ",") != "qa-haiku,qa-opus,qa-opus-fast,qa-shared,qa-sonnet" {
+		t.Fatalf("every Claude model has a card: nothing left out: %+v", p)
+	}
+	edit["phase"], edit["previewToken"] = "apply", p.PreviewToken
+	if w := call("POST", "/api/keys/native-permissions", edit, ""); w.Code != 428 || len(b.writes) != 0 {
+		t.Fatalf("an unconfirmed replacement was not refused: %d", w.Code)
+	}
+	edit["confirm"] = true
+	post("/api/keys/native-permissions", edit, "", nil)
+	if len(b.writes) != 1 || b.writes[0].KeyID != "vk-qa-claude" {
+		t.Fatalf("recorded writes = %+v", b.writes)
+	}
+	p = preview{}
+	post("/api/keys/adopt", map[string]any{"keyId": "vk-qa-claude", "operation": "adopt", "phase": "preview"}, "", &p)
+	if !p.CanApply || len(p.SelectedRoutes) != 5 {
+		t.Fatalf("vk-qa-claude must be adoptable once replaced: %+v", p)
+	}
+}

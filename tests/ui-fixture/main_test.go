@@ -63,7 +63,7 @@ func TestFixtureWorkspaceAndNativeReadback(t *testing.T) {
 		Discovery []any          `json:"discovery"`
 	}
 	get := call("GET", "/api/workspace", nil, "")
-	if get.Code != 200 || json.Unmarshal(get.Body.Bytes(), &ws) != nil || len(ws.Data["models"].([]any)) != 12 || len(ws.Data["groups"].([]any)) != 2 || len(ws.Data["keys"].([]any)) != 10 || len(ws.Discovery) != 81 {
+	if get.Code != 200 || json.Unmarshal(get.Body.Bytes(), &ws) != nil || len(ws.Data["models"].([]any)) != 12 || len(ws.Data["groups"].([]any)) != 2 || len(ws.Data["keys"].([]any)) != 11 || len(ws.Discovery) != 81 {
 		t.Fatalf("workspace: %d %s", get.Code, get.Body.String())
 	}
 	group := ws.Data["groups"].([]any)[0].(map[string]any)
@@ -318,7 +318,7 @@ func TestFixtureKeysCoverAdoptionCases(t *testing.T) {
 		}
 	}
 	want := map[string]string{
-		"vk-qa-unmanaged": "empty", "vk-qa-all-providers": "all-providers", "vk-qa-claude": "all-models",
+		"vk-qa-unmanaged": "empty", "vk-qa-all-providers": "all-providers", "vk-qa-claude": "all-models", "vk-qa-wildcard": "all-models",
 		"vk-qa-codex": "ready", "vk-qa-google": "ready",
 		"vk-qa-mistral": "undiscovered 3, saved 2, unsaved 0", // the Hermes case: a disabled provider plus discovered models
 		"vk-qa-hermes":  "undiscovered 2, saved 2, unsaved 0",
@@ -329,7 +329,7 @@ func TestFixtureKeysCoverAdoptionCases(t *testing.T) {
 	}
 	// The workspace's own verdict (#87) agrees with the independent reading above.
 	wantReadiness := map[string]string{
-		"vk-qa-unmanaged": "empty", "vk-qa-all-providers": "blocked /all-providers 1", "vk-qa-claude": "blocked Claude/other 1",
+		"vk-qa-unmanaged": "empty", "vk-qa-all-providers": "blocked /all-providers 1", "vk-qa-claude": "blocked Claude/dynamic 1", "vk-qa-wildcard": "blocked Claude/dynamic 1",
 		"vk-qa-codex": "ready", "vk-qa-google": "ready",
 		"vk-qa-mistral": "blocked mistral/undiscovered 3", "vk-qa-hermes": "blocked mistral/undiscovered 2", "vk-qa-unsaved": "blocked synthetic-provider/unsaved 1",
 	}

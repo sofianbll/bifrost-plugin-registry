@@ -92,7 +92,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     expect(page.url(), 'Help opens beside the page').toBe(address);
     // The page's own title (h1) stays rendered behind the panel; the panel's title is an h2.
     await expect(page.locator('h1', { hasText: 'My models' })).toBeVisible();
-    for (const phrase of ['Adopting a key', 'Ready to adopt', 'Keep Mistral in Bifrost', 'Remove these models from the key in Bifrost', 'Replace “all providers” by the explicit list', 'preview and confirm', 'kept in Bifrost', 'inferred creator', 'Associate a reference', 'Add to card', 'no reference']) await expect(helpPanel).toContainText(phrase);
+    for (const phrase of ['Adopting a key', 'Ready to adopt', 'Keep Mistral in Bifrost', 'Remove these models from the key in Bifrost', 'Replace “all providers” by the explicit list', 'Replace “all models” by the models saved in Registry', 'preview and confirm', 'kept in Bifrost', 'inferred creator', 'Associate a reference', 'Add to card', 'no reference']) await expect(helpPanel).toContainText(phrase);
     await expect(helpPanel, 'The help speaks of the key, not of an endpoint').not.toContainText('/v1/models');
     // Starting the tour closes the panel and puts the focus on the tour card; the page stays usable under it.
     await helpPanel.getByRole('button', { name: 'Start the tour', exact: true }).click();
@@ -1068,7 +1068,8 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
       ['QA Hermes Key', 'Blocked', 'Mistral · 2 models not discovered'],
       ['QA To Add Key', 'Blocked', 'Synthetic Provider · 1 model to add'],
       ['QA All Providers Key', 'Blocked', 'Every provider allowed'],
-      ['QA Claude Key', 'Blocked', 'Claude · cannot be adopted as is'],
+      ['QA Claude Key', 'Blocked', 'Claude · all models allowed'],
+      ['QA Wildcard Key', 'Blocked', 'Claude · all models allowed'],
       ['QA Unmanaged Key', 'Empty', ''],
     ];
     for (const [name, verdict, reason] of cards) {
@@ -1078,26 +1079,26 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(page.getByText('Adoption needed')).toHaveCount(0);
     await expect(keyCard('QA Development Key')).toContainText('Active');
     // The default order is the worklist: ready, then blocked, then empty, then managed keys; by name inside each.
-    await expect(page.getByRole('button', { name: /^(Review|Open) · / })).toHaveText(['Review · QA Codex Key', 'Review · QA Google Key', 'Review · QA All Providers Key', 'Review · QA Claude Key', 'Review · QA Hermes Key', 'Review · QA Mistral Key', 'Review · QA To Add Key', 'Review · QA Unmanaged Key', 'Open · QA Development Key', 'Open · QA Visual Key']);
+    await expect(page.getByRole('button', { name: /^(Review|Open) · / })).toHaveText(['Review · QA Codex Key', 'Review · QA Google Key', 'Review · QA All Providers Key', 'Review · QA Claude Key', 'Review · QA Hermes Key', 'Review · QA Mistral Key', 'Review · QA To Add Key', 'Review · QA Wildcard Key', 'Review · QA Unmanaged Key', 'Open · QA Development Key', 'Open · QA Visual Key']);
     // The Keys page triages by readiness; managed keys are their own bucket.
     const readiness = page.getByRole('combobox', { name: 'Filter by readiness', exact: true });
     await readiness.click();
-    await expect(page.getByRole('option')).toHaveText(['All adoption states', 'Ready to adopt (2)', 'Blocked (5)', 'Empty (1)', 'Managed (2)']);
-    await page.getByRole('option', { name: 'Blocked (5)', exact: true }).click();
-    await expect(page.getByText('5 of 10 keys shown', { exact: true })).toBeVisible();
+    await expect(page.getByRole('option')).toHaveText(['All adoption states', 'Ready to adopt (2)', 'Blocked (6)', 'Empty (1)', 'Managed (2)']);
+    await page.getByRole('option', { name: 'Blocked (6)', exact: true }).click();
+    await expect(page.getByText('6 of 11 keys shown', { exact: true })).toBeVisible();
     await expect(keyCard('QA Mistral Key')).toHaveCount(1);
     await expect(keyCard('QA Codex Key')).toHaveCount(0);
     await readiness.click();
     await page.getByRole('option', { name: 'Ready to adopt (2)', exact: true }).click();
-    await expect(page.getByText('2 of 10 keys shown', { exact: true })).toBeVisible();
+    await expect(page.getByText('2 of 11 keys shown', { exact: true })).toBeVisible();
     await expect(keyCard('QA Google Key')).toHaveCount(1);
     await readiness.click();
     await page.getByRole('option', { name: 'Empty (1)', exact: true }).click();
     await expect(keyCard('QA Unmanaged Key')).toHaveCount(1);
-    await expect(page.getByText('1 of 10 keys shown', { exact: true })).toBeVisible();
+    await expect(page.getByText('1 of 11 keys shown', { exact: true })).toBeVisible();
     await readiness.click();
     await page.getByRole('option', { name: 'All adoption states', exact: true }).click();
-    await expect(page.getByText('10 of 10 keys shown', { exact: true })).toBeVisible();
+    await expect(page.getByText('11 of 11 keys shown', { exact: true })).toBeVisible();
     await shot('after-keys-readiness');
 
     // Blocked by models Bifrost does not list (a disabled provider): counts per provider, names behind a
@@ -1161,6 +1162,10 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await keyCard('QA Claude Key').getByRole('button', { name: 'Review · QA Claude Key', exact: true }).click();
     await button('Review adoption').click();
     await expect(dialog).toContainText('Claude: this key allows every model, including future ones, so it cannot be adopted as is.');
+    await expect(dialog).toContainText('Claude · all models allowed');
+    await expect(dialog.getByRole('button', { name: 'Keep Claude in Bifrost', exact: true })).toBeVisible();
+    await expect(dialog.getByRole('button', { name: /^Replace “all models” by the models saved in Registry/ })).toBeVisible();
+    await expect(dialog).not.toContainText('review a key that lists its models one by one');
     await expect(dialog).not.toContainText('dynamic model list');
     await expect(dialog.getByRole('heading', { name: /^Selected Registry accesses/ })).toHaveCount(0);
     await expect(dialog.getByRole('heading', { name: /^Current native accesses/ })).toHaveCount(0);
@@ -1437,6 +1442,35 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await shot('after-keep-native-key-card');
   });
 
+  await test.step('a provider allowing every model is kept in Bifrost: the rest of the key is adopted and reads Verified', async () => {
+    const writes = (await (await page.request.get('/__fixture/native-writes')).json()).length;
+    await nav('Virtual keys').click();
+    await keyCard('QA Wildcard Key').getByRole('button', { name: 'Review · QA Wildcard Key', exact: true }).click();
+    await button('Review adoption').click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toContainText('Claude · all models allowed');
+    await expect(dialog.getByRole('button', { name: 'Use this key with Registry', exact: true })).toBeDisabled();
+    await dialog.getByRole('button', { name: 'Keep Claude in Bifrost', exact: true }).click();
+    await expect(dialog.getByRole('region', { name: 'Kept in Bifrost' })).toContainText('Claude · all models kept in Bifrost');
+    await expect(dialog).toContainText('Ready to apply');
+    await expect(dialog.getByRole('heading', { name: 'Selected Registry accesses (1)' })).toBeVisible();
+    const apply = page.waitForRequest(r => r.method() === 'POST' && r.url().endsWith('/api/keys/adopt') && r.postDataJSON().phase === 'apply');
+    await dialog.getByRole('button', { name: 'Use this key with Registry', exact: true }).click();
+    expect((await apply).postDataJSON()).toMatchObject({ keyId: 'vk-qa-wildcard', operation: 'adopt', phase: 'apply', keepNative: ['Claude'] });
+    await expect(page.getByRole('list', { name: 'Kept in Bifrost' })).toContainText('Claude · kept in Bifrost · all models');
+    await composerStep('Review').click();
+    await button('Read again').click();
+    await page.getByText('Verified', { exact: true }).first().waitFor();
+    const key = (await api('workspace')).data.keys.find((k: { id: string }) => k.id === 'vk-qa-wildcard');
+    expect(key.managed).toBe(true);
+    expect(key.policy.keptNative).toEqual(['Claude']);
+    expect(key.publication.state).toBe('verified');
+    // Registry never rewrote Bifrost's "*" for Claude: no native write at all.
+    expect(key.permissions.providers.find((p: { provider: string }) => p.provider === 'Claude').allModels).toBe(true);
+    expect((await (await page.request.get('/__fixture/native-writes')).json()).length).toBe(writes);
+    await button('All virtual keys').click();
+  });
+
   await test.step('a blocked key loses what Registry cannot represent only after a preview and a confirmation, then it is adopted (#93)', async () => {
     // The fixture records every native key update exactly as the panel sent it.
     const nativeWrites = async (): Promise<{ keyId: string; body: Record<string, unknown> }[]> => (await page.request.get('/__fixture/native-writes')).json();
@@ -1520,6 +1554,35 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(dialog).toHaveCount(0);
     expect((await nativeKey('vk-qa-all-providers')).managed).toBe(true);
     expect(await nativeWrites()).toHaveLength(written + 2);
+
+    // Every model of Claude ("*"): the dialog offers the models saved in Registry instead; Bifrost is written
+    // only after the confirmation, and the key is then adopted.
+    await button('All virtual keys').click();
+    await keyCard('QA Claude Key').getByRole('button', { name: 'Review · QA Claude Key', exact: true }).click();
+    await button('Review adoption').click();
+    await dialog.getByRole('button', { name: /^Replace “all models” by the models saved in Registry/ }).click();
+    const narrow = page.getByRole('dialog', { name: 'Replace “all models” of Claude on the key', exact: true });
+    await expect(narrow).toContainText('Claude stops allowing every model');
+    await expect(narrow).toContainText('Models Claude adds later are not allowed until you add them to the key.');
+    await expect(lines(narrow, 'Allowed today')).toContainText('Claude · all models');
+    await expect(lines(narrow, 'Allowed afterwards').locator('summary')).toHaveText(['Claude · 5 models']);
+    // Every Claude model has a card: nothing is left out, and the row (with its limits) stays.
+    await expect(lines(narrow, 'Removed from the key')).toHaveCount(0);
+    await expect(narrow).not.toContainText('budgets');
+    expect(await nativeWrites()).toHaveLength(written + 2);
+    const narrowing = page.waitForRequest(r => r.method() === 'POST' && r.url().endsWith('/api/keys/native-permissions') && r.postDataJSON().phase === 'apply');
+    await narrow.getByRole('button', { name: 'Confirm: replace “all models”', exact: true }).click();
+    expect((await narrowing).postDataJSON()).toEqual({ keyId: 'vk-qa-claude', operation: 'replace-all-models', provider: 'Claude', phase: 'apply', previewToken: expect.any(String), confirm: true });
+    await expect(narrow.getByRole('status')).toContainText('Done. Claude no longer allows every model');
+    expect((await nativeWrites())[written + 2]).toEqual({ keyId: 'vk-qa-claude', body: { name: 'QA Claude Key', description: 'Synthetic Claude client', is_active: true, allow_all_providers: false, provider_configs: [
+      { id: expect.any(Number), provider: 'Claude', weight: null, allowed_models: ['qa-haiku', 'qa-opus', 'qa-opus-fast', 'qa-shared', 'qa-sonnet'], blacklisted_models: [], key_ids: ['*'] },
+    ] } });
+    await narrow.getByRole('button', { name: 'Back to adoption', exact: true }).click();
+    await expect(dialog).not.toContainText('Before continuing');
+    await dialog.getByRole('button', { name: 'Use this key with Registry', exact: true }).click();
+    await expect(dialog).toHaveCount(0);
+    expect((await nativeKey('vk-qa-claude')).managed).toBe(true);
+    expect(await nativeWrites()).toHaveLength(written + 3);
     await button('All virtual keys').click();
   });
 

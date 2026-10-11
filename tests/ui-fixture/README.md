@@ -83,22 +83,25 @@ embedded Models.dev snapshot; `tencent/qa-hunyuan`, `meituan/qa-longcat` and
 | QA Unmanaged Key (`vk-qa-unmanaged`) | unmanaged | none |
 | QA All Providers Key (`vk-qa-all-providers`) | unmanaged | `allow_all_providers: true` (not adoptable) |
 | QA Codex Key (`vk-qa-codex`) | unmanaged | `Codex`: `qa-codex`, `qa-codex-mini`, `allow_all_keys` (adoptable as is) |
-| QA Claude Key (`vk-qa-claude`) | unmanaged | `Claude`: `*` (all models), `allow_all_keys` |
+| QA Claude Key (`vk-qa-claude`) | unmanaged | `Claude`: `*` (all models), `allow_all_keys`; the journeys replace `*` by the five Claude models saved in Registry, then adopt it |
 | QA Google Key (`vk-qa-google`) | unmanaged | `Google`: `qa-gemini`, `qa-flash`, `allow_all_keys` (adoptable as is, a second ready key) |
 | QA Mistral Key (`vk-qa-mistral`) | unmanaged | `mistral`: `qa-mistral-large`, `qa-mistral-small`, `qa-mistral-code` (never discovered) and `Claude`: `qa-haiku`, `qa-sonnet` (saved); blocked by the three undiscovered models |
 | QA Hermes Key (`vk-qa-hermes`) | unmanaged | `mistral`: `qa-mistral-large`, `qa-mistral-small` (never discovered) and `Claude`: `qa-haiku`, `qa-opus` (saved); the same case as QA Mistral Key, kept apart so two journeys can each adopt one (the native permission edit adopts this one) |
 | QA To Add Key (`vk-qa-unsaved`) | unmanaged | `synthetic-provider`: `qa-vision` (saved) and `qa-unregistered` (discovered, no card); blocked by the unsaved model |
+| QA Wildcard Key (`vk-qa-wildcard`) | unmanaged | `Claude`: `*` (all models) and `Codex`: `qa-codex` (saved); the journeys adopt it keeping Claude in Bifrost |
 
 Adoption cases among the unmanaged keys: **ready** (`vk-qa-codex`, `vk-qa-google`),
 **empty** (`vk-qa-unmanaged`), **all providers** (`vk-qa-all-providers`), **all models of a
-provider** (`vk-qa-claude`), **blocked by undiscovered models** (`vk-qa-mistral`,
+provider** (`vk-qa-claude`, `vk-qa-wildcard`), **blocked by undiscovered models** (`vk-qa-mistral`,
 `vk-qa-hermes`), **blocked by discovered models without a card** (`vk-qa-unsaved`). The
-journeys adopt `vk-qa-codex`, `vk-qa-mistral` (keeping `mistral` in Bifrost) and, after a
-native permission edit, `vk-qa-hermes` and `vk-qa-all-providers`; `vk-qa-google` stays ready. No journey saves `qa-unregistered`.
+journeys adopt `vk-qa-codex`, `vk-qa-mistral` (keeping `mistral` in Bifrost), `vk-qa-wildcard`
+(keeping `Claude` in Bifrost) and, after a native permission edit, `vk-qa-hermes`,
+`vk-qa-all-providers` and `vk-qa-claude`; `vk-qa-google` stays ready. No journey saves `qa-unregistered`.
 
 `/v1/models` answers an unmanaged key with every `provider/model` its native permissions allow,
 plus the names it allows explicitly on a disabled provider. For a managed key it builds the same
-kind of native list from the key's explicit names, then runs the plugin's own `Session.Project`
+kind of native list from the key's explicit names (a `*` row lists every model its provider
+serves), then runs the plugin's own `Session.Project`
 on it (Registry routes only, plus the providers the policy keeps native).
 
 **Native key updates.** A virtual key `PUT` behaves like Bifrost: every provider row gets an
