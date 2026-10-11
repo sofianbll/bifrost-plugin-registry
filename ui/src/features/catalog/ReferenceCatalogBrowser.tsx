@@ -16,7 +16,7 @@ import ModelBrowser from "./ModelBrowser";
 import { FactLine } from "./FactLine";
 import { AssociateReferenceDialog } from "./AssociateReference";
 import { FactsUnknown, factsUnknown, hasReference } from "./card-identity";
-import { declaredEndpoints, matchingAccesses, prefillFromReference } from "./model-editor-data";
+import { alsoAvailable, declaredEndpoints, matchingAccesses, prefillFromReference } from "./model-editor-data";
 import { attentionOf, cardEntries, cardName, cardsHolding, filterReferenceGroups, filterReferenceModels, groupReferenceModels, sectionsOf, sharedReferenceFacts, shownCount, sortItems, type ReferenceGroup, type SortKey } from "./reference-groups";
 import { cardFormat, gridColumns, type ViewOptions } from "../../components/registry/ViewOptions";
 import { useCopy, useCreatorName, useFormat, useTerm } from "../../lib/locale";
@@ -98,11 +98,11 @@ export default function ReferenceCatalogBrowser({ scope, models, allModels, cata
     const groups = filterReferenceGroups(filtered, catalog, filters, byCard);
     // Reference groups across both scopes: what a card has beside it, whether a model is partly saved.
     const full = new Map(groupReferenceModels(allModels, catalog).map(group => [group.key, group]));
-    // The accesses no saved card holds that share one of its references are available beside it.
     const isCard = (group: ReferenceGroup) => !!savedOf(group);
-    const availableBeside = (group: ReferenceGroup) => {
+    // The sheet's "Also available" list (one shared definition), as entries the Accesses popover can list.
+    const availableBeside = (group: ReferenceGroup): ReferenceGroup["entries"] => {
       const saved = savedOf(group);
-      return saved ? offeredTo(saved, [...full.values()].filter(whole => cardEntries(whole, [saved]).card.length).flatMap(whole => cardEntries(whole, registeredModels).available)) : [];
+      return saved ? alsoAvailable(catalog.accesses, saved, registeredModels).map(access => ({ model: saved, access: { provider: access.provider, nativeModel: access.model, id: access.id, route: "Direct provider", status: "Configured" }, catalogAccess: access })) : [];
     };
     const status = (group: ReferenceGroup) => isCard(group) ? "registered" : cardEntries(full.get(group.key) ?? group, registeredModels).card.length ? "partial" : "to-create";
     // The saved cards a To add tile can join (none for a saved card or a model no card holds).

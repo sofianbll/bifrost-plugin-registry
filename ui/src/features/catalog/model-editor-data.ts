@@ -78,6 +78,14 @@ export function matchingAccesses(accesses: CatalogAccess[], cardId: string, know
   ) && !saved.some(card => card.id !== cardId && card.accesses.some(row => sameAccess(row, access))));
 }
 
+// The one "Also available" list: the card tile's "+N available" badge and the sheet's Access tab both count it.
+// Matching accesses the card does not hold, once per provider and native model. removed: saved accesses the
+// editor took off the card, offered back.
+export function alsoAvailable(accesses: CatalogAccess[], card: Model, saved: Model[], removed: Access[] = []) {
+  const offered = matchingAccesses(accesses, card.id, [...card.accesses, ...removed], saved).filter(access => !card.accesses.some(row => sameAccess(row, access)));
+  return [...new Map(offered.map(access => [`${access.provider}/${access.model}`, access])).values()];
+}
+
 export type AccessCandidate = Pick<Access, "provider" | "nativeModel" | "status"> & { source: string };
 
 export function canonicalCapabilities(values: Model["capabilities"]): Model["capabilities"] {
