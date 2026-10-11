@@ -124,13 +124,8 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     page.on('request', r => { if (r.method() === 'PUT' && r.url().endsWith('/api/workspace')) writes++; });
     await scope(/^To add/).click();
     await searchModels().fill('qa-opus');
-<<<<<<< HEAD
     await expect(page.getByRole('button', { name: /^Open .* details$/ })).toHaveText(['~anthropic/qa-opus-latest', 'QA Opus']);
-    // openrouter's anthropic/qa-opus fits QA Opus and QA Opus Fast: choose the card.
-=======
-    await expect(page.getByRole('button', { name: /^Open .* details$/ })).toHaveText(['QA Opus', '~anthropic/qa-opus-latest']);
     // openrouter's anthropic/qa-opus fits QA Opus alone (QA Opus Fast is another model): the card opens, no choice.
->>>>>>> claude/admiring-carson-qbzzxz
     await button('Add to card · QA Opus').click();
     await expect(page.getByText('Add to which card?')).toHaveCount(0);
     await expect(sheet().locator('[data-slot="sheet-title"]')).toHaveText('QA Opus');
