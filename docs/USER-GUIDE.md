@@ -33,7 +33,7 @@ Groups are reusable model selections. In a key, a selected model includes all it
 
 For a pre-existing Bifrost key, first **Review adoption**. Registry compares native permissions with registered accesses. If a model must be registered to preserve the key's existing routes, the preview identifies it. Confirm only after reviewing the proposed selection. Adoption cannot widen Bifrost permissions.
 
-Missing accesses are grouped by provider. **Go to models** keeps the current key draft while you register the prerequisites; use the return banner to resume it. Reviewing adoption is also available with unsaved changes. Applying adoption preserves those changes for review and does not publish the pending selection.
+Each key card says whether the key is **Ready to adopt**, **Blocked** (with the reason) or **Empty**, and the Keys page filters on that state. The adoption dialog lists the blockers per provider with their model counts: models Bifrost does not list (for example a disabled provider) cannot be added from Registry, while models Bifrost lists but Registry has no card for lead to **Show in To add**, filtered on those models. That keeps the current key draft while you register the prerequisites. Reviewing adoption is also available with unsaved changes. Applying adoption preserves those changes for review and does not publish the pending selection.
 
 Then compose groups, direct additions and local exclusions. Exclusions apply to that key without changing the shared group. Review the resulting IDs, publish and read back `/v1/models`. Readback verifies the listed IDs, not model inference.
 

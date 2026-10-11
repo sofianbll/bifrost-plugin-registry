@@ -36,5 +36,11 @@ deepEqual(filterModels(state.models, { ...emptyModelFilters, creator: "OpenAI", 
 deepEqual(filterModels([{ ...state.models[0], creator: "" }, { ...state.models[1], creator: "Unknown" }, state.models[2]], { ...emptyModelFilters, creator: creatorKey("") }).map(m => m.id), [state.models[0].id, state.models[1].id]);
 deepEqual(filterModels(state.models, { ...emptyModelFilters, input: "Image", task: "Reasoning" }).map(m => m.id), ["gpt-5", "claude-sonnet-4", "gemini-2.5-pro", "claude-opus-4"]);
 deepEqual(modelImpact(hermes, state.groups, nextGroups), { added: ["kimi-k2"], removed: [], unchanged: ["gpt-5", "gpt-5-mini", "gemini-2.5-pro"], exclusions: ["claude-sonnet-4"] });
+// #87: a key's unsaved models are found by exact provider/native route (one per line), not by text.
+const onRoute = (id: string, provider: string, nativeModel: string) => ({ ...state.models[0], id, accesses: [{ provider, id: `${provider}/${id}`, nativeModel, route: "Direct provider", status: "Configured" as const }] });
+const routable = [onRoute("a", "synth", "qa-a"), onRoute("b", "synth", "qa-b"), onRoute("c", "other", "qa-a")];
+deepEqual(filterModels(routable, { ...emptyModelFilters, routes: "synth/qa-a\nsynth/qa-b" }).map(m => m.id), ["a", "b"]);
+deepEqual(filterModels(routable, { ...emptyModelFilters, routes: "synth/qa", search: "" }).map(m => m.id), []);
+deepEqual(filterModels(routable, { ...emptyModelFilters, routes: "other/qa-a", provider: "synth" }).map(m => m.id), []);
 assert(state.models.every(model => model.creator && model.family && model.inputModalities.length && model.outputModalities.length && model.tasks.length));
 console.log("Demo state checks passed");

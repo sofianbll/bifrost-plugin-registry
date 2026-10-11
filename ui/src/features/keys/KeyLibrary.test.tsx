@@ -27,6 +27,28 @@ const frenchSummary = renderToStaticMarkup(<LanguageContext.Provider value="fr">
 if (!frenchSummary.includes("1 fournisseur · 2 modèles")) throw new Error("French native permissions summary is missing");
 const managedSummary = renderToStaticMarkup(<LanguageContext.Provider value="en"><KeyLibrary keys={[{ ...fixture.keys[0], managed: true, permissions: summaries[3][0] }]} groups={fixture.groups} models={fixture.models} view={defaultViewOptions} onViewChange={() => {}} onResetView={() => {}} busy={false} snapshotMode onCreate={() => {}} onOpen={() => {}} /></LanguageContext.Provider>);
 if (!managedSummary.includes("Bifrost allows · 1 provider · 2 models")) throw new Error("A managed key card must also say what Bifrost allows today");
+// #87: every unmanaged key says ready, blocked (and why) or empty, in grid and table, in both languages.
+const verdicts: [string, Key, string, string, string][] = [
+  ["ready", { ...native, name: "Ready Key", readiness: { state: "ready", blockers: [] } }, "Ready to adopt", "Prête à adopter", ""],
+  ["blocked", { ...native, name: "Blocked Key", readiness: { state: "blocked", blockers: [{ provider: "mistral", kind: "undiscovered", count: 3, models: ["a", "b", "c"] }] } }, "Blocked", "Bloquée", "Mistral · 3 models not discovered"],
+  ["empty", { ...native, name: "Empty Key", readiness: { state: "empty", blockers: [] } }, "Empty", "Vide", ""],
+  ["not read", { ...native, name: "Unread Key" }, "Adoption needed", "À adopter", ""],
+];
+for (const [language, index] of [["en", 2], ["fr", 3]] as const) {
+  for (const layout of ["grid", "table"] as const) {
+    for (const verdict of verdicts) {
+      const [, key, , , reason] = verdict;
+      const html = renderToStaticMarkup(<LanguageContext.Provider value={language}><KeyLibrary keys={[key]} groups={fixture.groups} models={fixture.models} view={{ ...defaultViewOptions, layout }} onViewChange={() => {}} onResetView={() => {}} busy={false} snapshotMode onCreate={() => {}} onOpen={() => {}} /></LanguageContext.Provider>);
+      const text = html.split(/<[^>]*>/).join("");
+      if (!text.includes(verdict[index])) throw new Error(`${language} ${layout}: ${verdict[0]} key must read "${verdict[index]}"`);
+      if (language === "en" && reason && !text.includes(reason)) throw new Error(`${layout}: a blocked key must say why ("${reason}")`);
+      if (text.includes("adoption needed") && verdict[0] !== "not read") throw new Error(`${language} ${layout}: ${verdict[0]} key still shows the uniform adoption badge`);
+    }
+  }
+}
+// The Keys page filters by readiness.
+const filterName = (language: "en" | "fr") => renderToStaticMarkup(<LanguageContext.Provider value={language}><KeyLibrary keys={[native]} groups={fixture.groups} models={fixture.models} view={defaultViewOptions} onViewChange={() => {}} onResetView={() => {}} busy={false} snapshotMode onCreate={() => {}} onOpen={() => {}} /></LanguageContext.Provider>);
+if (!filterName("en").includes('aria-label="Filter by readiness"') || !filterName("fr").includes('aria-label="Filtrer par état d’adoption"')) throw new Error("The Keys page must offer a readiness filter in both languages");
 for (const shape of ["rectangle", "square"] as const) {
   const view = { ...defaultViewOptions, layout: "grid" as const, shape: shape as "rectangle" | "square", size: "medium" as const };
   const html = renderToStaticMarkup(<LanguageContext.Provider value="en"><KeyLibrary keys={[native]} groups={fixture.groups} models={fixture.models} view={view} onViewChange={() => {}} onResetView={() => {}} busy={false} snapshotMode onCreate={() => {}} onOpen={() => {}} /></LanguageContext.Provider>);
