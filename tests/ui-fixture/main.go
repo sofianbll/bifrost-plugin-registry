@@ -37,6 +37,7 @@ type nativeModel struct {
 // gatewayProvider mirrors a Bifrost 2.2.6 provider: custom ones carry a base provider type.
 type gatewayProvider struct {
 	name, baseType, key string
+	disabled            bool // its keys are disabled in Bifrost: no model is discovered, whatever a virtual key allows
 	models              []nativeModel
 }
 
@@ -51,14 +52,24 @@ var providers = []gatewayProvider{
 		{name: "qa-opus", reference: "anthropic/qa-opus", mode: "chat"}, {name: "qa-haiku", reference: "anthropic/qa-haiku", mode: "chat"},
 		// A second native name for the same Models.dev model, saved as its own card.
 		{name: "qa-opus-fast", reference: "anthropic/qa-opus", mode: "chat"},
+		// No Models.dev reference: a saved card the panel can only identify from its subscription.
+		{name: "qa-sonnet", mode: "chat"},
+		// Served by two subscriptions (also on Codex) and saved as one card with two accesses.
+		{name: "qa-shared", mode: "chat"},
 	}},
 	{name: "Codex", baseType: "openai", key: "codex-subscription-key", models: []nativeModel{
 		{name: "qa-codex", reference: "openai/qa-codex", mode: "chat"}, {name: "qa-codex-mini", mode: "chat"},
+		{name: "qa-shared", mode: "chat"},
 	}},
 	{name: "Google", baseType: "gemini", key: "google-subscription-key", models: []nativeModel{
 		{name: "qa-gemini", reference: "google/qa-gemini", mode: "chat"}, {name: "qa-image", reference: "google/qa-image", mode: "image_generation"},
+		{name: "qa-flash", mode: "chat"},
 	}},
 	{name: "openrouter", key: "openrouter-key", models: aggregatorModels()},
+	// Mistral-like: configured but disabled, so none of its models can ever become a card.
+	{name: "mistral", key: "mistral-key", disabled: true},
+	// Jev-like: a decisions-only provider whose model reference has no Models.dev provider record.
+	{name: "typesafe", key: "typesafe-key", models: []nativeModel{{name: "qa-jev", reference: "typesafe/qa-jev", mode: "decisions"}}},
 }
 
 // aggregatorModels pages past the 60-card first screen. anthropic/qa-opus shares its reference
@@ -176,7 +187,7 @@ func (b *syntheticBifrost) roundTrip(r *http.Request) (*http.Response, error) {
 			break
 		}
 		if len(parts) == 2 && r.Method == "GET" {
-			return respond(200, map[string]any{"keys": []any{map[string]any{"id": p.key, "enabled": true}}, "total": 1})
+			return respond(200, map[string]any{"keys": []any{map[string]any{"id": p.key, "enabled": !p.disabled}}, "total": 1})
 		}
 		if r.Method == "GET" {
 			return respond(200, map[string]any{"aliases": map[string]any{}})
@@ -344,6 +355,9 @@ func jsonString(s string) json.RawMessage  { b, _ := json.Marshal(s); return b }
 func jsonNumber(n float64) json.RawMessage { b, _ := json.Marshal(n); return b }
 
 func seed() registry.Config {
+	// Registry row IDs are unique and the alias is the card's ID: one card, two rows.
+	sharedOnCodex := subscriptionCard("Codex", "qa-shared", "QA Shared")
+	sharedOnCodex.ID = "qa-shared-codex"
 	models := []registry.Model{
 		model("qa-code", "QA Code", "Fixture Labs", "QA", "Chat"),
 		model("qa-chat", "QA Chat", "Fixture Labs", "QA", "Chat"),
@@ -353,6 +367,9 @@ func seed() registry.Config {
 		subscriptionCard("Claude", "qa-opus-fast", "QA Opus Fast"),
 		subscriptionCard("Codex", "qa-codex", ""), subscriptionCard("Codex", "qa-codex-mini", ""),
 		subscriptionCard("Google", "qa-gemini", ""),
+		// Like qa-codex-mini, no reference: one card per base type (anthropic, openai, gemini).
+		subscriptionCard("Claude", "qa-sonnet", ""), subscriptionCard("Google", "qa-flash", ""),
+		subscriptionCard("Claude", "qa-shared", "QA Shared"), sharedOnCodex,
 	}
 	return registry.Config{SchemaVersion: 1, DefaultNaming: "provider/model", Models: models,
 		Groups: []registry.Group{{ID: "qa-development", Name: "QA Development", ModelIDs: []string{"qa-code", "qa-chat"}}, {ID: "qa-visual", Name: "QA Visual", ModelIDs: []string{"qa-vision"}}},
@@ -368,11 +385,14 @@ func seed() registry.Config {
 			reference("google/qa-image", "QA Image", "", "qa-gemini", text, `["image"]`), reference("deepseek/qa-reasoner", "QA Reasoner", "", "qa-deepseek", text, text),
 			// …and without one (tencent, meituan).
 			reference("tencent/qa-hunyuan", "QA Hunyuan", "", "qa-hunyuan", text, text), reference("meituan/qa-longcat", "QA LongCat", "", "qa-longcat", text, text),
+			reference("typesafe/qa-jev", "QA Jev", "", "qa-jev", text, text),
 		}, Accesses: catalogAccesses(), Sources: []registry.CatalogSource{{ID: "bifrost"}, {ID: "models.dev"}}},
 	}
 }
 
-// seedKeys are the native virtual keys. The last three are unmanaged with native permissions only.
+// seedKeys are the native virtual keys. The first two are managed; every other one is an unmanaged
+// adoption case: empty, all providers, all models of Claude, ready (codex, google), blocked by models
+// of a disabled provider (mistral) or by a discovered model without a card (unsaved).
 func seedKeys() map[string]*virtualKey {
 	return map[string]*virtualKey{
 		"vk-qa-dev":           {ID: "vk-qa-dev", Name: "QA Development Key", Description: "Synthetic development client", Value: "sk-bf-qa-fixture-dev", Active: true, ProviderConfigs: []providerConfig{{Provider: provider, AllowedModels: []string{"qa-code", "qa-chat"}}}},
@@ -381,6 +401,13 @@ func seedKeys() map[string]*virtualKey {
 		"vk-qa-all-providers": {ID: "vk-qa-all-providers", Name: "QA All Providers Key", Description: "Synthetic client allowed every provider", Value: "sk-bf-qa-fixture-all-providers", Active: true, AllowAllProviders: true, ProviderConfigs: []providerConfig{}},
 		"vk-qa-codex":         {ID: "vk-qa-codex", Name: "QA Codex Key", Description: "Synthetic Codex client", Value: "sk-bf-qa-fixture-codex", Active: true, ProviderConfigs: []providerConfig{{Provider: "Codex", AllowedModels: []string{"qa-codex", "qa-codex-mini"}, AllowAllKeys: true}}},
 		"vk-qa-claude":        {ID: "vk-qa-claude", Name: "QA Claude Key", Description: "Synthetic Claude client", Value: "sk-bf-qa-fixture-claude", Active: true, ProviderConfigs: []providerConfig{{Provider: "Claude", AllowedModels: []string{"*"}, AllowAllKeys: true}}},
+		"vk-qa-google":        {ID: "vk-qa-google", Name: "QA Google Key", Description: "Synthetic Google client", Value: "sk-bf-qa-fixture-google", Active: true, ProviderConfigs: []providerConfig{{Provider: "Google", AllowedModels: []string{"qa-gemini", "qa-flash"}, AllowAllKeys: true}}},
+		// The Hermes case: models of a disabled provider (never discovered) beside discovered, saved ones.
+		"vk-qa-mistral": {ID: "vk-qa-mistral", Name: "QA Mistral Key", Description: "Synthetic Mistral client", Value: "sk-bf-qa-fixture-mistral", Active: true, ProviderConfigs: []providerConfig{
+			{Provider: "mistral", AllowedModels: []string{"qa-mistral-large", "qa-mistral-small", "qa-mistral-code"}, AllowAllKeys: true},
+			{Provider: "Claude", AllowedModels: []string{"qa-haiku", "qa-sonnet"}, AllowAllKeys: true}}},
+		// qa-unregistered is discovered but has no card, and no journey saves it.
+		"vk-qa-unsaved": {ID: "vk-qa-unsaved", Name: "QA To Add Key", Description: "Synthetic unsaved client", Value: "sk-bf-qa-fixture-unsaved", Active: true, ProviderConfigs: []providerConfig{{Provider: provider, AllowedModels: []string{"qa-vision", "qa-unregistered"}, AllowAllKeys: true}}},
 	}
 }
 
