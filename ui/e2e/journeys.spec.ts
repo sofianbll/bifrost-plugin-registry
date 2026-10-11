@@ -30,6 +30,9 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
   const closeSheet = () => sheet().getByRole('button', { name: 'Close', exact: true }).click();
   const cardSteps = () => sheet().getByRole('navigation', { name: 'Steps' }).getByRole('listitem');
   const keyCard = (name: string) => page.locator('[data-slot="card"]').filter({ has: page.getByText(name, { exact: true }) });
+  // Spec #85 round 2: the Keys page shelves empty keys (collapsed) and, in Basic, folds its filters into "Filters (n)".
+  const emptyShelf = async () => { const shelf = page.getByRole('button', { name: /^(Empty|Vides) \d+$/ }); if ((await shelf.getAttribute('aria-expanded')) === 'false') await shelf.click(); };
+  const keyFilters = async () => { const filters = page.getByRole('button', { name: /^(Filters|Filtres)( \(\d+\))?$/ }); if (await filters.count() && (await filters.getAttribute('aria-expanded')) !== 'true') await filters.click(); };
   const composerStep = (label: string) => page.getByRole('list', { name: 'Key composition steps' }).getByRole('button', { name: new RegExp(`^\\d ${label}`) });
   const keyHeading = () => page.getByRole('heading', { name: 'QA Development Key', exact: true });
   const keyChanges = () => page.getByRole('region', { name: 'Changes before publishing' });
@@ -511,8 +514,9 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await scope(/^In Registry/).click();
     // Key cards too: each Review/Open names its key.
     await nav('Virtual keys').click();
+    // The first grid is the managed shelf (spec #85 round 2); the To adopt shelf follows.
     const keyActions = await cardActions(page);
-    expect(keyActions).toEqual(expect.arrayContaining(['Open · QA Development Key', 'Review · QA Codex Key']));
+    expect(keyActions).toEqual(expect.arrayContaining(['Open · QA Development Key', 'Open · QA Visual Key']));
     expect(duplicates(keyActions), 'Virtual keys').toEqual([]);
     await nav('My models').click();
     // The legend shows the glyphs it explains.
@@ -1044,14 +1048,22 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     // The composer is three steps (Models, Groups, Review); publication lives in Review. The
     // origin is shown in the access menu, the exclusion as a card checkbox.
     await nav('Virtual keys').click();
-    await expect(keyCard('QA Development Key')).toContainText('Bifrost allows · 1 provider · 2 models');
+    await expect(keyCard('QA Development Key')).toContainText('2 models ·');
     await openDevelopmentKey();
     // #69: the key page names the key once and offers one way back.
     expect((await page.locator('body').innerText()).split('QA Development Key').length - 1).toBe(1);
     await expect(page.getByRole('button', { name: /^(All virtual keys|Virtual keys|Back)$/ })).toHaveCount(1);
     // Spec #85: a managed key opens read-first on what it can call today, grouped by subscription; the
     // 59-card editor waits behind Edit selection, and the rare actions wait in More actions.
-    await expect(page.getByRole('region', { name: 'What this key can call today' })).toContainText('Synthetic Provider · 2 models');
+    // Round 2: one ledger, "This key can call N models", one row per model tagged with its route; what Bifrost
+    // allows (story 36) and the IDs it lists wait in one "Technical check" fold.
+    const ledger = page.getByRole('region', { name: 'This key can call 2 models', exact: true });
+    await expect(ledger).toContainText('Synthetic Provider · 2 models');
+    await expect(ledger).toContainText('via Synthetic Provider');
+    await expect(ledger.getByText(/^Bifrost allows today · /)).toBeHidden();
+    await ledger.getByText(/^Technical check · /).click();
+    await expect(ledger.getByText(/^Bifrost allows today · /)).toBeVisible();
+    await expect(ledger.getByRole('button', { name: 'Read again', exact: true })).toBeVisible();
     await expect(page.getByRole('list', { name: 'Key composition steps' })).toHaveCount(0);
     await button('More actions').click();
     await expect(page.getByRole('menuitem')).toHaveText(['Rename', 'Disable', 'Review binding']);
@@ -1094,7 +1106,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     // Cancel leaves the editor for the read-first page, after the same confirmation.
     await button('Cancel').click();
     await button('Discard changes').click();
-    await expect(page.getByRole('region', { name: 'What this key can call today' })).toBeVisible();
+    await expect(page.getByRole('region', { name: /^This key can call/ })).toBeVisible();
     await expect(page.getByText('Unpublished draft', { exact: true })).toHaveCount(0);
   });
 
@@ -1158,33 +1170,39 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
       ['QA Wildcard Key', 'Blocked', 'Claude · all models allowed'],
       ['QA Unmanaged Key', 'Empty', ''],
     ];
+    await emptyShelf();
     for (const [name, verdict, reason] of cards) {
       await expect(keyCard(name), name).toContainText(verdict);
       if (reason) await expect(keyCard(name), name).toContainText(reason);
     }
     await expect(page.getByText('Adoption needed')).toHaveCount(0);
     await expect(keyCard('QA Development Key')).toContainText('Active');
-    // The default order is the worklist: ready, then blocked, then empty, then managed keys; by name inside each.
-    await expect(page.getByRole('button', { name: /^(Review|Open) · / })).toHaveText(['Review · QA Codex Key', 'Review · QA Google Key', 'Review · QA All Providers Key', 'Review · QA Claude Key', 'Review · QA Hermes Key', 'Review · QA Mistral Key', 'Review · QA To Add Key', 'Review · QA Wildcard Key', 'Review · QA Unmanaged Key', 'Open · QA Development Key', 'Open · QA Visual Key']);
-    // The Keys page triages by readiness; managed keys are their own bucket.
+    // The default order opens on managed keys, then the worklist: ready, then blocked; by name inside each.
+    // Empty keys wait in their own shelf (opened above; collapsed by default).
+    await expect(page.getByRole('button', { name: /^(Review|Open) · / })).toHaveText(['Open · QA Development Key', 'Open · QA Visual Key', 'Review · QA Codex Key', 'Review · QA Google Key', 'Review · QA All Providers Key', 'Review · QA Claude Key', 'Review · QA Hermes Key', 'Review · QA Mistral Key', 'Review · QA To Add Key', 'Review · QA Wildcard Key', 'Review · QA Unmanaged Key']);
+    await page.getByRole('button', { name: 'Empty 1', exact: true }).click();
+    await expect(page.getByText('11 of 11 keys shown, 1 in a collapsed shelf', { exact: true })).toBeVisible();
+    await emptyShelf();
+    // The Keys page triages by readiness; managed keys are their own bucket. Basic keeps the filters in "Filters".
     const readiness = page.getByRole('combobox', { name: 'Filter by readiness', exact: true });
-    await readiness.click();
+    await keyFilters(); await readiness.click();
     await expect(page.getByRole('option')).toHaveText(['All adoption states', 'Ready to adopt (2)', 'Blocked (6)', 'Empty (1)', 'Managed (2)']);
     await page.getByRole('option', { name: 'Blocked (6)', exact: true }).click();
     await expect(page.getByText('6 of 11 keys shown', { exact: true })).toBeVisible();
     await expect(keyCard('QA Mistral Key')).toHaveCount(1);
     await expect(keyCard('QA Codex Key')).toHaveCount(0);
-    await readiness.click();
+    await keyFilters(); await readiness.click();
     await page.getByRole('option', { name: 'Ready to adopt (2)', exact: true }).click();
     await expect(page.getByText('2 of 11 keys shown', { exact: true })).toBeVisible();
     await expect(keyCard('QA Google Key')).toHaveCount(1);
-    await readiness.click();
+    await keyFilters(); await readiness.click();
     await page.getByRole('option', { name: 'Empty (1)', exact: true }).click();
     await expect(keyCard('QA Unmanaged Key')).toHaveCount(1);
     await expect(page.getByText('1 of 11 keys shown', { exact: true })).toBeVisible();
-    await readiness.click();
+    await keyFilters(); await readiness.click();
     await page.getByRole('option', { name: 'All adoption states', exact: true }).click();
     await expect(page.getByText('11 of 11 keys shown', { exact: true })).toBeVisible();
+    await page.keyboard.press('Escape'); // closes Filters
     await shot('after-keys-readiness');
 
     // Blocked by models Bifrost does not list (a disabled provider): counts per provider, names behind a
@@ -1258,6 +1276,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
 
     // A key that allows nothing says so instead of listing blockers.
     await nav('Virtual keys').click();
+    await emptyShelf();
     await keyCard('QA Unmanaged Key').getByRole('button', { name: 'Review · QA Unmanaged Key', exact: true }).click();
     await expect(page.getByText('Empty', { exact: true })).toBeVisible();
     await expect(page.getByText('Add models to this key in Bifrost first', { exact: true }), 'A plain sentence, not a button that leads nowhere').toBeVisible();
@@ -1280,6 +1299,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     // #69: each card says what Bifrost allows today. An unmanaged key starts with adoption as its
     // single primary action: nothing to compose, nothing published, until the key is adopted.
     await button('All virtual keys').click();
+    await emptyShelf();
     await expect(keyCard('QA All Providers Key')).toContainText('All providers');
     await expect(keyCard('QA Claude Key')).toContainText('1 provider · all models of Claude');
     await expect(keyCard('QA Unmanaged Key')).toContainText('No provider');
@@ -1447,9 +1467,12 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
       await button(t('All virtual keys', 'Toutes les clés virtuelles')).click();
       // #87: readiness filter, per-provider permission counts and the grouped blockers (models Bifrost
       // does not list, models to add) read in one language too.
+      await keyFilters();
       await page.getByRole('combobox', { name: t('Filter by readiness', 'Filtrer par état d’adoption'), exact: true }).click();
       await sweep(language, 'Readiness filter');
       await page.keyboard.press('Escape');
+      await page.keyboard.press('Escape'); // closes Filters
+      await emptyShelf();
       // An empty key asks for models in Bifrost; a key allowing every model of a provider says why it cannot be adopted.
       await keyCard('QA Unmanaged Key').getByRole('button', { name: t('Review · QA Unmanaged Key', 'Examiner · QA Unmanaged Key'), exact: true }).click();
       await expect(page.getByText(t('Add models to this key in Bifrost first', 'Ajoutez d’abord des modèles à cette clé dans Bifrost'), { exact: true })).toBeVisible();
@@ -1544,9 +1567,14 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     const apply = page.waitForRequest(r => r.method() === 'POST' && r.url().endsWith('/api/keys/adopt') && r.postDataJSON().phase === 'apply');
     await dialog.getByRole('button', { name: 'Adopt', exact: true }).click();
     expect((await apply).postDataJSON()).toMatchObject({ keyId: 'vk-qa-mistral', operation: 'adopt', phase: 'apply', keepNative: ['Codex', 'mistral'] });
-    // The managed key says which providers stay in Bifrost, on its page and on its card.
-    await expect(page.getByRole('list', { name: 'Kept in Bifrost' })).toContainText('Mistral · kept in Bifrost · 3 models');
-    await expect(page.getByRole('list', { name: 'Kept in Bifrost' })).toContainText('Codex · kept in Bifrost · 1 model');
+    // The managed key counts every route it can call once, kept providers included, on its page and on its card:
+    // three Claude routes through Registry, Codex's qa-shared and Mistral's three models kept in Bifrost.
+    const ledger = page.getByRole('region', { name: /^This key can call/ });
+    await expect(ledger).toHaveAccessibleName('This key can call 7 models');
+    await expect(ledger.getByRole('region', { name: 'Mistral', exact: true })).toContainText('Mistral · 3 models');
+    await expect(ledger.getByRole('region', { name: 'Mistral', exact: true })).toContainText('kept in Bifrost');
+    await expect(ledger.getByRole('region', { name: 'Codex', exact: true })).toContainText('kept in Bifrost');
+    await expect(ledger.getByRole('region', { name: 'Claude', exact: true })).toContainText('via Claude');
     await editSelection();
     await composerStep('Review').click();
     await button('Read again').click();
@@ -1562,8 +1590,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     // Registry never rewrote Bifrost's permissions for the kept provider.
     expect(key.permissions.providers.find((p: { provider: string }) => p.provider === 'mistral').models).toEqual(['qa-mistral-large', 'qa-mistral-small', 'qa-mistral-code']);
     await button('All virtual keys').click();
-    await expect(keyCard('QA Mistral Key')).toContainText('Mistral · kept in Bifrost · 3 models');
-    await expect(keyCard('QA Mistral Key')).toContainText('Verified');
+    await expect(keyCard('QA Mistral Key')).toContainText('7 models · Verified');
     await shot('after-keep-native-key-card');
   });
 
@@ -1582,11 +1609,15 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     const apply = page.waitForRequest(r => r.method() === 'POST' && r.url().endsWith('/api/keys/adopt') && r.postDataJSON().phase === 'apply');
     await dialog.getByRole('button', { name: 'Adopt', exact: true }).click();
     expect((await apply).postDataJSON()).toMatchObject({ keyId: 'vk-qa-wildcard', operation: 'adopt', phase: 'apply', keepNative: ['Claude'] });
-    await expect(page.getByRole('list', { name: 'Kept in Bifrost' })).toContainText('Claude · kept in Bifrost · all models');
-    // The read-first page reads the key back without opening the editor.
-    await expect(page.getByRole('region', { name: 'What this key can call today' })).toContainText('Codex · 1 model');
+    // Claude allows every model in Bifrost: the total is open ("at least").
+    const ledger = page.getByRole('region', { name: /^This key can call/ });
+    await expect(ledger).toHaveAccessibleName('This key can call at least 1 model');
+    await expect(ledger.getByRole('region', { name: 'Claude', exact: true })).toContainText('All models Bifrost allows');
+    await expect(ledger).toContainText('Codex · 1 model');
+    // The read-first page reads the key back without opening the editor, from the technical check.
+    await ledger.getByText(/^Technical check · /).click();
     await button('Read again').click();
-    await page.getByText('Verified', { exact: true }).first().waitFor();
+    await expect(ledger.getByText(/^Technical check · Verified /)).toBeVisible();
     const key = (await api('workspace')).data.keys.find((k: { id: string }) => k.id === 'vk-qa-wildcard');
     expect(key.managed).toBe(true);
     expect(key.policy.keptNative).toEqual(['Claude']);

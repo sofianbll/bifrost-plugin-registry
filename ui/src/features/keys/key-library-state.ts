@@ -1,8 +1,21 @@
 import { exposed, members, type Group, type Key, type Model } from "../../domain/registry";
 import { readinessState, type ReadinessState } from "./key-readiness";
 
-// The worklist: what can be adopted now, then what is blocked, then what is empty, then what is done.
-const worklist: ReadinessState[] = ["ready", "blocked", "unknown", "empty", "managed"];
+// Managed keys first, then the worklist: what can be adopted now, what is blocked, what is empty.
+const worklist: ReadinessState[] = ["managed", "ready", "blocked", "unknown", "empty"];
+
+// The Keys page shelves: managed keys, then "To adopt", then "Empty" (collapsed by default); each keeps the list's order.
+export type KeyShelf = { id: "managed" | "adopt" | "empty"; keys: Key[] };
+export function keyShelves(keys: Key[]): KeyShelf[] {
+  const shelfOf = (key: Key): KeyShelf["id"] => readinessState(key) === "managed" ? "managed" : readinessState(key) === "empty" ? "empty" : "adopt";
+  return (["managed", "adopt", "empty"] as const).map(id => ({ id, keys: keys.filter(key => shelfOf(key) === id) })).filter(shelf => shelf.keys.length);
+}
+
+// Keys whose names differ only by case or surrounding spaces ("Elson - Poc", "Elson - POC").
+export function nearDuplicates(keys: Key[]) {
+  const norm = (key: Key) => key.name.trim().toLocaleLowerCase();
+  return new Set(keys.filter(key => keys.some(other => other.id !== key.id && norm(other) === norm(key))).map(key => key.id));
+}
 
 export function filterKeys(keys: Key[], groups: Group[], models: Model[], search: string, groupFilter: string, clientFilter: string, sort: string, readinessFilter = "all") {
   const query = search.trim().toLocaleLowerCase();
