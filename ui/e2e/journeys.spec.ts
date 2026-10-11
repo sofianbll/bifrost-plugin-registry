@@ -658,6 +658,90 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await button('Discard draft').click();
   });
 
+  await test.step('keys show adoption readiness; the dialog explains each blocker per provider', async () => {
+    // #87: ready, blocked (and by what) or empty on every unmanaged card instead of one uniform badge.
+    await button('All virtual keys').click();
+    const cards: [string, string, string][] = [
+      ['QA Codex Key', 'Ready to adopt', ''],
+      ['QA Google Key', 'Ready to adopt', ''],
+      ['QA Mistral Key', 'Blocked', 'Mistral · 3 models not discovered'],
+      ['QA To Add Key', 'Blocked', 'Synthetic Provider · 1 model to add'],
+      ['QA All Providers Key', 'Blocked', 'Every provider allowed'],
+      ['QA Claude Key', 'Blocked', 'Claude · cannot be adopted as is'],
+      ['QA Unmanaged Key', 'Empty', ''],
+    ];
+    for (const [name, verdict, reason] of cards) {
+      await expect(keyCard(name), name).toContainText(verdict);
+      if (reason) await expect(keyCard(name), name).toContainText(reason);
+    }
+    await expect(page.getByText('Adoption needed')).toHaveCount(0);
+    await expect(keyCard('QA Development Key')).toContainText('Active');
+    // The Keys page triages by readiness; managed keys are their own bucket.
+    const readiness = page.getByRole('combobox', { name: 'Filter by readiness', exact: true });
+    await readiness.click();
+    await expect(page.getByRole('option')).toHaveText(['All adoption states', 'Ready to adopt (2)', 'Blocked (4)', 'Empty (1)', 'Managed (2)']);
+    await page.getByRole('option', { name: 'Blocked (4)', exact: true }).click();
+    await expect(page.getByText('4 of 9 keys shown', { exact: true })).toBeVisible();
+    await expect(keyCard('QA Mistral Key')).toHaveCount(1);
+    await expect(keyCard('QA Codex Key')).toHaveCount(0);
+    await readiness.click();
+    await page.getByRole('option', { name: 'Ready to adopt (2)', exact: true }).click();
+    await expect(page.getByText('2 of 9 keys shown', { exact: true })).toBeVisible();
+    await expect(keyCard('QA Google Key')).toHaveCount(1);
+    await readiness.click();
+    await page.getByRole('option', { name: 'Empty (1)', exact: true }).click();
+    await expect(keyCard('QA Unmanaged Key')).toHaveCount(1);
+    await expect(page.getByText('1 of 9 keys shown', { exact: true })).toBeVisible();
+    await readiness.click();
+    await page.getByRole('option', { name: 'All adoption states', exact: true }).click();
+    await expect(page.getByText('9 of 9 keys shown', { exact: true })).toBeVisible();
+    await shot('after-keys-readiness');
+
+    // Blocked by models Bifrost does not list (a disabled provider): counts per provider, names behind a
+    // disclosure, and no way to "add" what nothing can add. The key page shows counts, not an ID wall.
+    await keyCard('QA Mistral Key').getByRole('button', { name: 'Review · QA Mistral Key', exact: true }).click();
+    const allowed = page.getByRole('list', { name: 'Bifrost allows today' });
+    await expect(allowed).toContainText('Mistral · 3 models');
+    await expect(allowed).toContainText('Claude · 2 models');
+    await expect(page.getByText('qa-mistral-large', { exact: false })).toBeHidden();
+    await allowed.getByText('Mistral · 3 models', { exact: true }).click();
+    await expect(allowed.getByText(/qa-mistral-large/)).toBeVisible();
+    await expect(page.getByText('Blocked', { exact: true })).toBeVisible();
+    await button('Review adoption').click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toContainText('Mistral · 3 models not discovered');
+    await expect(dialog).toContainText('Bifrost does not list these models');
+    await dialog.getByText('Show model names', { exact: true }).click();
+    await expect(dialog.getByText(/qa-mistral-large.*qa-mistral-small|qa-mistral-small.*qa-mistral-large/)).toBeVisible();
+    await expect(dialog.getByRole('button', { name: /^Show in To add/ })).toHaveCount(0);
+    await expect(dialog.getByRole('button', { name: 'Use this key with Registry', exact: true })).toBeDisabled();
+    await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
+
+    // Discovered by Bifrost but without a Registry card: the dialog leads to To add, filtered on that model.
+    await button('All virtual keys').click();
+    await keyCard('QA To Add Key').getByRole('button', { name: 'Review · QA To Add Key', exact: true }).click();
+    await button('Review adoption').click();
+    await expect(dialog).toContainText('Synthetic Provider · 1 model to add');
+    await expect(dialog).toContainText('Registry has no card for them yet');
+    await dialog.getByRole('button', { name: /^Show in To add/ }).click();
+    await expect(dialog).toHaveCount(0);
+    await expect(scope(/^To add/)).toBeChecked();
+    await expect(page.getByRole('button', { name: /^Key models: 1/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^Open .* details$/ })).toHaveText(['QA Unregistered']);
+    // The filter is an ordinary chip: clearing it shows the whole shelf again.
+    await page.getByRole('button', { name: 'Clear all', exact: true }).click();
+    await expect(page.getByRole('button', { name: /^Open .* details$/ })).toHaveCount(60);
+    await scope(/^In Registry/).click();
+
+    // A key that allows nothing says so instead of listing blockers.
+    await nav('Virtual keys').click();
+    await keyCard('QA Unmanaged Key').getByRole('button', { name: 'Review · QA Unmanaged Key', exact: true }).click();
+    await expect(page.getByText('Empty', { exact: true })).toBeVisible();
+    await button('Review adoption').click();
+    await expect(dialog).toContainText('allows no model in Bifrost yet');
+    await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
+  });
+
   await test.step('unmanaged key opens on adoption; the composer follows adoption', async () => {
     // #69: each card says what Bifrost allows today. An unmanaged key starts with adoption as its
     // single primary action: nothing to compose, nothing published, until the key is adopted.
@@ -675,7 +759,9 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await shot('after-unmanaged-key');
     await button('All virtual keys').click();
     await keyCard('QA Codex Key').getByRole('button', { name: 'Review · QA Codex Key', exact: true }).click();
-    await expect(page.getByRole('list', { name: 'Bifrost allows today' })).toContainText('Codex · qa-codex, qa-codex-mini');
+    await expect(page.getByRole('list', { name: 'Bifrost allows today' })).toContainText('Codex · 2 models');
+    await page.getByRole('list', { name: 'Bifrost allows today' }).getByText('Codex · 2 models', { exact: true }).click();
+    await expect(page.getByRole('list', { name: 'Bifrost allows today' })).toContainText('qa-codex, qa-codex-mini');
     await button('Review adoption').click();
     await page.getByRole('dialog').getByRole('button', { name: 'Use this key with Registry', exact: true }).click();
     await composerStep('Review').click();
@@ -800,6 +886,21 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
       await sweep(language, 'Adoption dialog');
       await page.getByRole('dialog').getByRole('button', { name: t('Cancel', 'Annuler'), exact: true }).click();
       await button(t('All virtual keys', 'Toutes les clés virtuelles')).click();
+      // #87: readiness filter, per-provider permission counts and the grouped blockers (models Bifrost
+      // does not list, models to add) read in one language too.
+      await page.getByRole('combobox', { name: t('Filter by readiness', 'Filtrer par état d’adoption'), exact: true }).click();
+      await sweep(language, 'Readiness filter');
+      await page.keyboard.press('Escape');
+      for (const name of ['QA Mistral Key', 'QA To Add Key']) {
+        await keyCard(name).getByRole('button', { name: t(`Review · ${name}`, `Examiner · ${name}`), exact: true }).click();
+        await page.getByRole('list', { name: t('Bifrost allows today', 'Bifrost autorise aujourd’hui') }).locator('summary').first().click();
+        await sweep(language, `Key page of ${name}`);
+        await button(t('Review adoption', 'Examiner l’adoption')).click();
+        await page.getByRole('dialog').getByText(t('Show model names', 'Afficher les noms des modèles'), { exact: true }).click();
+        await sweep(language, `Adoption dialog of ${name}`);
+        await page.getByRole('dialog').getByRole('button', { name: t('Cancel', 'Annuler'), exact: true }).click();
+        await button(t('All virtual keys', 'Toutes les clés virtuelles')).click();
+      }
       await keyCard('QA Development Key').getByRole('button', { name: t('Open · QA Development Key', 'Ouvrir · QA Development Key'), exact: true }).click();
       await sweep(language, 'Key page');
       await page.getByRole('list', { name: t('Key composition steps', 'Étapes de composition de la clé') }).getByRole('button', { name: new RegExp(`^\\d ${t('Review', 'Vérifier')}`) }).click();

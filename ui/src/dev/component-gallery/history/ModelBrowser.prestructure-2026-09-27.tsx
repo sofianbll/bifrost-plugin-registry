@@ -13,7 +13,7 @@ import { emptyModelFilters, filterModels, type Model, type ModelFilters } from "
 import { defaultViewOptions, ViewControls, type ViewOptions } from "@/components/registry/ViewOptions";
 import { selectionCounts, setVisibleSelection } from "@/features/catalog/selection";
 
-const filterLabels: Record<keyof ModelFilters, string> = { search: "Search", creator: "Creator", provider: "Serving provider", task: "Usage / task", input: "Input", output: "Output", capability: "Capability" };
+const filterLabels: Record<keyof ModelFilters, string> = { search: "Search", creator: "Creator", provider: "Serving provider", task: "Usage / task", input: "Input", output: "Output", capability: "Capability", routes: "Key models" };
 const unique = (items: string[]) => [...new Set(items)].sort((a, b) => a.localeCompare(b));
 const sizeClass = { small: "min-[560px]:grid-cols-2 xl:grid-cols-4", medium: "min-[560px]:grid-cols-2 xl:grid-cols-3", large: "lg:grid-cols-2" };
 const accessScope = (model: Model) => model.accesses.length ? model.accesses.map(access => `${displayProvider(access.provider)} · ID natif : ${access.nativeModel || "inconnu"}`).join(" ; ") : "Aucun accès fournisseur lié";
