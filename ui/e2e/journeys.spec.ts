@@ -23,6 +23,9 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
   const searchModels = () => page.getByRole('textbox', { name: 'Search models', exact: true });
   const nav = (name: string) => page.getByRole('link', { name, exact: true });
   const sheet = () => page.locator('[data-slot="sheet-content"]');
+  // A saved card opens read-first: the sheet's own X closes it (Cancel only leaves the editor).
+  const closeSheet = () => sheet().getByRole('button', { name: 'Close', exact: true }).click();
+  const cardSteps = () => sheet().getByRole('navigation', { name: 'Steps' }).getByRole('listitem');
   const keyCard = (name: string) => page.locator('[data-slot="card"]').filter({ has: page.getByText(name, { exact: true }) });
   const composerStep = (label: string) => page.getByRole('list', { name: 'Key composition steps' }).getByRole('button', { name: new RegExp(`^\\d ${label}`) });
   const keyHeading = () => page.getByRole('heading', { name: 'QA Development Key', exact: true });
@@ -119,7 +122,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(part(/^Also available/)).toContainText(/openrouter/i);
     await expect(sheet().getByRole('button', { name: /^Add openrouter/i })).toBeVisible();
     await expect(part(/^Also available/)).not.toContainText('Claude');
-    await button('Cancel').click();
+    await closeSheet();
     await sheet().waitFor({ state: 'hidden' });
     expect(writes, 'Opening the card adds nothing').toBe(0);
     // One card holds the reference (QA Opus Fast removed from a mocked workspace): the tile names it and opens it, no choice.
@@ -148,7 +151,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await nav('My models').click();
     await button('Open QA Chat details').click();
     await sheet().getByRole('button', { name: 'Access', exact: true }).waitFor();
-    await button('Cancel').click();
+    await closeSheet();
     await sheet().waitFor({ state: 'hidden' });
     // Settings and the catalog data page read the same catalogue.
     await nav('Settings').click();
@@ -236,8 +239,9 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     // The card sheet names it the same way, its common ID below.
     await button('Open QA Opus details').click();
     await expect(sheet().locator('[data-slot="sheet-title"]')).toHaveText('QA Opus');
-    await expect(sheet().getByRole('heading', { name: 'QA Opus', exact: true }).locator('xpath=following-sibling::code[1]')).toHaveText('qa-opus');
-    await button('Cancel').click();
+    await expect(sheet().locator('[data-slot="sheet-description"]')).toContainText('qa-opus');
+    await expect(sheet().getByRole('heading', { name: 'QA Opus', exact: true }), 'The name shows once').toHaveCount(1);
+    await closeSheet();
     await sheet().waitFor({ state: 'hidden' });
     const creators = page.getByRole('combobox', { name: 'Creator', exact: true });
     await creators.click();
@@ -254,6 +258,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await scope(/^In Registry/).click();
     // The card sheet names a missing creator the same way, in its field and in Review.
     await button('Open QA Shared details').click();
+    await button('Edit').click();
     await sheet().getByRole('button', { name: 'Edit Registry details', exact: true }).click();
     const creatorField = page.getByRole('dialog', { name: 'Edit Registry details' }).getByRole('combobox', { name: 'Creator', exact: true });
     await expect(creatorField).toHaveValue('');
@@ -264,6 +269,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await sheet().getByText('Creator: Creator not identified → QA Labs', { exact: true }).waitFor();
     await button('Cancel').click();
     await button('Discard draft').click();
+    await closeSheet();
     await sheet().waitFor({ state: 'hidden' });
     await button('Open QA Chat details').waitFor();
   });
@@ -352,7 +358,8 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
 
     // Override: the sheet shows the guess as such; a typed creator replaces it and loses the mark.
     await button('Open qa-codex-mini details').click();
-    await expect(sheet().getByText('inferred', { exact: true }).first()).toBeVisible();
+    await expect(sheet().getByText('inferred', { exact: true }).first()).toBeVisible(); // read-first: the guess is shown as such
+    await button('Edit').click();
     await sheet().getByRole('button', { name: 'Edit Registry details', exact: true }).click();
     const creatorField = page.getByRole('dialog', { name: 'Edit Registry details' }).getByRole('combobox', { name: 'Creator', exact: true });
     await expect(creatorField).toHaveValue('OpenAI');
@@ -372,6 +379,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
 
     // Clear: an emptied creator stays empty, the guess does not come back.
     await button('Open qa-codex-mini details').click();
+    await button('Edit').click();
     await sheet().getByRole('button', { name: 'Edit Registry details', exact: true }).click();
     await creatorField.fill('');
     await button('Keep changes').click();
@@ -424,6 +432,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
 
   await test.step('model cancel protects draft; focus stays in editor', async () => {
     await button('Open QA Chat details').click();
+    await button('Edit').click();
     await page.getByRole('textbox', { name: 'Display name *', exact: true }).fill('QA draft preserved');
     expect(await sheet().evaluate(el => el.contains(document.activeElement))).toBe(true);
     await button('Cancel').click();
@@ -432,12 +441,15 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(page.getByRole('textbox', { name: 'Display name *', exact: true })).toHaveValue('QA draft preserved');
     await button('Cancel').click();
     await button('Discard draft').click();
+    await expect(button('Edit'), 'Cancel returns to the read view').toBeVisible();
+    await closeSheet();
     await sheet().waitFor({ state: 'hidden' });
   });
 
   await test.step('unchanged discovery closes without false discard warning', async () => {
     await scope(/^To add/).click(); // a discovered model now waits in To add
     await button('Open QA Unregistered details').click(); // was "Review & add"
+    await expect(cardSteps(), 'A new card goes straight to the editor, in the same step order as an edit').toHaveText(['1. Accesses', '2. Model details', '3. Review']);
     await button('Cancel').click();
     await sheet().waitFor({ state: 'hidden' });
     await expect(page.getByRole('heading', { name: 'Discard changes?' })).toHaveCount(0);
@@ -464,6 +476,89 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(page.locator('[data-slot="card"]').filter({ has: button('Open QA Image details') }).locator('[data-attention]')).toHaveCount(0);
   });
 
+  await test.step('a saved card opens read-first: Edit and Cancel, one step order, No changes, Delete in a menu', async () => {
+    await searchModels().fill('qa-image');
+    await button('Open QA Image details').click();
+    // Read view: the name once as the title, the common ID under it, details to read, nothing to change.
+    await expect(sheet().locator('[data-slot="sheet-title"]')).toHaveText('QA Image');
+    await expect(sheet().locator('[data-slot="sheet-description"]')).toContainText('qa-image');
+    await expect(sheet().getByRole('heading', { name: 'QA Image', exact: true })).toHaveCount(1);
+    await expect(sheet().getByRole('textbox', { name: 'Display name *', exact: true })).toHaveCount(0);
+    await expect(sheet().getByRole('navigation', { name: 'Steps' })).toHaveCount(0);
+    await expect(button('Save model')).toHaveCount(0);
+    await expect(button('Delete'), 'Delete is not an always-visible button').toHaveCount(0);
+    await sheet().getByRole('button', { name: 'Access', exact: true }).click();
+    await expect(sheet().getByText('qa-image').first()).toBeVisible();
+    await expect(sheet().getByRole('checkbox'), 'Looking never risks changing: no editable control').toHaveCount(0);
+    await sheet().getByRole('button', { name: 'Overview', exact: true }).click();
+    // Delete lives in the "..." menu; Escape closes the menu, not the sheet.
+    await button('More actions').click();
+    await expect(page.getByRole('menuitem', { name: 'Delete', exact: true })).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('menuitem')).toHaveCount(0);
+    await expect(sheet()).toBeVisible();
+    // Edit enters the editor on Model details; the steps keep the creation order.
+    await button('Edit').click();
+    await expect(cardSteps()).toHaveText(['1. Accesses', '2. Model details', '3. Review']);
+    await expect(sheet().getByRole('button', { name: '2. Model details', exact: true })).toHaveAttribute('aria-current', 'step');
+    await expect(sheet().getByRole('textbox', { name: 'Display name *', exact: true })).toBeVisible();
+    await expect(button('Delete')).toHaveCount(0);
+    // Nothing changed: Save is off and says why.
+    await button('Review').click();
+    await expect(button('Save model')).toBeDisabled();
+    await expect(sheet().getByText('No changes', { exact: true })).toBeVisible();
+    await sheet().getByRole('button', { name: '2. Model details', exact: true }).click();
+    await page.getByRole('textbox', { name: 'Display name *', exact: true }).fill('QA Image renamed');
+    await button('Review').click();
+    await expect(button('Save model')).toBeEnabled();
+    await expect(sheet().getByText('No changes', { exact: true })).toHaveCount(0);
+    // Cancel asks before dropping the change, then returns to the read view.
+    await button('Cancel').click();
+    await button('Discard draft').click();
+    await expect(button('Edit')).toBeVisible();
+    await expect(sheet().locator('[data-slot="sheet-title"]')).toHaveText('QA Image');
+    await button('Edit').click();
+    await button('Cancel').click();
+    await expect(button('Edit'), 'Cancel without a change needs no confirmation').toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Discard changes?' })).toHaveCount(0);
+    // Delete asks first; keeping leaves the card, deleting writes the workspace without it.
+    await button('More actions').click();
+    await page.getByRole('menuitem', { name: 'Delete', exact: true }).click();
+    await page.getByRole('heading', { name: 'Delete QA Image?' }).waitFor();
+    await page.getByRole('dialog').getByRole('button', { name: 'Cancel', exact: true }).click();
+    await expect(sheet().locator('[data-slot="sheet-title"]')).toHaveText('QA Image');
+    await button('More actions').click();
+    await page.getByRole('menuitem', { name: 'Delete', exact: true }).click();
+    const removal = page.waitForRequest(r => r.method() === 'PUT' && r.url().endsWith('/api/workspace'));
+    await page.getByRole('dialog').getByRole('button', { name: 'Delete', exact: true }).click();
+    expect((await removal).postDataJSON().data.models.map((m: { id: string }) => m.id)).not.toContain('qa-image');
+    await sheet().waitFor({ state: 'hidden' });
+    await searchModels().fill('');
+    await expect(scope(/^In Registry/)).toHaveAccessibleName('In Registry (12)');
+  });
+
+  await test.step('Expert mode: the read view first, then every step at once in the same order', async () => {
+    const expert = page.getByRole('switch', { name: 'Use Expert key composer', exact: true });
+    await expert.click();
+    await button('Open QA Chat details').click();
+    await expect(sheet().getByRole('navigation', { name: 'Steps' }), 'The read view has no steps, Expert or not').toHaveCount(0);
+    await expect(sheet().locator('#editor-journey-summary')).toHaveCount(0);
+    await button('Edit').click();
+    await expect(sheet().locator('[id^="editor-journey-step-"]').evaluateAll(parts => parts.map(part => part.id))).resolves.toEqual(['editor-journey-step-0', 'editor-journey-step-1', 'editor-journey-step-2']);
+    await expect(sheet().locator('#editor-journey-step-0')).toContainText('In this card');
+    await expect(sheet().locator('#editor-journey-step-2')).toContainText('Review before saving');
+    await expect(sheet().locator('#editor-journey-summary')).toBeVisible();
+    await expect(sheet().getByRole('textbox', { name: 'Display name *', exact: true })).toBeVisible();
+    await button('Review').click();
+    await expect(button('Save model')).toBeDisabled();
+    await expect(sheet().getByText('No changes', { exact: true })).toBeVisible();
+    await button('Cancel').click();
+    await expect(button('Edit')).toBeVisible();
+    await closeSheet();
+    await sheet().waitFor({ state: 'hidden' });
+    await expert.click();
+  });
+
   await test.step('saved card keeps its own accesses; matching ones are offered, never merged', async () => {
     // Claude/qa-opus is saved; openrouter's anthropic/qa-opus shares its reference and is not.
     const before = (await api('workspace')).data.models;
@@ -488,6 +583,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
 
     // Re-saving after a rename writes exactly the saved accesses.
     await openOpus.click();
+    await button('Edit').click();
     await page.getByRole('textbox', { name: 'Display name *', exact: true }).fill('QA Opus saved');
     await button('Review').click();
     await sheet().getByText(/Display name: .* → QA Opus saved/).waitFor();
@@ -520,6 +616,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await sheet().getByText(/^Access removed: Claude · qa-opus$/).waitFor();
     await button('Cancel').click();
     await button('Discard draft').click();
+    await closeSheet();
     await sheet().waitFor({ state: 'hidden' });
   });
 
@@ -776,10 +873,13 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
         await sheet().getByRole('button', { name: tab, exact: true }).click();
         await sweep(language, `Card sheet, ${tab} tab`);
       }
+      await button(t('More actions', 'Plus d’actions')).click();
+      await sweep(language, 'Card actions menu');
+      await page.keyboard.press('Escape');
       await button(t('Edit accesses', 'Modifier les accès')).click();
       await sweep(language, 'Access chooser');
       await button(t('Review', 'Vérifier')).click();
-      await sweep(language, 'Card review');
+      await sweep(language, 'Card review (nothing to save)');
       await page.keyboard.press('Escape');
       await sheet().waitFor({ state: 'hidden' });
       await nav(t('Groups', 'Groupes')).click();
@@ -844,9 +944,12 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await page.getByRole('button', { name: /^Open .* details$/ }).first().click(); // QA Chat was renamed by the metadata correction
     await page.setViewportSize({ width: 390, height: 620 });
     await withinViewport(sheet());
+    await withinViewport(button('Edit'));
+    await button('Edit').click();
     await withinViewport(button('Review')); // was Save model
     await shot('after-mobile-editor');
     await button('Cancel').click();
+    await closeSheet();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.setViewportSize({ width: 1440, height: 950 });
     await nav('Settings').click();
@@ -956,7 +1059,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     expect(fallback).toEqual(expect.arrayContaining(['View details · QA Model 0 (qa-1)']));
     expect(duplicates(fallback), 'Fallback cards sharing a display name').toEqual([]);
     await stress.getByRole('button', { name: /^View details/ }).first().click();
-    await stress.locator('[data-slot="sheet-content"]').getByRole('button', { name: 'Review', exact: true }).waitFor(); // was Save model
+    await stress.locator('[data-slot="sheet-content"]').getByRole('button', { name: 'Edit', exact: true }).waitFor(); // read-first; was Save model
     await stress.close();
   });
 
