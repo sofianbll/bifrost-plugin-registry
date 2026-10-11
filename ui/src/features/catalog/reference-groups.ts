@@ -55,6 +55,16 @@ export function cardEntries(group: ReferenceGroup, saved: Model[]) {
   return { card: group.entries.filter(held), available: group.entries.filter(entry => !held(entry)) };
 }
 
+// The saved cards holding an access of a whole (cross-scope) group: the cards a To add tile can join.
+export const cardsHolding = (whole: ReferenceGroup, saved: Model[]) => saved.filter(card => cardEntries(whole, [card]).card.length);
+
+// What makes a saved card worth a badge, in display order. A new kind (e.g. "inferred-creator") is one more entry here and one more label in the browser.
+export type Attention = { kind: "available"; count: number } | { kind: "no-reference" };
+export const attentionOf = (group: ReferenceGroup, available: number): Attention[] => [
+  ...(available > 0 ? [{ kind: "available" as const, count: available }] : []),
+  ...(group.reference ? [] : [{ kind: "no-reference" as const }]),
+];
+
 export function filterReferenceGroups(models: Model[], catalog: Catalog, filters: ModelFilters, byCard = false): ReferenceGroup[] {
   const groups = groupReferenceModels(filterModels(models, { ...filters, search: "" }), catalog, filters.provider, byCard);
   const query = filters.search.trim().toLocaleLowerCase();
