@@ -13,19 +13,27 @@ export function CapabilityIcon({ name }: { name: string }) {
   return <Icon aria-hidden="true" className="size-4 shrink-0" />;
 }
 // The one wording of a capability state, for summaries, their legend and the card sheet.
+// Plain words first; the precise term ("Declared · untested") is the tooltip's second line and the legend's title.
 export function capabilityStateLabel(status: Capability, copy: Copy) {
-  return status === "Declared" ? copy("Declared · untested", "Déclaré · non testé") : status === "Observed in simulated campaign" ? copy("Observed in simulation", "Observé en simulation") : copy("Not specified", "Non renseigné");
+  return status === "Declared" ? copy("Documented", "Documenté") : status === "Observed in simulated campaign" ? copy("Seen in a simulated test", "Vu lors d’un test simulé") : copy("Not specified", "Non renseigné");
+}
+export function capabilityStateTerm(status: Capability, copy: Copy) {
+  return status === "Declared" ? copy("Declared · untested", "Déclaré · non testé") : status === "Observed in simulated campaign" ? copy("Observed in simulation", "Observé en simulation") : copy("Unknown", "Inconnu");
+}
+function StateTip({ status }: { status: Capability }) {
+  const copy = useCopy();
+  return <><span className="block">{capabilityStateLabel(status, copy)}</span><span className="block opacity-80">{capabilityStateTerm(status, copy)}</span></>;
 }
 export function CapabilityItem({ name, status }: { name: string; status?: Capability }) {
   const term = useTerm();
   const copy = useCopy();
   const label = `${term(name)} · ${capabilityStateLabel(status ?? "Declared", copy)}`;
-  return <Tooltip><TooltipTrigger asChild><span tabIndex={0} aria-label={label} className="inline-flex min-w-0 items-center gap-1.5 rounded-sm text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><CapabilityIcon name={name} /><span>{term(name)}</span></span></TooltipTrigger><TooltipContent className="z-[110] max-w-72">{capabilityStateLabel(status ?? "Declared", copy)}</TooltipContent></Tooltip>;
+  return <Tooltip><TooltipTrigger asChild><span tabIndex={0} aria-label={label} className="inline-flex min-w-0 items-center gap-1.5 rounded-sm text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><CapabilityIcon name={name} /><span>{term(name)}</span></span></TooltipTrigger><TooltipContent className="z-[110] max-w-72"><StateTip status={status ?? "Declared"} /></TooltipContent></Tooltip>;
 }
 // "Observed in simulation" is explained only where a shown model carries that state.
 export function ModelCapabilityLegend({ simulated = false }: { simulated?: boolean }) {
   const copy = useCopy();
-  return <div aria-label={copy("Capability state legend", "Légende des états de capacité")} className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-sm border bg-muted/30 px-3 py-2 text-xs"><span className="font-medium">{copy("Capability states", "États des capacités")}</span>{(simulated ? ["Declared", "Observed in simulated campaign", "Unknown"] as const : ["Declared", "Unknown"] as const).map(status => <span key={status} className="inline-flex items-center gap-1.5 text-muted-foreground">{/* The glyph a summary shows for this state: the capability's icon when known, "?" when not specified. */}{status === "Unknown" ? <span aria-hidden="true" className="inline-flex size-4 items-center justify-center">?</span> : <Sparkles aria-hidden="true" className="size-4 shrink-0 text-foreground" />}{capabilityStateLabel(status, copy)}</span>)}</div>;
+  return <div aria-label={copy("Capability state legend", "Légende des états de capacité")} className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-sm border bg-muted/30 px-3 py-2 text-xs"><span className="font-medium">{copy("Capability states", "États des capacités")}</span>{(simulated ? ["Declared", "Observed in simulated campaign", "Unknown"] as const : ["Declared", "Unknown"] as const).map(status => <span key={status} title={capabilityStateTerm(status, copy)} className="inline-flex items-center gap-1.5 text-muted-foreground">{/* The glyph a summary shows for this state: the capability's icon when known, "?" when not specified. */}{status === "Unknown" ? <span aria-hidden="true" className="inline-flex size-4 items-center justify-center">?</span> : <Sparkles aria-hidden="true" className="size-4 shrink-0 text-foreground" />}{capabilityStateLabel(status, copy)}</span>)}</div>;
 }
 
 type Item = { key: string; en: string; fr: string; Icon: LucideIcon; modality?: string };
@@ -66,7 +74,7 @@ export function ModelCapabilitiesPanel({ model, context }: { model: CapabilityFa
     const explanation = `${label} · ${capabilityStateLabel(status, copy)}`;
     return <li key={key} className="min-w-0"><Tooltip><TooltipTrigger asChild><span tabIndex={0} aria-label={explanation} data-capability={key} data-capability-state={status} className={`flex min-w-0 items-center gap-1.5 rounded-sm text-sm leading-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${status === "Unknown" ? "text-muted-foreground" : "font-medium text-foreground"}`}>
       {key === "Text" ? <span aria-hidden="true" className="flex size-4 shrink-0 items-center justify-center font-serif text-[1.0625rem] font-normal">T</span> : <Icon aria-hidden="true" className="size-4 shrink-0" strokeWidth={2.25} />}<span className="min-w-0 break-words">{label}</span>
-    </span></TooltipTrigger><TooltipContent className="z-[110] max-w-72">{capabilityStateLabel(status, copy)}</TooltipContent></Tooltip></li>;
+    </span></TooltipTrigger><TooltipContent className="z-[110] max-w-72"><StateTip status={status} /></TooltipContent></Tooltip></li>;
   })}</ul></section>;
   return <div className="min-w-0 space-y-3.5">
     {section(copy("Output", "Sorties"), [...output, ...extra(model.outputModalities.filter(name => !output.some(item => item.modality === name)))], model.outputModalities)}

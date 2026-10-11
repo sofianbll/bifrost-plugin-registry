@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
-import { useCopy } from "../../lib/locale";
+import { useCopy, useFormat } from "../../lib/locale";
 
 // The short help, shared by the side sheet ("?") and Settings → Help. Labels are set in bold, spelled
 // as the buttons and badges read in the same language (not <q>: some labels carry their own quotes).
@@ -8,12 +8,13 @@ const Q = ({ children }: { children: ReactNode }) => <span className="font-semib
 
 export function HelpContent() {
   const copy = useCopy();
+  const { colon } = useFormat();
   return <div className="space-y-5 text-sm">
     <ol className="space-y-3">
-      <li className="flex gap-3"><Badge>1</Badge><span><strong>{copy("Models", "Modèles")}</strong> — {copy("read your saved cards. “To add” lists the models Bifrost found and you have not saved yet.", "lisez vos fiches enregistrées. « À ajouter » liste les modèles trouvés par Bifrost et pas encore enregistrés.")}</span></li>
-      <li className="flex gap-3"><Badge>2</Badge><span><strong>{copy("Groups", "Groupes")}</strong> — {copy("save a set of models once, use it on many keys.", "enregistrez une fois un ensemble de modèles, utilisez-le sur plusieurs clés.")}</span></li>
-      <li className="flex gap-3"><Badge>3</Badge><span><strong>{copy("Virtual keys", "Clés virtuelles")}</strong> — {copy("choose the models each key can call, check the preview, publish; Registry then confirms with Bifrost that the key lists what you chose.", "choisissez les modèles que chaque clé peut appeler, vérifiez l’aperçu, publiez ; Registry confirme ensuite auprès de Bifrost que la clé liste bien ce que vous avez choisi.")}</span></li>
-      <li className="flex gap-3"><Badge>4</Badge><span><strong>{copy("Adopt a key", "Adopter une clé")}</strong> — {copy("a key made in Bifrost is adopted first. Registry never gives it more access than Bifrost does.", "une clé créée dans Bifrost s’adopte d’abord. Registry ne lui donne jamais plus d’accès que Bifrost.")}</span></li>
+      <li className="flex gap-3"><Badge>1</Badge><span><strong>{copy("Models", "Modèles")}</strong>{colon} {copy("read your saved cards. “To add” lists the models Bifrost found and you have not saved yet.", "lisez vos fiches enregistrées. « À ajouter » liste les modèles trouvés par Bifrost et pas encore enregistrés.")}</span></li>
+      <li className="flex gap-3"><Badge>2</Badge><span><strong>{copy("Groups", "Groupes")}</strong>{colon} {copy("save a set of models once, use it on many keys.", "enregistrez une fois un ensemble de modèles, utilisez-le sur plusieurs clés.")}</span></li>
+      <li className="flex gap-3"><Badge>3</Badge><span><strong>{copy("Virtual keys", "Clés virtuelles")}</strong>{colon} {copy("choose the models each key can call, check the preview, publish; Registry then confirms with Bifrost that the key lists what you chose.", "choisissez les modèles que chaque clé peut appeler, vérifiez l’aperçu, publiez ; Registry confirme ensuite auprès de Bifrost que la clé liste bien ce que vous avez choisi.")}</span></li>
+      <li className="flex gap-3"><Badge>4</Badge><span><strong>{copy("Adopt a key", "Adopter une clé")}</strong>{colon} {copy("a key made in Bifrost is adopted first. Registry never gives it more access than Bifrost does.", "une clé créée dans Bifrost s’adopte d’abord. Registry ne lui donne jamais plus d’accès que Bifrost.")}</span></li>
     </ol>
     <section className="space-y-2">
       <h3 className="font-semibold">{copy("Adopting a key", "Adopter une clé")}</h3>
@@ -35,12 +36,12 @@ export function HelpContent() {
     </section>
     <section className="space-y-2">
       <h3 className="font-semibold">{copy("Words used here", "Vocabulaire")}</h3>
-      <dl className="space-y-2 text-muted-foreground">
-        <div><dt className="inline"><Q>{copy("Reference", "Fiche documentaire")}</Q></dt> <dd className="inline">— {copy("the public description of a model (Models.dev): what it reads and writes, its context, its price. It documents; it gives no access.", "la description publique d’un modèle (Models.dev) : ce qu’il lit et produit, son contexte, son prix. Elle documente ; elle ne donne aucun accès.")}</dd></div>
-        <div><dt className="inline"><Q>{copy("Inferred creator", "Créateur déduit")}</Q></dt> <dd className="inline">— {copy("a creator guessed from the model name or the provider serving it, for a card without a reference. Edit the card to correct it.", "un créateur supposé d’après le nom du modèle ou le fournisseur qui le sert, pour une fiche sans fiche documentaire. Modifiez la fiche pour le corriger.")}</dd></div>
-        <div><dt className="inline"><Q>{copy("Kept in Bifrost", "Conservé dans Bifrost")}</Q></dt> <dd className="inline">— {copy("a provider whose permissions on a key stay managed in Bifrost; Registry leaves them as they are.", "un fournisseur dont les permissions sur une clé restent gérées dans Bifrost ; Registry n’y touche pas.")}</dd></div>
-        <div><dt className="inline"><Q>{copy("Readback", "Relecture")}</Q></dt> <dd className="inline">— {copy("after publishing, Registry reads the key back from Bifrost to check it lists what you chose.", "après publication, Registry relit la clé dans Bifrost pour vérifier qu’elle liste bien ce que vous avez choisi.")}</dd></div>
-        <div><dt className="inline"><Q>{copy("Adopt", "Adopter")}</Q></dt> <dd className="inline">— {copy("let Registry manage a key that was created in Bifrost, without widening its access.", "confier à Registry une clé créée dans Bifrost, sans élargir ses accès.")}</dd></div>
+      <dl className="grid gap-x-4 gap-y-1 text-muted-foreground sm:grid-cols-[auto_1fr] sm:gap-y-2">
+        <div className="contents"><dt><Q>{copy("Reference", "Fiche documentaire")}</Q></dt><dd className="mb-2 sm:mb-0">{copy("the public description of a model (Models.dev): what it reads and writes, its context, its price. It documents; it gives no access.", "la description publique d’un modèle (Models.dev) : ce qu’il lit et produit, son contexte, son prix. Elle documente ; elle ne donne aucun accès.")}</dd></div>
+        <div className="contents"><dt><Q>{copy("Inferred creator", "Créateur déduit")}</Q></dt><dd className="mb-2 sm:mb-0">{copy("a creator guessed from the model name or the provider serving it, for a card without a reference. Edit the card to correct it.", "un créateur supposé d’après le nom du modèle ou le fournisseur qui le sert, pour une fiche sans fiche documentaire. Modifiez la fiche pour le corriger.")}</dd></div>
+        <div className="contents"><dt><Q>{copy("Kept in Bifrost", "Conservé dans Bifrost")}</Q></dt><dd className="mb-2 sm:mb-0">{copy("a provider whose permissions on a key stay managed in Bifrost; Registry leaves them as they are.", "un fournisseur dont les permissions sur une clé restent gérées dans Bifrost ; Registry n’y touche pas.")}</dd></div>
+        <div className="contents"><dt><Q>{copy("Readback", "Relecture")}</Q></dt><dd className="mb-2 sm:mb-0">{copy("after publishing, Registry reads the key back from Bifrost to check it lists what you chose.", "après publication, Registry relit la clé dans Bifrost pour vérifier qu’elle liste bien ce que vous avez choisi.")}</dd></div>
+        <div className="contents"><dt><Q>{copy("Adopt", "Adopter")}</Q></dt><dd className="mb-2 sm:mb-0">{copy("let Registry manage a key that was created in Bifrost, without widening its access.", "confier à Registry une clé créée dans Bifrost, sans élargir ses accès.")}</dd></div>
       </dl>
     </section>
   </div>;

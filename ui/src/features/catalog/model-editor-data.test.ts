@@ -1,4 +1,4 @@
-import { applyModelId, canonicalCapabilities, changeAccessProvider, declaredEndpoints, firstRegistrationIssue, matchingAccesses, modelEditorOptions, omitUnchangedReferenceIds, prefillFromReference } from "./model-editor-data";
+import { alsoAvailable, applyModelId, canonicalCapabilities, changeAccessProvider, declaredEndpoints, firstRegistrationIssue, matchingAccesses, modelEditorOptions, omitUnchangedReferenceIds, prefillFromReference } from "./model-editor-data";
 import type { Catalog } from "./catalog-api";
 import type { Model } from "../../domain/registry";
 
@@ -94,4 +94,14 @@ const matches = (id: string, known: typeof luna[]) => matchingAccesses(offers, i
 equal(matches("gpt-5.6-luna", [luna]), ["openrouter/openai/gpt-5.6-luna", "bedrock/us.openai.gpt-5-6-luna-v1:0", "other/gpt-5.6-luna"]);
 // The "-pro" card takes the "-pro" access and not the base model's aggregator access.
 equal(matches("gpt-5.6-luna-pro", [{ ...luna, nativeModel: "gpt-5.6-luna-pro" }]), ["openrouter/openai/gpt-5.6-luna-pro", "bedrock/us.openai.gpt-5-6-luna-v1:0", "other/gpt-5.6-luna-pro"]);
+// #85 round 2: the "+N available" badge and the sheet's "Also available · N" are one definition. A card that
+// already holds the Codex access is offered the others once each; "other/gpt-5.6-luna" matches by name only
+// (no reference), so a count over the card's reference groups alone missed it (+3 on the tile, 4 in the sheet).
+const card = { ...existing, id: "gpt-5.6-luna", accesses: [luna] };
+const twice = [...offers, offer("openrouter", "openai/gpt-5.6-luna", "openai/gpt-5.6-luna")];
+equal(alsoAvailable(twice, card, [card, taken]).map(access => access.id), ["openrouter/openai/gpt-5.6-luna", "bedrock/us.openai.gpt-5-6-luna-v1:0", "other/gpt-5.6-luna"]);
+// An access held by the card is not "also" available; one the editor removed comes back as an offer.
+const withOther = { ...card, accesses: [luna, { ...luna, provider: "other", id: "other/gpt-5.6-luna" }] };
+equal(alsoAvailable(offers, withOther, [withOther, taken]).map(access => access.id), ["openrouter/openai/gpt-5.6-luna", "bedrock/us.openai.gpt-5-6-luna-v1:0"]);
+equal(alsoAvailable(offers, card, [withOther, taken], withOther.accesses).map(access => access.id), ["openrouter/openai/gpt-5.6-luna", "bedrock/us.openai.gpt-5-6-luna-v1:0", "other/gpt-5.6-luna"]);
 console.log("model editor data checks passed");

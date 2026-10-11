@@ -1,4 +1,4 @@
-import { attentionOf, cardEntries, cardsHolding, filterReferenceGroups, filterReferenceModels, groupReferenceModels, sectionsOf, sharedReferenceFacts, shownCount, sortItems } from "./reference-groups";
+import { attentionOf, readableModelName, cardEntries, cardsHolding, filterReferenceGroups, filterReferenceModels, groupReferenceModels, sectionsOf, sharedReferenceFacts, shownCount, sortItems } from "./reference-groups";
 import type { Catalog } from "./catalog-api";
 import { emptyModelFilters, type Model } from "../../domain/registry";
 
@@ -148,3 +148,14 @@ if (JSON.stringify(counted) !== JSON.stringify({ total: 4, shown: 2, shelved: 1,
 const single = shownCount([{ items: ["a", "b"], open: true, shown: ["a", "b"] }]);
 if (JSON.stringify(single) !== JSON.stringify({ total: 2, shown: 2, shelved: 0, paged: 0, repeated: false })) throw new Error(`Count: ${JSON.stringify(single)}`);
 console.log("The count line splits what is hidden between shelves and Show more: OK");
+
+// #85 round 2: a To add tile is titled with a name, not an aggregator's raw native ID (kept as the ID line).
+for (const [raw, shown] of [
+  ["~anthropic/claude-fable-latest", "Claude Fable Latest"],
+  ["openai/gpt-5.6-luna", "GPT 5.6 Luna"],
+  ["openai/qa-codex:batch", "QA Codex (batch)"],
+  ["meta-llama/llama-4-maverick", "Llama 4 Maverick"],
+  ["Claude Fable", "Claude Fable"], // already a name
+  ["qa-codex-mini", "qa-codex-mini"], // a plain ID is a saved name, left as is
+]) if (readableModelName(raw) !== shown) throw new Error(`${raw} reads ${readableModelName(raw)}, expected ${shown}`);
+console.log("Aggregator IDs read as names: OK");

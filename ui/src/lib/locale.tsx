@@ -10,6 +10,20 @@ export function useCopy() {
 }
 export type Copy = ReturnType<typeof useCopy>;
 
+// The chosen language is remembered per browser: ?lang= wins, then the remembered choice, then English.
+// Storage can be missing or throw (private mode, blocked site data): the URL alone decides then.
+type Memory = Pick<Storage, "getItem" | "setItem">;
+export const languageKey = "bifrost-registry.language";
+const isLanguage = (value: unknown): value is Language => value === "en" || value === "fr";
+export function initialLanguage(search: string, storage: Memory | null) {
+  const asked = new URLSearchParams(search).get("lang");
+  if (isLanguage(asked)) return asked;
+  try { const kept = storage?.getItem(languageKey); return isLanguage(kept) ? kept : "en"; } catch { return "en"; }
+}
+export function rememberLanguage(storage: Memory | null, language: Language) {
+  try { storage?.setItem(languageKey, language); } catch { /* the URL still carries it for this tab */ }
+}
+
 // Values as the UI language writes them: yes/no, unknown, grouped numbers without float noise
 // (0.2, not 0.19999999999999998), prices in USD per million tokens, dates, and the label colon
 // ("Label: value", "Libellé : valeur").

@@ -15,6 +15,17 @@ export function cardName(model: Model, catalog?: Catalog | null) {
   return knownValue(catalog?.references.find(reference => reference.id === referenceId)?.fields.name?.value) || model.id;
 }
 
+// A namespaced native ID ("~anthropic/claude-fable-latest", "openai/qa-codex:batch") read as a name: the
+// namespace dropped, words capitalised, short letter-only words and GPT/GLM in capitals, a ":variant" in
+// brackets. Anything without a "/" is already a name (or a saved ID) and is left as is.
+const capitals = new Set(["gpt", "glm", "oss"]);
+export function readableModelName(raw: string) {
+  if (!raw.includes("/") || /\s/.test(raw)) return raw;
+  const [base, variant] = (raw.split("/").at(-1) ?? raw).split(":");
+  const words = base.split(/[-_]+/).filter(Boolean).map(word => capitals.has(word) || (word.length <= 2 && /^[a-z]+$/.test(word)) ? word.toUpperCase() : word.charAt(0).toUpperCase() + word.slice(1));
+  return `${words.join(" ")}${variant ? ` (${variant})` : ""}`;
+}
+
 export function sharedReferenceFacts(group: ReferenceGroup) {
   const first = group.entries[0]?.model;
   if (!first) return { modalities: false, capabilities: false, summary: false };

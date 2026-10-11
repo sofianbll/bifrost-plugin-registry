@@ -82,7 +82,7 @@ export function ViewControls({ value, onChange, onReset, scope, fields = ["descr
             const columns = gridColumns(size);
             return <ToggleGroupItem key={size} value={size}>
               <span>{copy({ small: "Small", medium: "Medium", large: "Large" }[size], { small: "Petit", medium: "Moyen", large: "Grand" }[size])}</span>
-              <span className="text-xs text-muted-foreground @max-2xl:hidden"><span className="sr-only"> · </span>{columns}<span className="sr-only"> {copy("columns", "colonnes")}</span></span>
+              <span className="text-xs text-muted-foreground @max-2xl:hidden"><span className="sr-only"> · </span>{columns} {copy("columns", "colonnes")}</span>
             </ToggleGroupItem>;
           })}
         </ToggleGroup>
@@ -90,7 +90,7 @@ export function ViewControls({ value, onChange, onReset, scope, fields = ["descr
     </>;
     return <div className="flex flex-wrap items-center gap-3" aria-label={copy(`${scope || "List"} view options`, `Options d’affichage · ${scope || "liste"}`)}>
       {!folded && <div className="contents @max-2xl:hidden">{layoutControls}</div>}
-      <Popover open={open} onOpenChange={setOpen}><PopoverTrigger asChild><Button size="sm" variant="outline" aria-label={copy("View options", "Options d’affichage")}><SlidersHorizontal className="size-4" /><span className="@max-md:hidden">{copy("View options", "Options")}</span></Button></PopoverTrigger><PopoverContent noPortal align="end" className="w-64 space-y-4">
+      <Popover open={open} onOpenChange={setOpen}><PopoverTrigger asChild><Button size="sm" variant="outline" aria-label={copy("View options", "Options d’affichage")}><SlidersHorizontal className="size-4" /><span className="@max-md:hidden">{copy("View options", "Options d’affichage")}</span></Button></PopoverTrigger><PopoverContent noPortal align="end" className="w-64 space-y-4">
         <h3 className="border-b pb-3 text-base font-semibold">{scope === "Models" ? copy("Model view options", "Options d’affichage des modèles") : copy(`${scope || "View"} options`, `${scope || "Vue"} · options`)}</h3>
         <div className={folded ? "space-y-3" : "hidden space-y-3 @max-2xl:block"}>{layoutControls}</div>
         {logoChoice && <div className="space-y-1">
@@ -117,7 +117,7 @@ export function ViewControls({ value, onChange, onReset, scope, fields = ["descr
     <ToggleGroup type="single" value={format} onValueChange={chooseFormat} aria-label={copy("Catalog display format", "Format du catalogue")} className="h-9 rounded-sm border p-0.5">
       {([["compact", LayoutGrid, "Grid", "Grille"], ["square", Square, "Square", "Carré"], ["table", List, "Table", "Tableau"]] as const).map(([id, Icon, en, fr]) => <ToggleGroupItem key={id} value={id} aria-label={copy(en, fr)} title={copy(en, fr)} className="size-8 rounded-sm px-0 data-[state=on]:bg-secondary"><Icon className="size-4" /></ToggleGroupItem>)}
     </ToggleGroup>
-    <Popover open={open} onOpenChange={setOpen}><PopoverTrigger asChild><Button size="sm" variant="outline">{copy("View options", "Options")}</Button></PopoverTrigger><PopoverContent align="end" className="w-64 space-y-4">
+    <Popover open={open} onOpenChange={setOpen}><PopoverTrigger asChild><Button size="sm" variant="outline">{copy("View options", "Options d’affichage")}</Button></PopoverTrigger><PopoverContent align="end" className="w-64 space-y-4">
       <h3 className="border-b pb-3 text-base font-semibold">{scope === "Models" ? copy("Model view options", "Options d’affichage des modèles") : copy(`${scope || "View"} options`, `${scope || "Vue"} · options`)}</h3>
       <label className="block text-xs font-medium text-muted-foreground">{copy("Card size", "Taille des cartes")}<Select value={value.size} onValueChange={size => onChange({ ...value, size: size as ViewOptions["size"] })}><SelectTrigger className="mt-2 w-full text-foreground" aria-label={copy("Card size", "Taille des cartes")}><SelectValue /></SelectTrigger><SelectContent>{(["small", "medium", "large"] as const).map(size => <SelectItem value={size} key={size}>{copy({ small: "Small", medium: "Medium", large: "Large" }[size], { small: "Petit", medium: "Moyen", large: "Grand" }[size])}</SelectItem>)}</SelectContent></Select></label>
       <div className="space-y-3 border-t pt-3"><p className="text-xs font-medium text-muted-foreground">{copy("Visible details", "Informations visibles")}</p>{fields.map(field => { const id = `${baseId}-${field}`; return <label key={field} htmlFor={id} className="flex cursor-pointer items-center gap-2 text-sm"><Checkbox id={id} checked={value[field]} onCheckedChange={checked => onChange({ ...value, [field]: checked === true })} />{field === "description" ? copy("Description", "Description") : field === "metadata" ? copy("Model ID / metadata", "Identifiant / métadonnées") : field === "providers" ? copy("Provider accesses", "Accès fournisseurs") : field === "modalities" ? copy("Input / output modalities", "Modalités entrée / sortie") : copy("Capabilities", "Capacités")}</label>; })}</div>
