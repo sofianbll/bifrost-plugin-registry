@@ -33,7 +33,7 @@ import { cardName, groupReferenceModels } from "../features/catalog/reference-gr
 import { ToggleGroup, ToggleGroupItem } from "../components/ui/toggle-group";
 import { clearSessionState, setSessionState } from "../lib/session-state";
 import { ViewControls, defaultViewOptions, updateViewOverride, type ViewOptions } from "../components/registry/ViewOptions";
-import { LanguageContext, useCopy, useFormat, type Language } from "../lib/locale";
+import { LanguageContext, initialLanguage, rememberLanguage, useCopy, useFormat, type Language } from "../lib/locale";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { Switch } from "../components/ui/switch";
 import KeyComposer, { PublicationCard } from "../features/keys/KeyComposer";
@@ -570,8 +570,10 @@ function RegistryApp({ language, onLanguageChange }: { language: Language; onLan
 }
 
 export function App() {
-  const [language, setLanguage] = useState<Language>(() => new URLSearchParams(location.search).get("lang") === "fr" ? "fr" : "en");
+  const storage = () => { try { return localStorage; } catch { return null; } };
+  const [language, setLanguage] = useState<Language>(() => initialLanguage(location.search, storage()));
   const changeLanguage = (next: Language) => {
+    rememberLanguage(storage(), next);
     const params = new URLSearchParams(location.search);
     params.set("lang", next);
     history.replaceState(null, "", `${location.pathname}?${params}${location.hash}`);
