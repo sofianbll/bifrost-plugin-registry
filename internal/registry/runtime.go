@@ -157,6 +157,10 @@ func Endpoint(path string) (string, bool) {
 	for _, prefix := range []string{"/openai/v1/", "/openai/", "/v1/"} {
 		if strings.HasPrefix(path, prefix) {
 			p := strings.TrimPrefix(path, prefix)
+			// Bifrost serves decisions on /v1/decisions only (no /openai/ route): never promise a route that fails.
+			if p == "decisions" && prefix != "/v1/" {
+				return "", false
+			}
 			if p == "models" || endpoints[p] {
 				return p, true
 			}

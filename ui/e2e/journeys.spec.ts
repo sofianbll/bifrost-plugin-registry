@@ -74,14 +74,15 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     const badges = (name: string) => card(name).locator('[data-attention]');
     await expect(badges('QA Chat')).toHaveCount(0);
     await expect(page.locator('[data-slot="card"]').filter({ hasText: /\b(Saved|Not saved|Partial)\b/ })).toHaveCount(0);
-    // openrouter serves the reference QA Opus and QA Opus Fast share: available beside each, never added.
+    // openrouter's anthropic/qa-opus is available beside QA Opus, never added. QA Opus Fast shares the
+    // reference but is another model, and anthropic/qa-opus-pro is a variant: neither is offered.
     await expect(badges('QA Opus')).toHaveText(['+1 available']);
-    await expect(badges('QA Opus Fast')).toHaveText(['+1 available']);
+    await expect(badges('QA Opus Fast')).toHaveCount(0);
     // Cards without a Models.dev reference say so once, QA Shared (two subscriptions) included.
     await expect(badges('QA Shared')).toHaveText(['no reference']);
     // Their creator is guessed from the single subscription serving them: one more badge.
     for (const name of ['qa-sonnet', 'qa-codex-mini', 'qa-flash']) await expect(badges(name)).toHaveText(['no reference', 'inferred creator']);
-    await expect(page.locator('[data-attention]')).toHaveCount(9);
+    await expect(page.locator('[data-attention]')).toHaveCount(8);
     await scope(/^To add/).click();
     // To add is organised by subscription: the aggregator waits on a collapsed shelf, so the
     // subscriptions come first (sections are sorted, a count is the whole list, not the page).
@@ -101,8 +102,8 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     // Exact IDs: the variant keeps its own; the access sharing QA Opus' reference shows its native ID.
     await expect(opens).toHaveText(['~anthropic/qa-opus-latest', 'QA Opus']); // sorted by name: punctuation first
     await expect(card('QA Opus')).toContainText('anthropic/qa-opus');
-    // Two saved cards share this reference: the tile offers a card, never "Partial" or "Not saved".
-    await expect(card('QA Opus').locator('[data-attention]')).toHaveText(['Add to a card']);
+    // Two saved cards share this reference, one is this model: the tile offers that card, never "Partial" or "Not saved".
+    await expect(card('QA Opus').locator('[data-attention]')).toHaveText(['Add to QA Opus']);
     await expect(card('~anthropic/qa-opus-latest').locator('[data-attention]')).toHaveCount(0);
     await searchModels().fill(':batch');
     await expect(opens).toHaveText(['openai/qa-codex:batch']);
@@ -123,13 +124,15 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     page.on('request', r => { if (r.method() === 'PUT' && r.url().endsWith('/api/workspace')) writes++; });
     await scope(/^To add/).click();
     await searchModels().fill('qa-opus');
+<<<<<<< HEAD
     await expect(page.getByRole('button', { name: /^Open .* details$/ })).toHaveText(['~anthropic/qa-opus-latest', 'QA Opus']);
     // openrouter's anthropic/qa-opus fits QA Opus and QA Opus Fast: choose the card.
+=======
+    await expect(page.getByRole('button', { name: /^Open .* details$/ })).toHaveText(['QA Opus', '~anthropic/qa-opus-latest']);
+    // openrouter's anthropic/qa-opus fits QA Opus alone (QA Opus Fast is another model): the card opens, no choice.
+>>>>>>> claude/admiring-carson-qbzzxz
     await button('Add to card · QA Opus').click();
-    const dialog = page.getByRole('dialog');
-    await expect(dialog).toContainText('Add to which card?');
-    await dialog.getByRole('button', { name: /^QA Opus Fast/ }).waitFor();
-    await dialog.getByRole('button', { name: /^QA Opus · qa-opus$/ }).click();
+    await expect(page.getByText('Add to which card?')).toHaveCount(0);
     await expect(sheet().locator('[data-slot="sheet-title"]')).toHaveText('QA Opus');
     // It opens on the accesses: the saved one is in the card, openrouter's is offered and not added.
     await expect(part(/^Also available/)).toContainText(/openrouter/i);
@@ -138,10 +141,27 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await closeSheet();
     await sheet().waitFor({ state: 'hidden' });
     expect(writes, 'Opening the card adds nothing').toBe(0);
+    // Two cards hold the model (QA Opus Fast replaced by a copy of QA Opus in a mocked workspace): choose the card.
+    const duo = await browser.newPage({ baseURL, viewport: { width: 1440, height: 950 } });
+    duo.on('pageerror', e => errors.push(e.message));
+    const catalog = await api('catalog');
+    const opus = workspace.data.models.find((m: { id: string }) => m.id === 'qa-opus');
+    const clone = { ...opus, id: 'qa-opus-copy', name: 'QA Opus Copy', accesses: opus.accesses.map((a: { id: string }) => ({ ...a, id: 'Claude/qa-opus-copy' })) };
+    await duo.route('**/api/workspace', r => r.fulfill({ json: { ...workspace, data: { ...workspace.data, models: [...workspace.data.models.filter((m: { id: string }) => m.id !== 'qa-opus-fast'), clone] } } }));
+    await duo.route('**/api/catalog', r => r.fulfill({ json: catalog }));
+    await duo.goto('/');
+    await duo.getByRole('radio', { name: /^To add/ }).click();
+    await duo.getByRole('textbox', { name: 'Search models', exact: true }).fill('qa-opus');
+    await duo.getByRole('button', { name: /^Add to card · QA Opus/ }).first().click();
+    const dialog = duo.getByRole('dialog');
+    await expect(dialog).toContainText('Add to which card?');
+    await dialog.getByRole('button', { name: /^QA Opus Copy/ }).waitFor();
+    await dialog.getByRole('button', { name: /^QA Opus · qa-opus$/ }).click();
+    await expect(duo.locator('[data-slot="sheet-content"] [data-slot="sheet-title"]')).toHaveText('QA Opus');
+    await duo.close();
     // One card holds the reference (QA Opus Fast removed from a mocked workspace): the tile names it and opens it, no choice.
     const solo = await browser.newPage({ baseURL, viewport: { width: 1440, height: 950 } });
     solo.on('pageerror', e => errors.push(e.message));
-    const catalog = await api('catalog');
     await solo.route('**/api/workspace', r => r.fulfill({ json: { ...workspace, data: { ...workspace.data, models: workspace.data.models.filter((m: { id: string }) => m.id !== 'qa-opus-fast') } } }));
     await solo.route('**/api/catalog', r => r.fulfill({ json: catalog }));
     await solo.goto('/');
@@ -347,7 +367,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await page.keyboard.press('Escape');
     await scope(/^To add/).click();
     await creators.click();
-    await expect(page.getByRole('option')).toHaveText(['Creator: all', 'Anthropic (1)', 'DeepSeek (1)', 'Fixture Labs (1)', 'Google (1)', 'Meituan (1)', 'Tencent (1)', 'Typesafe (1)', 'Creator not identified (62)']);
+    await expect(page.getByRole('option')).toHaveText(['Creator: all', 'Anthropic (2)', 'DeepSeek (1)', 'Fixture Labs (1)', 'Google (1)', 'Meituan (1)', 'Tencent (1)', 'Typesafe (1)', 'Creator not identified (62)']);
     await page.getByRole('option', { name: 'Tencent (1)', exact: true }).click();
     await expect(page.getByRole('button', { name: /^Open .* details$/ })).toHaveText(['QA Hunyuan']);
     await expect(card('QA Hunyuan')).toContainText('Tencent · qa-hunyuan');
@@ -660,6 +680,29 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expert.click();
   });
 
+  await test.step('a decisions-only model is identified and preselects decisions; aggregator IDs drop the vendor', async () => {
+    await scope(/^To add/).click();
+    // Models.dev has no typesafe provider record, yet the access links to the reference typesafe/qa-jev.
+    await searchModels().fill('qa-jev');
+    const jev = page.locator('[data-slot="card"]').filter({ has: button('Open QA Jev details') });
+    await expect(jev.getByRole('img', { name: 'Typesafe', exact: true }).first(), 'the creator comes from the reference namespace').toHaveText('TY');    await button('Open QA Jev details').click();
+    const inCard = sheet().getByRole('heading', { name: /^In this card/ }).locator('..');
+    await expect(inCard.getByRole('checkbox', { name: /^Decisions/ })).toBeChecked();
+    await expect(inCard.getByRole('checkbox', { name: /^Chat Completions/ })).not.toBeChecked();
+    await button('Cancel').click();
+    await sheet().waitFor({ state: 'hidden' });
+    // The aggregator's deepseek/qa-reasoner proposes the model's own name, like the direct providers' IDs.
+    await searchModels().fill('qa-reasoner');
+    await button('Open QA Reasoner details').click();
+    const commonId = sheet().locator('summary', { hasText: 'Common model ID' });
+    await expect(commonId).toContainText('qa-reasoner');
+    await expect(commonId).not.toContainText('deepseek');
+    await button('Cancel').click();
+    await sheet().waitFor({ state: 'hidden' });
+    await searchModels().fill('');
+    await scope(/^In Registry/).click();
+  });
+
   await test.step('saved card keeps its own accesses; matching ones are offered, never merged', async () => {
     // Claude/qa-opus is saved; openrouter's anthropic/qa-opus shares its reference and is not.
     const before = (await api('workspace')).data.models;
@@ -674,6 +717,8 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(part(popover, /^Available, not in this card/)).toContainText(/openrouter/i);
     await expect(part(popover, /^Available, not in this card/), 'QA Opus Fast holds its own access').not.toContainText('qa-opus-fast');
     await expect(part(popover, /^Available, not in this card/)).toContainText(/Input price \$4\/M.*Output price \$20\/M/);
+    // openrouter's anthropic/qa-opus-pro shares the reference but is a variant, not the same model.
+    await expect(part(popover, /^Available, not in this card/), 'A variant sharing the reference is not offered').not.toContainText('qa-opus-pro');
     await expect(popover, 'Facts are readable, not raw parameter JSON').not.toContainText('{"');
     await page.keyboard.press('Escape');
     await page.getByRole('radio', { name: 'Table', exact: true }).click();
@@ -706,6 +751,8 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(part(sheet(), /^In this card/)).not.toContainText(/openrouter/i);
     await expect(part(sheet(), /^Also available/)).toContainText(/Input price \$4\/M.*Output price \$20\/M/);
     await expect(part(sheet(), /^Also available/), 'An access saved in another card is not offered').not.toContainText('qa-opus-fast');
+    await expect(part(sheet(), /^Also available/), 'A "-pro" variant sharing the reference is not the same model').not.toContainText('qa-opus-pro');
+    await expect(sheet().getByRole('button', { name: /^Add openrouter/i })).toHaveCount(1);
     await sheet().getByRole('button', { name: /^Remove Claude/ }).click();
     await expect(part(sheet(), /^Also available/), 'A removed saved access can be added back').toContainText('Claude');
     await sheet().getByRole('button', { name: /^Add openrouter/i }).click();
@@ -972,7 +1019,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await button('All virtual keys').click();
     await page.getByLabel('Search keys').fill('nothing-matches-qa');
     await page.getByText('No keys match these filters.').waitFor();
-    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(page.getByText('Add to which card?')).toHaveCount(0);
     await page.getByLabel('Search keys').fill('');
     await page.getByText('QA Development Key', { exact: true }).first().waitFor();
   });
@@ -1043,7 +1090,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
       // Prices follow the UI language without float noise: Bifrost's 2e-7 per token reads 0.2 per million.
       await scope(new RegExp(`^${t('To add', 'À ajouter')}`)).click();
       await page.getByRole('textbox', { name: t('Search models', 'Rechercher des modèles'), exact: true }).fill('qa-opus');
-      await expect(card('QA Opus').locator('[data-attention]')).toHaveText(t('Add to a card', 'Ajouter à une fiche'));
+      await expect(card('QA Opus').locator('[data-attention]')).toHaveText(t('Add to QA Opus saved', 'Ajouter à QA Opus saved'));
       await expect(card('QA Opus').getByRole('button', { name: new RegExp(`^${t('Add to card', 'Ajouter à la fiche')}`) })).toBeVisible();
       await sweep(language, 'A model to add that fits saved cards');
       await page.getByRole('textbox', { name: t('Search models', 'Rechercher des modèles'), exact: true }).fill('qa-reasoner');
@@ -1096,6 +1143,12 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
         await button(t('Review adoption', 'Examiner l’adoption')).click();
         await page.getByRole('dialog').getByText(t('Show model names', 'Afficher les noms des modèles'), { exact: true }).click();
         await sweep(language, `Adoption dialog of ${name}`);
+        if (name === 'QA Mistral Key') {
+          // #92: the offer and its consequence are swept above; keeping the provider shows the kept section.
+          await page.getByRole('dialog').getByRole('button', { name: t('Keep Mistral in Bifrost', 'Garder Mistral dans Bifrost'), exact: true }).click();
+          await page.getByRole('dialog').getByRole('region', { name: t('Kept in Bifrost', 'Conservés dans Bifrost') }).waitFor();
+          await sweep(language, `Adoption dialog of ${name}, provider kept`);
+        }
         await page.getByRole('dialog').getByRole('button', { name: t('Cancel', 'Annuler'), exact: true }).click();
         await button(t('All virtual keys', 'Toutes les clés virtuelles')).click();
       }
@@ -1118,6 +1171,53 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await tour('fr');
     await page.getByRole('combobox', { name: 'Langue : français', exact: true }).click();
     await page.getByRole('option', { name: 'English', exact: true }).click();
+  });
+
+  await test.step('adoption keeps a provider native: the rest of the key is adopted and reads Verified', async () => {
+    // #92, the Hermes case: Mistral is disabled in Bifrost, so its models can never become cards. Keeping the
+    // provider native adopts the rest; Registry leaves Mistral's permissions alone and the readback expects them.
+    await nav('Virtual keys').click();
+    await keyCard('QA Mistral Key').getByRole('button', { name: 'Review · QA Mistral Key', exact: true }).click();
+    await button('Review adoption').click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toContainText('Mistral · 3 models not discovered');
+    await expect(dialog).toContainText('Registry will not manage or change Mistral’s permissions');
+    await expect(dialog.getByRole('button', { name: 'Use this key with Registry', exact: true })).toBeDisabled();
+    await dialog.getByRole('button', { name: 'Keep Mistral in Bifrost', exact: true }).click();
+    // The blocker leaves the list; what is kept and what Registry adopts are both stated.
+    const kept = dialog.getByRole('region', { name: 'Kept in Bifrost' });
+    await expect(kept).toContainText('Mistral · 3 models kept in Bifrost');
+    await expect(dialog).toContainText('Ready to apply');
+    await expect(dialog).not.toContainText('not discovered');
+    await expect(dialog.getByRole('heading', { name: 'Selected Registry accesses (2)' })).toBeVisible();
+    await expect(dialog.getByText('Claude/qa-haiku', { exact: true }).first()).toBeVisible();
+    await expect(dialog.getByText('mistral/qa-mistral-large', { exact: true })).toBeVisible();
+    // The choice can be undone, and made again.
+    await dialog.getByRole('button', { name: 'Stop keeping Mistral in Bifrost', exact: true }).click();
+    await expect(dialog).toContainText('Mistral · 3 models not discovered');
+    await expect(dialog.getByRole('button', { name: 'Use this key with Registry', exact: true })).toBeDisabled();
+    await dialog.getByRole('button', { name: 'Keep Mistral in Bifrost', exact: true }).click();
+    await expect(kept).toBeVisible();
+    await shot('after-keep-native-preview');
+    const apply = page.waitForRequest(r => r.method() === 'POST' && r.url().endsWith('/api/keys/adopt') && r.postDataJSON().phase === 'apply');
+    await dialog.getByRole('button', { name: 'Use this key with Registry', exact: true }).click();
+    expect((await apply).postDataJSON()).toMatchObject({ keyId: 'vk-qa-mistral', operation: 'adopt', phase: 'apply', keepNative: ['mistral'] });
+    // The managed key says which provider stays in Bifrost, on its page and on its card.
+    await expect(page.getByRole('list', { name: 'Kept in Bifrost' })).toContainText('Mistral · kept in Bifrost · 3 models');
+    await composerStep('Review').click();
+    await button('Read again').click();
+    await page.getByText('Verified', { exact: true }).first().waitFor();
+    const key = (await api('workspace')).data.keys.find((k: { id: string }) => k.id === 'vk-qa-mistral');
+    expect(key.managed).toBe(true);
+    expect(key.policy.keptNative).toEqual(['mistral']);
+    expect(key.publication.state).toBe('verified');
+    expect(key.publication.expected).toEqual(['Claude/qa-haiku', 'Claude/qa-sonnet', 'mistral/qa-mistral-code', 'mistral/qa-mistral-large', 'mistral/qa-mistral-small']);
+    // Registry never rewrote Bifrost's permissions for the kept provider.
+    expect(key.permissions.providers.find((p: { provider: string }) => p.provider === 'mistral').models).toEqual(['qa-mistral-large', 'qa-mistral-small', 'qa-mistral-code']);
+    await button('All virtual keys').click();
+    await expect(keyCard('QA Mistral Key')).toContainText('Mistral · kept in Bifrost · 3 models');
+    await expect(keyCard('QA Mistral Key')).toContainText('Verified');
+    await shot('after-keep-native-key-card');
   });
 
   await test.step('mobile sheet, footer, focus and metadata detail fit viewport', async () => {

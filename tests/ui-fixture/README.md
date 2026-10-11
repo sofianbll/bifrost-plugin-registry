@@ -28,7 +28,7 @@ provider, unmanaged keys in every adoption state), not its data.
 | `Claude` | `anthropic` | `qa-opus`, `qa-haiku`, `qa-opus-fast`, `qa-sonnet`, `qa-shared` | all five |
 | `Codex` | `openai` | `qa-codex`, `qa-codex-mini`, `qa-shared` | all three |
 | `Google` | `gemini` | `qa-gemini`, `qa-image`, `qa-flash` | `qa-gemini`, `qa-flash` |
-| `openrouter` (aggregator) | standard | 66: `anthropic/qa-opus`, `~anthropic/qa-opus-latest`, `openai/qa-codex:batch`, `deepseek/qa-reasoner`, `tencent/qa-hunyuan`, `meituan/qa-longcat`, `qwen/qa-qwen-01` … `-60` | none |
+| `openrouter` (aggregator) | standard | 67: `anthropic/qa-opus`, `anthropic/qa-opus-pro`, `~anthropic/qa-opus-latest`, `openai/qa-codex:batch`, `deepseek/qa-reasoner`, `tencent/qa-hunyuan`, `meituan/qa-longcat`, `qwen/qwen-qa-01` … `-60` | none |
 | `mistral` (Mistral-like) | standard, **disabled** | none: its key is disabled, so nothing is discovered | none |
 | `typesafe` (Jev-like) | standard, serves only decisions | `qa-jev` | none |
 
@@ -37,7 +37,9 @@ provider, unmanaged keys in every adoption state), not its data.
   the common ID, creator `Unknown`, no modalities. `qa-opus-fast` ("QA Opus Fast") is a
   second saved card on the `anthropic/qa-opus` reference, so two saved cards share one.
 - `openrouter/anthropic/qa-opus` is linked to the same reference as the saved card
-  `Claude/qa-opus` and carries a documented price ($4 / $20 per million tokens). The
+  `Claude/qa-opus` and carries a documented price ($4 / $20 per million tokens); its common ID
+  is the namespace-free `qa-opus`, so discovery lists it with `Claude/qa-opus` as one model.
+  `anthropic/qa-opus-pro` shares the reference too but is a variant, not the same model. The
   `~…-latest` and `:batch` variants have no reference. `openrouter/deepseek/qa-reasoner`
   costs 2e-7 per input token, stored per million with its float noise (0.19999999999999998)
   so the UI's number formatting is exercised.

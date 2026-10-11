@@ -18,7 +18,11 @@ const (
 	noRepresentableAccess = "Native key has no representable configured model access"
 )
 
-type adoptionBlocker struct{ Provider, Kind, Model, Reason string }
+// Kept marks a blocker of a provider the adopter keeps in Bifrost: still reported, but it blocks nothing.
+type adoptionBlocker struct {
+	Provider, Kind, Model, Reason string
+	Kept                          bool
+}
 
 func otherBlocker(reason string) adoptionBlocker {
 	return adoptionBlocker{Kind: blockOther, Reason: reason}
@@ -33,11 +37,13 @@ type readinessBlocker struct {
 	Count    int      `json:"count"`
 	Models   []string `json:"models"`
 	Reasons  []string `json:"reasons,omitempty"`
+	// The provider is kept in Bifrost (adoption option b): Registry leaves its permissions alone.
+	Kept bool `json:"kept,omitempty"`
 }
 
 // adoptionReadiness is the verdict shown on key cards and in the adoption dialog: ready, blocked (with
 // blockers in the order the key lists its providers) or empty (the key allows nothing yet).
-// Later actions (keep a provider native, remove models) extend blockers or add fields next to them.
+// Kept blockers do not make the key blocked. Later actions (remove models) extend blockers or add fields next to them.
 type adoptionReadiness struct {
 	State    string             `json:"state"`
 	Blockers []readinessBlocker `json:"blockers"`
@@ -62,15 +68,17 @@ func adoptionReadinessOf(vk nativeVK, blockers []adoptionBlocker) *adoptionReadi
 	out := &adoptionReadiness{State: "ready", Blockers: []readinessBlocker{}}
 	index := map[[2]string]int{}
 	for _, b := range blockers {
-		if b.Reason == noRepresentableAccess && len(blockers) > 1 {
+		if b.Reason == noRepresentableAccess && hasBlocking(blockers, noRepresentableAccess) {
 			continue
 		}
-		out.State = "blocked"
+		if !b.Kept {
+			out.State = "blocked"
+		}
 		i, ok := index[[2]string{b.Provider, b.Kind}]
 		if !ok {
 			i = len(out.Blockers)
 			index[[2]string{b.Provider, b.Kind}] = i
-			out.Blockers = append(out.Blockers, readinessBlocker{Provider: b.Provider, Kind: b.Kind, Models: []string{}})
+			out.Blockers = append(out.Blockers, readinessBlocker{Provider: b.Provider, Kind: b.Kind, Models: []string{}, Kept: b.Kept})
 		}
 		g := &out.Blockers[i]
 		if b.Model != "" {
@@ -86,10 +94,21 @@ func adoptionReadinessOf(vk nativeVK, blockers []adoptionBlocker) *adoptionReadi
 	return out
 }
 
+// hasBlocking reports whether a blocker other than `except` (a reason) stops the key: kept ones do not.
+func hasBlocking(blockers []adoptionBlocker, except string) bool {
+	for _, b := range blockers {
+		if !b.Kept && b.Reason != except {
+			return true
+		}
+	}
+	return false
+}
+
 // adoptionSelection maps a native key's permissions onto saved Registry accesses and lists what stops it.
 // A route needing a direct access is "undiscovered" when Bifrost does not list it, "unsaved" when it is
-// discovered but no card holds it, and "other" when a card exists but cannot serve it.
-func adoptionSelection(cfg registry.Config, vk nativeVK, rows []nativeModel) ([]string, []string, []adoptionBlocker) {
+// discovered but no card holds it, and "other" when a card exists but cannot serve it. The providers in
+// keep stay native: their routes are never selected and their blockers are flagged Kept.
+func adoptionSelection(cfg registry.Config, vk nativeVK, rows []nativeModel, keep []string) ([]string, []string, []adoptionBlocker) {
 	blocked := []adoptionBlocker{}
 	if vk.AllowAllProviders {
 		blocked = append(blocked, adoptionBlocker{Kind: blockAllProviders, Reason: "allow_all_providers grants future providers and cannot be represented safely"})
@@ -177,9 +196,14 @@ func adoptionSelection(cfg registry.Config, vk nativeVK, rows []nativeModel) ([]
 				blocked = append(blocked, modelBlocker(blockOther, "No enabled native provider key for "+route))
 				continue
 			}
-			selected = append(selected, m.ID)
-			routes = append(routes, route)
+			if !registry.Has(keep, pc.Provider) {
+				selected = append(selected, m.ID)
+				routes = append(routes, route)
+			}
 		}
+	}
+	for i := range blocked {
+		blocked[i].Kept = blocked[i].Provider != "" && registry.Has(keep, blocked[i].Provider)
 	}
 	if len(selected) == 0 {
 		blocked = append(blocked, otherBlocker(noRepresentableAccess))

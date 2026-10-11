@@ -6,6 +6,9 @@ type IconProps = {
 	theme?: string;
 };
 
+// Bundled images resolve against the page (Vite base "./"), so the panel also works under a sub-path.
+export const asset = (file: string) => `${import.meta.env?.BASE_URL ?? "./"}images/${file}`;
+
 // Size mapping in pixels
 const sizeMap: Record<string, number> = {
 	xs: 20,
@@ -61,7 +64,7 @@ export const ProviderIcons = {
 	},
 
 	azure: ({ className = "" }: IconProps) => {
-		return <img src="/images/azure.webp" alt="azure" width={14} height={14} loading="lazy" decoding="async" className={className} />;
+		return <img src={asset("azure.webp")} alt="azure" width={14} height={14} loading="lazy" decoding="async" className={className} />;
 	},
 	bedrock: ({ size = "md", className = "" }: IconProps) => {
 		const resolvedSize = resolveSize(size);
@@ -450,7 +453,7 @@ export const ProviderIcons = {
 	},
 
 	sgl: ({ className = "" }: IconProps) => {
-		return <img src="/images/sgl.webp" alt="sgl" width={14} height={14} loading="lazy" decoding="async" className={className} />;
+		return <img src={asset("sgl.webp")} alt="sgl" width={14} height={14} loading="lazy" decoding="async" className={className} />;
 	},
 	openai: ({ size = "md", className = "", theme }: IconProps) => {
 		const resolvedSize = resolveSize(size);
@@ -646,7 +649,7 @@ export const ProviderIcons = {
 		);
 	},
 	nebius: ({ className = "" }: IconProps) => {
-		return <img src="/images/nebius.webp" alt="nebius" width={14} height={14} loading="lazy" decoding="async" className={className} />;
+		return <img src={asset("nebius.webp")} alt="nebius" width={14} height={14} loading="lazy" decoding="async" className={className} />;
 	},
 	xai: ({ size = "md", className = "" }: IconProps) => {
 		const resolvedSize = resolveSize(size);
@@ -818,7 +821,7 @@ export const ProviderIcons = {
 	databricks: ({ size = "md", className = "" }: IconProps) => {
 		const resolvedSize = resolveSize(size);
 
-		return <img src="/images/databricks.svg" alt="databricks" width={resolvedSize} height={resolvedSize} className={className} />;
+		return <img src={asset("databricks.svg")} alt="databricks" width={resolvedSize} height={resolvedSize} className={className} />;
 	},
 	// GitHub Copilot's goggles mark. The source art is fill="#fff", which disappears on the
 	// light theme, so the fill is bound to currentColor and the icon follows the surrounding

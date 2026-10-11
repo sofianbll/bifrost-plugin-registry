@@ -91,6 +91,13 @@ await putWorkspace(data, "draft-revision", stagedCorrections);
 equal(calls.at(-1)?.url, "./api/workspace");
 equal(JSON.parse(calls.at(-1)?.init.body as string), { data, catalogOverrides: stagedCorrections });
 equal(new Headers(calls.at(-1)?.init.headers).get("If-Match"), "draft-revision");
+// Keeping a provider native (#92) travels with both phases, so the preview token matches; no choice sends nothing extra (above).
+setAdminToken("test-admin-token");
+await previewKeyAdoption("native/key", "adopt", ["mistral"]);
+equal(JSON.parse(calls.at(-1)?.init.body as string), { keyId: "native/key", operation: "adopt", phase: "preview", keepNative: ["mistral"] });
+await applyKeyAdoption({ keyId: "native/key", operation: "adopt", revision: "adoption-revision", previewToken: "preview-token", selectedRoutes: [], nativeRoutes: [], blocked: [], canApply: true, nativePermissionsPreserved: true }, ["mistral"]);
+equal(JSON.parse(calls.at(-1)?.init.body as string), { keyId: "native/key", operation: "adopt", phase: "apply", previewToken: "preview-token", keepNative: ["mistral"] });
+clearAdminToken();
 // Sign-in checks the pasted token before fetch would throw on it (#55).
 equal(isWellFormedAdminToken("abc123-_.~+/=XYZ"), true);
 equal(["abc     │ def", "abc def", "abc\tdef", "jéton", ""].map(isWellFormedAdminToken), [false, false, false, false, false]);
