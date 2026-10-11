@@ -11,7 +11,7 @@ import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupConte
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { copy, exposed, keyImpact, members, same, unsavedModels, type Demo, type Group, type Key, type Model, type Policy, type PricingProof } from "../domain/registry";
+import { copy, emptyModelFilters, exposed, keyImpact, members, same, unsavedModels, type Demo, type Group, type Key, type Model, type Policy, type PricingProof } from "../domain/registry";
 import { firstRegistrationIssue } from "../features/catalog/model-editor-data";
 import { ApiError, clearAdminToken, createKey, getWorkspace, isWellFormedAdminToken, putWorkspace, readbackKey, setAdminToken, type AdoptionOperation, type Workspace } from "../data/api";
 import GatewayInventory from "../features/gateway/GatewayInventory";
@@ -25,10 +25,11 @@ import CatalogMetadata from "../features/catalog/CatalogMetadata";
 import SnapshotTransfer from "../features/snapshot/SnapshotTransfer";
 import AdoptionDialog from "../features/keys/AdoptionDialog";
 import ReferenceCatalogBrowser from "../features/catalog/ReferenceCatalogBrowser";
+import { modelFiltersKey } from "../features/catalog/ModelBrowser";
 import { getCatalog, type Catalog } from "../features/catalog/catalog-api";
 import { cardName, groupReferenceModels } from "../features/catalog/reference-groups";
 import { ToggleGroup, ToggleGroupItem } from "../components/ui/toggle-group";
-import { clearSessionState } from "../lib/session-state";
+import { clearSessionState, setSessionState } from "../lib/session-state";
 import { ViewControls, defaultViewOptions, updateViewOverride, type ViewOptions } from "../components/registry/ViewOptions";
 import { LanguageContext, useCopy, useFormat, type Language } from "../lib/locale";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
@@ -38,7 +39,9 @@ import { permissionSummary, preserveAdoptionDraft } from "../features/keys/KeyCo
 import { keyFormState, type KeyFormDraft } from "../features/keys/key-form";
 import { KeyCreateForm } from "../features/keys/KeyCreateForm";
 import KeyLibrary from "../features/keys/KeyLibrary";
-import { displayProvider, setProviderBaseTypes } from "../components/registry/BrandIcon";
+import { KeyPermissions } from "../features/keys/KeyPermissions";
+import { readinessLabel, readinessReason, readinessState, readinessVariant } from "../features/keys/key-readiness";
+import { setProviderBaseTypes } from "../components/registry/BrandIcon";
 import { GroupLibrary } from "../features/groups/GroupLibrary";
 import { GroupEditor } from "../features/groups/GroupEditor";
 
@@ -492,7 +495,8 @@ function RegistryApp({ language, onLanguageChange }: { language: Language; onLan
           {key.managed === false ? <section className="space-y-3 rounded-sm border bg-card p-4">
             <h3 className="text-base font-semibold">{copyText("Adopt this key first", "Adoptez d’abord cette clé")}</h3>
             <p className="max-w-prose text-sm text-muted-foreground">{copyText("Review compares the current Bifrost permissions with a Registry selection. Confirm it before composing groups and models for this key. Registry cannot grant more access than Bifrost allows.", "L’examen compare les permissions Bifrost actuelles avec une sélection Registry. Confirmez-la avant de composer les groupes et modèles de cette clé. Registry ne peut pas étendre les droits accordés par Bifrost.")}</p>
-            <div><p className="text-sm font-medium">{copyText("Bifrost allows today", "Bifrost autorise aujourd’hui")} · {permissionSummary(key.permissions, copyText)}</p>{!!key.permissions?.providers.length && <ul aria-label={copyText("Bifrost allows today", "Bifrost autorise aujourd’hui")} className="mt-1 space-y-0.5 text-xs text-muted-foreground">{key.permissions.providers.map(p => <li key={p.provider} className="break-words">{displayProvider(p.provider)} · {p.allModels ? copyText("all models", "tous les modèles") : p.versionDependent ? copyText("depends on the Bifrost version", "selon la version de Bifrost") : p.models.join(", ") || copyText("no model", "aucun modèle")}</li>)}</ul>}</div>
+            <div><p className="text-sm font-medium">{copyText("Bifrost allows today", "Bifrost autorise aujourd’hui")} · {permissionSummary(key.permissions, copyText)}</p><KeyPermissions permissions={key.permissions} /></div>
+            <div className="flex flex-wrap items-center gap-2"><Badge variant={readinessVariant[readinessState(key)]}>{readinessLabel(readinessState(key), copyText)}</Badge>{readinessReason(key.readiness, copyText) && <span className="text-xs text-chart-warning-ink">{readinessReason(key.readiness, copyText)}</span>}</div>
             <Button type="button" disabled={!!busy} onClick={() => setAdoption({ keyId: key.id, operation: "adopt" })}>{snapshotMode ? copyText("Review local selection", "Examiner la sélection locale") : copyText("Review adoption", "Examiner l’adoption")}</Button>
           </section> : <>
             {!key.active && <p className="mb-4 rounded-sm border border-chart-warning/50 bg-chart-warning/10 p-3 text-sm text-chart-warning-ink">{copyText("This key is disabled. Its saved model selection is shown for review.", "Cette clé est désactivée. Sa sélection enregistrée reste visible pour vérification.")}</p>}
@@ -508,9 +512,12 @@ function RegistryApp({ language, onLanguageChange }: { language: Language; onLan
     <Dialog open={!!keyForm} onOpenChange={open => !open && !busyRef.current && setKeyForm(null)}><DialogContent inert={!!busy}><DialogHeader className="border-b pb-4"><DialogTitle className="text-xl">{copyText("Create virtual key", "Créer une clé virtuelle")}</DialogTitle><DialogDescription>{copyText("A native Bifrost virtual key will be created. Its secret is shown once.", "Une clé virtuelle Bifrost native sera créée. Son secret ne s’affichera qu’une fois.")}</DialogDescription></DialogHeader>{keyForm && <KeyCreateForm draft={keyForm} error={keyFormFields.error} onChange={setKeyForm} />}<DialogFooter><Button variant="outline" onClick={() => setKeyForm(null)}>{copyText("Cancel", "Annuler")}</Button><Button disabled={!!busy || !keyFormFields.canSubmit} onClick={saveKey}>{copyText("Create key", "Créer la clé")}</Button></DialogFooter></DialogContent></Dialog>
     <Dialog open={!!renameForm} onOpenChange={open => !open && !busyRef.current && setRenameForm(null)}><DialogContent inert={!!busy}><DialogHeader className="border-b pb-4"><DialogTitle className="text-xl">{copyText("Rename virtual key", "Renommer la clé virtuelle")}</DialogTitle><DialogDescription>{copyText("Updates the saved key name.", "Met à jour le nom enregistré de la clé.")}</DialogDescription></DialogHeader>{renameForm && <div><label className="mb-2 block text-sm font-medium">{copyText("Name", "Nom")}</label><Input aria-label={copyText("Key name", "Nom de la clé")} autoFocus value={renameForm.name} onChange={e => setRenameForm({ ...renameForm, name: e.target.value })} /></div>}<DialogFooter><Button variant="outline" onClick={() => setRenameForm(null)}>{copyText("Cancel", "Annuler")}</Button><Button disabled={!!busy} onClick={() => { if (!renameForm?.name.trim() || data.keys.some(k => k.id !== renameForm.id && k.name.toLowerCase() === renameForm.name.trim().toLowerCase())) { toast.error(copyText("Name is empty or already used.", "Le nom est vide ou déjà utilisé.")); return; } const form = renameForm; void (async () => { if (await commit({ ...data, keys: data.keys.map(k => k.id === form.id ? { ...k, name: form.name.trim() } : k) }, copyText("Renaming key…", "Renommage de la clé…"))) setRenameForm(null); })(); }}>{copyText("Save", "Enregistrer")}</Button></DialogFooter></DialogContent></Dialog>
     <Dialog open={!!confirm} onOpenChange={open => !open && setConfirm(null)}><DialogContent><DialogHeader className="border-b pb-4"><DialogTitle className="text-xl">{confirm?.title}</DialogTitle><DialogDescription>{confirm?.text}</DialogDescription></DialogHeader><DialogFooter><Button variant="outline" onClick={() => setConfirm(null)}>{confirm?.cancelLabel || copyText("Cancel", "Annuler")}</Button><Button variant="destructive" disabled={!!busy} onClick={() => { confirm?.action(); setConfirm(null); }}>{confirm?.confirmLabel || copyText("Delete", "Supprimer")}</Button></DialogFooter></DialogContent></Dialog>
-    {adoption && <AdoptionDialog key={`${adoption.keyId}/${adoption.operation}`} keyId={adoption.keyId} operation={adoption.operation} onClose={() => setAdoption(null)} onUnauthorized={requireLogin} onGoToModels={() => {
+    {adoption && <AdoptionDialog key={`${adoption.keyId}/${adoption.operation}`} keyId={adoption.keyId} operation={adoption.operation} onClose={() => setAdoption(null)} onUnauthorized={requireLogin} onShowToAdd={routes => {
       if (key && draft) pendingKeyDraft.current = { keyId: key.id, policy: draft };
       setAdoption(null);
+      // To add, filtered on the blocking models only (the browser reads this state when it mounts).
+      setSessionState(modelFiltersKey("models.to-add"), { ...emptyModelFilters, routes: routes.join("\n") });
+      setModelScope("to-add");
       navigate("models");
     }} onApplied={receipt => {
       const stagedDraft = key?.id === receipt.keyId && draft && !same(key.policy, draft) ? draft : null;
