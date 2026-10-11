@@ -64,9 +64,10 @@ export const applyKeyAdoption = (preview: AdoptionPreview, keepNative: string[] 
 });
 
 // Native permission edit before adoption (#93): remove the models Registry cannot represent from one
-// provider of an unmanaged key, or replace its "all providers". Preview first; the apply carries the
+// provider of an unmanaged key, or replace its "all providers", or replace "all models" of one provider by the
+// models Registry holds ("replace-all-models"). Preview first; the apply carries the
 // preview token and an explicit confirmation, and only then writes to Bifrost.
-export type NativeEditOperation = "remove-models" | "replace-all-providers";
+export type NativeEditOperation = "remove-models" | "replace-all-providers" | "replace-all-models";
 export type NativeEditPreview = { keyId: string; operation: NativeEditOperation; provider?: string; revision: string; previewToken?: string; remove: { provider: string; models: string[]; dropsLimits?: boolean }[]; before: NativePermissions | null; after?: NativePermissions | null; canApply: boolean; blocked: string[] };
 export type NativeEditReceipt = { keyId: string; operation: NativeEditOperation; applied: true; permissions: NativePermissions };
 export const previewNativeEdit = (keyId: string, operation: NativeEditOperation, provider = "") => request<NativeEditPreview>("keys/native-permissions", {

@@ -26,9 +26,9 @@ must(pickAnchor(tourSteps[0], () => false) === undefined, "no anchor on the page
 
 const help = (language: "en" | "fr") => text(renderToStaticMarkup(<LanguageContext.Provider value={language}><HelpContent /></LanguageContext.Provider>));
 const english = help("en");
-for (const phrase of ["Keep Mistral in Bifrost", "Remove these models from the key in Bifrost", "Replace “all providers” by the explicit list", "preview", "kept in Bifrost", "Ready to adopt", "inferred creator", "Associate a reference", "Add to card", "no reference"]) must(english.includes(phrase), `English help mentions ${phrase}`);
+for (const phrase of ["Keep Mistral in Bifrost", "Remove these models from the key in Bifrost", "Replace “all providers” by the explicit list", "Replace “all models” by the models saved in Registry", "preview", "kept in Bifrost", "Ready to adopt", "inferred creator", "Associate a reference", "Add to card", "no reference"]) must(english.includes(phrase), `English help mentions ${phrase}`);
 const french = help("fr");
-for (const phrase of ["Garder Mistral dans Bifrost", "Retirer ces modèles de la clé dans Bifrost", "Remplacer « tous les fournisseurs » par la liste explicite", "aperçu", "conservé dans Bifrost", "Prête à adopter", "créateur déduit", "Associer une fiche documentaire", "Ajouter à la fiche", "sans référence"]) must(french.includes(phrase), `French help mentions ${phrase}`);
+for (const phrase of ["Garder Mistral dans Bifrost", "Retirer ces modèles de la clé dans Bifrost", "Remplacer « tous les fournisseurs » par la liste explicite", "Remplacer « tous les modèles » par les modèles enregistrés dans Registry", "aperçu", "conservé dans Bifrost", "Prête à adopter", "créateur déduit", "Associer une fiche documentaire", "Ajouter à la fiche", "sans référence"]) must(french.includes(phrase), `French help mentions ${phrase}`);
 // "Add to card" opens the card with the access offered; nothing is added until the person adds it and saves.
 must(english.includes("opens that saved card") && english.includes("“Also available”") && !english.includes("puts an available access"), "English help says Add to card only opens the card");
 must(french.includes("ouvre cette fiche enregistrée") && french.includes("« Également disponibles »") && !french.includes("met un accès disponible"), "French help says Add to card only opens the card");

@@ -43,4 +43,8 @@ must(!wrap("en", <KeptProviders readiness={kept} />).includes("Stop keeping"), "
 must(wrap("en", <KeptProviders readiness={{ state: "blocked", blockers: [kept.blockers[2]] }} onKeep={() => {}} />) === "", "nothing kept, no section");
 const french = text(wrap("fr", <KeptProviders readiness={kept} onKeep={() => {}} />));
 for (const line of ["Mistral · 4 modèles conservés dans Bifrost", "Registry ne gérera ni ne modifiera les permissions du fournisseur Mistral", "Ne plus garder Mistral dans Bifrost"]) must(french.includes(line), `French dialog must read "${line}"`);
+// A kept provider that allows every model names no model: the dialog says "all models", never "0 models".
+const keptStar: Readiness = { state: "ready", blockers: [{ provider: "Claude", kind: "dynamic", count: 1, models: [], reasons: ["Dynamic native model allowlist is unsupported for Claude"], kept: true }] };
+must(text(wrap("en", <KeptProviders readiness={keptStar} onKeep={() => {}} />)).includes("Claude · all models kept in Bifrost"), "all models kept");
+must(text(wrap("fr", <KeptProviders readiness={keptStar} onKeep={() => {}} />)).includes("Claude · tous les modèles conservés dans Bifrost"), "all models kept, in French");
 console.log("Kept native checks passed");

@@ -31,10 +31,11 @@ export type PricingProof = { access: string; state: string; checkedAt: string; e
 export type NativePermissions = { allProviders: boolean; providers: { provider: string; allModels: boolean; models: string[]; versionDependent?: boolean }[] };
 // Whether an unmanaged key can be adopted, from the adoption plan. A blocker groups one provider's
 // models of one kind ("" provider = the whole key): undiscovered = Bifrost does not list them,
-// unsaved = discovered but no Registry card, all-providers, other = any other reason (see `reasons`,
+// unsaved = discovered but no Registry card, all-providers, dynamic = the provider row allows every model ("*")
+// or a regex (kept in Bifrost or replaced by a native edit), other = any other reason (see `reasons`,
 // as sent). count = models.length for the first two kinds, reasons.length for the others.
 // kept: the adoption preview was asked to keep this provider in Bifrost; the blocker is still listed but blocks nothing.
-export type ReadinessBlocker = { provider: string; kind: "undiscovered" | "unsaved" | "all-providers" | "other"; count: number; models: string[]; reasons?: string[]; kept?: boolean };
+export type ReadinessBlocker = { provider: string; kind: "undiscovered" | "unsaved" | "all-providers" | "dynamic" | "other"; count: number; models: string[]; reasons?: string[]; kept?: boolean };
 export type Readiness = { state: "ready" | "blocked" | "empty"; blockers: ReadinessBlocker[] };
 // pendingAccessSelection: saved models withheld until an access is chosen, with their candidate access IDs.
 // permissions: absent when Bifrost's answer carried no provider rows (not read yet).

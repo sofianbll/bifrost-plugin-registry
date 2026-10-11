@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"net/url"
 	"reflect"
+	"regexp"
+	"slices"
 	"sort"
 	"strings"
 
@@ -31,9 +33,15 @@ import (
 // is read back and compared with the preview before it is reported. A row emptied by the removal is dropped,
 // never sent with an empty allowed_models, whose meaning depends on the Bifrost list version; Bifrost then
 // deletes the row's budgets and rate limit too, so the preview says so (dropsLimits) before the confirmation.
+//
+// Replacing "all models" of one provider ("replace-all-models") does the same for a provider row whose list is
+// dynamic ("*" or a regex): the row keeps its id and limits but allows only the models it allows today that
+// Registry holds a direct access for (one access per model across the key's rows); the others are named.
+// A regex allows what Bifrost 2.2.6 matches: a full, case-insensitive RE2 match on the model name.
 const (
-	editRemoveModels = "remove-models"
-	editReplaceAll   = "replace-all-providers"
+	editRemoveModels  = "remove-models"
+	editReplaceAll    = "replace-all-providers"
+	editReplaceModels = "replace-all-models"
 )
 
 type permissionEditInput struct {
@@ -79,9 +87,9 @@ func (s *Server) editNativePermissions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var in permissionEditInput
-	if registry.StrictJSON(b, &in, true) != nil || in.KeyID == "" || (in.Operation != editRemoveModels && in.Operation != editReplaceAll) ||
-		(in.Phase != "preview" && in.Phase != "apply") || (in.Operation == editRemoveModels && in.Provider == "") {
-		reply(w, 400, map[string]string{"error": "keyId, operation (remove-models with a provider, or replace-all-providers) and phase (preview or apply) are required"})
+	if registry.StrictJSON(b, &in, true) != nil || in.KeyID == "" || (in.Operation != editRemoveModels && in.Operation != editReplaceAll && in.Operation != editReplaceModels) ||
+		(in.Phase != "preview" && in.Phase != "apply") || (in.Operation != editReplaceAll && in.Provider == "") {
+		reply(w, 400, map[string]string{"error": "keyId, operation (remove-models or replace-all-models with a provider, or replace-all-providers) and phase (preview or apply) are required"})
 		return
 	}
 	if in.Phase == "apply" && (in.PreviewToken == "" || !in.Confirm) {
@@ -196,6 +204,67 @@ func (s *Server) permissionEditPlan(ctx context.Context, in permissionEditInput)
 		if len(names) == 0 {
 			edit.preview.Remove = []permissionChange{}
 		}
+	case editReplaceModels:
+		if vk.AllowAllProviders {
+			blocked("This key allows all providers: replace that first")
+		}
+		var row *nativeProviderConfig
+		others := nativeVK{}
+		for i, pc := range vk.ProviderConfigs {
+			if pc.Provider == in.Provider && slices.ContainsFunc(pc.AllowedModels, isDynamicEntry) {
+				row = &vk.ProviderConfigs[i]
+			} else {
+				others.ProviderConfigs = append(others.ProviderConfigs, pc)
+			}
+		}
+		if row == nil {
+			blocked("This provider does not allow every model")
+			break
+		}
+		if slices.ContainsFunc(row.BlacklistedModels, isDynamicEntry) {
+			blocked("Dynamic native blacklist is unsupported for " + in.Provider)
+			break
+		}
+		// What the row allows today: the discovered models its entries match, and the names it lists.
+		today := map[string]bool{}
+		for _, r := range rows {
+			if r.Provider == in.Provider && slices.ContainsFunc(row.AllowedModels, func(entry string) bool { return matchesEntry(entry, r.Name) }) {
+				today[r.Name] = true
+			}
+		}
+		for _, name := range row.AllowedModels {
+			if !isDynamicEntry(name) {
+				today[name] = true
+			}
+		}
+		for _, name := range row.BlacklistedModels {
+			delete(today, name)
+		}
+		candidate := *row
+		candidate.AllowedModels, candidate.BlacklistedModels = sortedKeys(today), nil
+		_, holdable, _ := adoptionSelection(cfg, nativeVK{ProviderConfigs: []nativeProviderConfig{candidate}}, rows, nil)
+		_, held, _ := adoptionSelection(cfg, others, rows, nil)
+		taken := map[string]bool{}
+		for _, route := range held {
+			taken[route[strings.Index(route, "/")+1:]] = true
+		}
+		kept, left := []string{}, []string{}
+		for _, model := range candidate.AllowedModels {
+			if slices.Contains(holdable, in.Provider+"/"+model) && !taken[model] {
+				kept = append(kept, model)
+			} else {
+				left = append(left, model)
+			}
+		}
+		next = append(next, others.ProviderConfigs...)
+		if len(kept) > 0 {
+			replaced := *row
+			replaced.AllowedModels = kept
+			next = append(next, replaced)
+		}
+		if len(left) > 0 || len(kept) == 0 {
+			edit.preview.Remove = []permissionChange{{Provider: in.Provider, Models: left, DropsLimits: len(kept) == 0 && row.hasLimits()}}
+		}
 	case editReplaceAll:
 		if !vk.AllowAllProviders {
 			blocked("This key does not allow all providers")
@@ -277,6 +346,23 @@ func (s *Server) permissionEditPlan(ctx context.Context, in permissionEditInput)
 	h := sha256.Sum256(data)
 	edit.preview.PreviewToken = hex.EncodeToString(h[:])
 	return edit, 200, nil
+}
+
+// isDynamicEntry is an allowlist entry that names no model: every model ("*") or a pattern ("regex:").
+func isDynamicEntry(entry string) bool { return entry == "*" || strings.HasPrefix(entry, "regex:") }
+
+// matchesEntry is Bifrost 2.2.6's schemas.MatchEntry for a model name, plus "*": a plain entry matches its
+// name case-insensitively, a regex the whole name case-insensitively, and a pattern that does not compile nothing.
+func matchesEntry(entry, name string) bool {
+	if entry == "*" {
+		return true
+	}
+	pattern, ok := strings.CutPrefix(entry, "regex:")
+	if !ok {
+		return strings.EqualFold(entry, name)
+	}
+	re, err := regexp.Compile("(?i)^(?:" + pattern + ")$")
+	return pattern != "" && pattern != "*" && err == nil && re.MatchString(name)
 }
 
 // writeRow is a provider row as a PUT sends it: the id keeps the row's budget and rate limit.

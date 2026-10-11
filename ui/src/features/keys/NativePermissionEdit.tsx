@@ -7,21 +7,26 @@ import type { NativePermissions, Readiness, ReadinessBlocker } from "../../domai
 import { useCopy, type Copy } from "../../lib/locale";
 
 // Native permission edit before adoption (#93), offered from the adoption dialog only. Registry can
-// take off the key, in Bifrost, the models it cannot represent (one provider at a time) or replace
-// "all providers" by an explicit list. Nothing is written until the person confirms the exact preview.
+// take off the key, in Bifrost, the models it cannot represent (one provider at a time), replace
+// "all providers" by an explicit list, or replace "all models" of one provider by the models saved in
+// Registry. Nothing is written until the person confirms the exact preview.
 export type NativeEditRequest = { operation: NativeEditOperation; provider: string };
 
 // The edit a blocker offers, if any. Models are removed only once the key no longer allows every
 // provider: dropping the last row of an all-providers key would open that provider completely.
 export function nativeEditFor(blocker: ReadinessBlocker, readiness: Readiness): NativeEditRequest | null {
   if (blocker.kind === "all-providers") return { operation: "replace-all-providers", provider: "" };
-  if (blocker.kind === "undiscovered" && !readiness.blockers.some(other => other.kind === "all-providers")) return { operation: "remove-models", provider: blocker.provider };
+  const allProviders = readiness.blockers.some(other => other.kind === "all-providers");
+  if (blocker.kind === "undiscovered" && !allProviders) return { operation: "remove-models", provider: blocker.provider };
+  if (blocker.kind === "dynamic" && !allProviders && blocker.provider) return { operation: "replace-all-models", provider: blocker.provider };
   return null;
 }
 
-export const nativeEditLabel = (request: NativeEditRequest, copy: Copy) => request.operation === "remove-models"
-  ? copy("Remove these models from the key in Bifrost", "Retirer ces modèles de la clé dans Bifrost")
-  : copy("Replace “all providers” by the explicit list", "Remplacer « tous les fournisseurs » par la liste explicite");
+export const nativeEditLabel = (request: NativeEditRequest, copy: Copy) => ({
+  "remove-models": () => copy("Remove these models from the key in Bifrost", "Retirer ces modèles de la clé dans Bifrost"),
+  "replace-all-providers": () => copy("Replace “all providers” by the explicit list", "Remplacer « tous les fournisseurs » par la liste explicite"),
+  "replace-all-models": () => copy("Replace “all models” by the models saved in Registry", "Remplacer « tous les modèles » par les modèles enregistrés dans Registry"),
+})[request.operation]();
 
 // The button and its one-line consequence, inside a blocker of the adoption dialog.
 export function NativeEditButton({ blocker, readiness, onEdit }: { blocker: ReadinessBlocker; readiness?: Readiness; onEdit?: (request: NativeEditRequest) => void }) {
@@ -32,6 +37,8 @@ export function NativeEditButton({ blocker, readiness, onEdit }: { blocker: Read
     <Button type="button" variant="outline" size="sm" className="h-auto min-h-8 whitespace-normal text-left" onClick={() => onEdit(request)}>{nativeEditLabel(request, copy)}{request.provider && <span className="sr-only"> · {displayProvider(request.provider)}</span>}</Button>
     <p className="mt-1 text-xs">{request.operation === "remove-models"
       ? copy("Changes the key in Bifrost once you confirm a preview: requests for these models will be refused.", "Modifie la clé dans Bifrost après confirmation d’un aperçu : les requêtes vers ces modèles seront refusées.")
+      : request.operation === "replace-all-models"
+      ? copy(`Changes the key in Bifrost once you confirm a preview: ${displayProvider(request.provider)} will allow only its models saved in Registry, not the ones added later.`, `Modifie la clé dans Bifrost après confirmation d’un aperçu : ${displayProvider(request.provider)} n’autorisera plus que ses modèles enregistrés dans Registry, pas ceux ajoutés plus tard.`)
       : copy("Changes the key in Bifrost once you confirm a preview: it will no longer allow every provider, only the list shown.", "Modifie la clé dans Bifrost après confirmation d’un aperçu : elle n’autorisera plus tous les fournisseurs, seulement la liste affichée.")}</p>
   </div>;
 }
@@ -40,6 +47,8 @@ const edits: [RegExp, string, string][] = [
   [/^Nothing to remove for this provider$/, "$&", "Rien à retirer pour ce fournisseur."],
   [/^This key allows all providers: replace that first$/, "$&", "Cette clé autorise tous les fournisseurs : remplacez d’abord cette autorisation."],
   [/^This key does not allow all providers$/, "$&", "Cette clé n’autorise pas tous les fournisseurs."],
+  [/^This provider does not allow every model$/, "$&", "Ce fournisseur n’autorise pas tous les modèles."],
+  [/^Dynamic native blacklist is unsupported for (.+)$/, "$&", "$1 : liste d’exclusion dynamique non prise en charge."],
   [/^Native key identity changed$/, "$&", "L’identité de la clé native a changé."],
   [/^Native key is controlled by an external access profile$/, "$&", "La clé native dépend d’un profil d’accès externe."],
 ];
@@ -67,6 +76,8 @@ function PermissionLines({ label, permissions, lines }: { label: string; permiss
 export function NativeEditPreviewBody({ preview }: { preview: NativeEditPreview }) {
   const copy = useCopy();
   const replace = preview.operation === "replace-all-providers";
+  const narrow = preview.operation === "replace-all-models";
+  const name = preview.provider ? displayProvider(preview.provider) : "";
   const emptied = !!preview.after && !preview.after.allProviders && !preview.after.providers.length;
   const dropped = !replace && !!preview.provider && !!preview.after && !preview.after.providers.some(row => row.provider === preview.provider);
   const today = copy("Allowed today", "Autorisé aujourd’hui");
@@ -78,6 +89,8 @@ export function NativeEditPreviewBody({ preview }: { preview: NativeEditPreview 
       {replace
         ? copy(`The key stops allowing every provider: afterwards it allows only the providers and models listed under “${afterwards}”. Providers added to Bifrost later are not allowed until you add them to the key. Registry adopts one access per model: when several providers serve the same model, the first one by name is kept.${preview.remove.length ? ` The models listed under “${removed}” are no longer allowed.` : ""}`,
           `La clé n’autorise plus tous les fournisseurs : ensuite, elle n’autorise que les fournisseurs et modèles listés sous « ${afterwards} ». Les fournisseurs ajoutés plus tard à Bifrost ne seront pas autorisés tant que vous ne les ajoutez pas à la clé. Registry n’adopte qu’un accès par modèle : quand plusieurs fournisseurs servent le même modèle, le premier par nom est conservé.${preview.remove.length ? ` Les modèles listés sous « ${removed} » ne sont plus autorisés.` : ""}`)
+        : narrow ? copy(`${name} stops allowing every model: afterwards the key allows only the ${name} models listed under “${afterwards}”, the ones saved in Registry. Models ${name} adds later are not allowed until you add them to the key. Registry adopts one access per model: a model another provider of the key already serves is left out.${preview.remove.some(row => row.models.length) ? ` The models listed under “${removed}” are no longer allowed.` : ""}`,
+          `${name} n’autorise plus tous ses modèles : ensuite, la clé n’autorise que les modèles ${name} listés sous « ${afterwards} », ceux enregistrés dans Registry. Les modèles ajoutés plus tard par ${name} ne seront pas autorisés tant que vous ne les ajoutez pas à la clé. Registry n’adopte qu’un accès par modèle : un modèle déjà servi par un autre fournisseur de la clé est laissé de côté.${preview.remove.some(row => row.models.length) ? ` Les modèles listés sous « ${removed} » ne sont plus autorisés.` : ""}`)
         : copy("Requests that use these models will be refused. Bifrost does not list them today, and no other permission of the key changes.",
           "Les requêtes qui utilisent ces modèles seront refusées. Bifrost ne les liste pas aujourd’hui, et aucune autre permission de la clé ne change.")}
       {dropped && ` ${copy(`${displayProvider(preview.provider!)} has no model left on the key, so it is removed from it.`, `${displayProvider(preview.provider!)} n’a plus aucun modèle sur la clé : le fournisseur en est retiré.`)}`}
@@ -94,6 +107,8 @@ export function NativeEditPreviewBody({ preview }: { preview: NativeEditPreview 
 
 const titles = (request: NativeEditRequest, copy: Copy) => request.operation === "remove-models"
   ? copy("Remove models from the key in Bifrost", "Retirer des modèles de la clé dans Bifrost")
+  : request.operation === "replace-all-models"
+  ? copy(`Replace “all models” of ${displayProvider(request.provider)} on the key`, `Remplacer « tous les modèles » de ${displayProvider(request.provider)} sur la clé`)
   : copy("Replace “all providers” on the key", "Remplacer « tous les fournisseurs » sur la clé");
 
 // Preview, explicit confirmation, result. onEdited runs once Bifrost may have changed, so the caller can reload.
@@ -127,12 +142,16 @@ export function NativeEditDialog({ keyId, request, onClose, onUnauthorized, onEd
   const removedCount = preview?.remove.reduce((total, row) => total + row.models.length, 0) ?? 0;
   const confirmLabel = request.operation === "remove-models"
     ? copy(`Confirm: remove ${modelCount(removedCount, copy)}`, `Confirmer : retirer ${modelCount(removedCount, copy)}`)
+    : request.operation === "replace-all-models"
+    ? copy("Confirm: replace “all models”", "Confirmer : remplacer « tous les modèles »")
     : copy("Confirm: replace “all providers”", "Confirmer : remplacer « tous les fournisseurs »");
 
   return <Dialog open onOpenChange={open => { if (!open && !busy) onClose(); }}><DialogContent className="max-h-[90dvh] w-[calc(100vw-2rem)] max-w-xl overflow-auto"><DialogHeader><DialogTitle>{titles(request, copy)}</DialogTitle><DialogDescription>{receipt ? copy("Bifrost now holds the key as shown below.", "Bifrost détient maintenant la clé telle qu’affichée ci-dessous.") : copy("Review the exact change. Nothing is written to Bifrost until you confirm.", "Vérifiez le changement exact. Rien n’est écrit dans Bifrost avant votre confirmation.")}</DialogDescription></DialogHeader>
     {error && <p role="alert" className="rounded-sm border border-destructive/40 bg-destructive/10 p-3 text-sm">{error}</p>}
     {receipt ? <div className="space-y-3 text-sm"><p role="status" className="rounded-sm border bg-primary/5 p-3">{request.operation === "remove-models"
         ? copy(`Done. ${modelCount(removedCount, copy)} removed from the key in Bifrost.`, `Terminé. ${modelCount(removedCount, copy)} retiré${removedCount === 1 ? "" : "s"} de la clé dans Bifrost.`)
+        : request.operation === "replace-all-models"
+        ? copy(`Done. ${displayProvider(request.provider)} no longer allows every model: the key allows the list below.`, `Terminé. ${displayProvider(request.provider)} n’autorise plus tous ses modèles : la clé autorise la liste ci-dessous.`)
         : copy("Done. The key no longer allows every provider: it allows the explicit list below.", "Terminé. La clé n’autorise plus tous les fournisseurs : elle autorise la liste explicite ci-dessous.")}</p>
       <section className="rounded-sm border p-3"><h3 className="font-medium">{copy("Allowed now", "Autorisé maintenant")}</h3><PermissionLines label={copy("Allowed now", "Autorisé maintenant")} permissions={receipt.permissions} /></section></div>
     : preview ? <NativeEditPreviewBody preview={preview} />

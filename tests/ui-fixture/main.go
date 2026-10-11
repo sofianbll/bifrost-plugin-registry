@@ -325,6 +325,12 @@ func (b *syntheticBifrost) roundTrip(r *http.Request) (*http.Response, error) {
 							visible = append(visible, map[string]string{"id": pc.Provider + "/" + name})
 						}
 					}
+					// "*" lists every model the provider serves (a kept-native Claude row of vk-qa-wildcard).
+					if p := findProvider(pc.Provider); p != nil && slices.Contains(pc.AllowedModels, "*") {
+						for _, m := range p.models {
+							visible = append(visible, map[string]string{"id": pc.Provider + "/" + m.name})
+						}
+					}
 				}
 				session, failure := snapshot.Prepare(&registry.Request{Method: "GET", Path: "/v1/models", Headers: map[string]string{"Authorization": "Bearer " + secret}})
 				if failure != nil {
@@ -456,8 +462,8 @@ func seed() registry.Config {
 }
 
 // seedKeys are the native virtual keys. The first two are managed; every other one is an unmanaged
-// adoption case: empty, all providers, all models of Claude, ready (codex, google), blocked by models
-// of a disabled provider (mistral, hermes) or by a discovered model without a card (unsaved).
+// adoption case: empty, all providers, all models of Claude (claude, wildcard), ready (codex, google), blocked
+// by models of a disabled provider (mistral, hermes) or by a discovered model without a card (unsaved).
 func seedKeys() map[string]*virtualKey {
 	keys := map[string]*virtualKey{
 		"vk-qa-dev":           {ID: "vk-qa-dev", Name: "QA Development Key", Description: "Synthetic development client", Value: "sk-bf-qa-fixture-dev", Active: true, ProviderConfigs: []providerConfig{{Provider: provider, AllowedModels: []string{"qa-code", "qa-chat"}}}},
@@ -475,6 +481,11 @@ func seedKeys() map[string]*virtualKey {
 		"vk-qa-hermes": {ID: "vk-qa-hermes", Name: "QA Hermes Key", Description: "Synthetic Hermes client", Value: "sk-bf-qa-fixture-hermes", Active: true, ProviderConfigs: []providerConfig{
 			{Provider: "mistral", AllowedModels: []string{"qa-mistral-large", "qa-mistral-small"}, AllowAllKeys: true},
 			{Provider: "Claude", AllowedModels: []string{"qa-haiku", "qa-opus"}, AllowAllKeys: true}}},
+		// Every Claude model ("*") beside a ready Codex model: the journeys adopt it keeping Claude in Bifrost
+		// (vk-qa-claude, the same row alone, has "*" replaced by the models saved in Registry).
+		"vk-qa-wildcard": {ID: "vk-qa-wildcard", Name: "QA Wildcard Key", Description: "Synthetic client allowed every Claude model", Value: "sk-bf-qa-fixture-wildcard", Active: true, ProviderConfigs: []providerConfig{
+			{Provider: "Claude", AllowedModels: []string{"*"}, AllowAllKeys: true},
+			{Provider: "Codex", AllowedModels: []string{"qa-codex"}, AllowAllKeys: true}}},
 		// qa-unregistered is discovered but has no card, and no journey saves it.
 		"vk-qa-unsaved": {ID: "vk-qa-unsaved", Name: "QA To Add Key", Description: "Synthetic unsaved client", Value: "sk-bf-qa-fixture-unsaved", Active: true, ProviderConfigs: []providerConfig{{Provider: provider, AllowedModels: []string{"qa-vision", "qa-unregistered"}, AllowAllKeys: true}}},
 	}

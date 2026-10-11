@@ -23,6 +23,7 @@ export function blockerLine(blocker: ReadinessBlocker, copy: Copy) {
   const what = blocker.kind === "undiscovered" ? `${models} ${copy("not discovered", blocker.count === 1 ? "non découvert" : "non découverts")}`
     : blocker.kind === "unsaved" ? `${models} ${copy("to add", "à ajouter")}`
     : blocker.kind === "all-providers" ? copy("Every provider allowed", "Tous les fournisseurs autorisés")
+    : blocker.kind === "dynamic" ? copy("all models allowed", "tous les modèles autorisés")
     : copy(provider ? "cannot be adopted as is" : "Cannot be adopted as is", provider ? "adoption impossible en l’état" : "Adoption impossible en l’état");
   return blocker.kind === "all-providers" || !provider && blocker.kind === "other" ? what : `${provider} · ${what}`;
 }

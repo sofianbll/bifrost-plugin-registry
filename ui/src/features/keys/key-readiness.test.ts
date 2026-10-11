@@ -28,7 +28,9 @@ equal(blockerLine(mistral, french), "Mistral · 3 modèles non découverts", "un
 equal(blockerLine(unsaved, english), "Synthetic Provider · 1 model to add", "unsaved");
 equal(blockerLine(unsaved, french), "Synthetic Provider · 1 modèle à ajouter", "unsaved in French");
 equal(blockerLine(everyProvider, english), "Every provider allowed", "all providers");
-equal(blockerLine(block("Claude", "other", [], ["Dynamic native model allowlist is unsupported for Claude"]), english), "Claude · cannot be adopted as is", "other, with provider");
+equal(blockerLine(block("Claude", "other", [], ["No enabled native provider key for Claude/x"]), english), "Claude · cannot be adopted as is", "other, with provider");
+equal(blockerLine(block("Claude", "dynamic", [], ["Dynamic native model allowlist is unsupported for Claude"]), english), "Claude · all models allowed", "every model of a provider");
+equal(blockerLine(block("Claude", "dynamic", [], ["Dynamic native model allowlist is unsupported for Claude"]), french), "Claude · tous les modèles autorisés", "every model of a provider, in French");
 equal(blockerLine(block("", "other", [], ["Native key is inactive or expired"]), english), "Cannot be adopted as is", "other, whole key");
 
 // The card's short reason: the first two blockers, then how many more; nothing when there is nothing to explain.
