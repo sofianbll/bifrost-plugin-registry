@@ -6,7 +6,10 @@
 // or provider inference qualification. The journeys share one page and are destructive, so this
 // is one test of sequential steps run against a fresh fixture (see playwright.config.ts).
 import type { Locator, Page } from '@playwright/test';
-import { expect, test, token } from './fixtures';
+import { expect, skipTour, test, token } from './fixtures';
+
+// The first visit is part of the journeys (#96): the guided tour is offered, then remembered.
+test.use({ tourSeen: false });
 
 test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testInfo) => {
   const headers = { Authorization: `Bearer ${token}` };
@@ -59,6 +62,103 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await button('Sign in').click();
     await button('Open QA Chat details').waitFor();
     await shot('after-catalog-light');
+  });
+
+  await test.step('the tour is offered once and can be dismissed; "?" opens help beside the page and relaunches it (#96)', async () => {
+    const signIn = async () => { await page.getByLabel('Admin token', { exact: true }).fill(token); await button('Sign in').click(); await button('Open QA Chat details').waitFor(); };
+    const offer = page.getByRole('region', { name: 'Guided tour', exact: true });
+    const stepCard = (title: string) => page.getByRole('dialog', { name: title, exact: true });
+    const helpPanel = page.getByRole('dialog', { name: 'Help · My models', exact: true });
+    const startFromHelp = async () => { await button('Help for My models').click(); await helpPanel.getByRole('button', { name: 'Start the tour', exact: true }).click(); };
+    const remembered = () => page.evaluate(() => localStorage.getItem('bifrost-registry.tour.v1'));
+    // A first visit is offered the tour inline (it covers nothing); Escape dismisses it and the browser remembers.
+    await expect(offer).toContainText('New here?');
+    expect(await remembered()).toBeNull();
+    await offer.getByRole('button', { name: 'Not now', exact: true }).focus();
+    await page.keyboard.press('Escape');
+    await expect(offer).toHaveCount(0);
+    expect(await remembered()).not.toBeNull();
+    // After a reload it is not offered again. (The reload read the catalogue once more: keep the count of the load that follows.)
+    await page.reload();
+    await signIn();
+    await expect(offer).toHaveCount(0);
+    await expect.poll(() => catalogReads.length).toBe(2);
+    catalogReads.shift();
+    // "?" opens the help in a side panel on this page: the address does not change and the page stays behind it.
+    const address = page.url();
+    await button('Help for My models').click();
+    await expect(helpPanel).toBeVisible();
+    await withinViewport(helpPanel);
+    expect(page.url(), 'Help opens beside the page').toBe(address);
+    await expect(page.locator('h2', { hasText: 'My models' }).first()).toBeVisible();
+    for (const phrase of ['Adopting a key', 'Ready to adopt', 'Keep Mistral in Bifrost', 'Remove these models from the key in Bifrost', 'Replace “all providers” by the explicit list', 'preview and confirm', 'kept in Bifrost', 'inferred creator', 'Associate a reference', 'Add to card', 'no reference']) await expect(helpPanel).toContainText(phrase);
+    // Starting the tour closes the panel and puts the focus on the tour card; the page stays usable under it.
+    await helpPanel.getByRole('button', { name: 'Start the tour', exact: true }).click();
+    await expect(helpPanel).toHaveCount(0);
+    await expect(stepCard('My models')).toContainText('Step 1 of 4');
+    await expect(stepCard('My models')).toBeFocused();
+    await scope(/^To add/).click();
+    await expect(scope(/^To add/)).toBeChecked();
+    await scope(/^In Registry/).click();
+    // Moving about by hand does not make the tour pull the person back or skip ahead.
+    await nav('Virtual keys').click();
+    await page.waitForTimeout(3000);
+    await expect(page).toHaveURL(/#\/keys$/);
+    await expect(stepCard('My models')).toBeVisible();
+    await nav('My models').click();
+    // Next and Back move between the pages; each step waits for the page it points at.
+    await button('Next').click();
+    await expect(stepCard('Groups')).toContainText('Step 2 of 4');
+    await expect(page).toHaveURL(/#\/groups$/);
+    await button('Back').click();
+    await expect(stepCard('My models')).toBeVisible();
+    await expect(page).toHaveURL(/#\/models$/);
+    await button('Next').click();
+    await expect(stepCard('Groups')).toBeVisible();
+    await button('Next').click();
+    await expect(stepCard('Virtual keys')).toBeVisible();
+    await expect(page).toHaveURL(/#\/keys$/);
+    await button('Next').click();
+    await expect(stepCard('Adopting a key')).toContainText('Step 4 of 4');
+    await expect(page.locator('[data-tour="adoption"]'), 'The step points at a key that still needs adopting').toHaveCount(1);
+    // Done gives the page back: where the tour started, with the focus back on "?".
+    await button('Done').click();
+    await expect(stepCard('Adopting a key')).toHaveCount(0);
+    await expect(page).toHaveURL(/#\/models$/);
+    await expect(button('Help for My models')).toBeFocused();
+    // Relaunched from "?" at any time; Escape leaves it from another page and restores the first one.
+    await startFromHelp();
+    await expect(stepCard('My models')).toBeVisible();
+    await button('Next').click();
+    await expect(stepCard('Groups')).toBeVisible();
+    await button('Next').click();
+    await expect(stepCard('Virtual keys')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(stepCard('Virtual keys')).toHaveCount(0);
+    await expect(page).toHaveURL(/#\/models$/);
+    await expect(page.getByRole('heading', { name: 'My models', level: 2 })).toBeVisible();
+    // A step whose anchor is not on the page is skipped, never waited on forever.
+    await page.evaluate(() => {
+      const set = Element.prototype.setAttribute;
+      Element.prototype.setAttribute = function (name: string, value: string) { if (name === 'data-tour' && /^(groups|first-group)$/.test(value)) return; set.call(this, name, value); };
+      Object.assign(window, { restoreAnchors: () => { Element.prototype.setAttribute = set; } });
+    });
+    await startFromHelp();
+    await expect(stepCard('My models')).toBeVisible();
+    await button('Next').click();
+    await expect(stepCard('Virtual keys')).toContainText('Step 3 of 4');
+    await button('Skip the tour').click();
+    await expect(page).toHaveURL(/#\/models$/);
+    await page.evaluate(() => (window as unknown as { restoreAnchors: () => void }).restoreAnchors());
+    // On a phone the card and the panel fit the screen.
+    await page.setViewportSize({ width: 375, height: 812 });
+    await button('Help for My models').click();
+    await withinViewport(helpPanel);
+    await helpPanel.getByRole('button', { name: 'Start the tour', exact: true }).click();
+    await withinViewport(stepCard('My models'));
+    await button('Close the tour').click();
+    await expect(stepCard('My models')).toHaveCount(0);
+    await page.setViewportSize({ width: 1440, height: 950 });
   });
 
   await test.step('My models opens on the saved cards; the rest waits in To add', async () => {
@@ -138,6 +238,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     expect(writes, 'Opening the card adds nothing').toBe(0);
     // Two cards hold the model (QA Opus Fast replaced by a copy of QA Opus in a mocked workspace): choose the card.
     const duo = await browser.newPage({ baseURL, viewport: { width: 1440, height: 950 } });
+    await skipTour(duo);
     duo.on('pageerror', e => errors.push(e.message));
     const catalog = await api('catalog');
     const opus = workspace.data.models.find((m: { id: string }) => m.id === 'qa-opus');
@@ -156,6 +257,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await duo.close();
     // One card holds the reference (QA Opus Fast removed from a mocked workspace): the tile names it and opens it, no choice.
     const solo = await browser.newPage({ baseURL, viewport: { width: 1440, height: 950 } });
+    await skipTour(solo);
     solo.on('pageerror', e => errors.push(e.message));
     await solo.route('**/api/workspace', r => r.fulfill({ json: { ...workspace, data: { ...workspace.data, models: workspace.data.models.filter((m: { id: string }) => m.id !== 'qa-opus-fast') } } }));
     await solo.route('**/api/catalog', r => r.fulfill({ json: catalog }));
@@ -263,6 +365,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     const linked = full.accesses.find((access: { id: string }) => access.id === 'openrouter/tencent/qa-hunyuan');
     const stable = { workspace: { ...current, discovery: [...current.discovery, twin] }, catalog: { ...full, accesses: [...full.accesses, { ...structuredClone(linked), id: 'openrouter/tencent/qa-hunyuan-twin', model: 'tencent/qa-hunyuan-twin' }] } };
     const loading = await browser.newPage({ baseURL, viewport: { width: 1440, height: 950 } });
+    await skipTour(loading);
     loading.setDefaultTimeout(10_000);
     loading.on('pageerror', e => errors.push(e.message));
     let release!: () => void;
@@ -1075,6 +1178,18 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
       };
       await nav(t('My models', 'Mes modèles')).click();
       await sweep(language, 'My models');
+      // #96: the help panel and the tour read in one language too, and the help covers adoption.
+      await button(t('Help for My models', 'Aide pour Mes modèles')).click();
+      const help = page.getByRole('dialog', { name: t('Help · My models', 'Aide · Mes modèles'), exact: true });
+      await expect(help).toContainText(t('Keep Mistral in Bifrost', 'Garder Mistral dans Bifrost'));
+      await sweep(language, 'Help panel');
+      await help.getByRole('button', { name: t('Start the tour', 'Commencer la visite'), exact: true }).click();
+      for (const [i, name] of [t('My models', 'Mes modèles'), t('Groups', 'Groupes'), t('Virtual keys', 'Clés virtuelles'), t('Adopting a key', 'Adopter une clé')].entries()) {
+        await expect(page.getByRole('dialog', { name, exact: true })).toBeVisible();
+        await sweep(language, `Tour step ${i + 1}`);
+        if (i < 3) await button(t('Next', 'Suivant')).click();
+      }
+      await button(t('Done', 'Terminé')).click();
       // "+1 available" agrees with its count ("+1 disponible", never "+1 disponibles").
       await expect(card('QA Opus saved').getByRole('button', { name: new RegExp(`^${t('Accesses', 'Accès')}`) })).toHaveAccessibleName(language === 'fr' ? /\+1 disponible · QA Opus saved$/ : /\+1 available · QA Opus saved$/);
       await accesses('QA Opus saved');
@@ -1371,6 +1486,8 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(button('View gateway')).toHaveCount(0);
     await button('Help').click();
     await expect(page.getByText('Need the gateway details?')).toBeVisible();
+    await expect(page.getByText('Keep Mistral in Bifrost'), 'Settings shows the same help').toBeVisible();
+    await expect(button('Start the tour')).toBeVisible();
     await expect(button('View gateway')).toHaveCount(0);
     await nav('My models').click();
     // 375 px: one column, so the controls fold into View options and density loses its counts.
@@ -1386,6 +1503,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(page.getByRole('radio', { name: 'Small', exact: true })).toHaveCount(0);
     // An empty Groups page: one Create, no search or view toolbar.
     const empty = await browser.newPage({ baseURL, viewport: { width: 375, height: 812 } });
+    await skipTour(empty);
     empty.on('pageerror', e => errors.push(e.message));
     const catalog = await api('catalog');
     await empty.route('**/api/workspace', r => r.fulfill({ json: { ...workspace, data: { ...workspace.data, groups: [] } } }));
@@ -1414,6 +1532,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
 
   await test.step('large catalogs remain reachable and metadata failure keeps model editing', async () => {
     const stress = await browser.newPage({ baseURL, viewport: { width: 1440, height: 950 } });
+    await skipTour(stress);
     stress.setDefaultTimeout(10_000);
     stress.on('pageerror', e => errors.push(e.message));
     const catalog = await api('catalog');
