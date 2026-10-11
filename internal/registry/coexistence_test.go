@@ -2,6 +2,7 @@ package registry
 
 import (
 	"bytes"
+	"encoding/json"
 	"slices"
 	"testing"
 )
@@ -58,6 +59,56 @@ func TestKeptNativeProvidersNeedAdoptionAndSurviveSaving(t *testing.T) {
 	reloaded, err := Compile(s.Config())
 	if err != nil || !slices.Equal(reloaded.Config().Policies[0].KeptNative, []string{"mistral"}) {
 		t.Fatalf("kept native providers lost in the registry file: %v", err)
+	}
+}
+
+// Bifrost owns a kept provider's permissions: the guard must let its requests and its /v1/models entries through
+// untouched, and still refuse everything else the key does not expose.
+func TestKeptNativeProviderPassesPrepareProjectAndCheckAttempt(t *testing.T) {
+	c := fixture()
+	c.Policies[0].Adopted, c.Policies[0].NativeModelIDs, c.Policies[0].KeptNative = true, []string{"a"}, []string{"mistral"}
+	s := mustCompile(t, c)
+
+	r := req(`{"model":"mistral/large","fallbacks":["mistral/small","alpha/smart"]}`)
+	session := mustPrepare(t, s, r)
+	if !bytes.Contains(r.Body, []byte(`"model":"mistral/large"`)) || !bytes.Contains(r.Body, []byte(`["mistral/small","alpha/smart"]`)) {
+		t.Fatalf("kept native request rewritten: %s", r.Body)
+	}
+	if session.CheckAttempt("mistral", "large") != nil || session.CheckAttempt("mistral", "small") != nil {
+		t.Fatal("kept native attempt denied")
+	}
+	if session.CheckAttempt("beta", "smart") == nil {
+		t.Fatal("attempt outside the policy allowed")
+	}
+	for _, model := range []string{"mistral/", "other/large", "large"} {
+		if _, f := s.Prepare(req(`{"model":"` + model + `"}`)); f == nil || f.Code != "registry_model_hidden" {
+			t.Fatalf("%q reached Bifrost: %+v", model, f)
+		}
+	}
+	unsupported := req(`{"model":"mistral/large"}`)
+	unsupported.Path = "/v1/nope"
+	if _, f := s.Prepare(unsupported); f == nil {
+		t.Fatal("unsupported endpoint accepted for a kept native model")
+	}
+
+	list := req("")
+	list.Method, list.Path = "GET", "/v1/models"
+	out, f := mustPrepare(t, s, list).Project([]byte(`{"data":[{"id":"alpha/smart"},{"id":"mistral/large","created":7},{"id":"mistral/small"},{"id":"beta/smart"},{"id":"alien/x"}]}`), "vk-1")
+	if f != nil {
+		t.Fatal(f)
+	}
+	var env struct {
+		Data []struct{ ID string }
+	}
+	if err := json.Unmarshal(out, &env); err != nil {
+		t.Fatal(err)
+	}
+	got := []string{}
+	for _, m := range env.Data {
+		got = append(got, m.ID)
+	}
+	if !slices.Equal(got, []string{"alpha/smart", "mistral/large", "mistral/small"}) {
+		t.Fatalf("projection = %v", got)
 	}
 }
 

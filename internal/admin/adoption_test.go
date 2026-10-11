@@ -87,6 +87,14 @@ func newAdoptionHarness(t *testing.T) *adoptionHarness {
 				}
 			}
 			body, _ := json.Marshal(map[string]any{"data": listed})
+			// A managed key's list goes through the plugin's own projection, as native/main.go does.
+			if session, f := h.server.Store.Load().Prepare(&registry.Request{Method: "GET", Path: "/v1/models", Headers: map[string]string{"Authorization": r.Header.Get("Authorization")}}); f == nil && session.IsManaged() {
+				projected, pf := session.Project(body, h.keyID)
+				if pf != nil {
+					t.Fatal(pf)
+				}
+				body = projected
+			}
 			return nativeResponse(200, string(body)), nil
 		default:
 			t.Fatalf("unexpected native route: %s", r.URL.String())
