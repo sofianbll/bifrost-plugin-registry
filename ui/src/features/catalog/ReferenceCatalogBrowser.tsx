@@ -13,7 +13,7 @@ import { ProviderSummary } from "../../components/registry/CompactCollection";
 import { creatorKey, distinctLabels, knownValue, type Access, type Model, type ModelFilters } from "../../domain/registry";
 import ModelBrowser from "./ModelBrowser";
 import { FactLine } from "./FactLine";
-import { declaredEndpoints, prefillFromReference } from "./model-editor-data";
+import { declaredEndpoints, matchingAccesses, prefillFromReference } from "./model-editor-data";
 import { cardEntries, cardName, filterReferenceGroups, filterReferenceModels, groupReferenceModels, sharedReferenceFacts, type ReferenceGroup } from "./reference-groups";
 import { cardFormat, gridColumns, type ViewOptions } from "../../components/registry/ViewOptions";
 import { useCopy, useCreatorName, useFormat, useTerm } from "../../lib/locale";
@@ -89,7 +89,9 @@ export default function ReferenceCatalogBrowser({ scope, models, allModels, cata
     const isCard = (group: ReferenceGroup) => !!savedOf(group);
     const availableBeside = (group: ReferenceGroup) => {
       const saved = savedOf(group);
-      return saved ? [...full.values()].filter(whole => cardEntries(whole, [saved]).card.length).flatMap(whole => cardEntries(whole, registeredModels).available) : [];
+      // Only what the editor offers as "Also available" (a "-pro" variant sharing the reference is not the same model).
+      const offered = saved ? new Set(matchingAccesses(catalog.accesses, saved.id, saved.accesses, registeredModels)) : undefined;
+      return saved ? [...full.values()].filter(whole => cardEntries(whole, [saved]).card.length).flatMap(whole => cardEntries(whole, registeredModels).available).filter(entry => entry.catalogAccess && offered?.has(entry.catalogAccess)) : [];
     };
     const status = (group: ReferenceGroup) => isCard(group) ? "registered" : cardEntries(full.get(group.key) ?? group, registeredModels).card.length ? "partial" : "to-create";
     const statusBadge = (group: ReferenceGroup) => {

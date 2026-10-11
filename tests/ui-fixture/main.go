@@ -73,11 +73,14 @@ var providers = []gatewayProvider{
 }
 
 // aggregatorModels pages past the 60-card first screen. anthropic/qa-opus shares its reference
-// with the saved Claude card qa-opus; the variants have no reference. The qwen/ fillers sort
-// after the qa-* cards, so the first screen of the mixed catalogue still shows QA Chat.
+// with the saved Claude card qa-opus; anthropic/qa-opus-pro shares it too but is a variant; the
+// other variants have no reference. Common IDs drop the vendor, so the qwen/ fillers (qwen-qa-NN)
+// sort after the qa-* cards and the first screen of the mixed catalogue still shows QA Chat.
 func aggregatorModels() []nativeModel {
 	models := []nativeModel{
 		{name: "anthropic/qa-opus", reference: "anthropic/qa-opus", mode: "chat", input: 4, output: 20},
+		// A variant the aggregator's metadata links to the same reference: not the same model as the card.
+		{name: "anthropic/qa-opus-pro", reference: "anthropic/qa-opus", mode: "chat", input: 15, output: 75},
 		{name: "~anthropic/qa-opus-latest", mode: "chat"},
 		{name: "openai/qa-codex:batch", mode: "chat"},
 		// Bifrost declares 2e-7 per token; read per million it carries float noise the UI must not show.
@@ -86,7 +89,7 @@ func aggregatorModels() []nativeModel {
 		{name: "meituan/qa-longcat", reference: "meituan/qa-longcat", mode: "chat"},
 	}
 	for i := 1; i <= 60; i++ {
-		models = append(models, nativeModel{name: fmt.Sprintf("qwen/qa-qwen-%02d", i), mode: "chat"})
+		models = append(models, nativeModel{name: fmt.Sprintf("qwen/qwen-qa-%02d", i), mode: "chat"})
 	}
 	return models
 }

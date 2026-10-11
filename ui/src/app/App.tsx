@@ -38,7 +38,7 @@ import { permissionSummary, preserveAdoptionDraft } from "../features/keys/KeyCo
 import { keyFormState, type KeyFormDraft } from "../features/keys/key-form";
 import { KeyCreateForm } from "../features/keys/KeyCreateForm";
 import KeyLibrary from "../features/keys/KeyLibrary";
-import { displayProvider, setProviderBaseTypes } from "../components/registry/BrandIcon";
+import { displayProvider, setMarkLabels, setProviderBaseTypes } from "../components/registry/BrandIcon";
 import { GroupLibrary } from "../features/groups/GroupLibrary";
 import { GroupEditor } from "../features/groups/GroupEditor";
 
@@ -342,6 +342,11 @@ function RegistryApp({ language, onLanguageChange }: { language: Language; onLan
   const registeredIds = new Set(data.models.map(model => model.id));
   // Groups and keys only read saved cards: they get them under the name My models shows. Saves keep data.models.
   const namedModels = useMemo(() => data.models.map(model => ({ ...model, name: cardName(model, referenceCatalog) })), [data.models, referenceCatalog]);
+  // Every creator and provider name the pages can show, so initials stay distinct where no mark exists.
+  useEffect(() => setMarkLabels([
+    ...catalog.flatMap(model => [model.creator, ...model.accesses.map(access => displayProvider(access.provider))]),
+    ...(referenceCatalog?.references.map(reference => reference.fields.creator?.value) ?? []).filter((creator): creator is string => typeof creator === "string"),
+  ].filter(label => label && label !== "Unknown")), [data.models, discovery, referenceCatalog]);
   // A scope counts the tiles it shows: one per saved card, whether or not the catalogue is loaded;
   // To add groups models by reference once it is.
   const modelCounts = { registry: data.models.length, toAdd: referenceCatalog ? groupReferenceModels(toAdd, referenceCatalog).length : toAdd.length };

@@ -13,7 +13,7 @@ import { EditorJourney } from "../../components/registry/EditorJourney";
 import { documentedPrice, fieldLabel, sourceLabel, type Catalog, type CatalogAccess, type CatalogField, type CatalogRecord } from "./catalog-api";
 import { creatorKey, registryEndpoints, sameAccess, type Access, type Capability, type Model, type PricingProof } from "../../domain/registry";
 import { parsePropertyValue, pricingApplicationState, proposedAccessValue, stageCatalogOverride, type CatalogOverride, type EditableProperty } from "./model-card-fields";
-import { applyModelId, canonicalCapabilities, changeAccessProvider, declaredEndpoints, firstRegistrationIssue, modelEditorOptions, prefillFromReference } from "./model-editor-data";
+import { applyModelId, canonicalCapabilities, changeAccessProvider, declaredEndpoints, firstRegistrationIssue, matchingAccesses, modelEditorOptions, prefillFromReference } from "./model-editor-data";
 import { SearchableSelect, type SearchOption } from "../../components/registry/SearchableSelect";
 import { cardName } from "./reference-groups";
 import { BrandIcon, displayProvider } from "../../components/registry/BrandIcon";
@@ -147,11 +147,7 @@ export default function ModelEditor({ draft, onChange, creating, workspace, cata
   // Saved accesses removed from the draft stay matches, so they can be added back; an access another
   // saved card holds is never offered (Bifrost routes one access to one card).
   const knownAccesses = [...draft.accesses, ...(creating ? [] : baseline?.accesses || [])];
-  const linkedReferenceIds = new Set(knownAccesses.map(access => access.referenceId).filter(Boolean));
-  const matchingCatalog = (viewCatalog?.accesses || []).filter(access => access.configured && (
-    access.model === draft.id || linkedReferenceIds.has(access.referenceId) ||
-    knownAccesses.some(row => sameAccess(row, access))
-  ) && !saved.some(card => card.id !== draft.id && card.accesses.some(row => sameAccess(row, access))));
+  const matchingCatalog = matchingAccesses(viewCatalog?.accesses || [], draft.id, knownAccesses, saved);
   const availableAccesses = [...new Map(matchingCatalog.map(access => [`${access.provider}/${access.model}`, access])).values()];
   const selectedReference = (id?: string) => viewCatalog?.references.find(reference => reference.id === id);
   const cardTitle = cardName(draft, viewCatalog);

@@ -74,9 +74,10 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await scope(/^To add/).click();
     await expect(opens).toHaveCount(60); // first page
     await searchModels().fill('qa-opus');
-    // Exact IDs: the variant keeps its own; the access sharing QA Opus' reference shows its native ID.
+    // Exact IDs: the variant keeps its own; the aggregator's anthropic/qa-opus is the saved card's namespace-free qa-opus.
     await expect(opens).toHaveText(['QA Opus', '~anthropic/qa-opus-latest']);
-    await expect(card('QA Opus')).toContainText('anthropic/qa-opus');
+    await expect(card('QA Opus')).toContainText('qa-opus');
+    await expect(card('QA Opus')).not.toContainText('anthropic/qa-opus');
     await expect(card('QA Opus')).toContainText('Partial');
     await searchModels().fill(':batch');
     await expect(opens).toHaveText(['openai/qa-codex:batch']);
@@ -193,7 +194,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await page.keyboard.press('Escape');
     await scope(/^To add/).click();
     await creators.click();
-    await expect(page.getByRole('option')).toHaveText(['Creator: all', 'Anthropic (1)', 'DeepSeek (1)', 'Fixture Labs (1)', 'Google (1)', 'Meituan (1)', 'Tencent (1)', 'Typesafe (1)', 'Creator not identified (62)']);
+    await expect(page.getByRole('option')).toHaveText(['Creator: all', 'Anthropic (2)', 'DeepSeek (1)', 'Fixture Labs (1)', 'Google (1)', 'Meituan (1)', 'Tencent (1)', 'Typesafe (1)', 'Creator not identified (62)']);
     await page.getByRole('option', { name: 'Tencent (1)', exact: true }).click();
     await expect(page.getByRole('button', { name: /^Open .* details$/ })).toHaveText(['QA Hunyuan']);
     await expect(card('QA Hunyuan')).toContainText('Tencent · qa-hunyuan');
@@ -318,6 +319,29 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(page.locator('[data-slot="card"]').filter({ has: button('Open QA Image details') })).toContainText('Saved');
   });
 
+  await test.step('a decisions-only model is identified and preselects decisions; aggregator IDs drop the vendor', async () => {
+    await scope(/^To add/).click();
+    // Models.dev has no typesafe provider record, yet the access links to the reference typesafe/qa-jev.
+    await searchModels().fill('qa-jev');
+    const jev = page.locator('[data-slot="card"]').filter({ has: button('Open QA Jev details') });
+    await expect(jev.getByRole('img', { name: 'Typesafe', exact: true }).first(), 'the creator comes from the reference namespace').toHaveText('TY');    await button('Open QA Jev details').click();
+    const inCard = sheet().getByRole('heading', { name: /^In this card/ }).locator('..');
+    await expect(inCard.getByRole('checkbox', { name: /^Decisions/ })).toBeChecked();
+    await expect(inCard.getByRole('checkbox', { name: /^Chat Completions/ })).not.toBeChecked();
+    await button('Cancel').click();
+    await sheet().waitFor({ state: 'hidden' });
+    // The aggregator's deepseek/qa-reasoner proposes the model's own name, like the direct providers' IDs.
+    await searchModels().fill('qa-reasoner');
+    await button('Open QA Reasoner details').click();
+    const commonId = sheet().locator('summary', { hasText: 'Common model ID' });
+    await expect(commonId).toContainText('qa-reasoner');
+    await expect(commonId).not.toContainText('deepseek');
+    await button('Cancel').click();
+    await sheet().waitFor({ state: 'hidden' });
+    await searchModels().fill('');
+    await scope(/^In Registry/).click();
+  });
+
   await test.step('saved card keeps its own accesses; matching ones are offered, never merged', async () => {
     // Claude/qa-opus is saved; openrouter's anthropic/qa-opus shares its reference and is not.
     const before = (await api('workspace')).data.models;
@@ -332,6 +356,8 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(part(popover, /^Available, not in this card/)).toContainText(/openrouter/i);
     await expect(part(popover, /^Available, not in this card/), 'QA Opus Fast holds its own access').not.toContainText('qa-opus-fast');
     await expect(part(popover, /^Available, not in this card/)).toContainText(/Input price \$4\/M.*Output price \$20\/M/);
+    // openrouter's anthropic/qa-opus-pro shares the reference but is a variant, not the same model.
+    await expect(part(popover, /^Available, not in this card/), 'A variant sharing the reference is not offered').not.toContainText('qa-opus-pro');
     await expect(popover, 'Facts are readable, not raw parameter JSON').not.toContainText('{"');
     await page.keyboard.press('Escape');
     await page.getByRole('radio', { name: 'Table', exact: true }).click();
@@ -363,6 +389,8 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(part(sheet(), /^In this card/)).not.toContainText(/openrouter/i);
     await expect(part(sheet(), /^Also available/)).toContainText(/Input price \$4\/M.*Output price \$20\/M/);
     await expect(part(sheet(), /^Also available/), 'An access saved in another card is not offered').not.toContainText('qa-opus-fast');
+    await expect(part(sheet(), /^Also available/), 'A "-pro" variant sharing the reference is not the same model').not.toContainText('qa-opus-pro');
+    await expect(sheet().getByRole('button', { name: /^Add openrouter/i })).toHaveCount(1);
     await sheet().getByRole('button', { name: /^Remove Claude/ }).click();
     await expect(part(sheet(), /^Also available/), 'A removed saved access can be added back').toContainText('Claude');
     await sheet().getByRole('button', { name: /^Add openrouter/i }).click();
