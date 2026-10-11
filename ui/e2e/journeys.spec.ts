@@ -1402,6 +1402,110 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await page.setViewportSize({ width: 390, height: 844 });
   });
 
+  await test.step('a phone folds the filters into Filters (n); selected toggles stand out; view controls and the page title appear once', async () => {
+    // Colours as painted: one canvas pixel turns oklch()/color-mix() into sRGB, and a translucent surface is composited over its parents.
+    const contrastOf = (toggle: Locator) => toggle.evaluate(on => {
+      const ctx = document.createElement('canvas').getContext('2d', { willReadFrequently: true })!;
+      const rgba = (css: string) => { ctx.clearRect(0, 0, 1, 1); ctx.fillStyle = '#000'; ctx.fillStyle = css; ctx.fillRect(0, 0, 1, 1); const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data; return [r, g, b, a / 255]; };
+      const over = (top: number[], below: number[]) => [0, 1, 2].map(i => top[i] * top[3] + below[i] * (1 - top[3])).concat(1);
+      const luminance = ([r, g, b]: number[]) => [r, g, b].map(c => { const v = c / 255; return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }).reduce((sum, v, i) => sum + v * [0.2126, 0.7152, 0.0722][i], 0);
+      const ratio = (a: number[], b: number[]) => { const [x, y] = [luminance(a), luminance(b)]; return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+      const surface = (el: Element) => { const parents: Element[] = []; for (let n = el.parentElement; n; n = n.parentElement) parents.push(n); return parents.reduceRight((below, n) => over(rgba(getComputedStyle(n).backgroundColor), below), getComputedStyle(document.documentElement).colorScheme === 'dark' ? [18, 18, 18, 1] : [255, 255, 255, 1]); }; // the canvas the UA paints behind a transparent page
+      const style = getComputedStyle(on);
+      const behind = surface(on), fill = over(rgba(style.backgroundColor), behind), outline = over(rgba(style.outlineColor), behind);
+      const off = [...on.parentElement!.querySelectorAll('[data-state="off"]')][0];
+      return { state: on.getAttribute('data-state'), outlineStyle: style.outlineStyle, outlineWidth: parseFloat(style.outlineWidth), outlineVsSurface: ratio(outline, behind), outlineVsFill: ratio(outline, fill), textVsFill: ratio(rgba(style.color), fill), idleText: off ? ratio(rgba(getComputedStyle(off).color), surface(off)) : 0 };
+    });
+    const expectSelectedStandsOut = async (toggle: Locator, label: string) => {
+      const c = await contrastOf(toggle);
+      expect(c.state, label).toBe('on');
+      expect([c.outlineStyle, c.outlineWidth], `${label} outline`).toEqual(['solid', expect.any(Number)]);
+      expect(c.outlineWidth, `${label} outline width`).toBeGreaterThanOrEqual(1);
+      expect(c.outlineVsSurface, `${label} outline on its surface: ${JSON.stringify(c)}`).toBeGreaterThanOrEqual(3);
+      expect(c.outlineVsFill, `${label} outline on its fill: ${JSON.stringify(c)}`).toBeGreaterThanOrEqual(3);
+      expect(c.textVsFill, `${label} selected text: ${JSON.stringify(c)}`).toBeGreaterThanOrEqual(4.5);
+      expect(c.idleText, `${label} unselected text: ${JSON.stringify(c)}`).toBeGreaterThanOrEqual(4.5);
+      expect(c.textVsFill, `${label} selected text is stronger than the unselected one`).toBeGreaterThan(c.idleText);
+    };
+    const selectedToggles = async (theme: string) => {
+      await page.waitForFunction(() => document.getAnimations().length === 0); // colours transition for a moment after a theme switch
+      await expectSelectedStandsOut(scope(/^In Registry/), `${theme} scope`);
+      await expectSelectedStandsOut(page.getByRole('radio', { name: 'Grid', exact: true }), `${theme} View`);
+      await expectSelectedStandsOut(page.getByRole('radio', { name: 'Rectangle', exact: true }), `${theme} Shape`);
+      await expectSelectedStandsOut(page.getByRole('radio', { name: 'Small · 4 columns', exact: true }), `${theme} Density`);
+      await button('View options').click();
+      await expectSelectedStandsOut(page.getByRole('radio', { name: 'Creator', exact: true }), `${theme} Primary logo`);
+      await page.keyboard.press('Escape');
+    };
+
+    // Wide: the page title shows once (the topbar no longer repeats it) and View/Shape/Density sit in the toolbar only.
+    await page.setViewportSize({ width: 1440, height: 950 });
+    await nav('My models').click();
+    await scope(/^In Registry/).waitFor();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('My models');
+    await expect(page.locator('header').first()).not.toContainText('My models');
+    await expect(page.getByRole('button', { name: /^Filters/ }), 'wide toolbars keep their filters inline').toHaveCount(0);
+    await expect(page.getByRole('combobox', { name: 'Creator', exact: true })).toBeVisible();
+    for (const name of ['Grid', 'Table', 'Rectangle', 'Square', 'Small · 4 columns']) await expect(page.getByRole('radio', { name, exact: true })).toHaveCount(1);
+    await button('View options').click();
+    for (const name of ['Grid', 'Table', 'Rectangle', 'Square', 'Small · 4 columns']) await expect(page.getByRole('radio', { name, exact: true }), `${name} is not offered twice`).toHaveCount(1);
+    await expect(page.getByRole('radio', { name: 'Provider', exact: true }), 'View options keeps what the toolbar does not').toBeVisible();
+    await page.keyboard.press('Escape');
+    await selectedToggles('light');
+    await button('Use dark theme').click();
+    await expect(page.locator('html')).toHaveAttribute('class', 'dark');
+    await selectedToggles('dark');
+    await button('Use light theme').click();
+    await expect(page.locator('html')).not.toHaveAttribute('class', 'dark');
+    // Other pages carry their own title too, once.
+    await nav('Groups').click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Groups');
+    await expect(page.locator('header').first()).not.toContainText('Groups');
+    await nav('Virtual keys').click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Virtual keys');
+    await expect(page.locator('header').first()).not.toContainText('Virtual keys');
+    await nav('My models').click();
+
+    // 375 px: search stays, every filter folds into one Filters control, and the first card is in the first screen.
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.locator('.content-container').evaluate(el => el.scrollTo(0, 0));
+    const filters = page.getByRole('button', { name: /^Filters/ });
+    await expect(searchModels()).toBeVisible();
+    await expect(filters).toHaveCount(1);
+    await expect(filters).toHaveAccessibleName('Filters');
+    for (const name of ['Creator', 'Serving provider', 'Usage / task', 'Group models by', 'Sort models by', 'Input', 'Output', 'Capability']) await expect(page.getByRole('combobox', { name, exact: true }), `${name} is folded`).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /^More filters/ })).toHaveCount(0);
+    await withinViewport(page.getByRole('button', { name: /^Open .* details$/ }).first());
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await shot('after-mobile-filters-375');
+    // The keyboard opens it, every control is inside, a choice shows in the count, Escape closes it and gives the focus back.
+    await filters.focus();
+    await page.keyboard.press('Enter');
+    for (const name of ['Creator', 'Serving provider', 'Usage / task', 'Group models by', 'Sort models by', 'Input', 'Output', 'Capability']) await expect(page.getByRole('combobox', { name, exact: true }), name).toBeVisible();
+    const opens = page.getByRole('button', { name: /^Open .* details$/ });
+    const total = await opens.count();
+    await page.getByRole('combobox', { name: 'Creator', exact: true }).click();
+    const creator = (await page.getByRole('option').allTextContents())[1]; // "<name> (n)"
+    await page.getByRole('option', { name: creator, exact: true }).click();
+    await expect(filters).toHaveAccessibleName('Filters (1)');
+    await expect(page.getByRole('combobox', { name: 'Output', exact: true }), 'a choice keeps the panel open').toBeVisible();
+    await page.getByRole('combobox', { name: 'Sort models by', exact: true }).click();
+    await page.getByRole('option', { name: 'Sort by creator', exact: true }).click();
+    await expect(filters, 'sorting is not a filter').toHaveAccessibleName('Filters (1)');
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('combobox', { name: 'Output', exact: true })).toBeHidden();
+    await expect(filters, 'Escape returns focus to the trigger').toBeFocused();
+    await expect(opens).toHaveCount(Number(creator.match(/\((\d+)\)$/)![1]));
+    await button('Clear all').click();
+    await expect(filters).toHaveAccessibleName('Filters');
+    await expect(opens).toHaveCount(total);
+    await filters.click();
+    await page.getByRole('combobox', { name: 'Sort models by', exact: true }).click();
+    await page.getByRole('option', { name: 'Sort by name', exact: true }).click(); // the Models page default again
+    await page.keyboard.press('Escape');
+    await page.setViewportSize({ width: 1440, height: 950 });
+  });
+
   await test.step('dark theme and logout clear secrets and workspace', async () => {
     await button('Use dark theme').click();
     await shot('after-catalog-dark-mobile');

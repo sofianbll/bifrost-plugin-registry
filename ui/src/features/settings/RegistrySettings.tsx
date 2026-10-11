@@ -98,7 +98,7 @@ export default function RegistrySettings({ preferences, onPreferencesChange, sna
   };
 
   return <div className="mx-auto w-full max-w-5xl space-y-4">
-    <header><h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">{copy("Settings", "Réglages")}</h2><p className="mt-1 max-w-prose text-sm text-muted-foreground">{copy("Manage display, model data and connection guidance.", "Gérez l’affichage, les données modèles et les informations de connexion.")}</p></header>
+    <header><h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{copy("Settings", "Réglages")}</h1><p className="mt-1 max-w-prose text-sm text-muted-foreground">{copy("Manage display, model data and connection guidance.", "Gérez l’affichage, les données modèles et les informations de connexion.")}</p></header>
     <div className="grid gap-4 md:grid-cols-[11rem_minmax(0,1fr)]">
       <nav aria-label={copy("Settings sections", "Sections des réglages")} className="flex gap-1 overflow-x-auto pb-1 md:block md:space-y-1 md:overflow-visible">
         {sections.map(({ id, icon: Icon, en, fr }) => <button key={id} type="button" aria-current={section === id ? "page" : undefined} onClick={() => setSection(id)} className={`flex shrink-0 items-center gap-2 rounded-sm px-3 py-2 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:w-full ${section === id ? "bg-secondary font-medium text-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground"}`}><Icon className="size-4" /><span>{copy(en, fr)}</span></button>)}
