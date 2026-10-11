@@ -424,3 +424,12 @@ func TestKeptProviderSharingAModelAndAllowingAnUndiscoveredOneIsAdopted(t *testi
 	}
 	t.Fatal("key missing from workspace")
 }
+
+// The live Hermes case: DeepSeek is kept in Bifrost, but a Registry route can also start with "deepseek/" (a card
+// served through another provider). That route is Registry's: missing from the readback, it is drift.
+func TestRegistryRouteNamedLikeAKeptProviderIsStillChecked(t *testing.T) {
+	missing, unexpected := diffModels([]string{"deepseek/deepseek-v4-pro", "deepseek/kept"}, []string{"deepseek/other"}, []string{"deepseek"}, []string{"deepseek/deepseek-v4-pro"})
+	if strings.Join(missing, ",") != "deepseek/deepseek-v4-pro" || len(unexpected) != 0 {
+		t.Fatalf("missing %v, unexpected %v", missing, unexpected)
+	}
+}

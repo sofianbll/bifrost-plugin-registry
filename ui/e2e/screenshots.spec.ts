@@ -41,6 +41,8 @@ test('model card', async ({ page }) => {
 test('key composer', async ({ page, language }) => {
   await page.goto(`/?lang=${language}#/keys/vk-qa-dev`);
   await page.getByRole('heading', { level: 1, name: 'QA Development Key' }).waitFor();
+  // The key page opens read-first; the composer is behind Edit selection.
+  await page.getByRole('button', { name: language === 'fr' ? 'Modifier la sélection' : 'Edit selection', exact: true }).click();
   await capture(page, 'key-composer.png');
 });
 

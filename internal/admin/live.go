@@ -1295,7 +1295,7 @@ func (s *Server) readback(w http.ResponseWriter, r *http.Request, id string) {
 				sort.Strings(p.Actual)
 				p.ObservedAt = p.CheckedAt
 				p.ObservedRevision = p.Revision
-				p.Missing, p.Unexpected = diffModels(p.Expected, p.Actual, view.Policy.KeptNative)
+				p.Missing, p.Unexpected = diffModels(p.Expected, p.Actual, view.Policy.KeptNative, exposedIDs(view))
 				p.State = "verified"
 				if len(p.Missing)+len(p.Unexpected) > 0 {
 					p.State = "drift"

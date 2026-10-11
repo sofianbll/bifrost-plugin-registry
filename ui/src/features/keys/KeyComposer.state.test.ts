@@ -1,5 +1,5 @@
 import { fixture } from "../../dev/fixtures/registry";
-import { emptyModelFilters, exposed, filterModels, members, same, type Key, type Policy } from "../../domain/registry";
+import { delta, emptyModelFilters, exposed, filterModels, members, same, type Key, type Policy } from "../../domain/registry";
 import { accessOrigin, aliasStatus, keyBaseline, keyComposition, modelOrigin, preserveAdoptionDraft, toggleAccess, toggleVisibleModels } from "./KeyComposer.state";
 
 const groups = fixture.groups.slice(0, 2);
@@ -87,6 +87,12 @@ if (verifiedBaseline.source !== "readback" || !same(verifiedBaseline.ids, ["open
 // A kept provider's routes are Bifrost's: they are in the readback, but publishing never removes them.
 const keptBaseline = keyBaseline({ ...planned, policy: { ...planned.policy, keptNative: ["mistral"] }, publication: { state: "verified", revision: "r", checkedAt: "", expected: [], actual: ["mistral/large", "openai/gpt-5"], missing: [], unexpected: [] } }, groups, models);
 if (!same(keptBaseline.ids, ["openai/gpt-5"])) throw new Error(`Kept-native routes must not be diffed as removed: ${JSON.stringify(keptBaseline)}`);
+// The live Hermes case: DeepSeek is kept in Bifrost, and Registry serves a card whose common ID starts with
+// "deepseek/" through another provider. That route is Registry's: an unchanged verified key shows no change.
+const hermesModels = [...models, { ...gpt5, id: "deepseek/deepseek-v4-pro", alias: undefined, accesses: [{ ...gpt5.accesses[0], id: "opencode-go/deepseek-v4-pro", provider: "opencode-go" }] }];
+const hermes: Key = { ...planned, policy: { groups: [], added: ["deepseek/deepseek-v4-pro"], excluded: [], naming: "model", keptNative: ["deepseek"] }, publication: { state: "verified", revision: "r", checkedAt: "", expected: ["deepseek/deepseek-chat", "deepseek/deepseek-v4-pro"], actual: ["deepseek/deepseek-chat", "deepseek/deepseek-v4-pro"], missing: [], unexpected: [] } };
+const hermesChanges = delta(keyBaseline(hermes, groups, hermesModels).ids, exposed(hermes.policy, groups, hermesModels));
+if (hermesChanges.added.length || hermesChanges.removed.length) throw new Error(`A verified, unchanged key with a kept provider must show no change: ${JSON.stringify(hermesChanges)}`);
 // Native permissions name native models, which workspace accesses carry.
 const withNative = models.map(model => ({ ...model, accesses: model.accesses.map(access => ({ ...access, nativeModel: model.id })) }));
 const nativeBaseline = keyBaseline({ ...planned, policy: { groups: [], added: [], excluded: [], naming: "both" }, permissions: { allProviders: false, providers: [{ provider: "openai", allModels: false, models: ["gpt-5"] }] } }, groups, withNative);
