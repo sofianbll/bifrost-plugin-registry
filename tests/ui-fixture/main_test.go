@@ -155,6 +155,25 @@ func TestFixtureDiscoveryMirrorsSubscriptionGateway(t *testing.T) {
 			t.Fatalf("aggregator variant %s is not discovered", variant)
 		}
 	}
+	// A "-pro" variant linked to the card's reference: the editor must not offer it as the same model.
+	if aggregator["anthropic/qa-opus-pro"] != "anthropic/qa-opus" {
+		t.Fatalf("variant anthropic/qa-opus-pro is not linked to the card's reference: %q", aggregator["anthropic/qa-opus-pro"])
+	}
+	// Common IDs drop the aggregator's vendor, so the same model through two providers is one discovered model.
+	byID := map[string][]string{}
+	for _, m := range ws.Discovery {
+		for _, a := range m.Accesses {
+			byID[m.ID] = append(byID[m.ID], a.Provider+"/"+a.NativeModel)
+		}
+	}
+	if got := strings.Join(byID["qa-opus"], ","); got != "Claude/qa-opus,openrouter/anthropic/qa-opus" {
+		t.Fatalf("qa-opus is served by %q", got)
+	}
+	for _, id := range []string{"qa-opus-pro", "qa-opus-latest", "qa-codex-batch", "qa-reasoner"} {
+		if len(byID[id]) != 1 {
+			t.Fatalf("namespace-free common ID %s: %v", id, byID[id])
+		}
+	}
 }
 
 // Unmanaged keys carry native permissions; the one restricted to listed models is adoptable as is.

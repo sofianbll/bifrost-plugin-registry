@@ -15,7 +15,7 @@ import ModelBrowser from "./ModelBrowser";
 import { FactLine } from "./FactLine";
 import { AssociateReferenceDialog } from "./AssociateReference";
 import { FactsUnknown, factsUnknown, hasReference } from "./card-identity";
-import { declaredEndpoints, prefillFromReference } from "./model-editor-data";
+import { declaredEndpoints, matchingAccesses, prefillFromReference } from "./model-editor-data";
 import { attentionOf, cardEntries, cardName, cardsHolding, filterReferenceGroups, filterReferenceModels, groupReferenceModels, sharedReferenceFacts, type ReferenceGroup } from "./reference-groups";
 import { cardFormat, gridColumns, type ViewOptions } from "../../components/registry/ViewOptions";
 import { useCopy, useCreatorName, useFormat, useTerm } from "../../lib/locale";
@@ -59,6 +59,14 @@ export default function ReferenceCatalogBrowser({ scope, models, allModels, cata
   const byCard = scope === "registry";
   // The saved card an In Registry tile shows.
   const savedOf = (group: ReferenceGroup) => byCard ? registeredModels.find(model => model.id === group.entries[0]?.model.id) : undefined;
+  // What the editor would offer a saved card as "Also available" among these entries: an access sharing
+  // the reference is not offered when it is a variant ("-pro", "-fast") of another model.
+  const offeredTo = (card: Model, entries: ReferenceGroup["entries"]) => {
+    const offered = new Set(matchingAccesses(catalog?.accesses ?? [], card.id, card.accesses, registeredModels));
+    return entries.filter(entry => entry.catalogAccess && offered.has(entry.catalogAccess));
+  };
+  // The saved cards a To add tile can join: they hold its model and the editor would offer them one of its accesses.
+  const joinableCards = (whole: ReferenceGroup) => cardsHolding(whole, registeredModels).filter(card => offeredTo(card, cardEntries(whole, registeredModels).available).length > 0);
 
   const open = (group: ReferenceGroup) => {
     const saved = savedOf(group);
@@ -68,7 +76,7 @@ export default function ReferenceCatalogBrowser({ scope, models, allModels, cata
     const complete = groupReferenceModels(allModels, catalog).find(row => row.key === group.key) || group;
     // A To add tile whose model a saved card already holds: open that card on its accesses, where
     // the access waits under "Also available" until the user adds it.
-    const cards = byCard ? [] : cardsHolding(complete, registeredModels);
+    const cards = byCard ? [] : joinableCards(complete);
     if (cards.length) { if (cards.length === 1) onOpen(cards[0], "access"); else setPick({ cards, group }); return; }
     const ids = unique(complete.entries.map(entry => entry.model.id));
     const registered = ids.filter(id => registeredIds.has(id));
@@ -97,11 +105,11 @@ export default function ReferenceCatalogBrowser({ scope, models, allModels, cata
     const isCard = (group: ReferenceGroup) => !!savedOf(group);
     const availableBeside = (group: ReferenceGroup) => {
       const saved = savedOf(group);
-      return saved ? [...full.values()].filter(whole => cardEntries(whole, [saved]).card.length).flatMap(whole => cardEntries(whole, registeredModels).available) : [];
+      return saved ? offeredTo(saved, [...full.values()].filter(whole => cardEntries(whole, [saved]).card.length).flatMap(whole => cardEntries(whole, registeredModels).available)) : [];
     };
     const status = (group: ReferenceGroup) => isCard(group) ? "registered" : cardEntries(full.get(group.key) ?? group, registeredModels).card.length ? "partial" : "to-create";
     // The saved cards a To add tile can join (none for a saved card or a model no card holds).
-    const joinable = (group: ReferenceGroup) => byCard ? [] : cardsHolding(full.get(group.key) ?? group, registeredModels);
+    const joinable = (group: ReferenceGroup) => byCard ? [] : joinableCards(full.get(group.key) ?? group);
     // A card badge says what needs attention, never "saved": +N available, no reference... A To add
     // tile that fits a saved card says which. Each entry: key (data-attention), text, tooltip.
     const badges = (group: ReferenceGroup) => {
@@ -135,7 +143,9 @@ export default function ReferenceCatalogBrowser({ scope, models, allModels, cata
     };
     const identity = (group: ReferenceGroup) => {
       const saved = registeredModels.filter(model => group.entries.some(entry => entry.model.id === model.id));
-      const registered = saved.length === 1 ? saved[0] : undefined;
+      // Only a saved card's own tile: a To add tile keeps its reference name and native IDs although its
+      // namespace-free common ID can equal a saved card's.
+      const registered = byCard && saved.length === 1 ? saved[0] : undefined;
       const name = registered ? cardName(registered, catalog) : nameOf(group);
       // A saved card reads its common ID; a model to add, the exact native IDs it would bring.
       const idLine = registered?.id ?? (unique(group.entries.flatMap(entry => entry.access?.nativeModel ? [entry.access.nativeModel] : [])).join(" · ") || group.entries[0].model.id);

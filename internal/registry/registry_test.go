@@ -553,11 +553,28 @@ func TestEndpointPaths(t *testing.T) {
 			t.Fatal(path)
 		}
 	}
-	for _, path := range []string{"/v1/models/alpha", "/v1/models/", "/v1/../models", "/anthropic/v1/messages", "/v1/realtime", "/api/providers"} {
+	// Bifrost 2.2.6 serves decisions on /v1/decisions only: its OpenAI integration has no such route.
+	for _, path := range []string{"/v1/models/alpha", "/v1/models/", "/v1/../models", "/anthropic/v1/messages", "/v1/realtime", "/api/providers", "/openai/v1/decisions", "/openai/decisions"} {
 		if _, ok := Endpoint(path); ok {
 			t.Fatal(path)
 		}
 	}
+}
+
+func TestDecisionsRouteBifrostDoesNotServeIsRefused(t *testing.T) {
+	c := fixture()
+	c.Models[0].Endpoints = []string{"decisions"}
+	s := mustCompile(t, c)
+	for _, path := range []string{"/openai/v1/decisions", "/openai/decisions"} {
+		r := req(`{"model":"alpha/smart"}`)
+		r.Path = path
+		if _, failure := s.Prepare(r); failure == nil || failure.Code != "registry_unsupported_endpoint" {
+			t.Fatalf("%s: %#v", path, failure)
+		}
+	}
+	r := req(`{"model":"alpha/smart"}`)
+	r.Path = "/v1/decisions"
+	mustPrepare(t, s, r)
 }
 
 func TestEndpointOperationsAreAuthorizedPerAccess(t *testing.T) {

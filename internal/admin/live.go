@@ -447,6 +447,14 @@ func modelID(name string) string {
 	}
 	return id
 }
+
+// splitVendor separates an aggregator's "vendor/model" ("~vendor/model" keeps its marker in the vendor).
+func splitVendor(name string) (vendor, bare string) {
+	if i := strings.LastIndex(name, "/"); i > 0 && i < len(name)-1 {
+		return name[:i], name[i+1:]
+	}
+	return "", name
+}
 func registryID(provider, name string) string {
 	h := sha256.Sum256([]byte(provider + "\x00" + name))
 	return "access-" + hex.EncodeToString(h[:8])
@@ -455,20 +463,39 @@ func nativeToDiscovery(rows []nativeModel) []modelDTO {
 	models := []modelDTO{}
 	byName := map[string]int{}
 	used := map[string]string{}
+	// An aggregator names models "vendor/model". The common ID drops the vendor, like the direct
+	// provider's ("claude-fable-5", not "anthropic-claude-fable-5"), and the same model through
+	// both is one discovered model. A bare name that several vendors share keeps its vendor.
+	vendors := map[string]map[string]bool{}
+	for _, row := range rows {
+		if vendor, bare := splitVendor(row.Name); vendor != "" {
+			if vendors[bare] == nil {
+				vendors[bare] = map[string]bool{}
+			}
+			vendors[bare][vendor] = true
+		}
+	}
 	for _, row := range rows {
 		if row.Provider == "" || row.Name == "" {
 			continue
 		}
-		id := modelID(row.Name)
-		if prev := used[id]; prev != "" && prev != row.Name {
-			sum := sha256.Sum256([]byte(row.Name))
+		key := row.Name
+		if vendor, bare := splitVendor(key); vendor != "" && len(vendors[bare]) == 1 {
+			key = bare
+		}
+		id := modelID(key)
+		if prev := used[id]; prev != "" && prev != key {
+			sum := sha256.Sum256([]byte(key))
 			id += "-" + hex.EncodeToString(sum[:4])
 		}
-		used[id] = row.Name
-		i, ok := byName[row.Name]
+		used[id] = key
+		i, ok := byName[key]
+		if ok && row.Name == key {
+			models[i].Name = key // the plain name, whichever provider came first
+		}
 		if !ok {
 			i = len(models)
-			byName[row.Name] = i
+			byName[key] = i
 			models = append(models, modelDTO{ID: id, Name: row.Name, Creator: "Unknown", Family: "Unknown", InputModalities: []string{}, OutputModalities: []string{}, Tasks: []string{}, Kind: "Unknown", Summary: "", Context: "Unknown", Capabilities: map[string]string{}, Accesses: []accessDTO{}})
 		}
 		a := accessDTO{Provider: row.Provider, ID: row.Provider + "/" + id, Route: "Direct provider", Status: "Configured", NativeModel: row.Name, Endpoints: []string{}}
