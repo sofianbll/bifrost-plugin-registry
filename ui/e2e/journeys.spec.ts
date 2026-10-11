@@ -204,8 +204,8 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(opens).toHaveText(['QA Shared', 'qa-sonnet', 'QA Opus Fast', 'QA Haiku', 'QA Opus', 'QA Shared', 'qa-codex-mini', 'QA Codex', 'qa-flash', 'QA Gemini', 'QA Vision', 'QA Chat', 'QA Code']);
     await choose(grouping, 'No grouping');
     await expect(opens).toHaveText(['QA Shared', 'qa-flash', 'qa-sonnet', 'QA Gemini', 'qa-codex-mini', 'QA Codex', 'QA Opus Fast', 'QA Haiku', 'QA Opus', 'QA Vision', 'QA Chat', 'QA Code']);
-    await choose(sorting, 'Sort by creator');
-    await expect(opens).toHaveText(['QA Haiku', 'QA Opus', 'QA Opus Fast', 'QA Chat', 'QA Code', 'QA Vision', 'QA Gemini', 'QA Codex', 'QA Shared', 'qa-codex-mini', 'qa-flash', 'qa-sonnet']);
+    await choose(sorting, 'Sort by creator'); // inferred creators count; QA Shared (two base types) has none and goes last
+    await expect(opens).toHaveText(['QA Haiku', 'QA Opus', 'QA Opus Fast', 'qa-sonnet', 'QA Chat', 'QA Code', 'QA Vision', 'QA Gemini', 'qa-flash', 'QA Codex', 'qa-codex-mini', 'QA Shared']);
     await choose(sorting, 'Sort by provider');
     await expect(opens).toHaveText(['QA Haiku', 'QA Opus', 'QA Opus Fast', 'QA Shared', 'qa-sonnet', 'QA Codex', 'qa-codex-mini', 'QA Gemini', 'qa-flash', 'QA Chat', 'QA Code', 'QA Vision']);
     await choose(sorting, 'Sort by name');
@@ -926,9 +926,9 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(scope(/^To add/)).toBeChecked();
     await expect(page.getByRole('button', { name: /^Key models: 1/ })).toBeVisible();
     await expect(page.getByRole('button', { name: /^Open .* details$/ })).toHaveText(['QA Unregistered']);
-    // The filter is an ordinary chip: clearing it shows the whole shelf again.
+    // The filter is an ordinary chip: clearing it shows the whole shelf again, by subscription.
     await page.getByRole('button', { name: 'Clear all', exact: true }).click();
-    await expect(page.getByRole('button', { name: /^Open .* details$/ })).toHaveCount(60);
+    await expect(page.getByRole('heading', { level: 3 })).toHaveText(['Google 1', 'Synthetic Provider 1', 'Typesafe 1', 'OpenRouter 66']);
     await scope(/^In Registry/).click();
 
     // A key that allows nothing says so instead of listing blockers.
