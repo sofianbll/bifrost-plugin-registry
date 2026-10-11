@@ -29,7 +29,8 @@ import (
 // Bifrost 2.2.6: the write is the one Registry already uses to publish a managed key (PUT with
 // allow_all_providers false and the provider rows, ids kept so budgets and rate limits stay), and the result
 // is read back and compared with the preview before it is reported. A row emptied by the removal is dropped,
-// never sent with an empty allowed_models, whose meaning depends on the Bifrost list version.
+// never sent with an empty allowed_models, whose meaning depends on the Bifrost list version; Bifrost then
+// deletes the row's budgets and rate limit too, so the preview says so (dropsLimits) before the confirmation.
 const (
 	editRemoveModels = "remove-models"
 	editReplaceAll   = "replace-all-providers"
@@ -47,6 +48,8 @@ type permissionEditInput struct {
 type permissionChange struct {
 	Provider string   `json:"provider"`
 	Models   []string `json:"models"`
+	// DropsLimits: the provider row goes away, and Bifrost deletes its budgets and rate limit with it.
+	DropsLimits bool `json:"dropsLimits,omitempty"`
 }
 
 // permissionEditPreview is the exact change: what the key allows today, what it allows afterwards, and
@@ -172,6 +175,7 @@ func (s *Server) permissionEditPlan(ctx context.Context, in permissionEditInput)
 			blocked("Nothing to remove for this provider")
 		}
 		sort.Strings(names)
+		dropsLimits := false
 		for _, pc := range vk.ProviderConfigs {
 			if pc.Provider == in.Provider {
 				kept := []string{}
@@ -181,13 +185,14 @@ func (s *Server) permissionEditPlan(ctx context.Context, in permissionEditInput)
 					}
 				}
 				if len(kept) == 0 {
+					dropsLimits = pc.hasLimits()
 					continue
 				}
 				pc.AllowedModels = kept
 			}
 			next = append(next, pc)
 		}
-		edit.preview.Remove = []permissionChange{{Provider: in.Provider, Models: names}}
+		edit.preview.Remove = []permissionChange{{Provider: in.Provider, Models: names, DropsLimits: dropsLimits}}
 		if len(names) == 0 {
 			edit.preview.Remove = []permissionChange{}
 		}

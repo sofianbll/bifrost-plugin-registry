@@ -178,8 +178,9 @@ type editPreview struct {
 	Revision     string `json:"revision"`
 	PreviewToken string `json:"previewToken"`
 	Remove       []struct {
-		Provider string   `json:"provider"`
-		Models   []string `json:"models"`
+		Provider    string   `json:"provider"`
+		Models      []string `json:"models"`
+		DropsLimits bool     `json:"dropsLimits,omitempty"`
 	} `json:"remove"`
 	Before   *nativePermissions `json:"before"`
 	After    *nativePermissions `json:"after"`
@@ -380,6 +381,25 @@ func TestRemoveModelsRefusals(t *testing.T) {
 	}
 	if code, _ := perform(h.server, "POST", "/api/keys/native-permissions", `{"keyId":"vk-hermes","operation":"remove-models","provider":"Mistral","phase":"preview"}`, nil).Code, 0; code != 401 {
 		t.Fatal("the native edit bypassed admin authentication", code)
+	}
+}
+
+// Bifrost deletes a provider row a write leaves out, with its budgets and rate limit: the preview says so,
+// and the token covers it, so the confirmation is for the whole loss.
+func TestDroppingARowThatCarriesLimitsIsInThePreview(t *testing.T) {
+	h := newPermissionHarness(t)
+	plain := h.preview(t, "vk-hermes", "remove-models", "Mistral")
+	if jsonOf(t, plain.Remove) != `[{"provider":"Mistral","models":["m-large","m-small"]}]` {
+		t.Fatalf("a row without limits must not claim any: %s", jsonOf(t, plain.Remove))
+	}
+	row := h.keys["vk-hermes"]["provider_configs"].([]any)[0].(map[string]any)
+	row["budgets"], row["rate_limit"] = []any{map[string]any{"max_limit": 10}}, map[string]any{"request_max_limit": 5}
+	p := h.preview(t, "vk-hermes", "remove-models", "Mistral")
+	if !p.CanApply || len(p.Remove) != 1 || !p.Remove[0].DropsLimits {
+		t.Fatalf("the preview must say the dropped row takes its budget and rate limit with it: %+v", p)
+	}
+	if p.PreviewToken == plain.PreviewToken {
+		t.Fatal("the token must cover the limits the row carries")
 	}
 }
 

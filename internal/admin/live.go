@@ -184,6 +184,23 @@ type nativeProviderConfig struct {
 	Keys              []struct {
 		KeyID string `json:"key_id"`
 	} `json:"keys"`
+	// What Bifrost deletes with a row a write leaves out; only whether it is there matters (and the edit token covers it).
+	Budgets      json.RawMessage `json:"budgets"`
+	RateLimit    json.RawMessage `json:"rate_limit"`
+	RateLimitID  json.RawMessage `json:"rate_limit_id"`
+	ModelBudgets json.RawMessage `json:"model_budgets"`
+}
+
+// hasLimits tells whether the row carries a budget or a rate limit of its own.
+func (p nativeProviderConfig) hasLimits() bool {
+	for _, raw := range []json.RawMessage{p.Budgets, p.RateLimit, p.RateLimitID, p.ModelBudgets} {
+		switch string(raw) {
+		case "", "null", "[]", "{}":
+		default:
+			return true
+		}
+	}
+	return false
 }
 
 // permissions summarises the native provider rows; "*" allows every model, blacklisted names are left
