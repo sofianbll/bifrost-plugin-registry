@@ -4,16 +4,17 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tree, type TreeNode } from "@/components/ui/treeView";
 import { displayProvider } from "../../components/registry/BrandIcon";
-import { useCopy } from "../../lib/locale";
-import type { Model } from "../../domain/registry";
+import { useCopy, useCreatorName } from "../../lib/locale";
+import { creatorKey, type Model } from "../../domain/registry";
 
 type Node = { id: string; name: string; kind: "creator" | "model" | "access"; modelId?: string };
 export function GroupTree({ models, selected, onToggle }: { models: Model[]; selected: string[]; onToggle: (id: string) => void }) {
   const copy = useCopy();
-  const creators = [...new Set(models.map(m => m.creator))].sort();
+  const creatorName = useCreatorName();
+  const creators = [...new Set(models.map(m => creatorKey(m.creator)))].sort();
   const nodes: TreeNode<Node>[] = creators.map(creator => ({
-    data: { id: `creator:${creator}`, name: creator, kind: "creator" },
-    children: models.filter(model => model.creator === creator).map(model => ({
+    data: { id: `creator:${creator}`, name: creatorName(creator), kind: "creator" },
+    children: models.filter(model => creatorKey(model.creator) === creator).map(model => ({
       data: { id: `model:${model.id}`, name: model.name, kind: "model", modelId: model.id },
       children: model.accesses.map(access => ({ data: { id: `access:${access.id}`, name: `${displayProvider(access.provider)} · ${access.id}`, kind: "access" } })),
     })),

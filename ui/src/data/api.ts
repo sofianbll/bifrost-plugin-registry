@@ -6,6 +6,8 @@ export type Workspace = {
   data: Demo;
   discovery: Model[];
   pricingProofs: PricingProof[];
+  // Native providers; custom ones carry their Bifrost base provider type (Claude → anthropic).
+  providers?: { id: string; baseProviderType?: string }[];
   connection: { connected: true; version: string; mode?: "snapshot"; source?: string; capturedAt?: string; partial?: boolean };
 };
 

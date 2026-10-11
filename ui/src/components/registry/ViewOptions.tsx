@@ -1,4 +1,4 @@
-import { LayoutGrid, List, Square } from "lucide-react";
+import { LayoutGrid, List, SlidersHorizontal, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -56,19 +56,22 @@ export function ViewControls({ value, onChange, onReset, scope, fields = ["descr
   const setDensity = (size: ViewOptions["size"]) => onChange({ ...value, size });
 
   if (catalogFormats) {
-    return <div className="flex flex-wrap items-center gap-3" aria-label={copy(`${scope || "List"} view options`, `Options d’affichage · ${scope || "liste"}`)}>
+    // Layout controls sit in the toolbar when the container is wide, inside View options when it is narrow;
+    // the popover is not portaled so both follow the same container. Below that width a grid has one or two
+    // columns whatever the density, so the 4/3/2 column counts hide too.
+    const layoutControls = <>
       <div className="space-y-1">
         <p className="text-xs font-medium text-muted-foreground">{copy("View", "Vue")}</p>
         <ToggleGroup type="single" value={value.layout} onValueChange={layout => layout && onChange({ ...value, layout: layout as ViewOptions["layout"] })} aria-label={copy("View", "Vue")}>
-          <ToggleGroupItem value="grid" aria-label={copy("Grid", "Grille")}><LayoutGrid className="size-4" /><span className="hidden sm:inline">{copy("Grid", "Grille")}</span></ToggleGroupItem>
-          <ToggleGroupItem value="table" aria-label={copy("Table", "Tableau")}><List className="size-4" /><span className="hidden sm:inline">{copy("Table", "Tableau")}</span></ToggleGroupItem>
+          <ToggleGroupItem value="grid" aria-label={copy("Grid", "Grille")}><LayoutGrid className="size-4" /><span>{copy("Grid", "Grille")}</span></ToggleGroupItem>
+          <ToggleGroupItem value="table" aria-label={copy("Table", "Tableau")}><List className="size-4" /><span>{copy("Table", "Tableau")}</span></ToggleGroupItem>
         </ToggleGroup>
       </div>
       {value.layout === "grid" && <div className="space-y-1">
         <p className="text-xs font-medium text-muted-foreground">{copy("Shape", "Forme")}</p>
         <ToggleGroup type="single" value={value.shape || "rectangle"} onValueChange={shape => shape && onChange({ ...value, shape: shape as ViewOptions["shape"] })} aria-label={copy("Card shape", "Forme des cartes")}>
-          <ToggleGroupItem value="rectangle" aria-label={copy("Rectangle", "Rectangle")}><LayoutGrid className="size-4" /><span className="hidden sm:inline">{copy("Rectangle", "Rectangle")}</span></ToggleGroupItem>
-          <ToggleGroupItem value="square" aria-label={copy("Square", "Carré")}><Square className="size-4" /><span className="hidden sm:inline">{copy("Square", "Carré")}</span></ToggleGroupItem>
+          <ToggleGroupItem value="rectangle" aria-label={copy("Rectangle", "Rectangle")}><LayoutGrid className="size-4" /><span>{copy("Rectangle", "Rectangle")}</span></ToggleGroupItem>
+          <ToggleGroupItem value="square" aria-label={copy("Square", "Carré")}><Square className="size-4" /><span>{copy("Square", "Carré")}</span></ToggleGroupItem>
         </ToggleGroup>
       </div>}
       {value.layout === "grid" && <div className="space-y-1">
@@ -76,15 +79,19 @@ export function ViewControls({ value, onChange, onReset, scope, fields = ["descr
         <ToggleGroup type="single" value={density} onValueChange={size => size && setDensity(size as ViewOptions["size"])} aria-label={copy("Grid density", "Densité de la grille")}>
           {(["small", "medium", "large"] as ViewOptions["size"][]).map(size => {
             const columns = gridColumns(size);
-            return <ToggleGroupItem key={size} value={size} aria-label={`${copy({ small: "Small", medium: "Medium", large: "Large" }[size], { small: "Petit", medium: "Moyen", large: "Grand" }[size])} · ${columns} ${copy("columns", "colonnes")}`}>
+            return <ToggleGroupItem key={size} value={size}>
               <span>{copy({ small: "Small", medium: "Medium", large: "Large" }[size], { small: "Petit", medium: "Moyen", large: "Grand" }[size])}</span>
-              <span className="text-xs text-muted-foreground">{columns}</span>
+              <span className="text-xs text-muted-foreground @max-2xl:hidden"><span className="sr-only"> · </span>{columns}<span className="sr-only"> {copy("columns", "colonnes")}</span></span>
             </ToggleGroupItem>;
           })}
         </ToggleGroup>
       </div>}
-      <Popover open={open} onOpenChange={setOpen}><PopoverTrigger asChild><Button size="sm" variant="outline" aria-label={copy("View options", "Options d’affichage")}>{copy("View options", "Options")}</Button></PopoverTrigger><PopoverContent align="end" className="w-64 space-y-4">
+    </>;
+    return <div className="flex flex-wrap items-center gap-3" aria-label={copy(`${scope || "List"} view options`, `Options d’affichage · ${scope || "liste"}`)}>
+      <div className="contents @max-2xl:hidden">{layoutControls}</div>
+      <Popover open={open} onOpenChange={setOpen}><PopoverTrigger asChild><Button size="sm" variant="outline" aria-label={copy("View options", "Options d’affichage")}><SlidersHorizontal className="size-4" /><span className="@max-md:hidden">{copy("View options", "Options")}</span></Button></PopoverTrigger><PopoverContent noPortal align="end" className="w-64 space-y-4">
         <h3 className="border-b pb-3 text-base font-semibold">{scope === "Models" ? copy("Model view options", "Options d’affichage des modèles") : copy(`${scope || "View"} options`, `${scope || "Vue"} · options`)}</h3>
+        <div className="hidden space-y-3 @max-2xl:block">{layoutControls}</div>
         <div className="space-y-3"><p className="text-xs font-medium text-muted-foreground">{copy("Visible details", "Informations visibles")}</p>{fields.map(field => { const id = `${baseId}-${field}`; return <label key={field} htmlFor={id} className="flex cursor-pointer items-center gap-2 text-sm"><Checkbox id={id} checked={value[field]} onCheckedChange={checked => onChange({ ...value, [field]: checked === true })} />{field === "description" ? copy("Description", "Description") : field === "metadata" ? copy("Model ID / metadata", "Identifiant / métadonnées") : field === "providers" ? copy("Provider accesses", "Accès fournisseurs") : field === "modalities" ? copy("Input / output modalities", "Modalités entrée / sortie") : copy("Capabilities", "Capacités")}</label>; })}</div>
         {onReset && <Button variant="ghost" size="sm" className="w-full border-t" onClick={() => { onReset(); setOpen(false); }}>{copy("Reset", "Réinitialiser")}</Button>}
       </PopoverContent></Popover>

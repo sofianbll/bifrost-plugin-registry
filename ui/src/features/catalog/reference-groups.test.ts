@@ -1,4 +1,4 @@
-import { filterReferenceGroups, filterReferenceModels, groupReferenceModels, sharedReferenceFacts } from "./reference-groups";
+import { cardEntries, filterReferenceGroups, filterReferenceModels, groupReferenceModels, sharedReferenceFacts } from "./reference-groups";
 import type { Catalog } from "./catalog-api";
 import { emptyModelFilters, type Model } from "../../domain/registry";
 
@@ -59,6 +59,29 @@ if (filterReferenceModels([multi], splitCatalog, splitFilters)[0] !== multi || m
 if (filterReferenceGroups([multi], splitCatalog, { ...emptyModelFilters, search: "same display name" }).length !== 2) throw new Error("Workspace name search hid an access");
 if (filterReferenceGroups([multi], splitCatalog, { ...splitFilters, provider: "beta" }).length) throw new Error("Reference search leaked an excluded provider's reference");
 console.log("One workspace model with two references displays only the matching fiche: OK");
+
+// A saved card holds only its saved accesses; a discovered access of the same reference, even under
+// the card's own ID, is available beside it, not in it.
+const saved = models[0];
+const offered = { ...models[1], id: saved.id, accesses: [{ ...models[1].accesses[0], id: `beta/${saved.id}` }] };
+const sharedGroup = groupReferenceModels([saved, offered], { ...catalog, accesses: catalog.accesses.map(access => ({ ...access, referenceId: "ref/shared" })) })[0];
+const split = cardEntries(sharedGroup, [saved]);
+if (split.card.map(entry => entry.access?.provider).join(",") !== "alpha" || split.available.map(entry => entry.access?.provider).join(",") !== "beta") throw new Error("A discovered access was counted in the saved card");
+if (cardEntries(sharedGroup, []).card.length !== 0) throw new Error("An unsaved group claimed a card");
+console.log("Reference groups keep saved and available accesses apart: OK");
+
+// In Registry shows one tile per saved card: two cards on one reference stay apart, and a card
+// whose accesses link to two references stays whole. Reference grouping still folds and splits them.
+const twoReferences: Model = { ...model("alias-five", "gamma", "native-c"), accesses: [model("alias-five", "gamma", "native-c").accesses[0], model("alias-five", "delta", "native-d").accesses[0]] };
+const linkedTo = ["ref/shared", "ref/shared", "ref/other", "ref/shared"];
+const cardCatalog: Catalog = { ...splitCatalog, accesses: splitCatalog.accesses.map((access, index) => ({ ...access, referenceId: linkedTo[index] })) };
+const cards = [models[0], models[1], twoReferences];
+if (groupReferenceModels(cards, cardCatalog).length !== 2) throw new Error("Reference grouping no longer folds by reference");
+const tiles = groupReferenceModels(cards, cardCatalog, "", true);
+if (tiles.map(group => `${group.key}=${group.entries.length}`).join(",") !== "card:alias-one=1,card:alias-two=1,card:alias-five=2") throw new Error(`Saved cards folded or split: ${tiles.map(group => group.key)}`);
+if (tiles[2].reference?.id !== "ref/other") throw new Error("A saved card lost its reference");
+if (filterReferenceModels(cards, cardCatalog, { ...emptyModelFilters, search: "same display name" }, true).length !== 3) throw new Error("Card search hid a saved card");
+console.log("Saved cards are one tile each, whatever their references: OK");
 
 const facts = { ...models[0], summary: "shared", inputModalities: ["Image", "Text"], outputModalities: ["Text"], capabilities: { Vision: "Declared", Reasoning: "Unknown" } } as Model;
 const common = (other: Model) => sharedReferenceFacts({ key: "shared", entries: [{ model: facts }, { model: other }] });

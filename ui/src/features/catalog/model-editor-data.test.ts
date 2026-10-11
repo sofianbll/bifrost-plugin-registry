@@ -1,4 +1,4 @@
-import { applyModelId, canonicalCapabilities, changeAccessProvider, firstRegistrationIssue, modelEditorOptions, omitUnchangedReferenceIds, prefillFromReference } from "./model-editor-data";
+import { applyModelId, canonicalCapabilities, changeAccessProvider, declaredEndpoints, firstRegistrationIssue, modelEditorOptions, omitUnchangedReferenceIds, prefillFromReference } from "./model-editor-data";
 import type { Catalog } from "./catalog-api";
 import type { Model } from "../../domain/registry";
 
@@ -21,13 +21,14 @@ equal(firstRegistrationIssue({ ...validDraft, accesses: [{ ...validDraft.accesse
 equal(firstRegistrationIssue({ ...validDraft, accesses: [validDraft.accesses[0], { ...validDraft.accesses[0], provider: "second", id: "second/new-model", endpoints: [] }] }), "operations");
 equal(firstRegistrationIssue({ ...validDraft, accesses: [{ ...validDraft.accesses[0], id: "wrong" }] }), "access");
 
-equal(modelEditorOptions(catalog, []).modelIds, [{ value: "new-model", label: "New Model", detail: "Reference creator/new-model", referenceId: "creator/new-model" }]);
+const english = (text: string) => text;
+equal(modelEditorOptions(catalog, [], english).modelIds, [{ value: "new-model", label: "New Model", detail: "Reference creator/new-model", referenceId: "creator/new-model" }]);
 const catalogWithNativePath: Catalog = { ...catalog, accesses: [
   { id: "provider/native/path", provider: "provider", model: "native/path", configured: true, referenceId: reference.id, fields: {}, overrides: {} },
   { id: "provider/other/path", provider: "provider", model: "other/path", configured: false, fields: {}, overrides: {} },
 ] };
-equal(modelEditorOptions(catalogWithNativePath, []).modelIds, [{ value: "new-model", label: "New Model", detail: "Reference creator/new-model", referenceId: "creator/new-model" }]);
-equal(modelEditorOptions(catalogWithNativePath, []).providers, [{ value: "provider" }]);
+equal(modelEditorOptions(catalogWithNativePath, [], (_, french) => french).modelIds, [{ value: "new-model", label: "New Model", detail: "Fiche documentaire creator/new-model", referenceId: "creator/new-model" }]);
+equal(modelEditorOptions(catalogWithNativePath, [], english).providers, [{ value: "provider" }]);
 const next = prefillFromReference(draft, reference);
 equal(next.name, "New Model");
 equal(next.creator, "Creator");
@@ -47,9 +48,17 @@ equal(applyModelId({ ...selected, accesses: [{ ...selected.accesses[0], id: "pro
 equal(applyModelId({ ...selected, accesses: [{ ...selected.accesses[0], nativeModel: "manual/native" }] }, "new-alias").accesses[0].nativeModel, "manual/native");
 const twoAccesses = { ...selected, accesses: [selected.accesses[0], { ...selected.accesses[0], provider: "second", id: "second/new-model", nativeModel: "other/native", referenceId: "ref/exact" }] };
 equal(applyModelId(twoAccesses, "new-alias").accesses.map(access => [access.id, access.nativeModel, access.referenceId]), [["provider/new-alias", "native/path", undefined], ["second/new-alias", "other/native", "ref/exact"]]);
-equal(modelEditorOptions(catalog, [twoAccesses]).providers, [{ value: "provider" }, { value: "second" }]);
+equal(modelEditorOptions(catalog, [twoAccesses], english).providers, [{ value: "provider" }, { value: "second" }]);
 const existing: Model = { ...draft, id: "alias", accesses: [{ provider: "p", id: "p/alias", nativeModel: "native", route: "Direct provider", status: "Configured", referenceId: "ref/automatic" }] };
 equal(omitUnchangedReferenceIds(existing, [existing]).accesses[0].referenceId, undefined);
 equal(omitUnchangedReferenceIds({ ...existing, accesses: [{ ...existing.accesses[0], referenceId: "ref/changed" }] }, [existing]).accesses[0].referenceId, "ref/changed");
 equal(omitUnchangedReferenceIds({ ...existing, accesses: [{ ...existing.accesses[0], referenceId: "" }] }, [existing]).accesses[0].referenceId, "");
+// A new access preselects the operations its native mode implies (Bifrost's parameters datasheet).
+const withMode = (mode: unknown) => ({ id: "p/m", fields: { parameters: { value: { model: "m", provider: "p", mode }, source: "bifrost", updatedAt: null, kind: "declared" as const } }, overrides: {} });
+equal(declaredEndpoints(withMode("chat")), ["chat/completions"]);
+equal(declaredEndpoints(withMode("image_generation")), ["images/generations"]);
+equal(declaredEndpoints(withMode("embedding")), ["embeddings"]);
+equal(declaredEndpoints(withMode("something-new")), []);
+equal(declaredEndpoints(withMode(undefined)), []);
+equal(declaredEndpoints(undefined), []);
 console.log("model editor data checks passed");
