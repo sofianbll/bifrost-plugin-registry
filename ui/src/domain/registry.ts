@@ -6,6 +6,9 @@ export type Model = {
   alias?: string;
   name: string;
   creator: string;
+  // Where a saved card's creator comes from. "inferred" is a guess from its single first-party provider;
+  // a manual edit sets "manual" (with no creator, that clears the guess for good).
+  creatorSource?: "manual" | "reference" | "inferred";
   family: string;
   inputModalities: string[];
   outputModalities: string[];
