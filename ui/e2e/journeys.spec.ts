@@ -252,6 +252,8 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     const dialog = duo.getByRole('dialog');
     await expect(dialog).toContainText('Add to which card?');
     await dialog.getByRole('button', { name: /^QA Opus Copy/ }).waitFor();
+    // Only saved cards are offered: nothing opens a draft over a saved card's ID (a manual access is the other way in).
+    await expect(dialog.getByRole('button', { name: /separate|distincte/i })).toHaveCount(0);
     await dialog.getByRole('button', { name: /^QA Opus · qa-opus$/ }).click();
     await expect(duo.locator('[data-slot="sheet-content"] [data-slot="sheet-title"]')).toHaveText('QA Opus');
     await duo.close();
