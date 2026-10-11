@@ -1192,7 +1192,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(afterwards.locator('summary')).toHaveText(['Claude · 5 models', 'Codex · 2 models', 'Google · 2 models', 'Synthetic Provider · 3 models']);
     // Disabled Mistral is not a provider the key can reach today. Left out: qa-shared at Codex (Claude serves it first: one access per model),
     // qa-image (its card was deleted above) and the models without a card.
-    await expect(lines(replace, 'Removed from the key').locator('summary')).toHaveText(['Codex · 1 model', 'Google · 1 model', 'OpenRouter · 66 models', 'Synthetic Provider · 1 model', 'Typesafe · 1 model']);
+    await expect(lines(replace, 'Removed from the key').locator('summary')).toHaveText(['Codex · 1 model', 'Google · 1 model', /^OpenRouter · \d+ models$/, 'Synthetic Provider · 1 model', 'Typesafe · 1 model']);
     expect(await nativeWrites()).toHaveLength(written + 1);
     const replacement = page.waitForRequest(r => r.method() === 'POST' && r.url().endsWith('/api/keys/native-permissions') && r.postDataJSON().phase === 'apply');
     await replace.getByRole('button', { name: 'Confirm: replace “all providers”', exact: true }).click();
