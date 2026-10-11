@@ -10,7 +10,7 @@ export const factsUnknown = (model: Pick<Model, "inputModalities" | "outputModal
 // Marks a creator the panel guessed from the card's provider; a manual or reference creator has none.
 export function InferredMark({ model }: { model: Pick<Model, "creatorSource"> }) {
   const copy = useCopy();
-  return model.creatorSource === "inferred" ? <Badge variant="outline" className="ml-1.5 align-middle" title={copy("Guessed from the provider serving this model. Edit the card to correct or clear it.", "Déduit du fournisseur de ce modèle. Modifiez la fiche pour le corriger ou l’effacer.")}>{copy("inferred", "déduit")}</Badge> : null;
+  return model.creatorSource === "inferred" ? <Badge variant="outline" className="ml-1.5 align-middle" title={copy("Guessed from the model name or the provider serving it. Edit the card to correct or clear it.", "Déduit du nom du modèle ou du fournisseur qui le sert. Modifiez la fiche pour le corriger ou l’effacer.")}>{copy("inferred", "déduit")}</Badge> : null;
 }
 
 // What an empty fact row says: a card without reference is told what to do.
