@@ -2,9 +2,9 @@ import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { useCopy } from "../../lib/locale";
 
-// The short help, shared by the side sheet ("?") and Settings → Help. Labels quote the buttons and
-// badges as they read in the same language.
-const Q = ({ children }: { children: ReactNode }) => <q className="font-medium">{children}</q>;
+// The short help, shared by the side sheet ("?") and Settings → Help. Labels are set in bold, spelled
+// as the buttons and badges read in the same language (not <q>: some labels carry their own quotes).
+const Q = ({ children }: { children: ReactNode }) => <span className="font-semibold text-foreground">{children}</span>;
 
 export function HelpContent() {
   const copy = useCopy();
@@ -30,7 +30,7 @@ export function HelpContent() {
       <ul className="list-disc space-y-2 pl-5 text-muted-foreground">
         <li>{copy("A badge shows only when something needs attention: “no reference”, “inferred creator”, “+1 available”.", "Un badge n’apparaît que si quelque chose demande votre attention : « sans référence », « créateur déduit », « +1 disponible ».")}</li>
         <li>{copy("An inferred creator is a guess from the provider. ", "Un créateur déduit est une supposition tirée du fournisseur. ")}<Q>{copy("Associate a reference", "Associer une fiche documentaire")}</Q> {copy("links the card to a Models.dev entry, so its facts and creator are real.", "relie la fiche à une entrée Models.dev : ses données et son créateur deviennent fiables.")}</li>
-        <li><Q>{copy("Add to card", "Ajouter à la fiche")}</Q> {copy("puts an available access into a card you already saved.", "met un accès disponible dans une fiche déjà enregistrée.")}</li>
+        <li><Q>{copy("Add to card", "Ajouter à la fiche")}</Q> {copy("opens that saved card on its accesses; the available access waits under “Also available” until you add it and save.", "ouvre cette fiche enregistrée sur ses accès ; l’accès disponible attend sous « Également disponibles » tant que vous ne l’ajoutez pas et n’enregistrez pas.")}</li>
       </ul>
     </section>
   </div>;
