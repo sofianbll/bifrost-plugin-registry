@@ -47,4 +47,8 @@ for (const line of ["Mistral · 4 modèles conservés dans Bifrost", "Registry n
 const keptStar: Readiness = { state: "ready", blockers: [{ provider: "Claude", kind: "dynamic", count: 1, models: [], reasons: ["Dynamic native model allowlist is unsupported for Claude"], kept: true }] };
 must(text(wrap("en", <KeptProviders readiness={keptStar} onKeep={() => {}} />)).includes("Claude · all models kept in Bifrost"), "all models kept");
 must(text(wrap("fr", <KeptProviders readiness={keptStar} onKeep={() => {}} />)).includes("Claude · tous les modèles conservés dans Bifrost"), "all models kept, in French");
+// A provider kept to resolve a collision leaves no blocker behind: the dialog's own choice still lists it, with its undo.
+const collisionKept = wrap("en", <KeptProviders readiness={kept} kept={["mistral", "Codex"]} onKeep={() => {}} />);
+must(text(collisionKept).includes("Codex kept in Bifrost") && collisionKept.includes("Stop keeping Codex in Bifrost") && text(collisionKept).includes("Mistral · 4 models kept in Bifrost"), `a kept provider without blockers is listed, got ${text(collisionKept)}`);
+must(text(wrap("fr", <KeptProviders readiness={{ state: "ready", blockers: [] }} kept={["Codex"]} onKeep={() => {}} />)).includes("Codex conservé dans Bifrost"), "in French");
 console.log("Kept native checks passed");

@@ -32,12 +32,18 @@ equal(blockerLine(block("Claude", "other", [], ["No enabled native provider key 
 equal(blockerLine(block("Claude", "dynamic", [], ["Dynamic native model allowlist is unsupported for Claude"]), english), "Claude · all models allowed", "every model of a provider");
 equal(blockerLine(block("Claude", "dynamic", [], ["Dynamic native model allowlist is unsupported for Claude"]), french), "Claude · tous les modèles autorisés", "every model of a provider, in French");
 equal(blockerLine(block("", "other", [], ["Native key is inactive or expired"]), english), "Cannot be adopted as is", "other, whole key");
+// Spec #85: a provider Bifrost has disabled says so, and a model allowed through two providers names the other one.
+equal(blockerLine({ ...mistral, providerDisabled: true }, english), "Mistral · disabled in Bifrost · 3 models", "disabled provider");
+equal(blockerLine({ ...mistral, providerDisabled: true }, french), "Mistral · désactivé dans Bifrost · 3 modèles", "disabled provider, in French");
+const collision: ReadinessBlocker = { provider: "Codex", kind: "collision", count: 1, models: ["qa-shared"], reasons: ["x"], with: ["Claude"] };
+equal(blockerLine(collision, english), "Codex · 1 model also allowed through Claude", "collision");
+equal(blockerLine({ ...collision, count: 2, models: ["a", "b"] }, french), "Codex · 2 modèles aussi autorisés via Claude", "collision, in French");
 
 // The card's short reason: the first two blockers, then how many more; nothing when there is nothing to explain.
 equal(readinessReason({ state: "blocked", blockers: [mistral] }, english), "Mistral · 3 models not discovered", "one blocker");
 equal(readinessReason({ state: "blocked", blockers: [mistral, unsaved] }, english), "Mistral · 3 models not discovered; Synthetic Provider · 1 model to add", "two blockers");
 equal(readinessReason({ state: "blocked", blockers: [mistral, unsaved, everyProvider] }, english), "Mistral · 3 models not discovered; Synthetic Provider · 1 model to add; +1 more", "three blockers");
-equal(readinessReason({ state: "blocked", blockers: [mistral, unsaved, everyProvider] }, french), "Mistral · 3 modèles non découverts; Synthetic Provider · 1 modèle à ajouter; +1 de plus", "three blockers in French");
+equal(readinessReason({ state: "blocked", blockers: [mistral, unsaved, everyProvider] }, french), "Mistral · 3 modèles non découverts ; Synthetic Provider · 1 modèle à ajouter ; +1 de plus", "three blockers in French, with French spacing");
 equal(readinessReason({ state: "ready", blockers: [] }, english), "", "ready needs no reason");
 equal(readinessReason({ state: "empty", blockers: [] }, english), "", "empty needs no reason");
 equal(readinessReason(undefined, english), "", "no verdict");

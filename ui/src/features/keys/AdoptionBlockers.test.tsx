@@ -3,11 +3,12 @@ import { LanguageContext } from "../../lib/locale";
 import type { Readiness } from "../../domain/registry";
 import { AdoptionBlockers } from "./AdoptionBlockers";
 
-// #87: the adoption dialog lists blockers per provider, with counts, model names and the way forward.
+// #87, spec #85: the adoption dialog opens on a short numbered list of decisions, one per provider, each with its choices.
 const render = (language: "en" | "fr", readiness: Readiness | undefined, reasons: string[], onShowToAdd?: (routes: string[]) => void, onKeep?: (provider: string, keep: boolean) => void, onEditNative?: () => void) =>
   renderToStaticMarkup(<LanguageContext.Provider value={language}><AdoptionBlockers readiness={readiness} reasons={reasons} onShowToAdd={onShowToAdd} onKeep={onKeep} onEditNative={onEditNative} /></LanguageContext.Provider>);
 const text = (html: string) => html.split(/<[^>]*>/).join("");
 const must = (condition: boolean, message: string) => { if (!condition) throw new Error(message); };
+const count = (html: string, pattern: RegExp) => (html.match(pattern) || []).length;
 
 const hermes: Readiness = { state: "blocked", blockers: [
   { provider: "mistral", kind: "undiscovered", count: 3, models: ["qa-mistral-large", "qa-mistral-small", "qa-mistral-code"] },
@@ -18,24 +19,39 @@ const hermesReasons = ["Native route mistral/qa-mistral-large needs a configured
 
 const english = render("en", hermes, hermesReasons, () => {});
 const plain = text(english);
+must(plain.includes("3 decisions before adopting"), `the list says how many decisions are left, got ${plain}`);
+must(count(english, /<li/g) === 3 && english.includes("<ol"), "one numbered row per provider");
+must(plain.includes("Each one is required to adopt the key."), "required decisions are said to be required");
 for (const line of ["Mistral · 3 models not discovered", "Synthetic Provider · 1 model to add"]) must(plain.includes(line), `the dialog must list "${line}"`);
 must(plain.includes("Bifrost does not list these models") && plain.includes("Registry has no card for them yet"), "each kind explains itself");
 must(plain.includes("allows every provider, including ones added later") && !plain.includes("allow_all_providers"), "the all-providers reason reads in plain words");
 // Names sit behind a disclosure; only models the models page can add get a way there.
 must(english.split(/<details[\s\S]*?<\/details>/).join("").includes("qa-mistral-large") === false, "model names stay behind their disclosure");
 must(english.includes("qa-mistral-large, qa-mistral-small, qa-mistral-code") && english.includes("qa-unregistered"), "model names are listed");
-must((english.match(/Show in To add/g) || []).length === 1, "only the unsaved models link to To add");
+must(count(english, /Show in To add/g) === 1, "only the unsaved models link to To add");
 must(!render("en", hermes, hermesReasons).includes("Show in To add"), "no link without a destination");
 must(!plain.includes("needs a configured direct Registry access"), "the plain per-model reasons are replaced by the grouped list");
 
 const french = text(render("fr", hermes, hermesReasons, () => {}));
-for (const line of ["Mistral · 3 modèles non découverts", "Synthetic Provider · 1 modèle à ajouter", "Voir dans À ajouter", "Bifrost ne liste pas ces modèles"]) must(french.includes(line), `French dialog must read "${line}"`);
+for (const line of ["3 décisions avant d’adopter", "Mistral · 3 modèles non découverts", "Synthetic Provider · 1 modèle à ajouter", "Voir dans À ajouter", "Bifrost ne liste pas ces modèles"]) must(french.includes(line), `French dialog must read "${line}"`);
+must(text(render("en", { state: "blocked", blockers: [hermes.blockers[1]] }, [], () => {})).includes("1 decision before adopting"), "one decision, singular");
 
-// One model reached through two subscriptions cannot be adopted: the reason reads as UI copy in both languages.
+// A provider Bifrost has disabled says so in plain words.
+const disabled: Readiness = { state: "blocked", blockers: [{ ...hermes.blockers[0], providerDisabled: true }] };
+must(text(render("en", disabled, [], undefined, () => {})).includes("Mistral is disabled in Bifrost"), "disabled provider, in English");
+must(text(render("fr", disabled, [], undefined, () => {})).includes("Mistral est désactivé dans Bifrost"), "disabled provider, in French");
+
+// One model reached through two providers is a choice: keep either provider in Bifrost.
 const shared = "Model qa-shared is allowed through Claude/qa-shared and Codex/qa-shared: Registry adopts one access per model";
-const twice: Readiness = { state: "blocked", blockers: [{ provider: "Codex", kind: "other", count: 1, models: ["qa-shared"], reasons: [shared] }] };
-must(text(render("en", twice, [shared])).includes("Model qa-shared is allowed through Claude/qa-shared and Codex/qa-shared"), "the shared-alias reason is shown");
-must(text(render("fr", twice, [shared])).includes("Le modèle qa-shared est autorisé via Claude/qa-shared et Codex/qa-shared : Registry n’adopte qu’un accès par modèle."), "the shared-alias reason is translated");
+const twice: Readiness = { state: "blocked", blockers: [{ provider: "Codex", kind: "collision", count: 1, models: ["qa-shared"], reasons: [shared], with: ["Claude"] }] };
+const kept: string[] = [];
+const collision = render("en", twice, [shared], undefined, provider => kept.push(provider));
+must(text(collision).includes("Codex · 1 model also allowed through Claude"), `the collision names both providers, got ${text(collision)}`);
+must(collision.includes("Keep Codex in Bifrost") && collision.includes("Keep Claude in Bifrost"), "both providers can be kept");
+must(text(collision).includes("Registry adopts one access per model"), "the collision explains itself");
+const collisionFrench = text(render("fr", twice, [shared], undefined, () => {}));
+for (const line of ["Codex · 1 modèle aussi autorisé via Claude", "Garder Codex dans Bifrost", "Garder Claude dans Bifrost", "Registry n’adopte qu’un accès par modèle"]) must(collisionFrench.includes(line), `French collision must read "${line}"`);
+must(!text(render("en", twice, [shared])).includes("Keep Claude in Bifrost"), "no keep offer without a handler");
 
 // An empty key has nothing to adopt yet; say so instead of listing blockers.
 const empty = text(render("en", { state: "empty", blockers: [] }, ["Native key has no representable configured model access"]));
@@ -48,13 +64,13 @@ must(plainReasons.includes("Native key is inactive or expired") && plainReasons.
 must(text(render("fr", undefined, ["Native key is inactive or expired"])).includes("La clé native est inactive ou expirée."), "plain reasons are translated");
 // #92: models Bifrost does not list can stay native. The offer sits beside that blocker only, with its consequence.
 const offer = render("en", hermes, hermesReasons, () => {}, () => {});
-must((offer.match(/Keep Mistral in Bifrost/g) || []).length === 1, "one offer, for the undiscovered models only");
+must(count(offer, /Keep Mistral in Bifrost/g) === 1, "one offer, for the undiscovered models only");
 must(text(offer).includes("Registry will not manage or change Mistral’s permissions"), "the consequence is stated beside the offer");
 must(!render("en", hermes, hermesReasons, () => {}).includes("Keep Mistral in Bifrost"), "no offer without a handler");
 must(text(render("fr", hermes, hermesReasons, () => {}, () => {})).includes("Garder Mistral dans Bifrost"), "offer in French");
-// A kept provider is no longer a blocker: the list shows what remains.
+// A kept provider is no longer a decision: the list shows what remains.
 const rest = text(render("en", { state: "blocked", blockers: [{ ...hermes.blockers[0], kept: true }, hermes.blockers[2]] }, ["allow_all_providers grants future providers and cannot be represented safely"], () => {}, () => {}));
-must(!rest.includes("Mistral") && rest.includes("allows every provider"), "kept providers leave the blocker list");
+must(!rest.includes("Mistral") && rest.includes("allows every provider") && rest.includes("1 decision before adopting"), "kept providers leave the decision list");
 // A key that allows every model of a provider says so, in both languages, without the word "dynamic".
 const dynamic = ["Dynamic native model allowlist is unsupported for Claude"];
 const dynamicEn = text(render("en", undefined, dynamic, () => {}));
@@ -66,10 +82,10 @@ const star: Readiness = { state: "blocked", blockers: [{ provider: "Claude", kin
 const starOffer = render("en", star, dynamic, () => {}, () => {}, () => {});
 const starText = text(starOffer);
 must(starText.includes("Claude · all models allowed") && starText.includes("Claude: this key allows every model, including future ones"), `the blocker line and its reason, got ${starText}`);
-must((starOffer.match(/Keep Claude in Bifrost/g) || []).length === 1 && starText.includes("Registry will not manage or change Claude’s permissions"), "the keep offer and its consequence");
-must(starText.includes("Replace “all models” by the models saved in Registry"), "the replace offer");
+must(count(starOffer, /Keep Claude in Bifrost/g) === 1 && starText.includes("Registry will not manage or change Claude’s permissions"), "the keep offer and its consequence");
+must(starText.includes("Replace “all models” by the models saved in Registry") && starText.includes("Choose one"), "the replace offer, as one of the choices");
 must(!starText.includes("review a key that lists its models one by one"), "no dead-end advice once actions are offered");
 must(!text(render("en", star, dynamic, () => {})).includes("Keep Claude in Bifrost"), "no keep offer without a handler");
 const starFrench = text(render("fr", star, dynamic, () => {}, () => {}, () => {}));
-for (const line of ["Claude · tous les modèles autorisés", "Garder Claude dans Bifrost", "Remplacer « tous les modèles » par les modèles enregistrés dans Registry"]) must(starFrench.includes(line), `French dialog must read "${line}"`);
+for (const line of ["Claude · tous les modèles autorisés", "Garder Claude dans Bifrost", "Remplacer « tous les modèles » par les modèles enregistrés dans Registry", "Choisissez une option :"]) must(starFrench.includes(line), `French dialog must read "${line}"`);
 console.log("Adoption blockers checks passed");

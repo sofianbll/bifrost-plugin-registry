@@ -20,7 +20,9 @@ export const readinessLabel =(state: ReadinessState, copy: Copy) => ({
 export function blockerLine(blocker: ReadinessBlocker, copy: Copy) {
   const provider = blocker.provider ? displayProvider(blocker.provider) : "";
   const models = `${blocker.count} ${copy(blocker.count === 1 ? "model" : "models", blocker.count === 1 ? "modèle" : "modèles")}`;
-  const what = blocker.kind === "undiscovered" ? `${models} ${copy("not discovered", blocker.count === 1 ? "non découvert" : "non découverts")}`
+  const what = blocker.kind === "undiscovered" && blocker.providerDisabled ? `${copy("disabled in Bifrost", "désactivé dans Bifrost")} · ${models}`
+    : blocker.kind === "undiscovered" ? `${models} ${copy("not discovered", blocker.count === 1 ? "non découvert" : "non découverts")}`
+    : blocker.kind === "collision" ? `${models} ${copy("also allowed through", blocker.count === 1 ? "aussi autorisé via" : "aussi autorisés via")} ${(blocker.with ?? []).map(displayProvider).join(", ")}`
     : blocker.kind === "unsaved" ? `${models} ${copy("to add", "à ajouter")}`
     : blocker.kind === "all-providers" ? copy("Every provider allowed", "Tous les fournisseurs autorisés")
     : blocker.kind === "dynamic" ? copy("all models allowed", "tous les modèles autorisés")
@@ -33,7 +35,7 @@ export function readinessReason(readiness: Readiness | undefined, copy: Copy) {
   if (readiness?.state !== "blocked") return "";
   const lines = readiness.blockers.slice(0, 2).map(blocker => blockerLine(blocker, copy));
   if (readiness.blockers.length > 2) lines.push(copy(`+${readiness.blockers.length - 2} more`, `+${readiness.blockers.length - 2} de plus`));
-  return lines.join("; ");
+  return lines.join(copy("; ", " ; "));
 }
 
 // The models the models page can add: discovered by Bifrost, no Registry card yet.
