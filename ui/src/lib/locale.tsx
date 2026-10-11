@@ -29,9 +29,18 @@ export function formatPrice(language: Language, value: unknown) {
     ? `${new Intl.NumberFormat(locales[language], { style: "currency", currency: "USD", currencyDisplay: "narrowSymbol", minimumFractionDigits: 0, maximumFractionDigits: 6 }).format(value)}/M`
     : formatValue(language, undefined);
 }
+// How long ago, in the UI language: "2 days ago", "il y a 2 jours".
+export function formatAge(language: Language, value: string, now = Date.now()) {
+  const minutes = (Date.parse(value) - now) / 60_000;
+  const [amount, unit]: [number, Intl.RelativeTimeFormatUnit] = Math.abs(minutes) < 60 ? [minutes, "minute"] : Math.abs(minutes) < 1440 ? [minutes / 60, "hour"] : [minutes / 1440, "day"];
+  return new Intl.RelativeTimeFormat(locales[language], { numeric: "always" }).format(Math.round(amount), unit);
+}
+// A sync older than a day (or none) is not shown as fresh.
+export const syncIsStale = (value: string | undefined, now = Date.now()) => !value || now - Date.parse(value) > 86_400_000;
 export function useFormat() {
   const language = useLanguage();
   return {
+    age: (value: string) => formatAge(language, value),
     value: (value: unknown, unit?: string) => formatValue(language, value, unit),
     price: (value: unknown) => formatPrice(language, value),
     date: (value: string, options?: Intl.DateTimeFormatOptions) => new Date(value).toLocaleString(locales[language], options),

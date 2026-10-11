@@ -43,6 +43,20 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
   // Accessible names of the card actions in the first card grid, read from the accessibility tree.
   const cardActions = async (on: Page) => [...(await on.locator('[data-slot="card"]').first().locator('xpath=..').ariaSnapshot()).matchAll(/- button "((?:[^"\\]|\\.)*)"/g)].map(match => match[1]);
   const duplicates = (names: string[]) => names.filter((name, index) => names.indexOf(name) !== index);
+  // Models opens grouped by serving provider, a card under each provider serving it (#85). Basic keeps the
+  // grouping in Filters; Expert keeps the toolbar inline. Steps that count one tile per card browse flat.
+  const groupModels = async (option: string) => {
+    const grouping = page.getByRole('combobox', { name: 'Group models by', exact: true });
+    const folded = !(await grouping.isVisible());
+    if (folded) await page.getByRole('button', { name: /^Filters/ }).click();
+    await grouping.click();
+    await page.getByRole('option', { name: option, exact: true }).click();
+    if (!folded) return;
+    await page.getByRole('heading', { level: 1 }).click(); // a click outside closes Filters
+    await expect(page.locator('[data-slot="popover-content"]')).toHaveCount(0);
+  };
+  const expertSwitch = () => page.getByRole('switch', { name: 'Use Expert key composer', exact: true });
+  const setExpert = async (on: boolean) => { if ((await expertSwitch().getAttribute('aria-checked')) !== String(on)) await expertSwitch().click(); };
   const withinViewport = async (locator: Locator) => {
     await page.waitForFunction(el => {
       const r = (el as Element).getBoundingClientRect();
@@ -64,13 +78,19 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await button('Sign in').click();
     await button('Open QA Chat details').waitFor();
     await shot('after-catalog-light');
+    // Browsing by subscription is the default (#85); Basic shows search, Filters and View options only.
+    await expect(page.getByRole('heading', { level: 2 })).toHaveText(['Claude 5', 'Codex 3', 'Google 2', 'Synthetic Provider 3']);
+    for (const name of ['Creator', 'Serving provider', 'Group models by', 'Sort models by']) await expect(page.getByRole('combobox', { name, exact: true }), `${name} is in Filters`).toHaveCount(0);
+    for (const name of ['Grid', 'Table', 'Rectangle', 'Square']) await expect(page.getByRole('radio', { name, exact: true }), `${name} is in View options`).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /^(Filters|View options)$/ })).toHaveText(['Filters', 'View options']);
+    await groupModels('No grouping');
   });
 
   await test.step('the tour is offered once and can be dismissed; "?" opens help beside the page and relaunches it (#96)', async () => {
     const signIn = async () => { await page.getByLabel('Admin token', { exact: true }).fill(token); await button('Sign in').click(); await button('Open QA Chat details').waitFor(); };
     const offer = page.getByRole('region', { name: 'Guided tour', exact: true });
     const stepCard = (title: string) => page.getByRole('dialog', { name: title, exact: true });
-    const helpPanel = page.getByRole('dialog', { name: 'Help · My models', exact: true });
+    const helpPanel = page.getByRole('dialog', { name: 'Help', exact: true });
     const startFromHelp = async () => { await button('Help for My models').click(); await helpPanel.getByRole('button', { name: 'Start the tour', exact: true }).click(); };
     const remembered = () => page.evaluate(() => localStorage.getItem('bifrost-registry.tour.v1'));
     // A first visit is offered the tour inline (it covers nothing); Escape dismisses it and the browser remembers.
@@ -96,6 +116,9 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(page.locator('h1', { hasText: 'My models' })).toBeVisible();
     for (const phrase of ['Adopting a key', 'Ready to adopt', 'Keep Mistral in Bifrost', 'Remove these models from the key in Bifrost', 'Replace “all providers” by the explicit list', 'Replace “all models” by the models saved in Registry', 'preview and confirm', 'kept in Bifrost', 'inferred creator', 'Associate a reference', 'Add to card', 'no reference']) await expect(helpPanel).toContainText(phrase);
     await expect(helpPanel, 'The help speaks of the key, not of an endpoint').not.toContainText('/v1/models');
+    // As many numbered steps as the tour, then the words the panel uses.
+    await expect(helpPanel.getByRole('listitem').filter({ has: page.locator('[data-slot="badge"]') })).toHaveCount(4);
+    for (const term of ['Reference', 'Inferred creator', 'Kept in Bifrost', 'Readback', 'Adopt']) await expect(helpPanel.getByRole('term').filter({ hasText: term })).toHaveCount(1);
     // Starting the tour closes the panel and puts the focus on the tour card; the page stays usable under it.
     await helpPanel.getByRole('button', { name: 'Start the tour', exact: true }).click();
     await expect(helpPanel).toHaveCount(0);
@@ -164,6 +187,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await button('Close the tour').click();
     await expect(stepCard('My models')).toHaveCount(0);
     await page.setViewportSize({ width: 1440, height: 950 });
+    if (await page.getByRole('heading', { level: 2 }).count()) await groupModels('No grouping'); // a new sign-in opens grouped again
   });
 
   await test.step('a capability summary keeps the focus on its trigger: Tab moves on to the next card', async () => {
@@ -215,13 +239,16 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await scope(/^To add/).click();
     // To add is organised by subscription: the aggregator waits on a collapsed shelf, so the
     // subscriptions come first (sections are sorted, a count is the whole list, not the page).
-    await expect(page.getByRole('heading', { level: 3 })).toHaveText(['Google 1', 'Synthetic Provider 1', 'Typesafe 1', 'OpenRouter 66']);
+    await groupModels('Group by provider');
+    await expect(page.getByRole('heading', { level: 2 })).toHaveText(['Google 1', 'Synthetic Provider 1', 'Typesafe 1', 'OpenRouter 66']);
+    await expect(page.getByText('69 models · 3 shown, 66 in collapsed shelves', { exact: true })).toBeVisible();
     await expect(opens).toHaveCount(3);
     const shelf = page.getByRole('button', { name: 'OpenRouter 66', exact: true });
     await expect(shelf).toHaveAttribute('aria-expanded', 'false');
     await shelf.focus(); // the shelf opens from the keyboard
     await page.keyboard.press('Enter');
     await expect(shelf).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.getByText('69 models · 63 shown, 6 behind “Show more”', { exact: true })).toBeVisible(); // a shelf shows its first 60
     await expect(opens).toHaveCount(63); // a first page of 60 in the shelf
     await button('Show more (6)').click();
     await expect(opens).toHaveCount(69);
@@ -244,6 +271,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(page.getByText('In Registry (12) · To add (69)', { exact: true })).toBeVisible();
     await nav('My models').click();
     await scope(/^In Registry/).click();
+    await groupModels('No grouping');
     await button('Open QA Chat details').waitFor();
   });
 
@@ -331,20 +359,21 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
 
   await test.step('browsing by subscription: whole-list sections, sort, To add shelves, the logo choice, a stable count', async () => {
     const opens = page.getByRole('button', { name: /^Open .* details$/ });
-    const headings = page.getByRole('heading', { level: 3 });
+    const headings = page.getByRole('heading', { level: 2 });
     const grouping = page.getByRole('combobox', { name: 'Group models by', exact: true });
     const sorting = page.getByRole('combobox', { name: 'Sort models by', exact: true });
     const choose = async (box: Locator, option: string) => { await box.click(); await page.getByRole('option', { name: option, exact: true }).click(); };
-    const section = (name: string) => page.locator('section').filter({ has: page.getByRole('heading', { level: 3, name: new RegExp(`^${name} \\d+$`) }) });
+    const section = (name: string) => page.locator('section').filter({ has: page.getByRole('heading', { level: 2, name: new RegExp(`^${name} \\d+$`) }) });
     const card = (name: string) => page.locator('[data-slot="card"]').filter({ has: button(`Open ${name} details`) });
 
+    // Expert keeps the whole toolbar inline (Basic folds it into Filters and View options).
+    await setExpert(true);
     // A card served by two subscriptions sits under each, and the totals count it once.
-    await expect(grouping).toHaveText('No grouping'); // In Registry opens flat
     await choose(grouping, 'Group by provider');
     await expect(headings).toHaveText(['Claude 5', 'Codex 3', 'Google 2', 'Synthetic Provider 3']);
     await expect(section('Claude').getByRole('button', { name: 'Open QA Shared details', exact: true })).toBeVisible();
     await expect(section('Codex').getByRole('button', { name: 'Open QA Shared details', exact: true })).toBeVisible();
-    await expect(page.getByText('12 of 12 shown', { exact: true })).toBeVisible();
+    await expect(page.getByText('12 models shown · a model served by several providers is counted once', { exact: true })).toBeVisible();
     // Sorted sections, sorted cards inside: the sort control orders both.
     await expect(sorting).toHaveText('Sort by name');
     await expect(opens).toHaveText(['QA Haiku', 'QA Opus', 'QA Opus Fast', 'QA Shared', 'qa-sonnet', 'QA Codex', 'QA Shared', 'qa-codex-mini', 'QA Gemini', 'qa-flash', 'QA Chat', 'QA Code', 'QA Vision']);
@@ -542,8 +571,8 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
       await page.getByRole('combobox', { name: 'Group models by', exact: true }).click();
       await page.getByRole('option', { name: by, exact: true }).click();
     };
-    const section = (name: string) => page.locator('section').filter({ has: page.getByRole('heading', { level: 3, name: new RegExp(`^${name} \\d+$`) }) });
-    const sectionNames = async () => (await page.getByRole('heading', { level: 3 }).allTextContents()).map(text => text.replace(/\s*\d+$/, '')).sort();
+    const section = (name: string) => page.locator('section').filter({ has: page.getByRole('heading', { level: 2, name: new RegExp(`^${name} \\d+$`) }) });
+    const sectionNames = async () => (await page.getByRole('heading', { level: 2 }).allTextContents()).map(text => text.replace(/\s*\d+$/, '')).sort();
     await group('Group by provider');
     await section('Claude').waitFor();
     expect(await sectionNames()).toEqual(['Claude', 'Codex', 'Google', 'Synthetic Provider']); // saved cards; OpenRouter waits in To add
@@ -584,6 +613,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(keyCard('QA Claude Key')).toContainText('all models of Claude');
     await nav('My models').click();
     await button('Open QA Chat details').waitFor();
+    await setExpert(false);
   });
 
   await test.step('cards without a reference: inferred creator, override, clear, Associate a reference', async () => {
@@ -681,6 +711,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await page.getByLabel('Admin token', { exact: true }).fill(token);
     await button('Sign in').click();
     await button('Open QA Chat details').waitFor();
+    await groupModels('No grouping'); // a reload opens grouped by provider again
     await expect(card('qa-flash').locator('[data-attention]')).toHaveText(['no reference', 'inferred creator']);
     await expect(card('qa-codex-mini').locator('[data-attention]')).toHaveText(['no reference', 'inferred creator']);
   });
@@ -715,6 +746,10 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await searchModels().fill('qa-image');
     await button('Open QA Image details').click();
     const inCard = sheet().getByRole('heading', { name: /^In this card/ }).locator('..');
+    // Basic reads the preselected request types in one line; Change opens the full list.
+    await expect(inCard).toContainText('Requests: Image generation · Change');
+    await expect(inCard.getByRole('checkbox')).toHaveCount(0);
+    await inCard.getByRole('button', { name: 'Change requests for Google', exact: true }).click();
     await expect(inCard.getByRole('checkbox', { name: /^Image generation/ })).toBeChecked();
     await expect(inCard.getByRole('checkbox', { name: /^Chat Completions/ })).not.toBeChecked();
     await button('Prepare model card').click();
@@ -745,6 +780,8 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await sheet().getByRole('button', { name: 'Access', exact: true }).click();
     await expect(sheet().getByText('qa-image').first()).toBeVisible();
     await expect(sheet().getByRole('checkbox'), 'Looking never risks changing: no editable control').toHaveCount(0);
+    await expect(sheet().getByText('Native model ID', { exact: true }), 'Each access is described once, on its own card').toHaveCount(0);
+    await expect(sheet().getByText('Provider access', { exact: true })).toHaveCount(1);
     await sheet().getByRole('button', { name: 'Overview', exact: true }).click();
     // Delete lives in the "..." menu; Escape closes the menu, not the sheet.
     await button('More actions').click();
@@ -752,6 +789,11 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await page.keyboard.press('Escape');
     await expect(page.getByRole('menuitem')).toHaveCount(0);
     await expect(sheet()).toBeVisible();
+    // The focus is back on "...", so a second Escape closes the sheet.
+    await expect(button('More actions')).toBeFocused();
+    await page.keyboard.press('Escape');
+    await sheet().waitFor({ state: 'hidden' });
+    await button('Open QA Image details').click();
     // Edit enters the editor on Model details; the steps keep the creation order.
     await button('Edit').click();
     await expect(cardSteps()).toHaveText(['1. Accesses', '2. Model details', '3. Review']);
@@ -832,6 +874,8 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     const jev = page.locator('[data-slot="card"]').filter({ has: button('Open QA Jev details') });
     await expect(jev.getByRole('img', { name: 'Typesafe', exact: true }).first(), 'the creator comes from the reference namespace').toHaveText('TY');    await button('Open QA Jev details').click();
     const inCard = sheet().getByRole('heading', { name: /^In this card/ }).locator('..');
+    await expect(inCard).toContainText('Requests: Decisions · Change');
+    await inCard.getByRole('button', { name: /^Change requests for / }).click();
     await expect(inCard.getByRole('checkbox', { name: /^Decisions/ })).toBeChecked();
     await expect(inCard.getByRole('checkbox', { name: /^Chat Completions/ })).not.toBeChecked();
     await button('Cancel').click();
@@ -866,11 +910,15 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(part(popover, /^Available, not in this card/), 'A variant sharing the reference is not offered').not.toContainText('qa-opus-pro');
     await expect(popover, 'Facts are readable, not raw parameter JSON').not.toContainText('{"');
     await page.keyboard.press('Escape');
+    await button('View options').click(); // Basic keeps the view choice in View options
     await page.getByRole('radio', { name: 'Table', exact: true }).click();
+    await page.keyboard.press('Escape');
     const row = page.getByRole('row').filter({ has: page.getByRole('button', { name: /^Open qa[- ]opus details$/i }) });
     await expect(row).toContainText('1 available, not in this card');
     await expect(row.getByText(/openrouter/i)).toHaveCount(0);
+    await button('View options').click(); // Basic keeps the view choice in View options
     await page.getByRole('radio', { name: 'Grid', exact: true }).click();
+    await page.keyboard.press('Escape');
 
     // Re-saving after a rename writes exactly the saved accesses.
     await openOpus.click();
@@ -902,8 +950,8 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(part(sheet(), /^Also available/), 'A removed saved access can be added back').toContainText('Claude');
     await sheet().getByRole('button', { name: /^Add openrouter/i }).click();
     await expect(part(sheet(), /^Also available/)).not.toContainText(/openrouter/i);
-    // Preselected from the native chat mode declared by Bifrost.
-    await expect(part(sheet(), /^In this card/).getByRole('checkbox', { name: /Chat Completions/ })).toBeChecked();
+    // Preselected from the native chat mode declared by Bifrost: a chat model answers both text request types.
+    await expect(part(sheet(), /^In this card/)).toContainText(/Requests: Chat Completions, Responses · Change/i);
     await button('Review').click();
     await sheet().getByText(/^Access added: openrouter · anthropic\/qa-opus$/i).waitFor();
     await sheet().getByText(/^Access removed: Claude · qa-opus$/).waitFor();
@@ -1184,7 +1232,9 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(page.getByRole('button', { name: /^Open .* details$/ })).toHaveText(['QA Unregistered']);
     // The filter is an ordinary chip: clearing it shows the whole shelf again, by subscription.
     await page.getByRole('button', { name: 'Clear all', exact: true }).click();
-    await expect(page.getByRole('heading', { level: 3 })).toHaveText(['Google 1', 'Synthetic Provider 1', 'Typesafe 1', 'OpenRouter 66']);
+    await groupModels('Group by provider');
+    await expect(page.getByRole('heading', { level: 2 })).toHaveText(['Google 1', 'Synthetic Provider 1', 'Typesafe 1', 'OpenRouter 66']);
+    await groupModels('No grouping');
     await scope(/^In Registry/).click();
 
     // A key that allows nothing says so instead of listing blockers.
@@ -1302,7 +1352,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
       await sweep(language, 'My models');
       // #96: the help panel and the tour read in one language too, and the help covers adoption.
       await button(t('Help for My models', 'Aide pour Mes modèles')).click();
-      const help = page.getByRole('dialog', { name: t('Help · My models', 'Aide · Mes modèles'), exact: true });
+      const help = page.getByRole('dialog', { name: t('Help', 'Aide'), exact: true });
       await expect(help).toContainText(t('Keep Mistral in Bifrost', 'Garder Mistral dans Bifrost'));
       await sweep(language, 'Help panel');
       await help.getByRole('button', { name: t('Start the tour', 'Commencer la visite'), exact: true }).click();
@@ -1317,9 +1367,10 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
       await accesses('QA Opus saved');
       await sweep(language, 'Accesses popover of a saved card');
       await page.keyboard.press('Escape');
-      await page.getByRole('radio', { name: t('Table', 'Tableau'), exact: true }).click();
+      const view = async (name: string) => { await button(t('View options', 'Options d’affichage')).click(); await page.getByRole('radio', { name, exact: true }).click(); await page.keyboard.press('Escape'); };
+      await view(t('Table', 'Tableau'));
       await sweep(language, 'My models as a table');
-      await page.getByRole('radio', { name: t('Grid', 'Grille'), exact: true }).click();
+      await view(t('Grid', 'Grille'));
       // Prices follow the UI language without float noise: Bifrost's 2e-7 per token reads 0.2 per million.
       await scope(new RegExp(`^${t('To add', 'À ajouter')}`)).click();
       await page.getByRole('textbox', { name: t('Search models', 'Rechercher des modèles'), exact: true }).fill('qa-opus');
@@ -1705,9 +1756,11 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
   });
 
   await test.step('a phone folds the view controls and shows the first card; no gateway dead end', async () => {
-    // Wide: View, Shape and Density sit in the toolbar, density with its column count.
+    // Wide, in Expert: View, Shape and Density sit in the toolbar, density with its column count.
     await page.setViewportSize({ width: 1440, height: 950 });
+    await setExpert(true);
     await expect(page.getByRole('radio', { name: 'Small · 4 columns', exact: true })).toBeVisible();
+    await setExpert(false);
     // Live mode has no gateway inventory, so Settings offers no way to it.
     await nav('Settings').click();
     await expect(button('Open catalog data')).toBeVisible();
@@ -1717,12 +1770,19 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(page.getByText('Keep Mistral in Bifrost'), 'Settings shows the same help').toBeVisible();
     await expect(button('Start the tour')).toBeVisible();
     await expect(button('View gateway')).toHaveCount(0);
+    // Connection speaks plainly; the variable names wait behind "For the administrator".
+    await button('Connection').click();
+    await expect(page.getByText(/REGISTRY_BIFROST_AUTH/)).toBeHidden();
+    await page.getByText('For the administrator', { exact: true }).click();
+    await expect(page.getByText(/REGISTRY_BIFROST_AUTH/)).toBeVisible();
     await nav('My models').click();
     // 375 px: one column, so the controls fold into View options and density loses its counts.
     await page.setViewportSize({ width: 375, height: 812 });
     await page.locator('.content-container').evaluate(el => el.scrollTo(0, 0));
     const helpBox = (await button('Help for My models').boundingBox())!;
     expect(Math.min(helpBox.width, helpBox.height), JSON.stringify(helpBox)).toBeGreaterThanOrEqual(24);
+    const titleBox = (await page.getByRole('button', { name: /^Open .* details$/ }).first().boundingBox())!;
+    expect(titleBox.height, `a card title is a 24 px target: ${JSON.stringify(titleBox)}`).toBeGreaterThanOrEqual(24);
     // The first-visit offer is one short line and two buttons, not a block of text.
     const first = await browser.newPage({ baseURL, viewport: { width: 375, height: 812 } });
     first.on('pageerror', e => errors.push(e.message));
@@ -1800,6 +1860,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await page.setViewportSize({ width: 1440, height: 950 });
     await nav('My models').click();
     await scope(/^In Registry/).waitFor();
+    await setExpert(true); // Basic folds the toolbar at every width (checked at sign-in); Expert keeps it inline
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('My models');
     await expect(page.locator('header').first()).not.toContainText('My models');
     await expect(page.getByRole('button', { name: /^Filters/ }), 'wide toolbars keep their filters inline').toHaveCount(0);
@@ -1824,6 +1885,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(page.locator('header').first()).not.toContainText('Virtual keys');
     await nav('My models').click();
 
+    await setExpert(false);
     // 375 px: search stays, every filter folds into one Filters control, and the first card is in the first screen.
     await page.setViewportSize({ width: 375, height: 812 });
     await page.locator('.content-container').evaluate(el => el.scrollTo(0, 0));

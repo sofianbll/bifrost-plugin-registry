@@ -55,13 +55,24 @@ equal(omitUnchangedReferenceIds({ ...existing, accesses: [{ ...existing.accesses
 equal(omitUnchangedReferenceIds({ ...existing, accesses: [{ ...existing.accesses[0], referenceId: "" }] }, [existing]).accesses[0].referenceId, "");
 // A new access preselects the operations its native mode implies (Bifrost's parameters datasheet).
 const withMode = (mode: unknown) => ({ id: "p/m", fields: { parameters: { value: { model: "m", provider: "p", mode }, source: "bifrost", updatedAt: null, kind: "declared" as const } }, overrides: {} });
-equal(declaredEndpoints(withMode("chat")), ["chat/completions"]);
+// A chat model answers both text request types Registry offers: Chat Completions and Responses.
+equal(declaredEndpoints(withMode("chat")), ["chat/completions", "responses"]);
 equal(declaredEndpoints(withMode("image_generation")), ["images/generations"]);
 equal(declaredEndpoints(withMode("embedding")), ["embeddings"]);
 equal(declaredEndpoints(withMode("decisions")), ["decisions"]); // Jev: decisions only, no manual tick
 equal(declaredEndpoints(withMode("something-new")), []);
 equal(declaredEndpoints(withMode(undefined)), []);
 equal(declaredEndpoints(undefined), []);
+// No declared mode: what the model outputs decides (the access's own facts, else its reference's).
+const outputs = (value: unknown) => ({ id: "x", fields: { output_modalities: { value, source: "models.dev", updatedAt: null, kind: "declared" as const } }, overrides: {} });
+equal(declaredEndpoints(outputs(["text"])), ["chat/completions", "responses"]);
+equal(declaredEndpoints(withMode(undefined), outputs(["text"])), ["chat/completions", "responses"]);
+equal(declaredEndpoints(outputs(["image"])), ["images/generations"]);
+equal(declaredEndpoints(outputs(["audio"])), ["audio/speech"]);
+equal(declaredEndpoints(outputs(["text", "image"])), ["chat/completions", "responses", "images/generations"]);
+equal(declaredEndpoints(withMode("embedding"), outputs(["text"])), ["embeddings"]); // a declared mode wins
+equal(declaredEndpoints(withMode("something-new"), outputs(["text"])), []); // an unknown declared mode is not guessed
+equal(declaredEndpoints(outputs(["video"])), []);
 
 // "Also available": accesses that are the card's model. An aggregator links "-pro", "-latest" or ":batch"
 // variants to the base reference; only an access under the card's own name is the same model.

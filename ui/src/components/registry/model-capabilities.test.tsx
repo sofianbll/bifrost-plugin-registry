@@ -43,6 +43,9 @@ if (/[○◆]/.test(mapped + mixed)) throw new Error('rejected state markers res
 const panelWithContext = render(<ModelCapabilitiesPanel model={model} context={{ source: 'catalogue' }} />);
 if (!panelWithContext.includes('Source et portée')) throw new Error('source and scope disclosure missing');
 // The legend shows the glyph a card uses for each state: the capability icon when known, "?" when not specified.
-const legend = render(<ModelCapabilityLegend />);
+const legend = render(<ModelCapabilityLegend simulated />);
 if ((legend.match(/<svg/g) ?? []).length !== 2 || !/>\?</.test(legend) || /[○◆]/.test(legend)) throw new Error('legend does not show the glyphs it explains');
+// A live gateway with no simulated observation: the legend does not mention a simulation.
+const live = render(<ModelCapabilityLegend />);
+if (/simulation/i.test(live) || (live.match(/<svg/g) ?? []).length !== 1 || !legend.includes('Observé en simulation')) throw new Error('simulation wording shown without a simulated state');
 console.log('Capability summaries, full inventory, facts and state semantics: passed');

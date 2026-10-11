@@ -12,9 +12,8 @@ export function HelpContent() {
     <ol className="space-y-3">
       <li className="flex gap-3"><Badge>1</Badge><span><strong>{copy("Models", "Modèles")}</strong> — {copy("read your saved cards. “To add” lists the models Bifrost found and you have not saved yet.", "lisez vos fiches enregistrées. « À ajouter » liste les modèles trouvés par Bifrost et pas encore enregistrés.")}</span></li>
       <li className="flex gap-3"><Badge>2</Badge><span><strong>{copy("Groups", "Groupes")}</strong> — {copy("save a set of models once, use it on many keys.", "enregistrez une fois un ensemble de modèles, utilisez-le sur plusieurs clés.")}</span></li>
-      <li className="flex gap-3"><Badge>3</Badge><span><strong>{copy("Virtual keys", "Clés virtuelles")}</strong> — {copy("choose the models each key can call.", "choisissez les modèles que chaque clé peut appeler.")}</span></li>
+      <li className="flex gap-3"><Badge>3</Badge><span><strong>{copy("Virtual keys", "Clés virtuelles")}</strong> — {copy("choose the models each key can call, check the preview, publish; Registry then confirms with Bifrost that the key lists what you chose.", "choisissez les modèles que chaque clé peut appeler, vérifiez l’aperçu, publiez ; Registry confirme ensuite auprès de Bifrost que la clé liste bien ce que vous avez choisi.")}</span></li>
       <li className="flex gap-3"><Badge>4</Badge><span><strong>{copy("Adopt a key", "Adopter une clé")}</strong> — {copy("a key made in Bifrost is adopted first. Registry never gives it more access than Bifrost does.", "une clé créée dans Bifrost s’adopte d’abord. Registry ne lui donne jamais plus d’accès que Bifrost.")}</span></li>
-      <li className="flex gap-3"><Badge>5</Badge><span><strong>{copy("Preview and publish", "Aperçu et publication")}</strong> — {copy("check the change, publish; Registry then confirms with Bifrost that the key lists what you chose.", "vérifiez le changement, publiez ; Registry confirme ensuite auprès de Bifrost que la clé liste bien ce que vous avez choisi.")}</span></li>
     </ol>
     <section className="space-y-2">
       <h3 className="font-semibold">{copy("Adopting a key", "Adopter une clé")}</h3>
@@ -30,9 +29,19 @@ export function HelpContent() {
       <h3 className="font-semibold">{copy("On model cards", "Sur les fiches modèles")}</h3>
       <ul className="list-disc space-y-2 pl-5 text-muted-foreground">
         <li>{copy("A badge shows only when something needs attention: “no reference”, “inferred creator”, “+1 available”.", "Un badge n’apparaît que si quelque chose demande votre attention : « sans référence », « créateur déduit », « +1 disponible ».")}</li>
-        <li>{copy("An inferred creator is a guess from the provider. ", "Un créateur déduit est une supposition tirée du fournisseur. ")}<Q>{copy("Associate a reference", "Associer une fiche documentaire")}</Q> {copy("links the card to a Models.dev entry, so its facts and creator are real.", "relie la fiche à une entrée Models.dev : ses données et son créateur deviennent fiables.")}</li>
+        <li>{copy("An inferred creator is guessed from the model name or the provider serving it. ", "Un créateur déduit est supposé d’après le nom du modèle ou le fournisseur qui le sert. ")}<Q>{copy("Associate a reference", "Associer une fiche documentaire")}</Q> {copy("links the card to a Models.dev entry, so its facts and creator are real.", "relie la fiche à une entrée Models.dev : ses données et son créateur deviennent fiables.")}</li>
         <li><Q>{copy("Add to card", "Ajouter à la fiche")}</Q> {copy("opens that saved card on its accesses; the available access waits under “Also available” until you add it and save.", "ouvre cette fiche enregistrée sur ses accès ; l’accès disponible attend sous « Également disponibles » tant que vous ne l’ajoutez pas et n’enregistrez pas.")}</li>
       </ul>
+    </section>
+    <section className="space-y-2">
+      <h3 className="font-semibold">{copy("Words used here", "Vocabulaire")}</h3>
+      <dl className="space-y-2 text-muted-foreground">
+        <div><dt className="inline"><Q>{copy("Reference", "Fiche documentaire")}</Q></dt> <dd className="inline">— {copy("the public description of a model (Models.dev): what it reads and writes, its context, its price. It documents; it gives no access.", "la description publique d’un modèle (Models.dev) : ce qu’il lit et produit, son contexte, son prix. Elle documente ; elle ne donne aucun accès.")}</dd></div>
+        <div><dt className="inline"><Q>{copy("Inferred creator", "Créateur déduit")}</Q></dt> <dd className="inline">— {copy("a creator guessed from the model name or the provider serving it, for a card without a reference. Edit the card to correct it.", "un créateur supposé d’après le nom du modèle ou le fournisseur qui le sert, pour une fiche sans fiche documentaire. Modifiez la fiche pour le corriger.")}</dd></div>
+        <div><dt className="inline"><Q>{copy("Kept in Bifrost", "Conservé dans Bifrost")}</Q></dt> <dd className="inline">— {copy("a provider whose permissions on a key stay managed in Bifrost; Registry leaves them as they are.", "un fournisseur dont les permissions sur une clé restent gérées dans Bifrost ; Registry n’y touche pas.")}</dd></div>
+        <div><dt className="inline"><Q>{copy("Readback", "Relecture")}</Q></dt> <dd className="inline">— {copy("after publishing, Registry reads the key back from Bifrost to check it lists what you chose.", "après publication, Registry relit la clé dans Bifrost pour vérifier qu’elle liste bien ce que vous avez choisi.")}</dd></div>
+        <div><dt className="inline"><Q>{copy("Adopt", "Adopter")}</Q></dt> <dd className="inline">— {copy("let Registry manage a key that was created in Bifrost, without widening its access.", "confier à Registry une clé créée dans Bifrost, sans élargir ses accès.")}</dd></div>
+      </dl>
     </section>
   </div>;
 }
