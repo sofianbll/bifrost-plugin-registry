@@ -804,6 +804,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
       ['QA Codex Key', 'Ready to adopt', ''],
       ['QA Google Key', 'Ready to adopt', ''],
       ['QA Mistral Key', 'Blocked', 'Mistral · 3 models not discovered'],
+      ['QA Hermes Key', 'Blocked', 'Mistral · 2 models not discovered'],
       ['QA To Add Key', 'Blocked', 'Synthetic Provider · 1 model to add'],
       ['QA All Providers Key', 'Blocked', 'Every provider allowed'],
       ['QA Claude Key', 'Blocked', 'Claude · cannot be adopted as is'],
@@ -818,22 +819,22 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     // The Keys page triages by readiness; managed keys are their own bucket.
     const readiness = page.getByRole('combobox', { name: 'Filter by readiness', exact: true });
     await readiness.click();
-    await expect(page.getByRole('option')).toHaveText(['All adoption states', 'Ready to adopt (2)', 'Blocked (4)', 'Empty (1)', 'Managed (2)']);
-    await page.getByRole('option', { name: 'Blocked (4)', exact: true }).click();
-    await expect(page.getByText('4 of 9 keys shown', { exact: true })).toBeVisible();
+    await expect(page.getByRole('option')).toHaveText(['All adoption states', 'Ready to adopt (2)', 'Blocked (5)', 'Empty (1)', 'Managed (2)']);
+    await page.getByRole('option', { name: 'Blocked (5)', exact: true }).click();
+    await expect(page.getByText('5 of 10 keys shown', { exact: true })).toBeVisible();
     await expect(keyCard('QA Mistral Key')).toHaveCount(1);
     await expect(keyCard('QA Codex Key')).toHaveCount(0);
     await readiness.click();
     await page.getByRole('option', { name: 'Ready to adopt (2)', exact: true }).click();
-    await expect(page.getByText('2 of 9 keys shown', { exact: true })).toBeVisible();
+    await expect(page.getByText('2 of 10 keys shown', { exact: true })).toBeVisible();
     await expect(keyCard('QA Google Key')).toHaveCount(1);
     await readiness.click();
     await page.getByRole('option', { name: 'Empty (1)', exact: true }).click();
     await expect(keyCard('QA Unmanaged Key')).toHaveCount(1);
-    await expect(page.getByText('1 of 9 keys shown', { exact: true })).toBeVisible();
+    await expect(page.getByText('1 of 10 keys shown', { exact: true })).toBeVisible();
     await readiness.click();
     await page.getByRole('option', { name: 'All adoption states', exact: true }).click();
-    await expect(page.getByText('9 of 9 keys shown', { exact: true })).toBeVisible();
+    await expect(page.getByText('10 of 10 keys shown', { exact: true })).toBeVisible();
     await shot('after-keys-readiness');
 
     // Blocked by models Bifrost does not list (a disabled provider): counts per provider, names behind a
@@ -1023,6 +1024,16 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
       await button(t('Review adoption', 'Examiner l’adoption')).click();
       await expect(page.getByRole('dialog')).toContainText('allow_all_providers');
       await sweep(language, 'Adoption dialog');
+      // #93: the native edit offered here (and for the Mistral key below) reads in one language too; Cancel writes nothing.
+      const nativeEdit = async (action: string, title: string, where: string) => {
+        await page.getByRole('dialog').getByRole('button', { name: new RegExp(`^${action}`) }).click();
+        const edit = page.getByRole('dialog', { name: title, exact: true });
+        await expect(edit.getByRole('list', { name: t('Allowed afterwards', 'Autorisé ensuite') })).toBeVisible();
+        await sweep(language, where);
+        await edit.getByRole('button', { name: t('Cancel', 'Annuler'), exact: true }).click();
+        await expect(edit).toHaveCount(0);
+      };
+      await nativeEdit(t('Replace “all providers” by the explicit list', 'Remplacer « tous les fournisseurs » par la liste explicite'), t('Replace “all providers” on the key', 'Remplacer « tous les fournisseurs » sur la clé'), 'Native edit preview of the all-providers key');
       await page.getByRole('dialog').getByRole('button', { name: t('Cancel', 'Annuler'), exact: true }).click();
       await button(t('All virtual keys', 'Toutes les clés virtuelles')).click();
       // #87: readiness filter, per-provider permission counts and the grouped blockers (models Bifrost
@@ -1030,7 +1041,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
       await page.getByRole('combobox', { name: t('Filter by readiness', 'Filtrer par état d’adoption'), exact: true }).click();
       await sweep(language, 'Readiness filter');
       await page.keyboard.press('Escape');
-      for (const name of ['QA Mistral Key', 'QA To Add Key']) {
+      for (const name of ['QA Mistral Key', 'QA Hermes Key', 'QA To Add Key']) {
         await keyCard(name).getByRole('button', { name: t(`Review · ${name}`, `Examiner · ${name}`), exact: true }).click();
         await page.getByRole('list', { name: t('Bifrost allows today', 'Bifrost autorise aujourd’hui') }).locator('summary').first().click();
         await sweep(language, `Key page of ${name}`);
@@ -1043,6 +1054,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
           await page.getByRole('dialog').getByRole('region', { name: t('Kept in Bifrost', 'Conservés dans Bifrost') }).waitFor();
           await sweep(language, `Adoption dialog of ${name}, provider kept`);
         }
+        if (name === 'QA Hermes Key') await nativeEdit(t('Remove these models from the key in Bifrost', 'Retirer ces modèles de la clé dans Bifrost'), t('Remove models from the key in Bifrost', 'Retirer des modèles de la clé dans Bifrost'), 'Native edit preview of the Hermes key');
         await page.getByRole('dialog').getByRole('button', { name: t('Cancel', 'Annuler'), exact: true }).click();
         await button(t('All virtual keys', 'Toutes les clés virtuelles')).click();
       }
@@ -1112,6 +1124,92 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(keyCard('QA Mistral Key')).toContainText('Mistral · kept in Bifrost · 3 models');
     await expect(keyCard('QA Mistral Key')).toContainText('Verified');
     await shot('after-keep-native-key-card');
+  });
+
+  await test.step('a blocked key loses what Registry cannot represent only after a preview and a confirmation, then it is adopted (#93)', async () => {
+    // The fixture records every native key update exactly as the panel sent it.
+    const nativeWrites = async (): Promise<{ keyId: string; body: Record<string, unknown> }[]> => (await page.request.get('/__fixture/native-writes')).json();
+    const nativeKey = async (id: string) => (await api('workspace')).data.keys.find((k: { id: string }) => k.id === id);
+    const written = (await nativeWrites()).length;
+    const dialog = page.getByRole('dialog');
+    const lines = (edit: Locator, name: string) => edit.getByRole('list', { name, exact: true });
+    await nav('Virtual keys').click();
+
+    // Models Bifrost does not list (Mistral is disabled): the dialog offers to remove them, with the consequence stated.
+    await keyCard('QA Hermes Key').getByRole('button', { name: 'Review · QA Hermes Key', exact: true }).click();
+    await button('Review adoption').click();
+    await expect(dialog.getByRole('button', { name: 'Use this key with Registry', exact: true })).toBeDisabled();
+    await expect(dialog).toContainText('Changes the key in Bifrost once you confirm a preview');
+    await dialog.getByRole('button', { name: /^Remove these models from the key in Bifrost/ }).click();
+    const edit = page.getByRole('dialog', { name: 'Remove models from the key in Bifrost', exact: true });
+    await expect(edit).toContainText('This changes the key in Bifrost, not only in Registry.');
+    await expect(edit).toContainText('Requests that use these models will be refused.');
+    await expect(lines(edit, 'Allowed today')).toContainText('Mistral · 2 models');
+    await expect(lines(edit, 'Allowed afterwards')).toContainText('Claude · 2 models');
+    await expect(lines(edit, 'Allowed afterwards')).not.toContainText('Mistral');
+    await lines(edit, 'Removed from the key').getByText('Mistral · 2 models', { exact: true }).click();
+    await expect(lines(edit, 'Removed from the key')).toContainText('qa-mistral-large, qa-mistral-small');
+    // Nothing is written before the confirmation, and Cancel keeps it that way.
+    expect(await nativeWrites()).toHaveLength(written);
+    await edit.getByRole('button', { name: 'Cancel', exact: true }).click();
+    await expect(edit).toHaveCount(0);
+    expect((await nativeKey('vk-qa-hermes')).permissions.providers.map((p: { provider: string }) => p.provider)).toEqual(['mistral', 'Claude']);
+    expect(await nativeWrites()).toHaveLength(written);
+
+    await dialog.getByRole('button', { name: /^Remove these models from the key in Bifrost/ }).click();
+    const confirmation = page.waitForRequest(r => r.method() === 'POST' && r.url().endsWith('/api/keys/native-permissions') && r.postDataJSON().phase === 'apply');
+    await edit.getByRole('button', { name: 'Confirm: remove 2 models', exact: true }).click();
+    expect((await confirmation).postDataJSON()).toEqual({ keyId: 'vk-qa-hermes', operation: 'remove-models', provider: 'mistral', phase: 'apply', previewToken: expect.any(String), confirm: true });
+    await expect(edit.getByRole('status')).toContainText('Done. 2 models removed from the key in Bifrost.');
+    await expect(lines(edit, 'Allowed now')).toContainText('Claude · 2 models');
+    // The whole key was reposted from its read-back: only the Mistral row is gone.
+    const writes = await nativeWrites();
+    expect(writes).toHaveLength(written + 1);
+    expect(writes[written]).toEqual({ keyId: 'vk-qa-hermes', body: { name: 'QA Hermes Key', description: 'Synthetic Hermes client', is_active: true, allow_all_providers: false,
+      provider_configs: [{ id: expect.any(Number), provider: 'Claude', weight: null, allowed_models: ['qa-haiku', 'qa-opus'], blacklisted_models: [], key_ids: ['*'] }] } });
+    await edit.getByRole('button', { name: 'Back to adoption', exact: true }).click();
+    // The readiness refreshed behind the dialog: the key can be adopted now.
+    await expect(dialog).not.toContainText('Before continuing');
+    await expect(dialog.getByRole('button', { name: /^Remove these models/ })).toHaveCount(0);
+    await dialog.getByRole('button', { name: 'Use this key with Registry', exact: true }).click();
+    await expect(dialog).toHaveCount(0);
+    const hermes = await nativeKey('vk-qa-hermes');
+    expect(hermes.managed).toBe(true);
+    expect([...hermes.policy.added].sort()).toEqual(['qa-haiku', 'qa-opus']);
+    expect(await nativeWrites()).toHaveLength(written + 1);
+
+    // "All providers": the dialog offers the explicit list; the preview names what stops being allowed.
+    await button('All virtual keys').click();
+    await keyCard('QA All Providers Key').getByRole('button', { name: 'Review · QA All Providers Key', exact: true }).click();
+    await button('Review adoption').click();
+    await expect(dialog).toContainText('allow_all_providers');
+    await expect(dialog.getByRole('button', { name: /^Remove these models/ })).toHaveCount(0);
+    await dialog.getByRole('button', { name: 'Replace “all providers” by the explicit list', exact: true }).click();
+    const replace = page.getByRole('dialog', { name: 'Replace “all providers” on the key', exact: true });
+    await expect(replace).toContainText('Providers added to Bifrost later are not allowed until you add them to the key.');
+    await expect(lines(replace, 'Allowed today')).toContainText('All providers');
+    const afterwards = lines(replace, 'Allowed afterwards');
+    await expect(afterwards.locator('summary')).toHaveText(['Claude · 5 models', 'Codex · 2 models', 'Google · 2 models', 'Synthetic Provider · 3 models']);
+    // Disabled Mistral is not a provider the key can reach today. Left out: qa-shared at Codex (Claude serves it first: one access per model),
+    // qa-image (its card was deleted above) and the models without a card.
+    await expect(lines(replace, 'Removed from the key').locator('summary')).toHaveText(['Codex · 1 model', 'Google · 1 model', /^OpenRouter · \d+ models$/, 'Synthetic Provider · 1 model', 'Typesafe · 1 model']);
+    expect(await nativeWrites()).toHaveLength(written + 1);
+    const replacement = page.waitForRequest(r => r.method() === 'POST' && r.url().endsWith('/api/keys/native-permissions') && r.postDataJSON().phase === 'apply');
+    await replace.getByRole('button', { name: 'Confirm: replace “all providers”', exact: true }).click();
+    expect((await replacement).postDataJSON()).toMatchObject({ keyId: 'vk-qa-all-providers', operation: 'replace-all-providers', phase: 'apply', confirm: true });
+    await expect(replace.getByRole('status')).toContainText('Done. The key no longer allows every provider');
+    expect((await nativeWrites())[written + 1]).toEqual({ keyId: 'vk-qa-all-providers', body: { name: 'QA All Providers Key', description: 'Synthetic client allowed every provider', is_active: true, allow_all_providers: false, provider_configs: [
+      { provider: 'Claude', weight: null, allowed_models: ['qa-haiku', 'qa-opus', 'qa-opus-fast', 'qa-shared', 'qa-sonnet'], blacklisted_models: [], key_ids: ['*'] },
+      { provider: 'Codex', weight: null, allowed_models: ['qa-codex', 'qa-codex-mini'], blacklisted_models: [], key_ids: ['*'] },
+      { provider: 'Google', weight: null, allowed_models: ['qa-flash', 'qa-gemini'], blacklisted_models: [], key_ids: ['*'] },
+      { provider: 'synthetic-provider', weight: null, allowed_models: ['qa-chat', 'qa-code', 'qa-vision'], blacklisted_models: [], key_ids: ['*'] },
+    ] } });
+    await replace.getByRole('button', { name: 'Back to adoption', exact: true }).click();
+    await dialog.getByRole('button', { name: 'Use this key with Registry', exact: true }).click();
+    await expect(dialog).toHaveCount(0);
+    expect((await nativeKey('vk-qa-all-providers')).managed).toBe(true);
+    expect(await nativeWrites()).toHaveLength(written + 2);
+    await button('All virtual keys').click();
   });
 
   await test.step('mobile sheet, footer, focus and metadata detail fit viewport', async () => {

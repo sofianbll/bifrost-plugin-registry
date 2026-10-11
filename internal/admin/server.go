@@ -161,7 +161,7 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request, embedded bool) {
 		s.catalogHandler(w, r)
 	case "/api/assistant/settings", "/api/assistant/models", "/api/assistant/suggest":
 		s.assistantHandler(w, r)
-	case "/api/workspace", "/api/keys", "/api/keys/adopt":
+	case "/api/workspace", "/api/keys", "/api/keys/adopt", "/api/keys/native-permissions":
 		s.liveHandler(w, r)
 	case "/api/status":
 		if !method(w, r, http.MethodGet) {

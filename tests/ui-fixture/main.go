@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"maps"
 	"net/http"
 	"net/url"
 	"os"
@@ -109,6 +110,7 @@ type virtualKey struct {
 }
 
 type providerConfig struct {
+	ID            int      `json:"id,omitempty"`
 	Provider      string   `json:"provider"`
 	AllowedModels []string `json:"allowed_models"` // "*" allows every model of the provider
 	AllowAllKeys  bool     `json:"allow_all_keys"`
@@ -135,6 +137,27 @@ type syntheticBifrost struct {
 	store *registry.Store
 	keys  map[string]*virtualKey
 	next  int
+	// writes records every virtual key update the panel sent, exactly as sent, for the journeys to assert.
+	writes []nativeWrite
+}
+
+type nativeWrite struct {
+	KeyID string          `json:"keyId"`
+	Body  json.RawMessage `json:"body"`
+}
+
+// recordedWrites serves the native key updates received so far at /__fixture/native-writes (fixture only, no secrets).
+func (b *syntheticBifrost) recordedWrites(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/__fixture/native-writes" {
+			next.ServeHTTP(w, r)
+			return
+		}
+		b.Lock()
+		defer b.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(append([]nativeWrite{}, b.writes...))
+	})
 }
 
 func respond(status int, body any) (*http.Response, error) {
@@ -256,12 +279,31 @@ func (b *syntheticBifrost) roundTrip(r *http.Request) (*http.Response, error) {
 			return respond(404, map[string]string{"error": "fixture key not found"})
 		}
 		if r.Method == "PUT" {
+			raw, _ := io.ReadAll(r.Body)
 			var input virtualKey
-			if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+			if err := json.Unmarshal(raw, &input); err != nil {
 				return respond(400, map[string]string{"error": "invalid fixture key update"})
 			}
+			b.writes = append(b.writes, nativeWrite{KeyID: id, Body: raw})
 			key.Name, key.Description, key.Active = input.Name, input.Description, input.Active
 			key.AllowAllProviders, key.ProviderConfigs = input.AllowAllProviders, input.ProviderConfigs
+			// Like Bifrost: rows get an id, key_ids ["*"] reads back as allow_all_keys, other ids as keys.
+			for i := range key.ProviderConfigs {
+				pc := &key.ProviderConfigs[i]
+				if pc.ID == 0 {
+					b.next++
+					pc.ID = 1000 + b.next
+				}
+				pc.AllowAllKeys, pc.Keys = slices.Equal(pc.KeyIDs, []string{"*"}), nil
+				for _, keyID := range pc.KeyIDs {
+					if !pc.AllowAllKeys {
+						pc.Keys = append(pc.Keys, struct {
+							KeyID string `json:"key_id"`
+						}{keyID})
+					}
+				}
+				pc.KeyIDs = nil
+			}
 		}
 		if r.Method == "GET" || r.Method == "PUT" {
 			return respond(200, map[string]any{"virtual_key": key})
@@ -406,9 +448,9 @@ func seed() registry.Config {
 
 // seedKeys are the native virtual keys. The first two are managed; every other one is an unmanaged
 // adoption case: empty, all providers, all models of Claude, ready (codex, google), blocked by models
-// of a disabled provider (mistral) or by a discovered model without a card (unsaved).
+// of a disabled provider (mistral, hermes) or by a discovered model without a card (unsaved).
 func seedKeys() map[string]*virtualKey {
-	return map[string]*virtualKey{
+	keys := map[string]*virtualKey{
 		"vk-qa-dev":           {ID: "vk-qa-dev", Name: "QA Development Key", Description: "Synthetic development client", Value: "sk-bf-qa-fixture-dev", Active: true, ProviderConfigs: []providerConfig{{Provider: provider, AllowedModels: []string{"qa-code", "qa-chat"}}}},
 		"vk-qa-visual":        {ID: "vk-qa-visual", Name: "QA Visual Key", Description: "Synthetic visual client", Value: "sk-bf-qa-fixture-visual", Active: true, ProviderConfigs: []providerConfig{{Provider: provider, AllowedModels: []string{"qa-vision"}}}},
 		"vk-qa-unmanaged":     {ID: "vk-qa-unmanaged", Name: "QA Unmanaged Key", Description: "Synthetic unmanaged client", Value: "sk-bf-qa-fixture-unmanaged", Active: true, ProviderConfigs: []providerConfig{}},
@@ -420,9 +462,22 @@ func seedKeys() map[string]*virtualKey {
 		"vk-qa-mistral": {ID: "vk-qa-mistral", Name: "QA Mistral Key", Description: "Synthetic Mistral client", Value: "sk-bf-qa-fixture-mistral", Active: true, ProviderConfigs: []providerConfig{
 			{Provider: "mistral", AllowedModels: []string{"qa-mistral-large", "qa-mistral-small", "qa-mistral-code"}, AllowAllKeys: true},
 			{Provider: "Claude", AllowedModels: []string{"qa-haiku", "qa-sonnet"}, AllowAllKeys: true}}},
+		// The same case for the key whose undiscovered models are removed in Bifrost (#93): the journeys adopt it.
+		"vk-qa-hermes": {ID: "vk-qa-hermes", Name: "QA Hermes Key", Description: "Synthetic Hermes client", Value: "sk-bf-qa-fixture-hermes", Active: true, ProviderConfigs: []providerConfig{
+			{Provider: "mistral", AllowedModels: []string{"qa-mistral-large", "qa-mistral-small"}, AllowAllKeys: true},
+			{Provider: "Claude", AllowedModels: []string{"qa-haiku", "qa-opus"}, AllowAllKeys: true}}},
 		// qa-unregistered is discovered but has no card, and no journey saves it.
 		"vk-qa-unsaved": {ID: "vk-qa-unsaved", Name: "QA To Add Key", Description: "Synthetic unsaved client", Value: "sk-bf-qa-fixture-unsaved", Active: true, ProviderConfigs: []providerConfig{{Provider: provider, AllowedModels: []string{"qa-vision", "qa-unregistered"}, AllowAllKeys: true}}},
 	}
+	// Bifrost numbers every provider row; a native update sends the id back so the row keeps its limits.
+	row := 0
+	for _, id := range slices.Sorted(maps.Keys(keys)) {
+		for i := range keys[id].ProviderConfigs {
+			row++
+			keys[id].ProviderConfigs[i].ID = row
+		}
+	}
+	return keys
 }
 
 func main() {
@@ -467,6 +522,7 @@ func run() error {
 	b := &syntheticBifrost{store: store, keys: seedKeys()}
 	server.ConnectNative(roundTrip(b.roundTrip))
 	httpServer := server.HTTPServer("127.0.0.1:4174")
+	httpServer.Handler = b.recordedWrites(httpServer.Handler)
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
 	defer signal.Stop(stop)
