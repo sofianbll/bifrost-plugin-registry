@@ -39,6 +39,9 @@ const permissionKeys = `{
 		{"id":5,"provider":"Mistral","allowed_models":["m-large"],"blacklisted_models":[],"allow_all_keys":true}]},
 	"vk-managed": {"id":"vk-managed","name":"Managed","value":"sk-bf-managed","is_active":true,"allow_all_providers":false,"provider_configs":[
 		{"id":6,"provider":"Mistral","allowed_models":["m-large"],"blacklisted_models":[],"allow_all_keys":true}]},
+	"vk-star": {"id":"vk-star","name":"Star","description":"Star client","value":"sk-bf-star","is_active":true,"allow_all_providers":false,"provider_configs":[
+		{"id":8,"provider":"Codex","weight":0.5,"allowed_models":["*"],"blacklisted_models":[],"allow_all_keys":true,"budgets":[{"max_limit":10}]},
+		{"id":10,"provider":"synth","allowed_models":["s-saved"],"blacklisted_models":[],"allow_all_keys":true}]},
 	"vk-profile": {"id":"vk-profile","name":"Profile","value":"sk-bf-profile","is_active":true,"is_access_profile_managed":true,"allow_all_providers":false,"provider_configs":[
 		{"id":7,"provider":"Mistral","allowed_models":["m-large"],"blacklisted_models":[],"allow_all_keys":true}]}
 }`
@@ -121,8 +124,12 @@ func (h *permissionHarness) roundTrip(t *testing.T) func(*http.Request) (*http.R
 				}
 				for _, pc := range k["provider_configs"].([]any) {
 					row := pc.(map[string]any)
+					// Like Bifrost 2.2.6, only the models the provider lists: an allowed but undiscovered name is not listed.
 					for _, name := range row["allowed_models"].([]any) {
-						ids = append(ids, row["provider"].(string)+"/"+name.(string))
+						id := row["provider"].(string) + "/" + name.(string)
+						if id == "Codex/gpt-saved" || id == "Codex/gpt-unsaved" || id == "Codex/gpt-off" || id == "synth/s-saved" || h.sharedModel && id == "synth/gpt-saved" {
+							ids = append(ids, id)
+						}
 					}
 				}
 			}
@@ -359,6 +366,8 @@ func TestRemoveModelsRefusals(t *testing.T) {
 		{"unknown key", "vk-nope", "remove-models", "Mistral", 404, ""},
 		{"not an operation", "vk-hermes", "delete-everything", "Mistral", 400, ""},
 		{"replace needs all providers", "vk-hermes", "replace-all-providers", "", 200, "does not allow all providers"},
+		{"replace all models needs a dynamic list", "vk-hermes", "replace-all-models", "Codex", 200, "does not allow every model"},
+		{"replace all models needs a provider", "vk-star", "replace-all-models", "", 400, ""},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			code, body := h.edit(`{"keyId":"` + tc.key + `","operation":"` + tc.operation + `","provider":"` + tc.provider + `","phase":"preview"}`)
@@ -519,6 +528,97 @@ func TestReplaceAllProvidersKeepsOneAccessPerModel(t *testing.T) {
 		t.Fatal(code, body)
 	}
 	if code := h.adopt(t, "vk-all"); code != 200 {
+		t.Fatal("the key must be adoptable once each model has one access:", code)
+	}
+}
+
+// A provider row allowing every model ("*") is replaced by the models Registry holds a direct access for:
+// the row keeps its id (so its budget and weight stay), and every model it stops allowing is named.
+func TestReplaceAllModelsOfAProviderByTheModelsRegistryHolds(t *testing.T) {
+	h := newPermissionHarness(t)
+	if state, _ := h.adoptionState(t, "vk-star"); state != "blocked" {
+		t.Fatal("the wildcard key must start blocked:", state)
+	}
+	p := h.preview(t, "vk-star", "replace-all-models", "Codex")
+	if !p.CanApply || p.PreviewToken == "" || len(p.Blocked) != 0 {
+		t.Fatalf("wrong preview: %+v", p)
+	}
+	if got := jsonOf(t, p.Before); got != `{"allProviders":false,"providers":[{"provider":"Codex","allModels":true,"models":[]},{"provider":"synth","allModels":false,"models":["s-saved"]}]}` {
+		t.Fatalf("preview must show every model of Codex today: %s", got)
+	}
+	if got := jsonOf(t, p.After); got != `{"allProviders":false,"providers":[{"provider":"Codex","allModels":false,"models":["gpt-saved"]},{"provider":"synth","allModels":false,"models":["s-saved"]}]}` {
+		t.Fatalf("preview must show the models Registry holds: %s", got)
+	}
+	// The row stays, so its budget stays: nothing claims otherwise.
+	if got := jsonOf(t, p.Remove); got != `[{"provider":"Codex","models":["gpt-off","gpt-unsaved"]}]` {
+		t.Fatalf("preview must name the models that stop being allowed: %s", got)
+	}
+	if code, _ := h.apply("vk-star", "replace-all-models", "Codex", p.PreviewToken, false); code != 428 || len(h.puts) != 0 {
+		t.Fatalf("unconfirmed replacement was not refused: %d writes=%d", code, len(h.puts))
+	}
+	if code, _ := h.apply("vk-star", "replace-all-models", "Codex", "wrong", true); code != 409 || len(h.puts) != 0 {
+		t.Fatalf("token mismatch was not refused: %d writes=%d", code, len(h.puts))
+	}
+	if code, body := h.apply("vk-star", "replace-all-models", "Codex", p.PreviewToken, true); code != 200 {
+		t.Fatal(code, body)
+	}
+	want := `{"name":"Star","description":"Star client","is_active":true,"allow_all_providers":false,"provider_configs":[
+		{"id":8,"provider":"Codex","weight":0.5,"allowed_models":["gpt-saved"],"blacklisted_models":[],"key_ids":["*"]},
+		{"id":10,"provider":"synth","weight":null,"allowed_models":["s-saved"],"blacklisted_models":[],"key_ids":["*"]}]}`
+	var expected map[string]any
+	if err := json.Unmarshal([]byte(want), &expected); err != nil {
+		t.Fatal(err)
+	}
+	if len(h.puts) != 1 || !reflect.DeepEqual(h.puts[0], expected) {
+		t.Fatalf("native write payload:\n got %v\nwant %s", h.puts, jsonOf(t, expected))
+	}
+	if code := h.adopt(t, "vk-star"); code != 200 {
+		t.Fatal("adoption after the replacement failed:", code)
+	}
+}
+
+// A regex allows what Bifrost matches (a full, case-insensitive RE2 match): the replacement never widens it,
+// and only the models it matched are named as left out.
+func TestReplaceARegexAllowlistNeverWidensIt(t *testing.T) {
+	h := newPermissionHarness(t)
+	h.keys["vk-star"]["provider_configs"].([]any)[0].(map[string]any)["allowed_models"] = []any{"regex:GPT-(saved|unsaved)"}
+	p := h.preview(t, "vk-star", "replace-all-models", "Codex")
+	if got := jsonOf(t, p.Remove); got != `[{"provider":"Codex","models":["gpt-unsaved"]}]` {
+		t.Fatalf("only what the regex matched can be left out: %s", got)
+	}
+	if got := jsonOf(t, p.After.Providers[0]); got != `{"provider":"Codex","allModels":false,"models":["gpt-saved"]}` {
+		t.Fatal(got)
+	}
+	// Nothing Registry holds is matched: the row goes, and its budget with it.
+	h.keys["vk-star"]["provider_configs"].([]any)[0].(map[string]any)["allowed_models"] = []any{"regex:gpt-(off|unsaved)"}
+	p = h.preview(t, "vk-star", "replace-all-models", "Codex")
+	if got := jsonOf(t, p.Remove); !p.CanApply || got != `[{"provider":"Codex","models":["gpt-off","gpt-unsaved"],"dropsLimits":true}]` || len(p.After.Providers) != 1 {
+		t.Fatalf("an emptied row is dropped with its limits, and the preview says so: %s %+v", got, p.After)
+	}
+}
+
+// One access per model: a model another row of the key already holds is left out of the replacement.
+func TestReplaceAllModelsKeepsOneAccessPerModel(t *testing.T) {
+	h := newPermissionHarness(t)
+	h.sharedModel = true
+	cfg := h.server.Store.Load().Config()
+	cfg.Models = append(cfg.Models, registry.Model{ID: "synth-gpt-saved", Alias: "gpt-saved", Provider: "synth", ProviderKeyIDs: []string{"synth-key"}, UpstreamModel: "gpt-saved", Endpoints: []string{"chat/completions"}, Enabled: true, Configured: true})
+	raw, _ := json.Marshal(cfg)
+	if _, err := h.server.Store.Save(raw, h.server.Store.Load().Revision()); err != nil {
+		t.Fatal(err)
+	}
+	h.keys["vk-star"]["provider_configs"] = []any{
+		map[string]any{"id": 8, "provider": "Codex", "allowed_models": []any{"gpt-saved"}, "blacklisted_models": []any{}, "allow_all_keys": true},
+		map[string]any{"id": 10, "provider": "synth", "allowed_models": []any{"*"}, "blacklisted_models": []any{}, "allow_all_keys": true},
+	}
+	p := h.preview(t, "vk-star", "replace-all-models", "synth")
+	if got := jsonOf(t, p.Remove); got != `[{"provider":"synth","models":["gpt-saved"]}]` {
+		t.Fatalf("the second access must be named as left out: %s", got)
+	}
+	if code, body := h.apply("vk-star", "replace-all-models", "synth", p.PreviewToken, true); code != 200 {
+		t.Fatal(code, body)
+	}
+	if code := h.adopt(t, "vk-star"); code != 200 {
 		t.Fatal("the key must be adoptable once each model has one access:", code)
 	}
 }

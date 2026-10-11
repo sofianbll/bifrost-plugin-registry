@@ -105,9 +105,10 @@ func TestWorkspaceKeysCarryAdoptionReadiness(t *testing.T) {
 		// Bifrost does not list these models (disabled provider): nothing on the models page can add them.
 		"vk-hermes": `{"state":"blocked","blockers":[{"provider":"Mistral","kind":"undiscovered","count":2,"models":["m-large","m-small"]}]}`,
 		// One group per provider and kind, in the order the key lists its providers; a disabled card is "other".
-		"vk-mixed":  `{"state":"blocked","blockers":[{"provider":"Mistral","kind":"undiscovered","count":1,"models":["m-large"]},{"provider":"Codex","kind":"unsaved","count":1,"models":["gpt-unsaved"]},{"provider":"Codex","kind":"other","count":1,"models":["gpt-off"],"reasons":["Native route Codex/gpt-off needs a configured direct Registry access with the same native name"]}]}`,
-		"vk-all":    `{"state":"blocked","blockers":[{"provider":"","kind":"all-providers","count":1,"models":[],"reasons":["allow_all_providers grants future providers and cannot be represented safely"]}]}`,
-		"vk-star":   `{"state":"blocked","blockers":[{"provider":"Codex","kind":"other","count":1,"models":[],"reasons":["Dynamic native model allowlist is unsupported for Codex"]}]}`,
+		"vk-mixed": `{"state":"blocked","blockers":[{"provider":"Mistral","kind":"undiscovered","count":1,"models":["m-large"]},{"provider":"Codex","kind":"unsaved","count":1,"models":["gpt-unsaved"]},{"provider":"Codex","kind":"other","count":1,"models":["gpt-off"],"reasons":["Native route Codex/gpt-off needs a configured direct Registry access with the same native name"]}]}`,
+		"vk-all":   `{"state":"blocked","blockers":[{"provider":"","kind":"all-providers","count":1,"models":[],"reasons":["allow_all_providers grants future providers and cannot be represented safely"]}]}`,
+		// Every model of a provider (or a regex): kept in Bifrost, or replaced by the models Registry holds.
+		"vk-star":   `{"state":"blocked","blockers":[{"provider":"Codex","kind":"dynamic","count":1,"models":[],"reasons":["Dynamic native model allowlist is unsupported for Codex"]}]}`,
 		"vk-empty":  `{"state":"empty","blockers":[]}`,
 		"vk-off":    `{"state":"blocked","blockers":[{"provider":"","kind":"other","count":1,"models":[],"reasons":["Native key is inactive or expired"]}]}`,
 		"vk-unread": "", // no provider rows in the native answer: not read, so no verdict

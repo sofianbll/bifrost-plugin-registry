@@ -173,3 +173,39 @@ func TestNativeCandidatePreservesOtherGatewayProtocols(t *testing.T) {
 		}
 	}
 }
+
+// The real gateway shape (Bifrost 2.2.6 probe): deepseek is kept in Bifrost and serves deepseek-v4-pro, which
+// Registry adopts through opencode-go. Each provider-prefixed name keeps its own owner: the kept one passes
+// through untouched, the opencode-go one is Registry's route and never lands on the kept provider. (A kept request
+// may land on a route the policy exposes, as routing rules may: CheckAttempt's own rule.)
+func TestKeptProviderSharingAModelNameWithAManagedOne(t *testing.T) {
+	model := func(id, name string) Model {
+		return Model{ID: id, Alias: name, Provider: "opencode-go", ProviderKeyIDs: []string{"key-o"}, UpstreamModel: name, Endpoints: []string{"chat/completions"}, Enabled: true, Configured: true}
+	}
+	c := Config{SchemaVersion: 1, DefaultNaming: "provider/model", Models: []Model{model("o-pro", "deepseek-v4-pro"), model("o-flash", "deepseek-v4.1-flash")}, Groups: []Group{},
+		Policies: []Policy{{VirtualKeyID: "vk-1", Name: "Probe", TokenSHA256: TokenHash(testToken), Naming: "provider/model", Groups: []string{}, Added: []string{"o-pro", "o-flash"}, Enabled: true,
+			Adopted: true, NativeModelIDs: []string{"o-pro", "o-flash"}, KeptNative: []string{"deepseek"}}}}
+	s := mustCompile(t, c)
+	for _, tc := range []struct{ model, provider, other string }{
+		{"deepseek/deepseek-v4-pro", "deepseek", ""},
+		{"opencode-go/deepseek-v4-pro", "opencode-go", "deepseek"},
+		{"opencode-go/deepseek-v4.1-flash", "opencode-go", "deepseek"},
+		{"deepseek/deepseek-v4.1-flash", "deepseek", ""},
+	} {
+		r := req(`{"model":"` + tc.model + `"}`)
+		session := mustPrepare(t, s, r)
+		if !bytes.Contains(r.Body, []byte(`"model":"`+tc.model+`"`)) {
+			t.Fatalf("%s rewritten: %s", tc.model, r.Body)
+		}
+		name := tc.model[len(tc.provider)+1:]
+		if session.CheckAttempt(tc.provider, name) != nil {
+			t.Fatalf("%s denied on its own provider", tc.model)
+		}
+		if tc.other != "" && session.CheckAttempt(tc.other, name) == nil {
+			t.Fatalf("%s crossed to %s", tc.model, tc.other)
+		}
+	}
+	if _, f := s.Prepare(req(`{"model":"other/deepseek-v4-pro"}`)); f == nil || f.Code != "registry_model_hidden" {
+		t.Fatalf("a provider neither kept nor managed reached Bifrost: %+v", f)
+	}
+}

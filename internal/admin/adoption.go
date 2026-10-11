@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"slices"
 	"sort"
 	"strings"
 
@@ -344,26 +345,21 @@ func expectedRoutes(view *registry.View, vk nativeVK) []string {
 	return out
 }
 
-// diffModels compares what /v1/models lists with what is expected. A kept provider is Bifrost's own:
-// its explicit routes are expected, any other route it lists (a wildcard allowlist) is tolerated.
+// diffModels compares what /v1/models lists with what is expected. A kept provider is Bifrost's own: its
+// routes are neither missing nor unexpected. Bifrost 2.2.6 lists only the models a provider itself lists, so
+// an explicit name its provider does not list (undiscovered) is absent, and a wildcard lists names no row has.
 func diffModels(expected, actual, keep []string) (missing, unexpected []string) {
 	missing, unexpected = []string{}, []string{}
-	want, seen := map[string]bool{}, map[string]bool{}
-	for _, id := range actual {
-		seen[id] = true
+	kept := func(id string) bool {
+		return slices.ContainsFunc(keep, func(provider string) bool { return strings.HasPrefix(id, provider+"/") })
 	}
 	for _, id := range expected {
-		want[id] = true
-		if !seen[id] {
+		if !slices.Contains(actual, id) && !kept(id) {
 			missing = append(missing, id)
 		}
 	}
 	for _, id := range actual {
-		kept := false
-		for _, provider := range keep {
-			kept = kept || strings.HasPrefix(id, provider+"/")
-		}
-		if !want[id] && !kept {
+		if !slices.Contains(expected, id) && !kept(id) {
 			unexpected = append(unexpected, id)
 		}
 	}

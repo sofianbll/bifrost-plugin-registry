@@ -13,7 +13,8 @@ const (
 	blockUndiscovered = "undiscovered" // Bifrost does not list the model: nothing in Registry can add it
 	blockUnsaved      = "unsaved"      // discovered but no Registry card holds it: the models page can add it
 	blockAllProviders = "all-providers"
-	blockOther        = "other" // any other adoption reason, with the reason text as sent
+	blockDynamic      = "dynamic" // the provider row allows "*" or a regex: keep it in Bifrost, or replace it by the models Registry holds
+	blockOther        = "other"   // any other adoption reason, with the reason text as sent
 	// A consequence of the other blockers when every route is blocked, not a reason of its own.
 	noRepresentableAccess = "Native key has no representable configured model access"
 )
@@ -155,7 +156,7 @@ func adoptionSelection(cfg registry.Config, vk nativeVK, rows []nativeModel, kee
 		}
 		for _, name := range pc.AllowedModels {
 			if name == "" || name == "*" || strings.HasPrefix(name, "regex:") {
-				blocked = append(blocked, providerBlocker("Dynamic native model allowlist is unsupported for "+pc.Provider))
+				blocked = append(blocked, adoptionBlocker{Provider: pc.Provider, Kind: blockDynamic, Reason: "Dynamic native model allowlist is unsupported for " + pc.Provider})
 				continue
 			}
 			if registry.Has(pc.BlacklistedModels, name) {
