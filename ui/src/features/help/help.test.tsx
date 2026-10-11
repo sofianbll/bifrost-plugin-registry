@@ -38,4 +38,7 @@ must(english.includes("opens that saved card") && english.includes("“Also avai
 must(french.includes("ouvre cette fiche enregistrée") && french.includes("« Également disponibles »") && !french.includes("met un accès disponible"), "French help says Add to card only opens the card");
 // The browser wraps <q> in its own quotes, which doubles the ones a quoted label already carries.
 must(!renderToStaticMarkup(<LanguageContext.Provider value="en"><HelpContent /></LanguageContext.Provider>).includes("<q"), "labels are not <q> elements");
+// #85 round 2: terms and their definitions are a list layout (and a colon), not em-dash separators.
+must(!english.includes("—") && !french.includes("—"), "no em dash between a term and its definition");
+must(french.includes("Modèles :") && english.includes("Models:"), "a step names its page with the language's colon");
 console.log("Help and tour checks passed");
