@@ -40,7 +40,7 @@ test('model card', async ({ page }) => {
 
 test('key composer', async ({ page, language }) => {
   await page.goto(`/?lang=${language}#/keys/vk-qa-dev`);
-  await page.getByRole('heading', { level: 2, name: 'QA Development Key' }).waitFor();
+  await page.getByRole('heading', { level: 1, name: 'QA Development Key' }).waitFor();
   await capture(page, 'key-composer.png');
 });
 
