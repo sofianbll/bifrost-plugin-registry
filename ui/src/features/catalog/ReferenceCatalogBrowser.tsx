@@ -14,7 +14,7 @@ import { creatorKey, distinctLabels, knownValue, type Access, type Model, type M
 import ModelBrowser from "./ModelBrowser";
 import { FactLine } from "./FactLine";
 import { declaredEndpoints, prefillFromReference } from "./model-editor-data";
-import { cardEntries, filterReferenceGroups, filterReferenceModels, groupReferenceModels, sharedReferenceFacts, type ReferenceGroup } from "./reference-groups";
+import { cardEntries, cardName, filterReferenceGroups, filterReferenceModels, groupReferenceModels, sharedReferenceFacts, type ReferenceGroup } from "./reference-groups";
 import { cardFormat, gridColumns, type ViewOptions } from "../../components/registry/ViewOptions";
 import { useCopy, useCreatorName, useFormat, useTerm } from "../../lib/locale";
 
@@ -121,8 +121,7 @@ export default function ReferenceCatalogBrowser({ scope, models, allModels, cata
     const identity = (group: ReferenceGroup) => {
       const saved = registeredModels.filter(model => group.entries.some(entry => entry.model.id === model.id));
       const registered = saved.length === 1 ? saved[0] : undefined;
-      // A saved name equal to the common ID is a slug: the reference name reads better, the ID stays below.
-      const name = registered?.name && registered.name !== registered.id ? registered.name : nameOf(group);
+      const name = registered ? cardName(registered, catalog) : nameOf(group);
       // A saved card reads its common ID; a model to add, the exact native IDs it would bring.
       const idLine = registered?.id ?? (unique(group.entries.flatMap(entry => entry.access?.nativeModel ? [entry.access.nativeModel] : [])).join(" · ") || group.entries[0].model.id);
       return { registered, name, idLine };

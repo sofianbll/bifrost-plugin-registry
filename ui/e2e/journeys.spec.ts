@@ -174,6 +174,12 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(card('QA Opus').getByText('qa-opus', { exact: true })).toBeVisible();
     await expect(card('QA Opus').getByText('? → ?')).toHaveCount(0);
     await expect(card('qa-codex-mini')).toContainText('Creator not identified'); // no reference
+    // The card sheet names it the same way, its common ID below.
+    await button('Open QA Opus details').click();
+    await expect(sheet().locator('[data-slot="sheet-title"]')).toHaveText('QA Opus');
+    await expect(sheet().getByRole('heading', { name: 'QA Opus', exact: true }).locator('xpath=following-sibling::code[1]')).toHaveText('qa-opus');
+    await button('Cancel').click();
+    await sheet().waitFor({ state: 'hidden' });
     const creators = page.getByRole('combobox', { name: 'Creator', exact: true });
     await creators.click();
     // Counts are the models of the current scope: saved cards here, discovered ones in To add.
@@ -396,6 +402,8 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await page.getByRole('textbox', { name: 'Group name *', exact: true }).fill('QA Browser Group');
     await button('Continue').click();
     await page.getByRole('checkbox', { name: 'Select QA Code', exact: true }).check();
+    // qa-haiku was saved with its common ID as name: the list reads its reference name, the ID below.
+    await expect(page.locator('[data-slot="card"]').filter({ has: page.getByRole('checkbox', { name: 'Select QA Haiku', exact: true }) })).toContainText('qa-haiku');
     await page.getByRole('textbox', { name: 'Search models', exact: true }).fill('vision');
     await page.getByRole('checkbox', { name: 'Select QA Vision', exact: true }).check();
     await page.getByText(/2 total selected/).waitFor();
