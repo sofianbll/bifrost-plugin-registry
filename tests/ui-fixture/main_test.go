@@ -231,8 +231,15 @@ func TestFixtureKeysCoverAdoptionCases(t *testing.T) {
 		Data struct {
 			Models []struct{ Accesses []access } `json:"models"`
 			Keys   []struct {
-				ID          string `json:"id"`
-				Managed     bool   `json:"managed"`
+				ID        string `json:"id"`
+				Managed   bool   `json:"managed"`
+				Readiness struct {
+					State    string
+					Blockers []struct {
+						Provider, Kind string
+						Count          int
+					}
+				}
 				Permissions struct {
 					AllProviders bool `json:"allProviders"`
 					Providers    []struct {
@@ -267,10 +274,15 @@ func TestFixtureKeysCoverAdoptionCases(t *testing.T) {
 		t.Fatalf("mistral must be a listed provider whose models are never discovered: listed %v", listed)
 	}
 	got := map[string]string{}
+	readiness := map[string]string{}
 	routes := map[string][]string{}
 	for _, k := range ws.Data.Keys {
 		if k.Managed {
 			continue
+		}
+		readiness[k.ID] = k.Readiness.State
+		for _, b := range k.Readiness.Blockers {
+			readiness[k.ID] += fmt.Sprintf(" %s/%s %d", b.Provider, b.Kind, b.Count)
 		}
 		counts := map[string]int{}
 		for _, p := range k.Permissions.Providers {
@@ -313,6 +325,15 @@ func TestFixtureKeysCoverAdoptionCases(t *testing.T) {
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("unmanaged key cases = %v, want %v", got, want)
+	}
+	// The workspace's own verdict (#87) agrees with the independent reading above.
+	wantReadiness := map[string]string{
+		"vk-qa-unmanaged": "empty", "vk-qa-all-providers": "blocked /all-providers 1", "vk-qa-claude": "blocked Claude/other 1",
+		"vk-qa-codex": "ready", "vk-qa-google": "ready",
+		"vk-qa-mistral": "blocked mistral/undiscovered 3", "vk-qa-unsaved": "blocked synthetic-provider/unsaved 1",
+	}
+	if !reflect.DeepEqual(readiness, wantReadiness) {
+		t.Fatalf("unmanaged key readiness = %v, want %v", readiness, wantReadiness)
 	}
 	// Adoption agrees: only the ready keys can be adopted as they are.
 	for id, apply := range map[string]bool{"vk-qa-codex": true, "vk-qa-google": true, "vk-qa-mistral": false, "vk-qa-unsaved": false, "vk-qa-unmanaged": false} {
