@@ -48,7 +48,8 @@ export function updateViewOverride(base: ViewOptions, previous: Partial<ViewOpti
   return override;
 }
 
-export function ViewControls({ value, onChange, onReset, scope, fields = ["description", "metadata", "modalities", "providers", "evidence"], catalogFormats = false }: { value: ViewOptions; onChange: (next: ViewOptions) => void; onReset?: () => void; scope?: string; fields?: ("description" | "metadata" | "modalities" | "providers" | "evidence")[]; catalogFormats?: boolean }) {
+// logoChoice adds the primary logo (creator or serving provider) to the popover: a preference of the whole panel, offered where it is saved.
+export function ViewControls({ value, onChange, onReset, scope, fields = ["description", "metadata", "modalities", "providers", "evidence"], catalogFormats = false, logoChoice = false }: { value: ViewOptions; onChange: (next: ViewOptions) => void; onReset?: () => void; scope?: string; fields?: ("description" | "metadata" | "modalities" | "providers" | "evidence")[]; catalogFormats?: boolean; logoChoice?: boolean }) {
   const copy = useCopy();
   const baseId = useId();
   const [open, setOpen] = useState(false);
@@ -92,6 +93,13 @@ export function ViewControls({ value, onChange, onReset, scope, fields = ["descr
       <Popover open={open} onOpenChange={setOpen}><PopoverTrigger asChild><Button size="sm" variant="outline" aria-label={copy("View options", "Options d’affichage")}><SlidersHorizontal className="size-4" /><span className="@max-md:hidden">{copy("View options", "Options")}</span></Button></PopoverTrigger><PopoverContent noPortal align="end" className="w-64 space-y-4">
         <h3 className="border-b pb-3 text-base font-semibold">{scope === "Models" ? copy("Model view options", "Options d’affichage des modèles") : copy(`${scope || "View"} options`, `${scope || "Vue"} · options`)}</h3>
         <div className="hidden space-y-3 @max-2xl:block">{layoutControls}</div>
+        {logoChoice && <div className="space-y-1">
+          <p className="text-xs font-medium text-muted-foreground">{copy("Primary logo", "Logo principal")}</p>
+          <ToggleGroup type="single" value={value.logo} onValueChange={logo => logo && onChange({ ...value, logo: logo as ViewOptions["logo"] })} aria-label={copy("Primary logo on model cards", "Logo principal des fiches modèles")}>
+            <ToggleGroupItem value="creator">{copy("Creator", "Créateur")}</ToggleGroupItem>
+            <ToggleGroupItem value="provider">{copy("Provider", "Fournisseur d’accès")}</ToggleGroupItem>
+          </ToggleGroup>
+        </div>}
         <div className="space-y-3"><p className="text-xs font-medium text-muted-foreground">{copy("Visible details", "Informations visibles")}</p>{fields.map(field => { const id = `${baseId}-${field}`; return <label key={field} htmlFor={id} className="flex cursor-pointer items-center gap-2 text-sm"><Checkbox id={id} checked={value[field]} onCheckedChange={checked => onChange({ ...value, [field]: checked === true })} />{field === "description" ? copy("Description", "Description") : field === "metadata" ? copy("Model ID / metadata", "Identifiant / métadonnées") : field === "providers" ? copy("Provider accesses", "Accès fournisseurs") : field === "modalities" ? copy("Input / output modalities", "Modalités entrée / sortie") : copy("Capabilities", "Capacités")}</label>; })}</div>
         {onReset && <Button variant="ghost" size="sm" className="w-full border-t" onClick={() => { onReset(); setOpen(false); }}>{copy("Reset", "Réinitialiser")}</Button>}
       </PopoverContent></Popover>

@@ -26,9 +26,11 @@ export function sharedReferenceFacts(group: ReferenceGroup) {
 }
 
 // byCard: one group per model (In Registry, one tile per saved card) instead of one per reference.
-export function groupReferenceModels(models: Model[], catalog: Catalog, provider = "", byCard = false): ReferenceGroup[] {
-  const references = new Map(catalog.references.map(reference => [reference.id, reference]));
-  const accesses = new Map(catalog.accesses.map(access => [access.id, access]));
+// Without the catalogue (still loading) accesses group by the reference they already carry, so a
+// count of tiles does not move when it arrives.
+export function groupReferenceModels(models: Model[], catalog: Catalog | null, provider = "", byCard = false): ReferenceGroup[] {
+  const references = new Map((catalog?.references ?? []).map(reference => [reference.id, reference]));
+  const accesses = new Map((catalog?.accesses ?? []).map(access => [access.id, access]));
   const groups = new Map<string, ReferenceGroup>();
   for (const model of models) {
     for (const access of model.accesses.length ? model.accesses : [undefined]) {
@@ -37,7 +39,8 @@ export function groupReferenceModels(models: Model[], catalog: Catalog, provider
       const candidate = nativeID ? accesses.get(nativeID) : undefined;
       const exact = candidate && access && candidate.provider === access.provider && (!access.nativeModel || candidate.model === access.nativeModel) ? candidate : undefined;
       const reference = exact?.referenceId ? references.get(exact.referenceId) : undefined;
-      const key = byCard ? `card:${model.id}` : reference ? `reference:${reference.id}` : `model:${model.id}`;
+      const referenceId = catalog ? reference?.id : access?.referenceId;
+      const key = byCard ? `card:${model.id}` : referenceId ? `reference:${referenceId}` : `model:${model.id}`;
       const group = groups.get(key) ?? { key, reference, entries: [] };
       group.reference ??= reference;
       group.entries.push({ model, access, catalogAccess: exact });
@@ -79,4 +82,24 @@ export function filterReferenceGroups(models: Model[], catalog: Catalog, filters
 export function filterReferenceModels(models: Model[], catalog: Catalog, filters: ModelFilters, byCard = false): Model[] {
   const visible = new Set(filterReferenceGroups(models, catalog, filters, byCard).flatMap(group => group.entries.map(entry => entry.model.id)));
   return models.filter(model => visible.has(model.id));
+}
+
+export type SortKey = "default" | "name" | "creator" | "provider" | "recent";
+// "recent" is the last saved card first (the registry lists cards in the order they were saved);
+// an empty creator or provider goes last; ties fall back to the name. The list is never mutated.
+export function sortItems<T>(items: T[], sort: SortKey, by: Record<"name" | "creator" | "provider", (item: T) => string>): T[] {
+  if (sort === "default") return items;
+  if (sort === "recent") return [...items].reverse();
+  return [...items].sort((a, b) => Number(!by[sort](a)) - Number(!by[sort](b)) || by[sort](a).localeCompare(by[sort](b)) || by.name(a).localeCompare(by.name(b)));
+}
+
+export type Section<T> = { key: string; label: string; shelf: boolean; items: T[] };
+// Sections of a whole list, before any paging: an item sits under each of its keys (the caller counts
+// it once), sections are sorted by label, shelves (aggregators) after them and "last" ones at the end.
+export function sectionsOf<T>(items: T[], keysOf: (item: T) => string[], describe: (key: string) => { label: string; shelf?: boolean; last?: boolean }): Section<T>[] {
+  const byKey = new Map<string, T[]>();
+  for (const item of items) for (const key of new Set(keysOf(item))) { const rows = byKey.get(key) ?? []; rows.push(item); byKey.set(key, rows); }
+  return [...byKey].map(([key, rows]) => ({ key, items: rows, ...describe(key) }))
+    .sort((a, b) => Number(!!a.last) - Number(!!b.last) || Number(!!a.shelf) - Number(!!b.shelf) || a.label.localeCompare(b.label))
+    .map(({ key, label, shelf, items: rows }) => ({ key, label, shelf: !!shelf, items: rows }));
 }
