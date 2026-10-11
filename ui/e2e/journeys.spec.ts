@@ -1510,7 +1510,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(keyChanges()).toContainText('Compared with the last verified readback');
     await expect(keyChanges()).toContainText('No change.');
     await composerStep('Models').click();
-    await page.getByRole('checkbox', { name: 'Add to this key: QA Sonnet', exact: true }).click();
+    await page.getByRole('checkbox', { name: 'Add to this key: qa-sonnet', exact: true }).click();
     await composerStep('Review').click();
     await expect(keyChanges().getByRole('list', { name: 'Will gain' })).toContainText('Claude/qa-sonnet');
     await expect(keyChanges().getByRole('list', { name: 'Will gain' })).not.toContainText('Claude/qa-haiku');
