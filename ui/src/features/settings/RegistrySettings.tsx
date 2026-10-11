@@ -9,6 +9,7 @@ import AssistantSettings from "@/features/assistant/AssistantSettings";
 import { request } from "@/data/api";
 import type { Catalog } from "@/features/catalog/catalog-api";
 import { useCopy, useFormat } from "@/lib/locale";
+import { HelpContent } from "@/features/help/HelpContent";
 
 type SettingsSection = "general" | "display" | "sources" | "connection" | "assistance" | "help";
 type Page = "gateway" | "catalog" | "snapshot";
@@ -26,6 +27,8 @@ export type RegistrySettingsProps = {
   // The My models scope switch text with its counts, as the models page shows it.
   modelScopes?: string;
   initialSection?: "general" | "display" | "sources" | "connection" | "assistance" | "help";
+  // Starts the guided tour, the same one "?" offers.
+  onStartTour?: () => void;
 };
 
 const sections: { id: SettingsSection; icon: typeof Settings2; en: string; fr: string }[] = [
@@ -38,7 +41,7 @@ const sections: { id: SettingsSection; icon: typeof Settings2; en: string; fr: s
 ];
 
 
-export default function RegistrySettings({ preferences, onPreferencesChange, snapshotMode, onNavigate, onUnauthorized, catalog, catalogError, providers = [], modelScopes, initialSection = "general" }: RegistrySettingsProps) {
+export default function RegistrySettings({ preferences, onPreferencesChange, snapshotMode, onNavigate, onUnauthorized, catalog, catalogError, providers = [], modelScopes, initialSection = "general", onStartTour }: RegistrySettingsProps) {
   const copy = useCopy();
   const format = useFormat();
   const { colon } = format;
@@ -91,7 +94,7 @@ export default function RegistrySettings({ preferences, onPreferencesChange, sna
     </div>;
     if (section === "assistance") return snapshotMode ? <Card><CardHeader><CardTitle>{copy("AI assistance", "Assistance IA")}</CardTitle></CardHeader><CardContent className="text-sm text-muted-foreground">{copy("AI settings and provider calls are unavailable in this snapshot copy.", "Les réglages IA et les appels aux fournisseurs ne sont pas disponibles dans cette copie locale.")}</CardContent></Card> : <AssistantSettings onUnauthorized={onUnauthorized} />;
     return <div className="space-y-4">
-      <Card><CardHeader><CardTitle>{copy("A short path through Registry", "Parcours rapide dans Registry")}</CardTitle></CardHeader><CardContent><ol className="space-y-3 text-sm"><li className="flex gap-3"><Badge>1</Badge><span><strong>{copy("Models", "Modèles")}</strong> — {copy("review discovered accesses and add reference entries where needed.", "examinez les accès découverts et ajoutez les fiches de référence manquantes.")}</span></li><li className="flex gap-3"><Badge>2</Badge><span><strong>{copy("Groups", "Groupes")}</strong> — {copy("organize reusable model selections.", "organisez des sélections de modèles réutilisables.")}</span></li><li className="flex gap-3"><Badge>3</Badge><span><strong>{copy("Virtual keys", "Clés virtuelles")}</strong> — {copy("compose the model list exposed to each key.", "composez la liste des modèles exposés par chaque clé.")}</span></li><li className="flex gap-3"><Badge>4</Badge><span><strong>{copy("Preview and publish", "Aperçu et publication")}</strong> — {copy("review the impact, publish, then read back /v1/models to verify the result.", "vérifiez l’impact, publiez, puis relisez /v1/models pour contrôler le résultat.")}</span></li></ol></CardContent></Card>
+      <Card><CardHeader><CardTitle>{copy("A short path through Registry", "Parcours rapide dans Registry")}</CardTitle></CardHeader><CardContent className="space-y-4"><HelpContent />{onStartTour && <Button type="button" variant="outline" onClick={onStartTour}>{copy("Start the tour", "Commencer la visite")}</Button>}</CardContent></Card>
       <Card><CardHeader><CardTitle>{copy("Snapshot or live workspace?", "Copie locale ou espace connecté ?")}</CardTitle></CardHeader><CardContent className="space-y-3 text-sm text-muted-foreground"><p>{copy("A snapshot is a dated local copy that can be partial. Its edits stay in the copy. A connected workspace reads and writes through the Registry service; a saved key change still needs publication and readback verification.", "Une copie locale est un instantané daté qui peut être partiel. Ses changements restent dans cette copie. Un espace connecté lit et écrit via le service Registry ; une modification de clé enregistrée doit encore être publiée et vérifiée par relecture.")}</p>{navigate(snapshotMode ? "gateway" : "catalog")}</CardContent></Card>
       <Card><CardHeader><CardTitle>{copy("Need the gateway details?", "Besoin des détails du gateway ?")}</CardTitle></CardHeader><CardContent className="space-y-2 text-sm text-muted-foreground"><p>{copy("Aliases map a requested model name to a provider target. Routing rules choose among targets and may include conditions, weights, and fallbacks.", "Un alias associe un nom de modèle demandé à une cible fournisseur. Les règles de routage choisissent parmi des cibles et peuvent définir des conditions, des poids et des secours.")}</p>{snapshotMode && navigate("gateway")}</CardContent></Card>
     </div>;
