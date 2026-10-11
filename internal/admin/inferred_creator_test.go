@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -15,13 +16,13 @@ import (
 // Subscriptions are custom providers (Claude, Codex, Google, Proxy) whose Bifrost base type names
 // the first party; Proxy serves a base type with no creator.
 func TestWorkspaceInfersCreatorFromSingleFirstPartyProvider(t *testing.T) {
-	models := map[string][]string{"Claude": {"sonnet", "opus", "manual", "cleared", "shared"}, "Codex": {"mini", "shared"}, "Google": {"flash"}, "Proxy": {"plain"}}
+	models := map[string][]string{"Claude": {"sonnet", "opus", "manual", "cleared", "shared", "later"}, "Codex": {"mini", "shared", "later"}, "Google": {"flash"}, "Proxy": {"plain"}}
 	bases := map[string]string{"Claude": "anthropic", "Codex": "openai", "Google": "gemini", "Proxy": "bedrock"}
 	creator := func(name string) registry.CatalogValue {
 		return registry.CatalogValue{Value: json.RawMessage(`"` + name + `"`), Source: "manual", Kind: "declared"}
 	}
 	initial, err := registry.Compile(registry.Config{SchemaVersion: 1, DefaultNaming: "provider/model", Catalog: &registry.Catalog{
-		References: []registry.CatalogReference{{ID: "known/opus", CatalogRecord: registry.CatalogRecord{Overrides: map[string]registry.CatalogValue{"creator": creator("Reference Labs")}}}},
+		References: []registry.CatalogReference{{ID: "known/opus", CatalogRecord: registry.CatalogRecord{Overrides: map[string]registry.CatalogValue{"creator": creator("Reference Labs")}}}, {ID: "known/later", CatalogRecord: registry.CatalogRecord{Overrides: map[string]registry.CatalogValue{"creator": creator("Later Labs")}}}},
 		Accesses:   []registry.CatalogAccess{{ID: "Claude/opus", Provider: "Claude", Model: "opus", Configured: true, ReferenceID: "known/opus"}},
 	}})
 	if err != nil {
@@ -116,6 +117,8 @@ func TestWorkspaceInfersCreatorFromSingleFirstPartyProvider(t *testing.T) {
 			m.Accesses[i].Endpoints = []string{"chat/completions"}
 		}
 		switch m.ID {
+		case "later": // saved with its Claude access alone; a Codex access with a reference is added below
+			m.Accesses = slices.DeleteFunc(m.Accesses, func(a accessDTO) bool { return a.Provider != "Claude" })
 		case "manual":
 			m.Creator = "Custom Creator"
 		case "cleared":
@@ -134,6 +137,14 @@ func TestWorkspaceInfersCreatorFromSingleFirstPartyProvider(t *testing.T) {
 	expect(ws, "opus", "Reference Labs", "reference") // a reference always wins
 	expect(ws, "manual", "Custom Creator", "manual")
 	expect(ws, "cleared", "", "manual") // a clear is not guessed again
+	expect(ws, "later", "Anthropic", "inferred")
+
+	// Add to card: a second access that carries a reference. Its creator replaces the guess, whatever its position.
+	later, labs := card(ws, "later"), "known/later"
+	later.Accesses = append(later.Accesses, accessDTO{Provider: "Codex", ID: "Codex/later", NativeModel: "later", Route: "Direct provider", Status: "Configured", Endpoints: []string{"chat/completions"}, ReferenceID: &labs})
+	write(ws)
+	ws = read()
+	expect(ws, "later", "Later Labs", "reference")
 
 	// Saving what the panel read must not turn a guess into a stored value.
 	write(ws)

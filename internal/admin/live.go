@@ -564,6 +564,10 @@ func (s *Server) workspace(ctx context.Context) (workspace, error) {
 		a := accessDTO{Provider: m.Provider, ID: m.Provider + "/" + m.Alias, NativeModel: m.UpstreamModel, Route: "Direct provider", Status: "Configured", Endpoints: append([]string{}, m.Endpoints...), ReferenceID: workspaceReferenceID(config.Catalog, m.Provider, m.UpstreamModel)}
 		if i, ok := index[ui.ID]; ok {
 			dto.Models[i].Accesses = append(dto.Models[i].Accesses, a)
+			// A later access with a reference names the creator the first one could not.
+			if dto.Models[i].CreatorSource == "" && ui.CreatorSource == "reference" {
+				dto.Models[i].Creator, dto.Models[i].CreatorSource = ui.Creator, "reference"
+			}
 		} else {
 			ui.Accesses = []accessDTO{a}
 			index[ui.ID] = len(dto.Models)
