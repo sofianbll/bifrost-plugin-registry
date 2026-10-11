@@ -19,10 +19,12 @@ const hermesReasons = ["Native route mistral/qa-mistral-large needs a configured
 
 const english = render("en", hermes, hermesReasons, () => {});
 const plain = text(english);
-must(plain.includes("3 decisions before adopting"), `the list says how many decisions are left, got ${plain}`);
-must(count(english, /<li/g) === 3 && english.includes("<ol"), "one numbered row per provider");
+must(plain.includes("2 decisions before adopting"), `the list says how many decisions are left, got ${plain}`);
+must(count(english.split("<ol")[1].split("</ol>")[0], /<li/g) === 2, "one numbered row per provider");
+// Spec #85, critique round 2: models to add are not a decision the dialog can make: they are listed apart, unnumbered.
+must(plain.includes("Before adopting: register 1 Synthetic Provider model") && !english.split("</ol>")[0].includes("Synthetic Provider"), "models to add sit outside the numbered decisions");
 must(plain.includes("Each one is required to adopt the key."), "required decisions are said to be required");
-for (const line of ["Mistral · 3 models not discovered", "Synthetic Provider · 1 model to add"]) must(plain.includes(line), `the dialog must list "${line}"`);
+for (const line of ["Mistral · 3 models not discovered"]) must(plain.includes(line), `the dialog must list "${line}"`);
 must(plain.includes("Bifrost does not list these models") && plain.includes("Registry has no card for them yet"), "each kind explains itself");
 must(plain.includes("allows every provider, including ones added later") && !plain.includes("allow_all_providers"), "the all-providers reason reads in plain words");
 // Names sit behind a disclosure; only models the models page can add get a way there.
@@ -33,8 +35,10 @@ must(!render("en", hermes, hermesReasons).includes("Show in To add"), "no link w
 must(!plain.includes("needs a configured direct Registry access"), "the plain per-model reasons are replaced by the grouped list");
 
 const french = text(render("fr", hermes, hermesReasons, () => {}));
-for (const line of ["3 décisions avant d’adopter", "Mistral · 3 modèles non découverts", "Synthetic Provider · 1 modèle à ajouter", "Voir dans À ajouter", "Bifrost ne liste pas ces modèles"]) must(french.includes(line), `French dialog must read "${line}"`);
-must(text(render("en", { state: "blocked", blockers: [hermes.blockers[1]] }, [], () => {})).includes("1 decision before adopting"), "one decision, singular");
+for (const line of ["2 décisions avant d’adopter", "Mistral · 3 modèles non découverts", "Avant d’adopter : enregistrer 1 modèle Synthetic Provider", "Voir dans À ajouter", "Bifrost ne liste pas ces modèles"]) must(french.includes(line), `French dialog must read "${line}"`);
+must(text(render("en", { state: "blocked", blockers: [hermes.blockers[0]] }, [], () => {})).includes("1 decision before adopting"), "one decision, singular");
+const toAddOnly = text(render("en", { state: "blocked", blockers: [{ ...hermes.blockers[1], provider: "vertex", count: 8 }] }, [], () => {}));
+must(!toAddOnly.includes("decision") && toAddOnly.includes("Before adopting: register 8 Vertex AI models"), `only models to add: no decision, got ${toAddOnly}`);
 
 // A provider Bifrost has disabled says so in plain words.
 const disabled: Readiness = { state: "blocked", blockers: [{ ...hermes.blockers[0], providerDisabled: true }] };
@@ -88,4 +92,7 @@ must(!starText.includes("review a key that lists its models one by one"), "no de
 must(!text(render("en", star, dynamic, () => {})).includes("Keep Claude in Bifrost"), "no keep offer without a handler");
 const starFrench = text(render("fr", star, dynamic, () => {}, () => {}, () => {}));
 for (const line of ["Claude · tous les modèles autorisés", "Garder Claude dans Bifrost", "Remplacer « tous les modèles » par les modèles enregistrés dans Registry", "Choisissez une option :"]) must(starFrench.includes(line), `French dialog must read "${line}"`);
+// What changes Bifrost looks different from what keeps it as is: a "Changes Bifrost" tag on native edits only.
+must(count(starOffer, /Changes Bifrost/g) === 1 && !text(offer).includes("Changes Bifrost"), "native edits are tagged, keep offers are not");
+must(text(render("fr", star, dynamic, () => {}, () => {}, () => {})).includes("Modifie Bifrost"), "the tag in French");
 console.log("Adoption blockers checks passed");

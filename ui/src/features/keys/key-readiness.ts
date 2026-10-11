@@ -40,3 +40,16 @@ export function readinessReason(readiness: Readiness | undefined, copy: Copy) {
 
 // The models the models page can add: discovered by Bifrost, no Registry card yet.
 export const unsavedRoutes = (readiness: Readiness | undefined) => (readiness?.blockers ?? []).filter(blocker => blocker.kind === "unsaved").flatMap(blocker => blocker.models.map(model => `${blocker.provider}/${model}`));
+
+// The decisions of the adoption dialog (spec #85): one per provider row (the key itself is ""), models to add
+// left out since only the models page settles them. Decided: a provider kept in Bifrost (also one chosen to settle
+// a collision), or a native edit made in the dialog that removed its row.
+export function adoptionProgress(readiness: Readiness | undefined, kept: string[], edited: string[]) {
+  const blockers = readiness?.blockers ?? [];
+  const pending = new Set(blockers.filter(blocker => !blocker.kept && blocker.kind !== "unsaved").map(blocker => blocker.provider));
+  const decided = new Set([...blockers.filter(blocker => blocker.kept).map(blocker => blocker.provider), ...kept, ...edited].filter(provider => !pending.has(provider)));
+  return { decided: decided.size, total: decided.size + pending.size };
+}
+
+// Providers Bifrost reports as disabled, not kept yet: the dialog keeps them in Bifrost from the start.
+export const disabledProviders = (readiness: Readiness | undefined) => [...new Set((readiness?.blockers ?? []).filter(blocker => blocker.providerDisabled && !blocker.kept).map(blocker => blocker.provider))];

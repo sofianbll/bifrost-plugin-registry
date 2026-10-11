@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { PenLine } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { displayProvider } from "../../components/registry/BrandIcon";
@@ -33,8 +35,9 @@ export function NativeEditButton({ blocker, readiness, onEdit }: { blocker: Read
   const copy = useCopy();
   const request = readiness && onEdit ? nativeEditFor(blocker, readiness) : null;
   if (!request || !onEdit) return null;
+  // Tagged so it reads apart from the safe "Keep … in Bifrost" (spec #85, critique round 2).
   return <div className="mt-2">
-    <Button type="button" variant="outline" size="sm" className="h-auto min-h-8 whitespace-normal text-left" onClick={() => onEdit(request)}>{nativeEditLabel(request, copy)}{request.provider && <span className="sr-only"> · {displayProvider(request.provider)}</span>}</Button>
+    <div className="flex flex-wrap items-center gap-2"><Button type="button" variant="outline" size="sm" className="h-auto min-h-8 shrink whitespace-normal text-left" onClick={() => onEdit(request)}>{nativeEditLabel(request, copy)}{request.provider && <span className="sr-only"> · {displayProvider(request.provider)}</span>}</Button><Badge variant="destructive"><PenLine aria-hidden="true" />{copy("Changes Bifrost", "Modifie Bifrost")}</Badge></div>
     <p className="mt-1 text-xs">{request.operation === "remove-models"
       ? copy("Changes the key in Bifrost once you confirm a preview: requests for these models will be refused.", "Modifie la clé dans Bifrost après confirmation d’un aperçu : les requêtes vers ces modèles seront refusées.")
       : request.operation === "replace-all-models"

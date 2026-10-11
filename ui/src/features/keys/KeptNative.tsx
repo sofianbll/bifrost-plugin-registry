@@ -34,6 +34,7 @@ export function KeptProviders({ readiness, kept: chosen = [], onKeep }: { readin
       const name = displayProvider(provider);
       return <li key={provider}>
         <p className="font-medium">{count === undefined ? copy(`${name} kept in Bifrost`, `${name} conservé dans Bifrost`) : <>{name} · {count < 0 ? copy("all models", "tous les modèles conservés") : `${count} ${copy(count === 1 ? "model" : "models", count === 1 ? "modèle conservé" : "modèles conservés")}`}{copy(" kept in Bifrost", " dans Bifrost")}</>}</p>
+        {readiness?.blockers.some(blocker => blocker.kept && blocker.providerDisabled && blocker.provider === provider) && <p className="text-xs">{copy(`${name} is disabled in Bifrost, so Registry leaves it as is.`, `${name} est désactivé dans Bifrost : Registry le laisse tel quel.`)}</p>}
         <p className="text-xs">{copy(`Registry will not manage or change ${name}’s permissions. Bifrost keeps them as they are, outside the catalog; the rest of the key is adopted.`, `Registry ne gérera ni ne modifiera les permissions du fournisseur ${name}. Bifrost les conserve telles quelles, hors du catalogue ; le reste de la clé est adopté.`)}</p>
         {onKeep && <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => onKeep(provider, false)}>{copy(`Stop keeping ${name} in Bifrost`, `Ne plus garder ${name} dans Bifrost`)}</Button>}
       </li>;

@@ -51,4 +51,9 @@ must(text(wrap("fr", <KeptProviders readiness={keptStar} onKeep={() => {}} />)).
 const collisionKept = wrap("en", <KeptProviders readiness={kept} kept={["mistral", "Codex"]} onKeep={() => {}} />);
 must(text(collisionKept).includes("Codex kept in Bifrost") && collisionKept.includes("Stop keeping Codex in Bifrost") && text(collisionKept).includes("Mistral · 4 models kept in Bifrost"), `a kept provider without blockers is listed, got ${text(collisionKept)}`);
 must(text(wrap("fr", <KeptProviders readiness={{ state: "ready", blockers: [] }} kept={["Codex"]} onKeep={() => {}} />)).includes("Codex conservé dans Bifrost"), "in French");
+// Spec #85, critique round 2: a disabled provider is kept from the start; one line says why.
+const disabledKept: Readiness = { state: "ready", blockers: [{ provider: "mistral", kind: "undiscovered", count: 3, models: ["a", "b", "c"], kept: true, providerDisabled: true }] };
+must(text(wrap("en", <KeptProviders readiness={disabledKept} onKeep={() => {}} />)).includes("Mistral is disabled in Bifrost, so Registry leaves it as is."), "the why, in English");
+must(text(wrap("fr", <KeptProviders readiness={disabledKept} onKeep={() => {}} />)).includes("Mistral est désactivé dans Bifrost : Registry le laisse tel quel."), "the why, in French");
+must(!text(wrap("en", <KeptProviders readiness={kept} onKeep={() => {}} />)).includes("disabled in Bifrost"), "no why for a provider kept by choice");
 console.log("Kept native checks passed");

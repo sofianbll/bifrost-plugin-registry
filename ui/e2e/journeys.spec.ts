@@ -1069,8 +1069,19 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(page.getByRole('menuitem')).toHaveText(['Rename', 'Disable', 'Review binding']);
     await page.keyboard.press('Escape');
     await editSelection();
+    // Basic (critique round 2): the folded Models toolbar, grouped by subscription, one sticky selection line.
+    for (const name of ['View', 'Card shape', 'Grid density']) await expect(page.getByRole('group', { name, exact: true })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'More filters', exact: true })).toHaveCount(0);
+    await expect(page.getByRole('heading', { level: 2, name: /^Synthetic Provider \d+$/ })).toBeVisible();
+    await expect(page.getByText(/models shown|provider accesses selected|visible selected/)).toHaveCount(0);
+    await expect(page.getByText('2 models selected · 1 group', { exact: true })).toBeVisible();
+    await button('Filters').click();
+    await expect(page.getByRole('combobox', { name: 'Serving provider', exact: true })).toBeVisible();
+    await expect(page.getByText(/^Select all \d+ visible models$/)).toBeVisible();
+    await page.keyboard.press('Escape');
     await page.getByRole('checkbox', { name: 'Show selected only (2)', exact: true }).check();
-    await expect(page.getByText(/^2 of 2 models shown/)).toBeVisible();
+    await expect(page.getByRole('checkbox', { name: /^Add to this key: / })).toHaveCount(0);
+    await expect(page.getByRole('checkbox', { name: 'Exclude from this key: QA Code', exact: true })).toBeVisible();
     await page.getByRole('checkbox', { name: 'Show selected only (2)', exact: true }).uncheck();
     await button('Accesses · 1 · QA Code').click();
     await page.getByText('Inherited · QA Development', { exact: true }).waitFor();
@@ -1219,21 +1230,25 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await button('Adopt this key').click();
     const dialog = page.getByRole('dialog');
     // Spec #85: the dialog opens on the decisions, one numbered row per provider, each with its choices.
-    const decisions = dialog.getByRole('region', { name: '2 decisions before adopting' });
-    await expect(decisions.getByRole('heading', { name: '2 decisions before adopting' })).toBeInViewport();
-    await expect(decisions).toContainText('Each one is required to adopt the key.');
-    await expect(decisions.locator('ol > li')).toHaveCount(2);
-    await expect(decisions).toContainText('Mistral is disabled in Bifrost');
-    await expect(decisions).toContainText('Bifrost lists none of its models');
+    // Critique round 2: Bifrost reports Mistral disabled, so the dialog keeps it in Bifrost from the start (undoable);
+    // it counts as decided, and the progress sits next to Adopt.
+    const decisions = dialog.getByRole('region', { name: '1 decision before adopting' });
+    await expect(decisions.getByRole('heading', { name: '1 decision before adopting' })).toBeInViewport();
+    await expect(decisions).toContainText('It is required to adopt the key.');
+    await expect(decisions.locator('ol > li')).toHaveCount(1);
+    const keptMistral = dialog.getByRole('region', { name: 'Kept in Bifrost' });
+    await expect(keptMistral).toContainText('Mistral is disabled in Bifrost, so Registry leaves it as is.');
+    await expect(keptMistral.getByRole('button', { name: 'Stop keeping Mistral in Bifrost', exact: true })).toBeVisible();
+    await expect(dialog.getByText('1 of 2 decided', { exact: true })).toBeVisible();
     await expect(dialog).not.toContainText('read back');
     await expect(dialog).not.toContainText('Needs attention');
     await dialog.getByText('Show model names', { exact: true }).first().click();
-    await expect(dialog.getByText(/qa-mistral-large.*qa-mistral-small|qa-mistral-small.*qa-mistral-large/)).toBeVisible();
+    await expect(dialog.getByText('qa-shared', { exact: true })).toBeVisible();
     await expect(dialog.getByRole('button', { name: /^Show in To add/ })).toHaveCount(0);
     // One model allowed through Claude and Codex: either provider can stay in Bifrost.
     await expect(decisions).toContainText('Codex · 1 model also allowed through Claude');
     await expect(decisions).toContainText('Registry adopts one access per model');
-    for (const name of ['Keep Mistral in Bifrost', 'Keep Codex in Bifrost', 'Keep Claude in Bifrost']) await expect(dialog.getByRole('button', { name, exact: true })).toBeVisible();
+    for (const name of ['Keep Codex in Bifrost', 'Keep Claude in Bifrost']) await expect(dialog.getByRole('button', { name, exact: true })).toBeVisible();
     // What Registry would manage waits behind a disclosure.
     await expect(dialog.getByText('Accesses Registry will manage (3)', { exact: true })).toBeVisible();
     await expect(dialog.getByText('Claude/qa-haiku', { exact: true })).toBeHidden();
@@ -1245,14 +1260,22 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await keyCard('QA Hermes Key').getByRole('button', { name: 'Review · QA Hermes Key', exact: true }).click();
     await page.setViewportSize({ width: 375, height: 812 });
     await button('Adopt this key').click();
-    // The decision comes first, and the dialog is the only scroll container.
-    await expect(dialog.getByRole('heading', { name: '1 decision before adopting' })).toBeInViewport();
-    await expect(dialog.getByRole('button', { name: 'Keep Mistral in Bifrost', exact: true })).toBeInViewport();
-    await dialog.getByText('Technical identifiers', { exact: true }).click();
+    // Its only decision is made from the start (Mistral is disabled, so kept in Bifrost); the dialog is the only
+    // scroll container, and its footer keeps Cancel and Adopt in reach while it scrolls.
+    await expect(dialog.getByText('Ready to adopt', { exact: true })).toBeInViewport();
+    await expect(dialog.getByRole('button', { name: 'Stop keeping Mistral in Bifrost', exact: true })).toBeInViewport();
+    await expect(dialog.getByText('1 of 1 decided', { exact: true })).toBeInViewport();
+    // Every disclosure open (earlier notifications rest over the dialog's last lines on a phone, so not by clicks).
+    await dialog.locator('details').evaluateAll(all => all.forEach(details => { (details as HTMLDetailsElement).open = true; }));
+    expect(await dialog.evaluate(el => el.scrollHeight > el.clientHeight), 'The open dialog scrolls').toBe(true);
+    for (const name of ['Cancel', 'Adopt']) await expect(dialog.getByRole('button', { name, exact: true })).toBeInViewport();
+    await dialog.evaluate(el => { el.scrollTop = el.scrollHeight / 3; });
+    for (const name of ['Cancel', 'Adopt']) await expect(dialog.getByRole('button', { name, exact: true }), `${name} stays in reach`).toBeInViewport();
     expect(await dialog.evaluate(el => el.scrollWidth <= el.clientWidth), 'The dialog fits 375 px').toBe(true);
     expect(await dialog.evaluate(el => [...el.querySelectorAll('*')].filter(child => ['auto', 'scroll'].includes(getComputedStyle(child).overflowY)).length), 'No scroll area inside the dialog').toBe(0);
     const dialogBox = (await dialog.boundingBox())!;
-    for (const name of ['Refresh preview', 'Cancel', 'Adopt']) expect((await dialog.getByRole('button', { name, exact: true }).boundingBox())!.width, `${name} fills the dialog`).toBeGreaterThan(dialogBox.width * 0.8);
+    const [cancelBox, adoptBox] = [(await dialog.getByRole('button', { name: 'Cancel', exact: true }).boundingBox())!, (await dialog.getByRole('button', { name: 'Adopt', exact: true }).boundingBox())!];
+    expect(cancelBox.width + adoptBox.width, 'Cancel and Adopt share the footer width').toBeGreaterThan(dialogBox.width * 0.75);
     await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
     await page.setViewportSize({ width: 1440, height: 950 });
 
@@ -1260,7 +1283,9 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await button('All virtual keys').click();
     await keyCard('QA To Add Key').getByRole('button', { name: 'Review · QA To Add Key', exact: true }).click();
     await button('Adopt this key').click();
-    await expect(dialog).toContainText('Synthetic Provider · 1 model to add');
+    // Models to add are no decision: they are listed apart, before adopting.
+    await expect(dialog.getByRole('region', { name: 'Before adopting' })).toContainText('Before adopting: register 1 Synthetic Provider model');
+    await expect(dialog).not.toContainText('decision');
     await expect(dialog).toContainText('Registry has no card for them yet');
     await dialog.getByRole('button', { name: /^Show in To add/ }).click();
     await expect(dialog).toHaveCount(0);
@@ -1490,11 +1515,11 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
         await button(t('Adopt this key', 'Adopter cette clé')).click();
         for (const names of await page.getByRole('dialog').getByText(t('Show model names', 'Afficher les noms des modèles'), { exact: true }).all()) await names.click();
         await sweep(language, `Adoption dialog of ${name}`);
-        if (name === 'QA Mistral Key') {
-          // #92: the offer and its consequence are swept above; keeping the provider shows the kept section.
-          await page.getByRole('dialog').getByRole('button', { name: t('Keep Mistral in Bifrost', 'Garder Mistral dans Bifrost'), exact: true }).click();
-          await page.getByRole('dialog').getByRole('region', { name: t('Kept in Bifrost', 'Conservés dans Bifrost') }).waitFor();
-          await sweep(language, `Adoption dialog of ${name}, provider kept`);
+        // Mistral is disabled in Bifrost, so it starts kept (swept above); undoing it shows the offers.
+        if (name !== 'QA To Add Key') {
+          await page.getByRole('dialog').getByRole('button', { name: t('Stop keeping Mistral in Bifrost', 'Ne plus garder Mistral dans Bifrost'), exact: true }).click();
+          await page.getByRole('dialog').getByRole('button', { name: t('Keep Mistral in Bifrost', 'Garder Mistral dans Bifrost'), exact: true }).waitFor();
+          await sweep(language, `Adoption dialog of ${name}, provider not kept`);
         }
         if (name === 'QA Hermes Key') await nativeEdit(t('Remove these models from the key in Bifrost', 'Retirer ces modèles de la clé dans Bifrost'), t('Remove models from the key in Bifrost', 'Retirer des modèles de la clé dans Bifrost'), 'Native edit preview of the Hermes key');
         await page.getByRole('dialog').getByRole('button', { name: t('Cancel', 'Annuler'), exact: true }).click();
@@ -1539,27 +1564,26 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await keyCard('QA Mistral Key').getByRole('button', { name: 'Review · QA Mistral Key', exact: true }).click();
     await button('Adopt this key').click();
     const dialog = page.getByRole('dialog');
-    await expect(dialog).toContainText('Mistral is disabled in Bifrost');
-    await expect(dialog).toContainText('Registry will not manage or change Mistral’s permissions');
-    await expect(dialog.getByRole('button', { name: 'Adopt', exact: true })).toBeDisabled();
-    await dialog.getByRole('button', { name: 'Keep Mistral in Bifrost', exact: true }).click();
-    // The decision leaves the list; what is kept is stated, and the collision is still to decide.
+    // Disabled in Bifrost, Mistral starts kept there; what is kept is stated, and the collision is still to decide.
     const kept = dialog.getByRole('region', { name: 'Kept in Bifrost' });
     await expect(kept).toContainText('Mistral · 3 models kept in Bifrost');
-    await expect(dialog).not.toContainText('Mistral is disabled in Bifrost');
+    await expect(kept).toContainText('Registry will not manage or change Mistral’s permissions');
     await expect(dialog.getByRole('heading', { name: '1 decision before adopting' })).toBeVisible();
+    await expect(dialog.getByText('1 of 2 decided', { exact: true })).toBeVisible();
     await expect(dialog.getByRole('button', { name: 'Adopt', exact: true })).toBeDisabled();
     // The collision is resolved inline: keeping Codex in Bifrost lets Registry adopt qa-shared through Claude.
     await dialog.getByRole('button', { name: 'Keep Codex in Bifrost', exact: true }).click();
     await expect(kept).toContainText('Codex kept in Bifrost');
     await expect(dialog).toContainText('Ready to adopt');
+    await expect(dialog.getByText('2 of 2 decided', { exact: true })).toBeVisible();
     await expect(dialog).not.toContainText('decision');
     await dialog.getByText('Accesses Registry will manage (3)', { exact: true }).click();
     await expect(dialog.getByText('Claude/qa-shared', { exact: true }).first()).toBeVisible();
     await expect(dialog.getByText('mistral/qa-mistral-large', { exact: true })).toBeVisible();
     // The choice can be undone, and made again.
     await dialog.getByRole('button', { name: 'Stop keeping Mistral in Bifrost', exact: true }).click();
-    await expect(dialog).toContainText('Mistral is disabled in Bifrost');
+    await expect(dialog.getByRole('region', { name: '1 decision before adopting' })).toContainText('Mistral is disabled in Bifrost');
+    await expect(dialog.getByText('1 of 2 decided', { exact: true })).toBeVisible();
     await expect(dialog.getByRole('button', { name: 'Adopt', exact: true })).toBeDisabled();
     await dialog.getByRole('button', { name: 'Keep Mistral in Bifrost', exact: true }).click();
     await expect(kept).toContainText('Mistral · 3 models kept in Bifrost');
@@ -1660,8 +1684,12 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     // Models Bifrost does not list (Mistral is disabled): the dialog offers to remove them, with the consequence stated.
     await keyCard('QA Hermes Key').getByRole('button', { name: 'Review · QA Hermes Key', exact: true }).click();
     await button('Adopt this key').click();
+    // Mistral starts kept in Bifrost (it is disabled there); stopping that offers the native edit instead.
+    await dialog.getByRole('button', { name: 'Stop keeping Mistral in Bifrost', exact: true }).click();
     await expect(dialog.getByRole('button', { name: 'Adopt', exact: true })).toBeDisabled();
     await expect(dialog).toContainText('Changes the key in Bifrost once you confirm a preview');
+    // What changes Bifrost is tagged; keeping the provider in Bifrost is not.
+    await expect(dialog.getByText('Changes Bifrost', { exact: true })).toHaveCount(1);
     await dialog.getByRole('button', { name: /^Remove these models from the key in Bifrost/ }).click();
     const edit = page.getByRole('dialog', { name: 'Remove models from the key in Bifrost', exact: true });
     await expect(edit).toContainText('This changes the key in Bifrost, not only in Registry.');
