@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
@@ -62,7 +63,7 @@ func TestFixtureWorkspaceAndNativeReadback(t *testing.T) {
 		Discovery []any          `json:"discovery"`
 	}
 	get := call("GET", "/api/workspace", nil, "")
-	if get.Code != 200 || json.Unmarshal(get.Body.Bytes(), &ws) != nil || len(ws.Data["models"].([]any)) != 9 || len(ws.Data["groups"].([]any)) != 2 || len(ws.Data["keys"].([]any)) != 6 || len(ws.Discovery) != 77 {
+	if get.Code != 200 || json.Unmarshal(get.Body.Bytes(), &ws) != nil || len(ws.Data["models"].([]any)) != 12 || len(ws.Data["groups"].([]any)) != 2 || len(ws.Data["keys"].([]any)) != 9 || len(ws.Discovery) != 81 {
 		t.Fatalf("workspace: %d %s", get.Code, get.Body.String())
 	}
 	group := ws.Data["groups"].([]any)[0].(map[string]any)
@@ -201,6 +202,201 @@ func TestFixtureUnmanagedKeysCarryNativePermissions(t *testing.T) {
 	}
 }
 
+// Every unmanaged key stands for one adoption case spec #85 must prove. A route is saved when a
+// card holds that access, discovered when its provider lists it, and undiscovered otherwise
+// (Bifrost lists no model of a disabled provider).
+func TestFixtureKeysCoverAdoptionCases(t *testing.T) {
+	_, call := fixture(t)
+	type access struct{ Provider, NativeModel string }
+	var ws struct {
+		Data struct {
+			Models []struct{ Accesses []access } `json:"models"`
+			Keys   []struct {
+				ID          string `json:"id"`
+				Managed     bool   `json:"managed"`
+				Permissions struct {
+					AllProviders bool `json:"allProviders"`
+					Providers    []struct {
+						Provider  string
+						AllModels bool `json:"allModels"`
+						Models    []string
+					}
+				}
+			} `json:"keys"`
+		} `json:"data"`
+		Discovery []struct{ Accesses []access }
+		Providers []struct{ ID string }
+	}
+	if w := call("GET", "/api/workspace", nil, ""); w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &ws) != nil {
+		t.Fatalf("workspace: %d %s", w.Code, w.Body.String())
+	}
+	saved, discovered, listed := map[string]bool{}, map[string]bool{}, map[string]bool{}
+	for _, m := range ws.Data.Models {
+		for _, a := range m.Accesses {
+			saved[a.Provider+"/"+a.NativeModel] = true
+		}
+	}
+	for _, m := range ws.Discovery {
+		for _, a := range m.Accesses {
+			discovered[a.Provider+"/"+a.NativeModel] = true
+		}
+	}
+	for _, p := range ws.Providers {
+		listed[p.ID] = true
+	}
+	if !listed["mistral"] || discovered["mistral/qa-mistral-large"] {
+		t.Fatalf("mistral must be a listed provider whose models are never discovered: listed %v", listed)
+	}
+	got := map[string]string{}
+	routes := map[string][]string{}
+	for _, k := range ws.Data.Keys {
+		if k.Managed {
+			continue
+		}
+		counts := map[string]int{}
+		for _, p := range k.Permissions.Providers {
+			if p.AllModels {
+				counts["all-models"]++
+			}
+			for _, model := range p.Models {
+				route := p.Provider + "/" + model
+				routes[k.ID] = append(routes[k.ID], route)
+				switch {
+				case !discovered[route]:
+					counts["undiscovered"]++
+				case !saved[route]:
+					counts["unsaved"]++
+				default:
+					counts["saved"]++
+				}
+			}
+		}
+		switch {
+		case k.Permissions.AllProviders:
+			got[k.ID] = "all-providers"
+		case counts["all-models"] > 0:
+			got[k.ID] = "all-models"
+		case counts["undiscovered"] > 0:
+			got[k.ID] = fmt.Sprint("undiscovered ", counts["undiscovered"], ", saved ", counts["saved"], ", unsaved ", counts["unsaved"])
+		case counts["unsaved"] > 0:
+			got[k.ID] = fmt.Sprint("unsaved ", counts["unsaved"], ", saved ", counts["saved"])
+		case counts["saved"] > 0:
+			got[k.ID] = "ready"
+		default:
+			got[k.ID] = "empty"
+		}
+	}
+	want := map[string]string{
+		"vk-qa-unmanaged": "empty", "vk-qa-all-providers": "all-providers", "vk-qa-claude": "all-models",
+		"vk-qa-codex": "ready", "vk-qa-google": "ready",
+		"vk-qa-mistral": "undiscovered 3, saved 2, unsaved 0", // the Hermes case: a disabled provider plus discovered models
+		"vk-qa-unsaved": "unsaved 1, saved 1",
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("unmanaged key cases = %v, want %v", got, want)
+	}
+	// Adoption agrees: only the ready keys can be adopted as they are.
+	for id, apply := range map[string]bool{"vk-qa-codex": true, "vk-qa-google": true, "vk-qa-mistral": false, "vk-qa-unsaved": false, "vk-qa-unmanaged": false} {
+		var p struct {
+			CanApply bool `json:"canApply"`
+		}
+		if w := call("POST", "/api/keys/adopt", map[string]string{"keyId": id, "operation": "adopt", "phase": "preview"}, ""); w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &p) != nil || p.CanApply != apply {
+			t.Errorf("adoption preview of %s: canApply %v, want %v (%d %s)", id, p.CanApply, apply, w.Code, w.Body.String())
+		}
+	}
+	slices.Sort(routes["vk-qa-mistral"])
+	if want := []string{"Claude/qa-haiku", "Claude/qa-sonnet", "mistral/qa-mistral-code", "mistral/qa-mistral-large", "mistral/qa-mistral-small"}; !reflect.DeepEqual(routes["vk-qa-mistral"], want) {
+		t.Errorf("mistral key routes = %v, want %v", routes["vk-qa-mistral"], want)
+	}
+}
+
+// Saved cards without a Models.dev reference sit on custom subscription providers, one per base
+// type, and stay creator "Unknown" in the raw data (creator inference has something to infer);
+// one of them is served by two subscriptions.
+func TestFixtureCardsWithoutReference(t *testing.T) {
+	config := seed()
+	referenced := map[string]bool{}
+	for _, a := range config.Catalog.Accesses {
+		referenced[a.ID] = a.ReferenceID != ""
+	}
+	baseTypes := map[string][]string{}
+	for _, m := range config.Models {
+		if referenced[m.Provider+"/"+m.UpstreamModel] {
+			continue
+		}
+		var ui struct{ Creator string }
+		if err := json.Unmarshal(m.Metadata["ui"], &ui); err != nil || ui.Creator != "Unknown" || m.Creator != "" {
+			t.Errorf("card %s: stored creator %q / %q, want Unknown / none (%v)", m.Alias, ui.Creator, m.Creator, err)
+		}
+		baseType := findProvider(m.Provider).baseType
+		if baseType == "" {
+			t.Errorf("card %s without a reference sits on %s, which is not a custom provider", m.Alias, m.Provider)
+		}
+		baseTypes[m.Alias] = append(baseTypes[m.Alias], baseType)
+	}
+	want := map[string][]string{"qa-codex-mini": {"openai"}, "qa-sonnet": {"anthropic"}, "qa-flash": {"gemini"}, "qa-shared": {"anthropic", "openai"}}
+	if !reflect.DeepEqual(baseTypes, want) {
+		t.Fatalf("base types of the cards without a reference = %v, want %v", baseTypes, want)
+	}
+	_, call := fixture(t)
+	var ws struct {
+		Data struct {
+			Models []struct {
+				ID       string
+				Accesses []struct{ Provider string }
+			}
+		}
+	}
+	if w := call("GET", "/api/workspace", nil, ""); w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &ws) != nil {
+		t.Fatalf("workspace: %d %s", w.Code, w.Body.String())
+	}
+	for _, m := range ws.Data.Models {
+		if m.ID == "qa-shared" {
+			if got := fmt.Sprint(m.Accesses); got != "[{Claude} {Codex}]" {
+				t.Fatalf("qa-shared is one card with accesses %s, want Claude and Codex", got)
+			}
+			return
+		}
+	}
+	t.Fatal("no saved card qa-shared")
+}
+
+// The decisions model (Jev-like): a provider that serves only decisions lists it, its reference
+// is in a namespace Models.dev has no provider record for, and no card holds it yet.
+func TestFixtureDecisionsModelWaitsToBeAdded(t *testing.T) {
+	_, call := fixture(t)
+	var ws struct {
+		Data struct {
+			Models []struct{ Accesses []struct{ ID string } }
+		}
+		Discovery []struct {
+			ID       string
+			Accesses []struct{ ID, Provider, NativeModel, ReferenceID string }
+		}
+	}
+	if w := call("GET", "/api/workspace", nil, ""); w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &ws) != nil {
+		t.Fatalf("workspace: %d %s", w.Code, w.Body.String())
+	}
+	for _, m := range ws.Data.Models {
+		for _, a := range m.Accesses {
+			if a.ID == "typesafe/qa-jev" {
+				t.Fatal("the decisions model must not be saved")
+			}
+		}
+	}
+	for _, m := range ws.Discovery {
+		for _, a := range m.Accesses {
+			if a.Provider == "typesafe" {
+				if m.ID != "qa-jev" || a.NativeModel != "qa-jev" || a.ReferenceID != "typesafe/qa-jev" || len(m.Accesses) != 1 {
+					t.Fatalf("decisions model: %+v", m)
+				}
+				return
+			}
+		}
+	}
+	t.Fatal("the decisions model is not discovered")
+}
+
 // Native models declare their mode through Bifrost's /api/models/parameters lookup, and the
 // seeded catalogue already holds what a Bifrost refresh stores.
 func TestFixtureModelParametersDeclareMode(t *testing.T) {
@@ -243,7 +439,7 @@ func TestFixtureModelParametersDeclareMode(t *testing.T) {
 	if refreshed["source bifrost"] != "" || len(refreshed) != len(seeded) {
 		t.Fatalf("Bifrost refresh: %q, %d accesses, want %d", refreshed["source bifrost"], len(refreshed), len(seeded))
 	}
-	for id, want := range map[string]string{"Google/qa-image": "image_generation 0", "Claude/qa-opus": "chat 0", "openrouter/anthropic/qa-opus": "chat 4", "openrouter/deepseek/qa-reasoner": "chat 0.19999999999999998"} {
+	for id, want := range map[string]string{"Google/qa-image": "image_generation 0", "typesafe/qa-jev": "decisions 0", "Claude/qa-opus": "chat 0", "openrouter/anthropic/qa-opus": "chat 4", "openrouter/deepseek/qa-reasoner": "chat 0.19999999999999998"} {
 		if seeded[id] != want || refreshed[id] != want {
 			t.Errorf("%s: seeded %q, refreshed %q, want %q", id, seeded[id], refreshed[id], want)
 		}
@@ -294,7 +490,7 @@ func TestFixtureReferenceNamespaces(t *testing.T) {
 		}
 		_, record[r.ID] = snapshot.Providers[namespace]
 	}
-	want := map[string]bool{"anthropic/qa-opus": true, "anthropic/qa-haiku": true, "openai/qa-codex": true, "google/qa-gemini": true, "google/qa-image": true, "deepseek/qa-reasoner": true, "tencent/qa-hunyuan": false, "meituan/qa-longcat": false}
+	want := map[string]bool{"anthropic/qa-opus": true, "anthropic/qa-haiku": true, "openai/qa-codex": true, "google/qa-gemini": true, "google/qa-image": true, "deepseek/qa-reasoner": true, "tencent/qa-hunyuan": false, "meituan/qa-longcat": false, "typesafe/qa-jev": false}
 	if !reflect.DeepEqual(record, want) {
 		t.Fatalf("namespace has a Models.dev provider record: %v, want %v", record, want)
 	}
@@ -326,7 +522,7 @@ func TestFixtureProvidersCarryCustomBaseTypes(t *testing.T) {
 			got[p.Name] = p.Custom.BaseProviderType
 		}
 	}
-	want := map[string]string{"synthetic-provider": "", "Claude": "anthropic", "Codex": "openai", "Google": "gemini", "openrouter": ""}
+	want := map[string]string{"synthetic-provider": "", "Claude": "anthropic", "Codex": "openai", "Google": "gemini", "openrouter": "", "mistral": "", "typesafe": ""}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("providers = %v, want %v", got, want)
 	}

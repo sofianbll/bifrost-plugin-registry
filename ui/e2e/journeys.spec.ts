@@ -59,14 +59,14 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
   });
 
   await test.step('My models opens on the saved cards; the rest waits in To add', async () => {
-    // 9 saved cards, one tile each (QA Opus and QA Opus Fast share a reference); 68 discovered
+    // 12 saved cards, one tile each (QA Opus and QA Opus Fast share a reference); 69 discovered
     // models are not saved, 66 of them from the openrouter aggregator.
     const opens = page.getByRole('button', { name: /^Open .* details$/ });
     const card = (name: string) => page.locator('[data-slot="card"]').filter({ has: button(`Open ${name} details`) });
-    await expect(scope(/^In Registry/)).toHaveAccessibleName('In Registry (9)');
+    await expect(scope(/^In Registry/)).toHaveAccessibleName('In Registry (12)');
     await expect(scope(/^In Registry/)).toBeChecked();
-    await expect(scope(/^To add/)).toHaveAccessibleName('To add (68)');
-    await expect(opens).toHaveCount(9);
+    await expect(scope(/^To add/)).toHaveAccessibleName('To add (69)');
+    await expect(opens).toHaveCount(12);
     await expect(card('QA Chat')).toContainText('Saved');
     // openrouter serves the same model outside the card: offered beside it, never a "Partial" nudge.
     await expect(card('QA Opus')).toContainText('Saved');
@@ -84,7 +84,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await searchModels().fill('');
     // Settings counts the same scopes.
     await nav('Settings').click();
-    await expect(page.getByText('In Registry (9) · To add (68)', { exact: true })).toBeVisible();
+    await expect(page.getByText('In Registry (12) · To add (69)', { exact: true })).toBeVisible();
     await nav('My models').click();
     await scope(/^In Registry/).click();
     await button('Open QA Chat details').waitFor();
@@ -126,7 +126,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     // Each scope keeps its own filters: a To add search never empties In Registry.
     await scope(/^In Registry/).click();
     await expect(searchModels()).toHaveValue('');
-    await expect(page.getByRole('button', { name: /^Open .* details$/ })).toHaveCount(9);
+    await expect(page.getByRole('button', { name: /^Open .* details$/ })).toHaveCount(12);
     await scope(/^To add/).click();
     await expect(searchModels()).toHaveValue('qwen');
     await grouping.click();
@@ -189,11 +189,11 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     const creators = page.getByRole('combobox', { name: 'Creator', exact: true });
     await creators.click();
     // Counts are the models of the current scope: saved cards here, discovered ones in To add.
-    await expect(page.getByRole('option')).toHaveText(['Creator: all', 'Anthropic (3)', 'Fixture Labs (3)', 'Google (1)', 'OpenAI (1)', 'Creator not identified (1)']);
+    await expect(page.getByRole('option')).toHaveText(['Creator: all', 'Anthropic (3)', 'Fixture Labs (3)', 'Google (1)', 'OpenAI (1)', 'Creator not identified (4)']);
     await page.keyboard.press('Escape');
     await scope(/^To add/).click();
     await creators.click();
-    await expect(page.getByRole('option')).toHaveText(['Creator: all', 'Anthropic (1)', 'DeepSeek (1)', 'Fixture Labs (1)', 'Google (1)', 'Meituan (1)', 'Tencent (1)', 'Creator not identified (62)']);
+    await expect(page.getByRole('option')).toHaveText(['Creator: all', 'Anthropic (1)', 'DeepSeek (1)', 'Fixture Labs (1)', 'Google (1)', 'Meituan (1)', 'Tencent (1)', 'Typesafe (1)', 'Creator not identified (62)']);
     await page.getByRole('option', { name: 'Tencent (1)', exact: true }).click();
     await expect(page.getByRole('button', { name: /^Open .* details$/ })).toHaveText(['QA Hunyuan']);
     await expect(card('QA Hunyuan')).toContainText('Tencent · qa-hunyuan');
@@ -311,10 +311,10 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     const saved = (await write).postDataJSON().data.models.find((m: { id: string }) => m.id === 'qa-image');
     expect(saved.accesses.map((a: { id: string; endpoints: string[] }) => [a.id, a.endpoints])).toEqual([['Google/qa-image', ['images/generations']]]);
     await sheet().waitFor({ state: 'hidden' });
-    await expect(scope(/^To add/)).toHaveAccessibleName('To add (67)');
+    await expect(scope(/^To add/)).toHaveAccessibleName('To add (68)');
     await searchModels().fill('');
     await scope(/^In Registry/).click();
-    await expect(scope(/^In Registry/)).toHaveAccessibleName('In Registry (10)');
+    await expect(scope(/^In Registry/)).toHaveAccessibleName('In Registry (13)');
     await expect(page.locator('[data-slot="card"]').filter({ has: button('Open QA Image details') })).toContainText('Saved');
   });
 

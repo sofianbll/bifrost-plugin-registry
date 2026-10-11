@@ -19,15 +19,18 @@ every model name, key and secret is synthetic.
 ### Synthetic gateway
 
 It mirrors the shape of a real subscription gateway (custom subscription providers,
-an aggregator that cross-lists them, variant IDs, unmanaged keys), not its data.
+an aggregator that cross-lists them, variant IDs, a disabled provider, a decisions-only
+provider, unmanaged keys in every adoption state), not its data.
 
 | Provider (`/api/providers`) | Base type (`custom_provider_config.base_provider_type`) | Native models | Saved model cards |
 | --- | --- | --- | --- |
 | `synthetic-provider` | standard | `qa-code`, `qa-chat`, `qa-vision`, `qa-unregistered` | `qa-code`, `qa-chat`, `qa-vision` |
-| `Claude` | `anthropic` | `qa-opus`, `qa-haiku`, `qa-opus-fast` | all three |
-| `Codex` | `openai` | `qa-codex`, `qa-codex-mini` | both |
-| `Google` | `gemini` | `qa-gemini`, `qa-image` | `qa-gemini` |
+| `Claude` | `anthropic` | `qa-opus`, `qa-haiku`, `qa-opus-fast`, `qa-sonnet`, `qa-shared` | all five |
+| `Codex` | `openai` | `qa-codex`, `qa-codex-mini`, `qa-shared` | all three |
+| `Google` | `gemini` | `qa-gemini`, `qa-image`, `qa-flash` | `qa-gemini`, `qa-flash` |
 | `openrouter` (aggregator) | standard | 66: `anthropic/qa-opus`, `~anthropic/qa-opus-latest`, `openai/qa-codex:batch`, `deepseek/qa-reasoner`, `tencent/qa-hunyuan`, `meituan/qa-longcat`, `qwen/qa-qwen-01` … `-60` | none |
+| `mistral` (Mistral-like) | standard, **disabled** | none: its key is disabled, so nothing is discovered | none |
+| `typesafe` (Jev-like) | standard, serves only decisions | `qa-jev` | none |
 
 - Saved cards use only the subscription providers (and the original `synthetic-provider`).
   The Claude, Codex and Google cards are saved as discovery registers them: name equal to
@@ -39,7 +42,21 @@ an aggregator that cross-lists them, variant IDs, unmanaged keys), not its data.
   costs 2e-7 per input token, stored per million with its float noise (0.19999999999999998)
   so the UI's number formatting is exercised.
 - The `qwen/` fillers push the aggregator past one 60-card page and sort after the `qa-*`
-  cards. Discovery holds 77 models.
+  cards. Discovery holds 81 models (`qa-shared` is one model served twice); the saved
+  cards are 12 (the `qa-shared` card has two accesses), so 69 wait in To add.
+- **Cards without a Models.dev reference** on custom subscriptions, one per base type, with
+  creator `Unknown` in the raw data (a creator can be inferred from the base type):
+  `Claude/qa-sonnet` (`anthropic`), `Codex/qa-codex-mini` (`openai`), `Google/qa-flash`
+  (`gemini`). `qa-shared` ("QA Shared") also has no reference and is one saved card with two
+  accesses from two subscriptions, `Claude/qa-shared` and `Codex/qa-shared` (registry rows
+  `qa-shared` and `qa-shared-codex`, same alias): a creator cannot be inferred from two base
+  types, and grouping by serving provider must file it under both.
+- **Disabled provider**: `/api/providers` lists `mistral`, its key reads `enabled: false`, so
+  `/api/models` is never asked for it and no `mistral/…` model is discovered, saved or
+  listed by `/v1/models`, whatever a virtual key allows (see QA Mistral Key below).
+- **Decisions model**: `typesafe/qa-jev` declares `mode: "decisions"` in its datasheet and is
+  linked to the reference `typesafe/qa-jev`, whose namespace has no provider record in the
+  embedded Models.dev snapshot (like the real Jev). It is discovered and has no card.
 - Each native model declares a `mode` (`chat`, or `image_generation` for `Google/qa-image`)
   in its `/api/models/parameters` datasheet. `/api/models/details` lists name, provider and
   per-token prices, so a Bifrost catalogue refresh works; the seeded catalogue already holds
@@ -48,9 +65,10 @@ an aggregator that cross-lists them, variant IDs, unmanaged keys), not its data.
 **References** (Models.dev shape: name, family, context, modalities, no creator):
 `anthropic/qa-opus`, `anthropic/qa-haiku`, `openai/qa-codex`, `google/qa-gemini`,
 `google/qa-image` and `deepseek/qa-reasoner` have a namespace with a provider record in the
-embedded Models.dev snapshot; `tencent/qa-hunyuan` and `meituan/qa-longcat` have none.
-`Codex/qa-codex-mini` and the aggregator fillers and variants have no reference. The four
-original `fixture/qa-*` references keep a `Fixture Labs` creator.
+embedded Models.dev snapshot; `tencent/qa-hunyuan`, `meituan/qa-longcat` and
+`typesafe/qa-jev` have none. `Codex/qa-codex-mini`, `Claude/qa-sonnet`, `Google/qa-flash`,
+`qa-shared` and the aggregator fillers and variants have no reference. The four original
+`fixture/qa-*` references keep a `Fixture Labs` creator.
 
 **Groups**: **QA Development** (`qa-code`, `qa-chat`) and **QA Visual** (`qa-vision`).
 
@@ -64,14 +82,24 @@ original `fixture/qa-*` references keep a `Fixture Labs` creator.
 | QA All Providers Key (`vk-qa-all-providers`) | unmanaged | `allow_all_providers: true` (not adoptable) |
 | QA Codex Key (`vk-qa-codex`) | unmanaged | `Codex`: `qa-codex`, `qa-codex-mini`, `allow_all_keys` (adoptable as is) |
 | QA Claude Key (`vk-qa-claude`) | unmanaged | `Claude`: `*` (all models), `allow_all_keys` |
+| QA Google Key (`vk-qa-google`) | unmanaged | `Google`: `qa-gemini`, `qa-flash`, `allow_all_keys` (adoptable as is, a second ready key) |
+| QA Mistral Key (`vk-qa-mistral`) | unmanaged | `mistral`: `qa-mistral-large`, `qa-mistral-small`, `qa-mistral-code` (never discovered) and `Claude`: `qa-haiku`, `qa-sonnet` (saved); blocked by the three undiscovered models |
+| QA To Add Key (`vk-qa-unsaved`) | unmanaged | `synthetic-provider`: `qa-vision` (saved) and `qa-unregistered` (discovered, no card); blocked by the unsaved model |
+
+Adoption cases among the unmanaged keys: **ready** (`vk-qa-codex`, `vk-qa-google`),
+**empty** (`vk-qa-unmanaged`), **all providers** (`vk-qa-all-providers`), **all models of a
+provider** (`vk-qa-claude`), **blocked by undiscovered models** (`vk-qa-mistral`), **blocked
+by discovered models without a card** (`vk-qa-unsaved`). The journeys adopt `vk-qa-codex`;
+`vk-qa-google` stays ready. No journey saves `qa-unregistered`.
 
 `/v1/models` answers a managed key with its Registry routes allowed natively, and an
 unmanaged key with every `provider/model` its native permissions allow.
 
 Run `go test ./tests/ui-fixture` to check workspace save, native permission
 updates and readback, key creation and reveal, reference catalog reads, the provider
-base types, the aggregator cross-listing, key permissions and adoption preview, model
-modes, and reference namespaces.
+base types, the aggregator cross-listing, key permissions and adoption preview, the
+adoption case of every unmanaged key, the cards without a reference and the multi-subscription
+card, the decisions model, model modes, and reference namespaces.
 
 ## Browser journeys
 
