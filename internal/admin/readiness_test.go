@@ -144,3 +144,29 @@ func TestAdoptionPreviewCarriesTheSameReadiness(t *testing.T) {
 		t.Fatalf("blocked reasons changed: %v", p.Blocked)
 	}
 }
+
+// A policy cannot hold two accesses of one alias (Store.Save refuses it without an access_selection), so a key
+// that reaches one model through two subscriptions is blocked up front instead of reading "ready", then failing 422.
+func TestOneModelThroughTwoSubscriptionsIsNotReady(t *testing.T) {
+	card := func(provider, id string) registry.Model {
+		return registry.Model{ID: id, Alias: "qa-shared", Provider: provider, ProviderKeyIDs: []string{"k"}, UpstreamModel: "qa-shared", Endpoints: []string{"chat/completions"}, Enabled: true, Configured: true}
+	}
+	cfg := registry.Config{Models: []registry.Model{card("Claude", "qa-shared"), card("Codex", "qa-shared-codex")}}
+	row := func(provider string) nativeProviderConfig {
+		return nativeProviderConfig{Provider: provider, AllowedModels: []string{"qa-shared"}, AllowAllKeys: true}
+	}
+	vk := nativeVK{ProviderConfigs: []nativeProviderConfig{row("Claude"), row("Codex")}}
+	rows := []nativeModel{{Name: "qa-shared", Provider: "Claude", AccessibleByKeys: []string{"k"}}, {Name: "qa-shared", Provider: "Codex", AccessibleByKeys: []string{"k"}}}
+
+	_, _, blocked := adoptionSelection(cfg, vk, rows, nil)
+	got := jsonOf(t, adoptionReadinessOf(vk, blocked))
+	want := `{"state":"blocked","blockers":[{"provider":"Codex","kind":"other","count":1,"models":["qa-shared"],"reasons":["Model qa-shared is allowed through Claude/qa-shared and Codex/qa-shared: Registry adopts one access per model"]}]}`
+	if got != want {
+		t.Fatalf("two accesses of one alias must block adoption:\n got %s\nwant %s", got, want)
+	}
+	// Keeping one subscription in Bifrost leaves a single access to adopt.
+	selected, _, blocked := adoptionSelection(cfg, vk, rows, []string{"Codex"})
+	if len(selected) != 1 || hasBlocking(blocked, "") {
+		t.Fatalf("keeping Codex native should unblock the key: %v %+v", selected, blocked)
+	}
+}
