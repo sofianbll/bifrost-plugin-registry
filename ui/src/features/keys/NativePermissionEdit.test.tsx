@@ -52,6 +52,7 @@ const replaced = text(render("en", replacement));
 for (const line of ["All providers", "Codex · 1 model", "Synth · 1 model", "OpenRouter · 2 models"]) must(replaced.includes(line), `the replacement preview must read "${line}"`);
 must(replaced.includes("Providers added to Bifrost later are not allowed") && replaced.includes("no longer allowed"), "the replacement consequence names the loss");
 must(replaced.includes("a/b, c/d"), "every model that stops being allowed is named");
+must(replaced.includes("one access per model"), "the one-access-per-model rule is stated, since it takes models off the key");
 
 // A blocked edit shows why and offers nothing to confirm.
 const blocked = text(render("en", { ...removal, canApply: false, previewToken: undefined, after: undefined, blocked: ["Nothing to remove for this provider"] }));

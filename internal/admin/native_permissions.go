@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"reflect"
 	"sort"
+	"strings"
 
 	"bifrost-registry/internal/registry"
 )
@@ -21,8 +22,9 @@ import (
 //
 // Replacing "all providers" keeps a provider only through the models Registry can adopt, because a "*" list
 // is a dynamic list that adoption refuses: the providers are those Bifrost lists models for (so the enabled,
-// discovered ones), each limited to the models with a configured direct Registry access, and every model it
-// leaves out is named in the preview. A provider that already has a row on the key is left exactly as it is.
+// discovered ones), each limited to the models with a configured direct Registry access (one provider per model:
+// a policy cannot hold two accesses of one alias), and every model it leaves out is named in the preview.
+// A provider that already has a row on the key is left exactly as it is.
 //
 // Bifrost 2.2.6: the write is the one Registry already uses to publish a managed key (PUT with
 // allow_all_providers false and the provider rows, ids kept so budgets and rate limits stay), and the result
@@ -220,10 +222,18 @@ func (s *Server) permissionEditPlan(ctx context.Context, in permissionEditInput)
 		for _, route := range routes {
 			holdable[route] = true
 		}
+		// A policy holds one access per model: when several providers serve the same model, the key keeps the
+		// first provider (by name) and the others are left out, unless a row the key already has holds it.
+		_, kept0, _ := adoptionSelection(cfg, nativeVK{ProviderConfigs: vk.ProviderConfigs}, rows)
+		taken := map[string]bool{}
+		for _, route := range kept0 {
+			taken[route[strings.Index(route, "/")+1:]] = true
+		}
 		for _, pc := range candidate.ProviderConfigs {
 			kept, left := []string{}, []string{}
 			for _, model := range pc.AllowedModels {
-				if holdable[pc.Provider+"/"+model] {
+				if holdable[pc.Provider+"/"+model] && !taken[model] {
+					taken[model] = true
 					kept = append(kept, model)
 				} else {
 					left = append(left, model)

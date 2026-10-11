@@ -22,6 +22,8 @@ type permissionHarness struct {
 	// ignorePut makes Bifrost accept a write without keeping it.
 	ignorePut bool
 	nextRow   int
+	// sharedModel makes synth serve gpt-saved too, the model Codex serves (a card exists for both).
+	sharedModel bool
 }
 
 const permissionKeys = `{
@@ -81,6 +83,9 @@ func (h *permissionHarness) roundTrip(t *testing.T) func(*http.Request) (*http.R
 		case path == "/api/models":
 			if r.URL.Query().Get("provider") == "Codex" {
 				return nativeResponse(200, `{"models":[{"name":"gpt-saved","provider":"Codex","accessible_by_keys":["codex-key"]},{"name":"gpt-unsaved","provider":"Codex","accessible_by_keys":["codex-key"]},{"name":"gpt-off","provider":"Codex","accessible_by_keys":["codex-key"]}],"total":3}`), nil
+			}
+			if h.sharedModel {
+				return nativeResponse(200, `{"models":[{"name":"s-saved","provider":"synth","accessible_by_keys":["synth-key"]},{"name":"gpt-saved","provider":"synth","accessible_by_keys":["synth-key"]}],"total":2}`), nil
 			}
 			return nativeResponse(200, `{"models":[{"name":"s-saved","provider":"synth","accessible_by_keys":["synth-key"]}],"total":1}`), nil
 		case path == "/api/governance/virtual-keys" && r.Method == "GET":
@@ -231,6 +236,19 @@ func (h *permissionHarness) adoptionState(t *testing.T, keyID string) (string, b
 	return p.Readiness.State, p.CanApply
 }
 
+// adopt runs the whole adoption (preview, then apply with its token) and returns the apply status.
+func (h *permissionHarness) adopt(t *testing.T, keyID string) int {
+	t.Helper()
+	w := perform(h.server, "POST", "/api/keys/adopt", `{"keyId":"`+keyID+`","operation":"adopt","phase":"preview"}`, authorized())
+	var p adoptionPreview
+	if w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &p) != nil || !p.CanApply {
+		t.Fatal("adoption is not offered:", w.Code, w.Body.String())
+	}
+	headers := authorized()
+	headers["If-Match"] = p.Revision
+	return perform(h.server, "POST", "/api/keys/adopt", `{"keyId":"`+keyID+`","operation":"adopt","phase":"apply","previewToken":"`+p.PreviewToken+`"}`, headers).Code
+}
+
 func TestRemoveUndiscoveredModelsPreviewsThenWritesOnlyWhatWasPreviewed(t *testing.T) {
 	h := newPermissionHarness(t)
 	if state, _ := h.adoptionState(t, "vk-hermes"); state != "blocked" {
@@ -293,6 +311,9 @@ func TestRemoveUndiscoveredModelsPreviewsThenWritesOnlyWhatWasPreviewed(t *testi
 	}
 	if state, ok := h.adoptionState(t, "vk-hermes"); state != "ready" || !ok {
 		t.Fatal("the key must be adoptable after the removal:", state, ok)
+	}
+	if code := h.adopt(t, "vk-hermes"); code != 200 {
+		t.Fatal("adoption after the removal failed:", code)
 	}
 }
 
@@ -420,6 +441,9 @@ func TestReplaceAllProvidersByTheExplicitListOfCurrentProviders(t *testing.T) {
 	if state, ok := h.adoptionState(t, "vk-all"); state != "ready" || !ok {
 		t.Fatal("the key must be adoptable after the replacement:", state, ok)
 	}
+	if code := h.adopt(t, "vk-all"); code != 200 {
+		t.Fatal("adoption after the replacement failed:", code)
+	}
 }
 
 func TestReplaceAllProvidersKeepsExistingRowsAndNeverWidensThem(t *testing.T) {
@@ -451,5 +475,30 @@ func TestNativeEditIsVerifiedByReadingTheKeyBack(t *testing.T) {
 	code, body := h.apply("vk-hermes", "remove-models", "Mistral", p.PreviewToken, true)
 	if code != 502 || !strings.Contains(body, "native_readback") {
 		t.Fatalf("a change Bifrost did not keep must be reported, not claimed: %d %s", code, body)
+	}
+}
+
+func TestReplaceAllProvidersKeepsOneAccessPerModel(t *testing.T) {
+	h := newPermissionHarness(t)
+	h.sharedModel = true
+	cfg := h.server.Store.Load().Config()
+	cfg.Models = append(cfg.Models, registry.Model{ID: "synth-gpt-saved", Alias: "gpt-saved", Provider: "synth", ProviderKeyIDs: []string{"synth-key"}, UpstreamModel: "gpt-saved", Endpoints: []string{"chat/completions"}, Enabled: true, Configured: true})
+	raw, _ := json.Marshal(cfg)
+	if _, err := h.server.Store.Save(raw, h.server.Store.Load().Revision()); err != nil {
+		t.Fatal(err)
+	}
+	// Both providers could hold gpt-saved, but a policy cannot hold two accesses of one model: Codex comes first.
+	p := h.preview(t, "vk-all", "replace-all-providers", "")
+	if got := jsonOf(t, p.After); got != `{"allProviders":false,"providers":[{"provider":"Codex","allModels":false,"models":["gpt-saved"]},{"provider":"synth","allModels":false,"models":["s-saved"]}]}` {
+		t.Fatalf("one access per model: %s", got)
+	}
+	if got := jsonOf(t, p.Remove); got != `[{"provider":"Codex","models":["gpt-off","gpt-unsaved"]},{"provider":"synth","models":["gpt-saved"]}]` {
+		t.Fatalf("the second access must be named as left out: %s", got)
+	}
+	if code, body := h.apply("vk-all", "replace-all-providers", "", p.PreviewToken, true); code != 200 {
+		t.Fatal(code, body)
+	}
+	if code := h.adopt(t, "vk-all"); code != 200 {
+		t.Fatal("the key must be adoptable once each model has one access:", code)
 	}
 }

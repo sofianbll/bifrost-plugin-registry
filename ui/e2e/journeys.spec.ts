@@ -983,7 +983,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(dialog).toHaveCount(0);
     const hermes = await nativeKey('vk-qa-hermes');
     expect(hermes.managed).toBe(true);
-    expect(hermes.policy.added).toEqual(['qa-haiku', 'qa-opus']);
+    expect([...hermes.policy.added].sort()).toEqual(['qa-haiku', 'qa-opus']);
     expect(await nativeWrites()).toHaveLength(written + 1);
 
     // "All providers": the dialog offers the explicit list; the preview names what stops being allowed.
@@ -997,9 +997,10 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(replace).toContainText('Providers added to Bifrost later are not allowed until you add them to the key.');
     await expect(lines(replace, 'Allowed today')).toContainText('All providers');
     const afterwards = lines(replace, 'Allowed afterwards');
-    await expect(afterwards.locator('summary')).toHaveText(['Claude · 5 models', 'Codex · 3 models', 'Google · 3 models', 'Synthetic Provider · 3 models']);
-    // Disabled Mistral is not a provider the key can reach today; the aggregator and the decisions provider have no card.
-    await expect(lines(replace, 'Removed from the key').locator('summary')).toHaveText(['OpenRouter · 66 models', 'Synthetic Provider · 1 model', 'Typesafe · 1 model']);
+    await expect(afterwards.locator('summary')).toHaveText(['Claude · 5 models', 'Codex · 2 models', 'Google · 2 models', 'Synthetic Provider · 3 models']);
+    // Disabled Mistral is not a provider the key can reach today. Left out: qa-shared at Codex (Claude serves it first: one access per model),
+    // qa-image (its card was deleted above) and the models without a card.
+    await expect(lines(replace, 'Removed from the key').locator('summary')).toHaveText(['Codex · 1 model', 'Google · 1 model', 'OpenRouter · 66 models', 'Synthetic Provider · 1 model', 'Typesafe · 1 model']);
     expect(await nativeWrites()).toHaveLength(written + 1);
     const replacement = page.waitForRequest(r => r.method() === 'POST' && r.url().endsWith('/api/keys/native-permissions') && r.postDataJSON().phase === 'apply');
     await replace.getByRole('button', { name: 'Confirm: replace “all providers”', exact: true }).click();
@@ -1007,8 +1008,8 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(replace.getByRole('status')).toContainText('Done. The key no longer allows every provider');
     expect((await nativeWrites())[written + 1]).toEqual({ keyId: 'vk-qa-all-providers', body: { name: 'QA All Providers Key', description: 'Synthetic client allowed every provider', is_active: true, allow_all_providers: false, provider_configs: [
       { provider: 'Claude', weight: null, allowed_models: ['qa-haiku', 'qa-opus', 'qa-opus-fast', 'qa-shared', 'qa-sonnet'], blacklisted_models: [], key_ids: ['*'] },
-      { provider: 'Codex', weight: null, allowed_models: ['qa-codex', 'qa-codex-mini', 'qa-shared'], blacklisted_models: [], key_ids: ['*'] },
-      { provider: 'Google', weight: null, allowed_models: ['qa-flash', 'qa-gemini', 'qa-image'], blacklisted_models: [], key_ids: ['*'] },
+      { provider: 'Codex', weight: null, allowed_models: ['qa-codex', 'qa-codex-mini'], blacklisted_models: [], key_ids: ['*'] },
+      { provider: 'Google', weight: null, allowed_models: ['qa-flash', 'qa-gemini'], blacklisted_models: [], key_ids: ['*'] },
       { provider: 'synthetic-provider', weight: null, allowed_models: ['qa-chat', 'qa-code', 'qa-vision'], blacklisted_models: [], key_ids: ['*'] },
     ] } });
     await replace.getByRole('button', { name: 'Back to adoption', exact: true }).click();

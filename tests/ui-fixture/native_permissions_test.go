@@ -46,6 +46,21 @@ func TestFixtureNativePermissionEdit(t *testing.T) {
 			t.Fatalf("apply on %s: %d %s", keyID, w.Code, w.Body.String())
 		}
 	}
+	// adopt applies the adoption the preview offers: a key that previews as ready must also save.
+	adopt := func(keyID string) {
+		t.Helper()
+		var p struct {
+			PreviewToken string `json:"previewToken"`
+			Revision     string `json:"revision"`
+		}
+		w := call("POST", "/api/keys/adopt", map[string]string{"keyId": keyID, "operation": "adopt", "phase": "preview"}, "")
+		if w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &p) != nil {
+			t.Fatal(w.Code, w.Body.String())
+		}
+		if w := call("POST", "/api/keys/adopt", map[string]string{"keyId": keyID, "operation": "adopt", "phase": "apply", "previewToken": p.PreviewToken}, p.Revision); w.Code != 200 {
+			t.Fatalf("adopting %s: %d %s", keyID, w.Code, w.Body.String())
+		}
+	}
 	canAdopt := func(keyID string) bool {
 		t.Helper()
 		var p struct {
@@ -72,6 +87,7 @@ func TestFixtureNativePermissionEdit(t *testing.T) {
 	if !canAdopt("vk-qa-hermes") {
 		t.Fatal("the Hermes key must be adoptable once its undiscovered models are removed")
 	}
+	adopt("vk-qa-hermes")
 
 	if canAdopt("vk-qa-all-providers") {
 		t.Fatal("the all-providers key must start blocked")
@@ -84,6 +100,7 @@ func TestFixtureNativePermissionEdit(t *testing.T) {
 	if !canAdopt("vk-qa-all-providers") {
 		t.Fatal("the all-providers key must be adoptable once replaced by the explicit list")
 	}
+	adopt("vk-qa-all-providers")
 
 	if len(b.writes) != 2 || b.writes[0].KeyID != "vk-qa-hermes" || b.writes[1].KeyID != "vk-qa-all-providers" {
 		t.Fatalf("recorded writes = %+v", b.writes)
