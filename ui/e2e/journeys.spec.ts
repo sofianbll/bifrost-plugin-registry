@@ -256,14 +256,17 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(opens).toHaveCount(3);
     await searchModels().fill('qa-opus'); // a search opens the shelves: its results are not hidden
     // Exact IDs: the variant keeps its own; the access sharing QA Opus' reference shows its native ID.
-    await expect(opens).toHaveText(['~anthropic/qa-opus-latest', 'QA Opus']); // sorted by name: punctuation first
+    await expect(opens).toHaveText(['QA Opus', 'QA Opus Latest']); // sorted by name; the aggregator ID reads as a name
+    await expect(card('QA Opus Latest')).toContainText('~anthropic/qa-opus-latest');
     await expect(card('QA Opus')).toContainText('anthropic/qa-opus');
     // Two saved cards share this reference, one is this model: the tile offers that card, never "Partial" or "Not saved".
     await expect(card('QA Opus').locator('[data-attention]')).toHaveText(['Add to QA Opus']);
-    await expect(card('~anthropic/qa-opus-latest').locator('[data-attention]')).toHaveCount(0);
+    await expect(card('QA Opus Latest').locator('[data-attention]')).toHaveCount(0);
     await searchModels().fill(':batch');
-    await expect(opens).toHaveText(['openai/qa-codex:batch']);
-    await expect(card('openai/qa-codex:batch').locator('[data-attention]')).toHaveCount(0);
+    await expect(opens).toHaveText(['QA Codex (batch)']);
+    await expect(card('QA Codex (batch)')).toContainText('openai/qa-codex:batch');
+    await expect(card('QA Codex (batch)').getByRole('button', { name: 'Add · QA Codex (batch)', exact: true }), 'a tile to add says it can be added').toBeVisible();
+    await expect(card('QA Codex (batch)').locator('[data-attention]')).toHaveCount(0);
     await expect(page.locator('[data-slot="card"]').filter({ hasText: /\b(Saved|Not saved|Partial)\b/ })).toHaveCount(0);
     await searchModels().fill('');
     // Settings counts the same scopes.
@@ -281,15 +284,30 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     page.on('request', r => { if (r.method() === 'PUT' && r.url().endsWith('/api/workspace')) writes++; });
     await scope(/^To add/).click();
     await searchModels().fill('qa-opus');
-    await expect(page.getByRole('button', { name: /^Open .* details$/ })).toHaveText(['~anthropic/qa-opus-latest', 'QA Opus']);
+    await expect(page.getByRole('button', { name: /^Open .* details$/ })).toHaveText(['QA Opus', 'QA Opus Latest']);
     // openrouter's anthropic/qa-opus fits QA Opus alone (QA Opus Fast is another model): the card opens, no choice.
     await button('Add to card · QA Opus').click();
     await expect(page.getByText('Add to which card?')).toHaveCount(0);
     await expect(sheet().locator('[data-slot="sheet-title"]')).toHaveText('QA Opus');
     // It opens on the accesses: the saved one is in the card, openrouter's is offered and not added.
     await expect(part(/^Also available/)).toContainText(/openrouter/i);
+    await expect(sheet().getByRole('heading', { name: 'Also available · 1', exact: true }), 'the count the tile shows as "+1 available"').toBeVisible();
     await expect(sheet().getByRole('button', { name: /^Add openrouter/i })).toBeVisible();
     await expect(part(/^Also available/)).not.toContainText('Claude');
+    // The sections are tabs: the selected one is announced, arrow keys and Home/End move between them.
+    const tab = (name: string) => sheet().getByRole('tab', { name, exact: true });
+    await expect(tab('Access')).toHaveAttribute('aria-selected', 'true');
+    await tab('Access').focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(tab('Properties')).toHaveAttribute('aria-selected', 'true');
+    await expect(tab('Properties')).toBeFocused();
+    await expect(sheet().getByText('Values come from Models.dev unless you corrected them.', { exact: true })).toBeVisible();
+    await page.keyboard.press('End');
+    await expect(tab('Sources')).toHaveAttribute('aria-selected', 'true');
+    await page.keyboard.press('Home');
+    await expect(tab('Overview')).toHaveAttribute('aria-selected', 'true');
+    // Overview teaches something even without a description: who serves the model, and what else could.
+    await expect(sheet().getByRole('tabpanel')).toContainText(/Served by.*1 more available/);
     await closeSheet();
     await sheet().waitFor({ state: 'hidden' });
     expect(writes, 'Opening the card adds nothing').toBe(0);
@@ -340,13 +358,13 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await nav('Groups').click();
     await nav('My models').click();
     await button('Open QA Chat details').click();
-    await sheet().getByRole('button', { name: 'Access', exact: true }).waitFor();
+    await sheet().getByRole('tab', { name: 'Access', exact: true }).waitFor();
     await closeSheet();
     await sheet().waitFor({ state: 'hidden' });
     // Settings and the catalog data page read the same catalogue.
     await nav('Settings').click();
     await button('Catalog sources').click();
-    await page.getByText(/^\d+ reference entries · \d+ provider accesses$/).waitFor();
+    await page.getByText(/^Models\.dev describes \d+ models?\. Your Bifrost providers serve \d+ models?\./).waitFor();
     await button('Appearance').click();
     await button('General').click();
     await button('Open catalog data').first().click();
@@ -434,6 +452,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await loading.route('**/api/catalog', async r => { await held; await r.fulfill({ json: stable.catalog }); });
     await loading.goto('/');
     await expect(loading.getByRole('status', { name: 'Loading model cards…' })).toBeVisible();
+    await expect(loading.getByText('Loading models…', { exact: true }), 'said in words, not only a skeleton').toBeVisible();
     const toAdd = loading.getByRole('radio', { name: /^To add/ });
     await expect(toAdd, 'before the catalogue: the tiles, not the 70 discovered models').toHaveAccessibleName('To add (69)');
     release();
@@ -640,10 +659,10 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await button('Open qa-codex-mini details').click();
     await expect(sheet().getByText('inferred', { exact: true }).first()).toBeVisible(); // read-first: the guess is shown as such
     // The sheet says what the tile says about unknown facts, not a bare "? → ?".
-    await sheet().getByRole('button', { name: 'Properties', exact: true }).click();
+    await sheet().getByRole('tab', { name: 'Properties', exact: true }).click();
     await expect(sheet().getByText(unknownFacts, { exact: true })).toBeVisible();
     await expect(sheet().getByText('? → ?')).toHaveCount(0);
-    await sheet().getByRole('button', { name: 'Overview', exact: true }).click();
+    await sheet().getByRole('tab', { name: 'Overview', exact: true }).click();
     await button('Edit').click();
     await sheet().getByRole('button', { name: 'Edit Registry details', exact: true }).click();
     const creatorField = page.getByRole('dialog', { name: 'Edit Registry details' }).getByRole('combobox', { name: 'Creator', exact: true });
@@ -752,7 +771,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await inCard.getByRole('button', { name: 'Change requests for Google', exact: true }).click();
     await expect(inCard.getByRole('checkbox', { name: /^Image generation/ })).toBeChecked();
     await expect(inCard.getByRole('checkbox', { name: /^Chat Completions/ })).not.toBeChecked();
-    await button('Prepare model card').click();
+    await button('Next: model details').click();
     await button('Review').click();
     const write = page.waitForRequest(r => r.method() === 'PUT' && r.url().endsWith('/api/workspace'));
     await button('Save model').click();
@@ -777,12 +796,12 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(sheet().getByRole('navigation', { name: 'Steps' })).toHaveCount(0);
     await expect(button('Save model')).toHaveCount(0);
     await expect(button('Delete'), 'Delete is not an always-visible button').toHaveCount(0);
-    await sheet().getByRole('button', { name: 'Access', exact: true }).click();
+    await sheet().getByRole('tab', { name: 'Access', exact: true }).click();
     await expect(sheet().getByText('qa-image').first()).toBeVisible();
     await expect(sheet().getByRole('checkbox'), 'Looking never risks changing: no editable control').toHaveCount(0);
     await expect(sheet().getByText('Native model ID', { exact: true }), 'Each access is described once, on its own card').toHaveCount(0);
     await expect(sheet().getByText('Provider access', { exact: true })).toHaveCount(1);
-    await sheet().getByRole('button', { name: 'Overview', exact: true }).click();
+    await sheet().getByRole('tab', { name: 'Overview', exact: true }).click();
     // Delete lives in the "..." menu; Escape closes the menu, not the sheet.
     await button('More actions').click();
     await expect(page.getByRole('menuitem', { name: 'Delete', exact: true })).toBeVisible();
@@ -937,7 +956,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
 
     // The card sheet offers the matching access; adding and removing are explicit and reviewed.
     await page.getByRole('button', { name: 'Open QA Opus saved details', exact: true }).click();
-    await sheet().getByRole('button', { name: 'Access', exact: true }).click();
+    await sheet().getByRole('tab', { name: 'Access', exact: true }).click();
     await expect(part(sheet(), /^Also available/)).toContainText(/openrouter/i);
     await button('Edit accesses').click();
     await expect(part(sheet(), /^In this card/)).toContainText('qa-opus');
@@ -961,7 +980,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await sheet().waitFor({ state: 'hidden' });
     // Taking an access off and adding it back returns it last: the card is as saved, so Review and Save agree.
     await page.getByRole('button', { name: 'Open QA Shared details', exact: true }).click();
-    await sheet().getByRole('button', { name: 'Access', exact: true }).click();
+    await sheet().getByRole('tab', { name: 'Access', exact: true }).click();
     await button('Edit accesses').click();
     await sheet().getByRole('button', { name: /^Remove Claude/ }).click();
     await sheet().getByRole('button', { name: /^Add Claude/i }).click();
@@ -1388,7 +1407,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
       // The card sheet: every tab, the access chooser and Review.
       await open('QA Opus saved').click();
       for (const tab of [t('Overview', 'Vue d’ensemble'), t('Properties', 'Propriétés'), t('Sources', 'Sources'), t('Access', 'Accès')]) {
-        await sheet().getByRole('button', { name: tab, exact: true }).click();
+        await sheet().getByRole('tab', { name: tab, exact: true }).click();
         await sweep(language, `Card sheet, ${tab} tab`);
       }
       await button(t('More actions', 'Plus d’actions')).click();
@@ -1480,6 +1499,12 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await page.getByRole('combobox', { name: 'Language: English', exact: true }).click();
     await page.getByRole('option', { name: 'Français', exact: true }).click();
     await tour('fr');
+    const bare = await page.context().newPage();
+    await bare.goto('/');
+    await expect(bare.locator('html')).toHaveAttribute('lang', 'fr');
+    await bare.goto('/?lang=en');
+    await expect(bare.locator('html')).toHaveAttribute('lang', 'en');
+    await bare.close();
     await page.getByRole('combobox', { name: 'Langue : français', exact: true }).click();
     await page.getByRole('option', { name: 'English', exact: true }).click();
   });
