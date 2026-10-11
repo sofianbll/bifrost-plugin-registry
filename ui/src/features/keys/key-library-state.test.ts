@@ -21,3 +21,7 @@ for (const [state, ids] of [["all", "b5,b3,a2,a3,b4"], ["ready", "a2"], ["blocke
   if (shown !== ids) throw new Error(`Readiness filter ${state} should show ${ids}, got ${shown}`);
 }
 if (filterKeys(triage, groups, models, "", "all", "all", "name").length !== 5) throw new Error("Without a readiness filter every key stays");
+
+// The default order is the worklist: ready, blocked, not read yet, empty, then managed keys; by name inside each.
+const worklist = filterKeys([...triage, { ...makeKey("a4", "Zed", []), managed: false, readiness: { state: "ready" as const, blockers: [] } }], groups, models, "", "all", "all", "readiness").map(key => key.id).join();
+if (worklist !== "a2,a4,a3,b4,b3,b5") throw new Error(`Readiness sorting should read ready, blocked, unknown, empty, managed, got ${worklist}`);

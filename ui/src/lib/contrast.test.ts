@@ -64,3 +64,20 @@ for (const theme of ["light", "dark"] as const) {
   console.log(`${theme}: selected outline ${ring} ${report.join(", ")}, against fill ${onFill.toFixed(2)}`);
 }
 console.log("Toggle contrast checks passed");
+
+// WCAG 1.4.3: the default button's text, at rest and hovered. Its hover is bg-primary/NN over the page, and alpha blends in gamma-encoded sRGB.
+const hover = Number(read("../components/ui/button.tsx").match(/default: "[^"]*hover:bg-primary\/(\d+)/)?.[1]) / 100;
+assert(hover > 0 && hover < 1, "button.tsx must give the default variant a hover:bg-primary/NN fill");
+const gamma = (c: number) => (c <= 0.0031308 ? 12.92 * c : 1.055 * Math.max(c, 0) ** (1 / 2.4) - 0.055);
+const linear = (c: number) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+for (const theme of ["light", "dark"] as const) {
+  const [fill, text, page] = ["primary", "primary-foreground", "background"].map(name => linearRgb(token(theme, name)!));
+  assert(ratio(token(theme, "primary-foreground")!, token(theme, "primary")!) >= 4.5, `${theme}: button text on --primary is under 4.5:1`);
+  if (!page) continue; // the dark page is translucent over what lies behind it
+  const hovered = fill!.map((c, i) => linear(hover * gamma(c) + (1 - hover) * gamma(page[i])));
+  const [a, b] = [luminance(text!), luminance(hovered)];
+  const onHover = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+  assert(onHover >= 4.5, `${theme}: button text on its hover fill is ${onHover.toFixed(2)}:1, under 4.5:1`);
+  console.log(`${theme}: button text ${onHover.toFixed(2)}:1 hovered`);
+}
+console.log("Button contrast checks passed");
