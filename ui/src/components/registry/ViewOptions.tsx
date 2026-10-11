@@ -49,7 +49,7 @@ export function updateViewOverride(base: ViewOptions, previous: Partial<ViewOpti
 }
 
 // logoChoice adds the primary logo (creator or serving provider) to the popover: a preference of the whole panel, offered where it is saved.
-export function ViewControls({ value, onChange, onReset, scope, fields = ["description", "metadata", "modalities", "providers", "evidence"], catalogFormats = false, logoChoice = false }: { value: ViewOptions; onChange: (next: ViewOptions) => void; onReset?: () => void; scope?: string; fields?: ("description" | "metadata" | "modalities" | "providers" | "evidence")[]; catalogFormats?: boolean; logoChoice?: boolean }) {
+export function ViewControls({ value, onChange, onReset, scope, fields = ["description", "metadata", "modalities", "providers", "evidence"], catalogFormats = false, logoChoice = false, folded = false }: { value: ViewOptions; onChange: (next: ViewOptions) => void; onReset?: () => void; scope?: string; fields?: ("description" | "metadata" | "modalities" | "providers" | "evidence")[]; catalogFormats?: boolean; logoChoice?: boolean; folded?: boolean }) {
   const copy = useCopy();
   const baseId = useId();
   const [open, setOpen] = useState(false);
@@ -59,7 +59,7 @@ export function ViewControls({ value, onChange, onReset, scope, fields = ["descr
   if (catalogFormats) {
     // Layout controls sit in the toolbar when the container is wide, inside View options when it is narrow;
     // the popover is not portaled so both follow the same container. Below that width a grid has one or two
-    // columns whatever the density, so the 4/3/2 column counts hide too.
+    // columns whatever the density, so the 4/3/2 column counts hide too. folded (Basic mode) keeps them in the popover at any width.
     const layoutControls = <>
       <div className="space-y-1">
         <p className="text-xs font-medium text-muted-foreground">{copy("View", "Vue")}</p>
@@ -89,10 +89,10 @@ export function ViewControls({ value, onChange, onReset, scope, fields = ["descr
       </div>}
     </>;
     return <div className="flex flex-wrap items-center gap-3" aria-label={copy(`${scope || "List"} view options`, `Options d’affichage · ${scope || "liste"}`)}>
-      <div className="contents @max-2xl:hidden">{layoutControls}</div>
+      {!folded && <div className="contents @max-2xl:hidden">{layoutControls}</div>}
       <Popover open={open} onOpenChange={setOpen}><PopoverTrigger asChild><Button size="sm" variant="outline" aria-label={copy("View options", "Options d’affichage")}><SlidersHorizontal className="size-4" /><span className="@max-md:hidden">{copy("View options", "Options")}</span></Button></PopoverTrigger><PopoverContent noPortal align="end" className="w-64 space-y-4">
         <h3 className="border-b pb-3 text-base font-semibold">{scope === "Models" ? copy("Model view options", "Options d’affichage des modèles") : copy(`${scope || "View"} options`, `${scope || "Vue"} · options`)}</h3>
-        <div className="hidden space-y-3 @max-2xl:block">{layoutControls}</div>
+        <div className={folded ? "space-y-3" : "hidden space-y-3 @max-2xl:block"}>{layoutControls}</div>
         {logoChoice && <div className="space-y-1">
           <p className="text-xs font-medium text-muted-foreground">{copy("Primary logo", "Logo principal")}</p>
           <ToggleGroup type="single" value={value.logo} onValueChange={logo => logo && onChange({ ...value, logo: logo as ViewOptions["logo"] })} aria-label={copy("Primary logo on model cards", "Logo principal des fiches modèles")}>

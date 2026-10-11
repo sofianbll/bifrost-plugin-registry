@@ -1,4 +1,4 @@
-import { attentionOf, cardEntries, cardsHolding, filterReferenceGroups, filterReferenceModels, groupReferenceModels, sectionsOf, sharedReferenceFacts, sortItems } from "./reference-groups";
+import { attentionOf, cardEntries, cardsHolding, filterReferenceGroups, filterReferenceModels, groupReferenceModels, sectionsOf, sharedReferenceFacts, shownCount, sortItems } from "./reference-groups";
 import type { Catalog } from "./catalog-api";
 import { emptyModelFilters, type Model } from "../../domain/registry";
 
@@ -139,3 +139,12 @@ if (sections.map(section => `${section.label}:${section.items.map(card => card.n
 if (sections.map(section => section.shelf).join() !== "false,false,true,false") throw new Error("Only the aggregator is a shelf");
 if (new Set(sections.flatMap(section => section.items)).size !== shelfCards.length) throw new Error("A card went missing from the sections");
 console.log("Sections hold every card under each of its providers, sorted, shelves after: OK");
+
+// The count line says where the cards not shown are: in a closed shelf, or behind "Show more". A card under
+// two providers counts once, and the line says so.
+const [claude, codex, openrouter, unknown] = sections;
+const counted = shownCount([{ ...claude, open: true, shown: claude.items }, { ...codex, open: true, shown: [] }, { ...openrouter, open: false, shown: [] }, { ...unknown, open: true, shown: unknown.items }]);
+if (JSON.stringify(counted) !== JSON.stringify({ total: 4, shown: 2, shelved: 1, paged: 1, repeated: true })) throw new Error(`Count: ${JSON.stringify(counted)}`);
+const single = shownCount([{ items: ["a", "b"], open: true, shown: ["a", "b"] }]);
+if (JSON.stringify(single) !== JSON.stringify({ total: 2, shown: 2, shelved: 0, paged: 0, repeated: false })) throw new Error(`Count: ${JSON.stringify(single)}`);
+console.log("The count line splits what is hidden between shelves and Show more: OK");

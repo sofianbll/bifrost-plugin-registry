@@ -103,3 +103,12 @@ export function sectionsOf<T>(items: T[], keysOf: (item: T) => string[], describ
     .sort((a, b) => Number(!!a.last) - Number(!!b.last) || Number(!!a.shelf) - Number(!!b.shelf) || a.label.localeCompare(b.label))
     .map(({ key, label, shelf, items: rows }) => ({ key, label, shelf: !!shelf, items: rows }));
 }
+
+// What the count line says about sections: every card once, how many show, and where the others are
+// (a closed shelf, else behind "Show more"); repeated when a card sits under several sections.
+export function shownCount<T>(sections: { items: T[]; open: boolean; shown: T[] }[]) {
+  const all = new Set(sections.flatMap(section => section.items));
+  const shown = new Set(sections.flatMap(section => section.shown));
+  const shelved = new Set(sections.filter(section => !section.open).flatMap(section => section.items).filter(item => !shown.has(item)));
+  return { total: all.size, shown: shown.size, shelved: shelved.size, paged: all.size - shown.size - shelved.size, repeated: sections.reduce((sum, section) => sum + section.items.length, 0) > all.size };
+}
