@@ -13,16 +13,18 @@ const (
 	blockUndiscovered = "undiscovered" // Bifrost does not list the model: nothing in Registry can add it
 	blockUnsaved      = "unsaved"      // discovered but no Registry card holds it: the models page can add it
 	blockAllProviders = "all-providers"
-	blockDynamic      = "dynamic" // the provider row allows "*" or a regex: keep it in Bifrost, or replace it by the models Registry holds
-	blockOther        = "other"   // any other adoption reason, with the reason text as sent
+	blockDynamic      = "dynamic"   // the provider row allows "*" or a regex: keep it in Bifrost, or replace it by the models Registry holds
+	blockCollision    = "collision" // one model allowed through two providers: keep one of them in Bifrost
+	blockOther        = "other"     // any other adoption reason, with the reason text as sent
 	// A consequence of the other blockers when every route is blocked, not a reason of its own.
 	noRepresentableAccess = "Native key has no representable configured model access"
 )
 
 // Kept marks a blocker of a provider the adopter keeps in Bifrost: still reported, but it blocks nothing.
+// With is the other provider of a collision.
 type adoptionBlocker struct {
-	Provider, Kind, Model, Reason string
-	Kept                          bool
+	Provider, Kind, Model, Reason, With string
+	Kept                                bool
 }
 
 func otherBlocker(reason string) adoptionBlocker {
@@ -40,6 +42,10 @@ type readinessBlocker struct {
 	Reasons  []string `json:"reasons,omitempty"`
 	// The provider is kept in Bifrost (adoption option b): Registry leaves its permissions alone.
 	Kept bool `json:"kept,omitempty"`
+	// Collisions: the other providers that already allow these models.
+	With []string `json:"with,omitempty"`
+	// Undiscovered models: Bifrost has no enabled key for the provider (or does not list it), so it lists none of its models.
+	ProviderDisabled bool `json:"providerDisabled,omitempty"`
 }
 
 // adoptionReadiness is the verdict shown on key cards and in the adoption dialog: ready, blocked (with
@@ -85,6 +91,9 @@ func adoptionReadinessOf(vk nativeVK, blockers []adoptionBlocker) *adoptionReadi
 		if b.Model != "" {
 			g.Models = append(g.Models, b.Model)
 		}
+		if b.With != "" && !registry.Has(g.With, b.With) {
+			g.With = append(g.With, b.With)
+		}
 		if b.Kind == blockUndiscovered || b.Kind == blockUnsaved {
 			g.Count = len(g.Models)
 		} else {
@@ -93,6 +102,22 @@ func adoptionReadinessOf(vk nativeVK, blockers []adoptionBlocker) *adoptionReadi
 		}
 	}
 	return out
+}
+
+// markDisabled flags the undiscovered blockers of a provider Bifrost lists without an enabled key, or does not list.
+func (r *adoptionReadiness) markDisabled(listed []providerDTO) {
+	for i := range r.Blockers {
+		b := &r.Blockers[i]
+		if b.Kind != blockUndiscovered || b.Provider == "" {
+			continue
+		}
+		b.ProviderDisabled = true
+		for _, p := range listed {
+			if p.ID == b.Provider && !p.Disabled {
+				b.ProviderDisabled = false
+			}
+		}
+	}
 }
 
 // hasBlocking reports whether a blocker other than `except` (a reason) stops the key: kept ones do not.
@@ -130,7 +155,7 @@ func adoptionSelection(cfg registry.Config, vk nativeVK, rows []nativeModel, kee
 	routes := []string{}
 	seenProvider := map[string]bool{}
 	seenRoute := map[string]bool{}
-	viaAlias := map[string]string{} // alias -> the route that already selects it
+	viaAlias := map[string][2]string{} // alias -> the provider and route that already select it
 	for _, pc := range vk.ProviderConfigs {
 		providerBlocker := func(reason string) adoptionBlocker {
 			return adoptionBlocker{Provider: pc.Provider, Kind: blockOther, Reason: reason}
@@ -201,10 +226,12 @@ func adoptionSelection(cfg registry.Config, vk nativeVK, rows []nativeModel, kee
 			if !registry.Has(keep, pc.Provider) {
 				// A policy holds one access per alias: two would be refused at save (access_selection missing).
 				if first, twice := viaAlias[m.Alias]; twice {
-					blocked = append(blocked, modelBlocker(blockOther, "Model "+m.Alias+" is allowed through "+first+" and "+route+": Registry adopts one access per model"))
+					b := modelBlocker(blockCollision, "Model "+m.Alias+" is allowed through "+first[1]+" and "+route+": Registry adopts one access per model")
+					b.With = first[0]
+					blocked = append(blocked, b)
 					continue
 				}
-				viaAlias[m.Alias] = route
+				viaAlias[m.Alias] = [2]string{pc.Provider, route}
 				selected = append(selected, m.ID)
 				routes = append(routes, route)
 			}

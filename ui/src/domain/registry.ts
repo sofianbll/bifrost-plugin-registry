@@ -35,7 +35,8 @@ export type NativePermissions = { allProviders: boolean; providers: { provider: 
 // or a regex (kept in Bifrost or replaced by a native edit), other = any other reason (see `reasons`,
 // as sent). count = models.length for the first two kinds, reasons.length for the others.
 // kept: the adoption preview was asked to keep this provider in Bifrost; the blocker is still listed but blocks nothing.
-export type ReadinessBlocker = { provider: string; kind: "undiscovered" | "unsaved" | "all-providers" | "dynamic" | "other"; count: number; models: string[]; reasons?: string[]; kept?: boolean };
+// with: the other providers of a collision; providerDisabled: Bifrost lists no model of the provider (undiscovered only).
+export type ReadinessBlocker = { provider: string; kind: "undiscovered" | "unsaved" | "all-providers" | "dynamic" | "collision" | "other"; count: number; models: string[]; reasons?: string[]; kept?: boolean; with?: string[]; providerDisabled?: boolean };
 export type Readiness = { state: "ready" | "blocked" | "empty"; blockers: ReadinessBlocker[] };
 // pendingAccessSelection: saved models withheld until an access is chosen, with their candidate access IDs.
 // permissions: absent when Bifrost's answer carried no provider rows (not read yet).

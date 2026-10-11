@@ -473,10 +473,12 @@ func seedKeys() map[string]*virtualKey {
 		"vk-qa-codex":         {ID: "vk-qa-codex", Name: "QA Codex Key", Description: "Synthetic Codex client", Value: "sk-bf-qa-fixture-codex", Active: true, ProviderConfigs: []providerConfig{{Provider: "Codex", AllowedModels: []string{"qa-codex", "qa-codex-mini"}, AllowAllKeys: true}}},
 		"vk-qa-claude":        {ID: "vk-qa-claude", Name: "QA Claude Key", Description: "Synthetic Claude client", Value: "sk-bf-qa-fixture-claude", Active: true, ProviderConfigs: []providerConfig{{Provider: "Claude", AllowedModels: []string{"*"}, AllowAllKeys: true}}},
 		"vk-qa-google":        {ID: "vk-qa-google", Name: "QA Google Key", Description: "Synthetic Google client", Value: "sk-bf-qa-fixture-google", Active: true, ProviderConfigs: []providerConfig{{Provider: "Google", AllowedModels: []string{"qa-gemini", "qa-flash"}, AllowAllKeys: true}}},
-		// The Hermes case: models of a disabled provider (never discovered) beside discovered, saved ones.
+		// The Hermes case: models of a disabled provider (never discovered) beside discovered, saved ones, and
+		// one model (qa-shared) allowed through two providers, so one of them must stay in Bifrost.
 		"vk-qa-mistral": {ID: "vk-qa-mistral", Name: "QA Mistral Key", Description: "Synthetic Mistral client", Value: "sk-bf-qa-fixture-mistral", Active: true, ProviderConfigs: []providerConfig{
 			{Provider: "mistral", AllowedModels: []string{"qa-mistral-large", "qa-mistral-small", "qa-mistral-code"}, AllowAllKeys: true},
-			{Provider: "Claude", AllowedModels: []string{"qa-haiku", "qa-sonnet"}, AllowAllKeys: true}}},
+			{Provider: "Claude", AllowedModels: []string{"qa-haiku", "qa-sonnet", "qa-shared"}, AllowAllKeys: true},
+			{Provider: "Codex", AllowedModels: []string{"qa-shared"}, AllowAllKeys: true}}},
 		// The same case for the key whose undiscovered models are removed in Bifrost (#93): the journeys adopt it.
 		"vk-qa-hermes": {ID: "vk-qa-hermes", Name: "QA Hermes Key", Description: "Synthetic Hermes client", Value: "sk-bf-qa-fixture-hermes", Active: true, ProviderConfigs: []providerConfig{
 			{Provider: "mistral", AllowedModels: []string{"qa-mistral-large", "qa-mistral-small"}, AllowAllKeys: true},

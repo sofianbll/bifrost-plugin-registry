@@ -320,7 +320,7 @@ func TestFixtureKeysCoverAdoptionCases(t *testing.T) {
 	want := map[string]string{
 		"vk-qa-unmanaged": "empty", "vk-qa-all-providers": "all-providers", "vk-qa-claude": "all-models", "vk-qa-wildcard": "all-models",
 		"vk-qa-codex": "ready", "vk-qa-google": "ready",
-		"vk-qa-mistral": "undiscovered 3, saved 2, unsaved 0", // the Hermes case: a disabled provider plus discovered models
+		"vk-qa-mistral": "undiscovered 3, saved 4, unsaved 0", // the Hermes case: a disabled provider plus discovered models
 		"vk-qa-hermes":  "undiscovered 2, saved 2, unsaved 0",
 		"vk-qa-unsaved": "unsaved 1, saved 1",
 	}
@@ -331,7 +331,7 @@ func TestFixtureKeysCoverAdoptionCases(t *testing.T) {
 	wantReadiness := map[string]string{
 		"vk-qa-unmanaged": "empty", "vk-qa-all-providers": "blocked /all-providers 1", "vk-qa-claude": "blocked Claude/dynamic 1", "vk-qa-wildcard": "blocked Claude/dynamic 1",
 		"vk-qa-codex": "ready", "vk-qa-google": "ready",
-		"vk-qa-mistral": "blocked mistral/undiscovered 3", "vk-qa-hermes": "blocked mistral/undiscovered 2", "vk-qa-unsaved": "blocked synthetic-provider/unsaved 1",
+		"vk-qa-mistral": "blocked mistral/undiscovered 3 Codex/collision 1", "vk-qa-hermes": "blocked mistral/undiscovered 2", "vk-qa-unsaved": "blocked synthetic-provider/unsaved 1",
 	}
 	if !reflect.DeepEqual(readiness, wantReadiness) {
 		t.Fatalf("unmanaged key readiness = %v, want %v", readiness, wantReadiness)
@@ -346,18 +346,18 @@ func TestFixtureKeysCoverAdoptionCases(t *testing.T) {
 		}
 	}
 	slices.Sort(routes["vk-qa-mistral"])
-	if want := []string{"Claude/qa-haiku", "Claude/qa-sonnet", "mistral/qa-mistral-code", "mistral/qa-mistral-large", "mistral/qa-mistral-small"}; !reflect.DeepEqual(routes["vk-qa-mistral"], want) {
+	if want := []string{"Claude/qa-haiku", "Claude/qa-shared", "Claude/qa-sonnet", "Codex/qa-shared", "mistral/qa-mistral-code", "mistral/qa-mistral-large", "mistral/qa-mistral-small"}; !reflect.DeepEqual(routes["vk-qa-mistral"], want) {
 		t.Errorf("mistral key routes = %v, want %v", routes["vk-qa-mistral"], want)
 	}
 }
 
-// A key keeps the disabled provider native and adopts the rest: the fixture's /v1/models lists the
+// A key keeps the disabled provider native, and Codex for the model Claude also allows, and adopts the rest: the fixture's /v1/models lists the
 // explicit names the key allows on a provider without discoverable models, for the unmanaged key and
 // once it is managed, so the readback of the managed routes plus the kept ones is Verified (#92).
 func TestFixtureKeptNativeMistralKeyReadsVerified(t *testing.T) {
 	_, call := fixture(t)
 	adopt := func(phase, token, revision string) *httptest.ResponseRecorder {
-		body := map[string]any{"keyId": "vk-qa-mistral", "operation": "adopt", "phase": phase, "keepNative": []string{"mistral"}}
+		body := map[string]any{"keyId": "vk-qa-mistral", "operation": "adopt", "phase": phase, "keepNative": []string{"mistral", "Codex"}}
 		if token != "" {
 			body["previewToken"] = token
 		}
@@ -372,7 +372,7 @@ func TestFixtureKeptNativeMistralKeyReadsVerified(t *testing.T) {
 	if w := adopt("preview", "", ""); w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &p) != nil || !p.CanApply {
 		t.Fatalf("keeping mistral native did not unblock the key: %d %s", w.Code, w.Body.String())
 	}
-	if want := []string{"Claude/qa-haiku", "Claude/qa-sonnet"}; !reflect.DeepEqual(p.SelectedRoutes, want) {
+	if want := []string{"Claude/qa-haiku", "Claude/qa-shared", "Claude/qa-sonnet"}; !reflect.DeepEqual(p.SelectedRoutes, want) {
 		t.Fatalf("selected routes = %v, want %v", p.SelectedRoutes, want)
 	}
 	if w := adopt("apply", p.PreviewToken, p.Revision); w.Code != 200 {
@@ -398,8 +398,8 @@ func TestFixtureKeptNativeMistralKeyReadsVerified(t *testing.T) {
 		if k.ID != "vk-qa-mistral" {
 			continue
 		}
-		want := []string{"Claude/qa-haiku", "Claude/qa-sonnet", "mistral/qa-mistral-code", "mistral/qa-mistral-large", "mistral/qa-mistral-small"}
-		if !k.Managed || k.Publication.State != "verified" || !reflect.DeepEqual(k.Publication.Expected, want) || !reflect.DeepEqual(k.Policy.KeptNative, []string{"mistral"}) {
+		want := []string{"Claude/qa-haiku", "Claude/qa-shared", "Claude/qa-sonnet", "Codex/qa-shared", "mistral/qa-mistral-code", "mistral/qa-mistral-large", "mistral/qa-mistral-small"}
+		if !k.Managed || k.Publication.State != "verified" || !reflect.DeepEqual(k.Publication.Expected, want) || !reflect.DeepEqual(k.Policy.KeptNative, []string{"Codex", "mistral"}) {
 			t.Fatalf("kept-native key = %+v, want verified with %v", k, want)
 		}
 		return
