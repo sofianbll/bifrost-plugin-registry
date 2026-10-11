@@ -2,11 +2,16 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"bifrost-registry/internal/admin"
+	"bifrost-registry/internal/registry"
 )
 
 func TestSnapshotRoutesAreOfflineAndFiltered(t *testing.T) {
@@ -82,5 +87,42 @@ func TestWorkingCopyDoesNotChangeCapture(t *testing.T) {
 	info, err := os.Stat(n.statePath)
 	if err != nil || info.Mode().Perm() != 0600 {
 		t.Fatalf("working copy permissions: %v %v", info, err)
+	}
+}
+
+// A custom provider (Claude on the anthropic type) keeps its base type in snapshot mode, so the
+// workspace lists it like the live gateway does and the panel can show the base type's mark.
+func TestSnapshotKeepsCustomProviderBaseTypes(t *testing.T) {
+	var capture snapshot
+	if err := json.Unmarshal([]byte(`{"capturedAt":"now","source":"Pulsar","version":"2.2.6","providers":[
+		{"name":"Claude","custom_provider_config":{"base_provider_type":"anthropic","is_key_less":false},"keys":[]},
+		{"name":"openrouter","keys":[]}],"models":[],"virtualKeys":[]}`), &capture); err != nil {
+		t.Fatal(err)
+	}
+	empty, err := registry.Compile(registry.Config{SchemaVersion: 1, DefaultNaming: "provider/model", Models: []registry.Model{}, Groups: []registry.Group{}, Policies: []registry.Policy{}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	srv, err := admin.New(registry.MemoryStore(empty), "snapshot-test-token-0123456789abcdef", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	srv.ConnectNative(&nativeSnapshot{capture: capture, providers: capture.Providers})
+	r := httptest.NewRequest("GET", "http://localhost:8099/api/workspace", nil)
+	r.Header.Set("Authorization", "Bearer snapshot-test-token-0123456789abcdef")
+	w := httptest.NewRecorder()
+	srv.ServeHTTP(w, r)
+	var ws struct {
+		Providers []struct {
+			ID               string `json:"id"`
+			BaseProviderType string `json:"baseProviderType"`
+		} `json:"providers"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &ws); err != nil || w.Code != 200 {
+		t.Fatalf("workspace: %d %v %s", w.Code, err, w.Body.String())
+	}
+	got := fmt.Sprint(ws.Providers)
+	if got != "[{Claude anthropic} {openrouter }]" {
+		t.Fatalf("providers: %s", got)
 	}
 }

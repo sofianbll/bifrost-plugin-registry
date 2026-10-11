@@ -1,4 +1,4 @@
-import { applyModelId, canonicalCapabilities, changeAccessProvider, declaredEndpoints, firstRegistrationIssue, modelEditorOptions, omitUnchangedReferenceIds, prefillFromReference } from "./model-editor-data";
+import { applyModelId, canonicalCapabilities, changeAccessProvider, declaredEndpoints, firstRegistrationIssue, matchingAccesses, modelEditorOptions, omitUnchangedReferenceIds, prefillFromReference } from "./model-editor-data";
 import type { Catalog } from "./catalog-api";
 import type { Model } from "../../domain/registry";
 
@@ -58,7 +58,29 @@ const withMode = (mode: unknown) => ({ id: "p/m", fields: { parameters: { value:
 equal(declaredEndpoints(withMode("chat")), ["chat/completions"]);
 equal(declaredEndpoints(withMode("image_generation")), ["images/generations"]);
 equal(declaredEndpoints(withMode("embedding")), ["embeddings"]);
+equal(declaredEndpoints(withMode("decisions")), ["decisions"]); // Jev: decisions only, no manual tick
 equal(declaredEndpoints(withMode("something-new")), []);
 equal(declaredEndpoints(withMode(undefined)), []);
 equal(declaredEndpoints(undefined), []);
+
+// "Also available": accesses that are the card's model. An aggregator links "-pro", "-latest" or ":batch"
+// variants to the base reference; only an access under the card's own name is the same model.
+const offer = (provider: string, model: string, referenceId?: string, configured = true) => ({ id: `${provider}/${model}`, provider, model, configured, referenceId, fields: {}, overrides: {} });
+const luna = { provider: "Codex", id: "Codex/gpt-5.6-luna", route: "Direct provider", status: "Configured" as const, nativeModel: "gpt-5.6-luna", referenceId: "openai/gpt-5.6-luna" };
+const offers = [
+  offer("openrouter", "openai/gpt-5.6-luna", "openai/gpt-5.6-luna"),
+  offer("openrouter", "openai/gpt-5.6-luna-pro", "openai/gpt-5.6-luna"),
+  offer("openrouter", "~openai/gpt-luna-latest", "openai/gpt-5.6-luna"),
+  offer("openrouter", "openai/gpt-5.6-luna:batch", "openai/gpt-5.6-luna"),
+  offer("bedrock", "us.openai.gpt-5-6-luna-v1:0", "openai/gpt-5.6-luna"), // plain native name: the reference decides
+  offer("other", "gpt-5.6-luna"), // no reference, the card's own name
+  offer("other", "gpt-5.6-luna-pro"), // no reference, another name
+  offer("gone", "gpt-5.6-luna", "openai/gpt-5.6-luna", false),
+  offer("taken", "gpt-5.6-luna", "openai/gpt-5.6-luna"),
+];
+const taken = { ...existing, id: "other-card", accesses: [{ ...luna, provider: "taken", id: "taken/other-card", nativeModel: "gpt-5.6-luna" }] };
+const matches = (id: string, known: typeof luna[]) => matchingAccesses(offers, id, known, [taken]).map(access => access.id);
+equal(matches("gpt-5.6-luna", [luna]), ["openrouter/openai/gpt-5.6-luna", "bedrock/us.openai.gpt-5-6-luna-v1:0", "other/gpt-5.6-luna"]);
+// The "-pro" card takes the "-pro" access and not the base model's aggregator access.
+equal(matches("gpt-5.6-luna-pro", [{ ...luna, nativeModel: "gpt-5.6-luna-pro" }]), ["openrouter/openai/gpt-5.6-luna-pro", "bedrock/us.openai.gpt-5-6-luna-v1:0", "other/gpt-5.6-luna-pro"]);
 console.log("model editor data checks passed");

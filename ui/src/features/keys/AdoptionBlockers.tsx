@@ -38,18 +38,24 @@ export function adoptionReason(reason: string, copyText: Copy) {
 
 // What stops a key from being adopted, one entry per provider and kind, with counts and model names.
 // Models Bifrost lists but Registry has no card for lead to the models page ("To add").
-// Extension point for actions on a blocker: render them as the last child of its <li>, as NativeEditButton does (#93).
-export function AdoptionBlockers({ readiness, reasons: plain, onShowToAdd, onEditNative }: { readiness?: Readiness; reasons: string[]; onShowToAdd?: (routes: string[]) => void; onEditNative?: (request: NativeEditRequest) => void }) {
+// Actions sit beside their blocker line: onShowToAdd for unsaved models, onKeep (#92) for undiscovered ones.
+// A provider the preview keeps native comes back flagged `kept` and is shown by KeptProviders, not here.
+// #93's native edits (remove models from the key, replace "all providers") are NativeEditButton, the last child of each blocker's <li>.
+export function AdoptionBlockers({ readiness, reasons: plain, onShowToAdd, onKeep, onEditNative }: { readiness?: Readiness; reasons: string[]; onShowToAdd?: (routes: string[]) => void; onKeep?: (provider: string, keep: boolean) => void; onEditNative?: (request: NativeEditRequest) => void }) {
   const copyText = useCopy();
   return <div className="rounded-sm border border-destructive/40 bg-destructive/10 p-3"><h3 className="font-medium">{copyText("Before continuing", "Avant de continuer")}</h3>
     {readiness?.state === "empty" ? <p className="mt-1">{copyText("This key allows no model in Bifrost yet, so there is nothing to adopt. Add models to the key in Bifrost first.", "Cette clé n’autorise encore aucun modèle dans Bifrost : rien à adopter. Ajoutez d’abord des modèles à la clé dans Bifrost.")}</p>
-    : readiness ? <ul className="mt-2 space-y-3">{readiness.blockers.map(blocker => {
+    : readiness ? <ul className="mt-2 space-y-3">{readiness.blockers.filter(blocker => !blocker.kept).map(blocker => {
       const names = <details className="mt-1 text-xs"><summary className="cursor-pointer">{copyText("Show model names", "Afficher les noms des modèles")}</summary><p className="mt-1 break-words font-mono">{blocker.models.join(", ")}</p></details>;
       return <li key={`${blocker.provider}/${blocker.kind}`}>
         {blocker.kind === "undiscovered" || blocker.kind === "unsaved" ? <>
           <p className="font-medium">{blockerLine(blocker, copyText)}</p>
           <p className="text-xs">{blocker.kind === "undiscovered" ? copyText("Bifrost does not list these models, so Registry cannot hold an access for them. The provider may be disabled in Bifrost.", "Bifrost ne liste pas ces modèles : Registry ne peut pas leur associer d’accès. Le fournisseur est peut-être désactivé dans Bifrost.") : copyText("Bifrost lists these models, but Registry has no card for them yet.", "Bifrost liste ces modèles, mais Registry n’a pas encore de fiche pour eux.")}</p>
           {names}
+          {blocker.kind === "undiscovered" && onKeep && blocker.provider && <>
+            <p className="mt-2 text-xs">{copyText(`Or keep ${displayProvider(blocker.provider)} in Bifrost: Registry will not manage or change ${displayProvider(blocker.provider)}’s permissions, and the rest of the key is adopted.`, `Ou gardez ${displayProvider(blocker.provider)} dans Bifrost : Registry ne gérera ni ne modifiera les permissions du fournisseur ${displayProvider(blocker.provider)}, et le reste de la clé est adopté.`)}</p>
+            <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => onKeep(blocker.provider, true)}>{copyText(`Keep ${displayProvider(blocker.provider)} in Bifrost`, `Garder ${displayProvider(blocker.provider)} dans Bifrost`)}</Button>
+          </>}
           {blocker.kind === "unsaved" && onShowToAdd && <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => onShowToAdd(blocker.models.map(model => `${blocker.provider}/${model}`))}>{copyText("Show in To add", "Voir dans À ajouter")}<span className="sr-only"> · {displayProvider(blocker.provider)}</span></Button>}
         </> : (blocker.reasons ?? []).map((reason, index) => <p key={`${index}/${reason}`} className="break-words">{adoptionReason(reason, copyText)}</p>)}
         <NativeEditButton blocker={blocker} readiness={readiness} onEdit={onEditNative} />

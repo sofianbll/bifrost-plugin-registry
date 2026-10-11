@@ -160,7 +160,7 @@ func (s *Server) permissionEditPlan(ctx context.Context, in permissionEditInput)
 			// Dropping the row of an all-providers key would open that provider completely.
 			blocked("This key allows all providers: replace that first")
 		}
-		_, _, blockers := adoptionSelection(cfg, vk, rows)
+		_, _, blockers := adoptionSelection(cfg, vk, rows, nil)
 		gone, names := map[string]bool{}, []string{}
 		for _, b := range blockers {
 			if b.Kind == blockUndiscovered && b.Provider == in.Provider && b.Model != "" && !gone[b.Model] {
@@ -217,14 +217,14 @@ func (s *Server) permissionEditPlan(ctx context.Context, in permissionEditInput)
 		for _, provider := range providers {
 			candidate.ProviderConfigs = append(candidate.ProviderConfigs, nativeProviderConfig{Provider: provider, AllowedModels: sortedKeys(listed[provider]), AllowAllKeys: true})
 		}
-		_, routes, _ := adoptionSelection(cfg, candidate, rows)
+		_, routes, _ := adoptionSelection(cfg, candidate, rows, nil)
 		holdable := map[string]bool{}
 		for _, route := range routes {
 			holdable[route] = true
 		}
 		// A policy holds one access per model: when several providers serve the same model, the key keeps the
 		// first provider (by name) and the others are left out, unless a row the key already has holds it.
-		_, kept0, _ := adoptionSelection(cfg, nativeVK{ProviderConfigs: vk.ProviderConfigs}, rows)
+		_, kept0, _ := adoptionSelection(cfg, nativeVK{ProviderConfigs: vk.ProviderConfigs}, rows, nil)
 		taken := map[string]bool{}
 		for _, route := range kept0 {
 			taken[route[strings.Index(route, "/")+1:]] = true
