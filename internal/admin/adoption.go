@@ -249,7 +249,7 @@ func (s *Server) adoptionPlan(ctx context.Context, input adoptionInput) (adoptio
 				plan.block(otherBlocker("Native model readback is unavailable"))
 			} else {
 				plan.preview.NativeRoutes = ids
-				if missing, unexpected := diffModels(append(append([]string{}, routes...), keptNativeRoutes(vk, keep)...), ids, keep); len(missing)+len(unexpected) > 0 {
+				if missing, unexpected := diffModels(append(append([]string{}, routes...), keptNativeRoutes(vk, keep)...), ids, keep, routes); len(missing)+len(unexpected) > 0 {
 					plan.block(otherBlocker("Native model list differs from configured access; import or reconcile the missing routes first"))
 				}
 			}
@@ -337,21 +337,28 @@ func keptNativeRoutes(vk nativeVK, keep []string) []string {
 // expectedRoutes are the IDs a key's /v1/models should list: its Registry routes plus the explicit
 // routes of the providers it keeps native, as the native key allows them now.
 func expectedRoutes(view *registry.View, vk nativeVK) []string {
-	out := keptNativeRoutes(vk, view.Policy.KeptNative)
+	out := append(keptNativeRoutes(vk, view.Policy.KeptNative), exposedIDs(view)...)
+	sort.Strings(out)
+	return out
+}
+
+// exposedIDs are the IDs of the key's Registry routes.
+func exposedIDs(view *registry.View) []string {
+	out := []string{}
 	for _, route := range view.Routes {
 		out = append(out, route.ExposedID)
 	}
-	sort.Strings(out)
 	return out
 }
 
 // diffModels compares what /v1/models lists with what is expected. A kept provider is Bifrost's own: its
 // routes are neither missing nor unexpected. Bifrost 2.2.6 lists only the models a provider itself lists, so
 // an explicit name its provider does not list (undiscovered) is absent, and a wildcard lists names no row has.
-func diffModels(expected, actual, keep []string) (missing, unexpected []string) {
+// A Registry route (managed) stays checked even when it starts with a kept provider's name.
+func diffModels(expected, actual, keep, managed []string) (missing, unexpected []string) {
 	missing, unexpected = []string{}, []string{}
 	kept := func(id string) bool {
-		return slices.ContainsFunc(keep, func(provider string) bool { return strings.HasPrefix(id, provider+"/") })
+		return !slices.Contains(managed, id) && slices.ContainsFunc(keep, func(provider string) bool { return strings.HasPrefix(id, provider+"/") })
 	}
 	for _, id := range expected {
 		if !slices.Contains(actual, id) && !kept(id) {

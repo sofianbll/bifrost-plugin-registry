@@ -33,6 +33,8 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
   const composerStep = (label: string) => page.getByRole('list', { name: 'Key composition steps' }).getByRole('button', { name: new RegExp(`^\\d ${label}`) });
   const keyHeading = () => page.getByRole('heading', { name: 'QA Development Key', exact: true });
   const keyChanges = () => page.getByRole('region', { name: 'Changes before publishing' });
+  const editSelection = () => button('Edit selection').click();
+  const keyAction = async (name: string) => { await button('More actions').click(); await page.getByRole('menuitem', { name, exact: true }).click(); };
   const openDevelopmentKey = async () => {
     await keyCard('QA Development Key').getByRole('button', { name: 'Open · QA Development Key', exact: true }).click();
     await keyHeading().waitFor();
@@ -980,6 +982,17 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     // #69: the key page names the key once and offers one way back.
     expect((await page.locator('body').innerText()).split('QA Development Key').length - 1).toBe(1);
     await expect(page.getByRole('button', { name: /^(All virtual keys|Virtual keys|Back)$/ })).toHaveCount(1);
+    // Spec #85: a managed key opens read-first on what it can call today, grouped by subscription; the
+    // 59-card editor waits behind Edit selection, and the rare actions wait in More actions.
+    await expect(page.getByRole('region', { name: 'What this key can call today' })).toContainText('Synthetic Provider · 2 models');
+    await expect(page.getByRole('list', { name: 'Key composition steps' })).toHaveCount(0);
+    await button('More actions').click();
+    await expect(page.getByRole('menuitem')).toHaveText(['Rename', 'Disable', 'Review binding']);
+    await page.keyboard.press('Escape');
+    await editSelection();
+    await page.getByRole('checkbox', { name: 'Show selected only (2)', exact: true }).check();
+    await expect(page.getByText(/^2 of 2 models shown/)).toBeVisible();
+    await page.getByRole('checkbox', { name: 'Show selected only (2)', exact: true }).uncheck();
     await button('Accesses · 1 · QA Code').click();
     await page.getByText('Inherited · QA Development', { exact: true }).waitFor();
     await page.keyboard.press('Escape');
@@ -1011,12 +1024,17 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await page.getByRole('heading', { name: 'Discard key draft?' }).waitFor();
     await button('Keep editing').click();
     await keyHeading().waitFor();
-    await button('Discard draft').click();
+    // Cancel leaves the editor for the read-first page, after the same confirmation.
+    await button('Cancel').click();
+    await button('Discard changes').click();
+    await expect(page.getByRole('region', { name: 'What this key can call today' })).toBeVisible();
+    await expect(page.getByText('Unpublished draft', { exact: true })).toHaveCount(0);
   });
 
   await test.step('browser Back and Forward preserve navigation and draft guard', async () => {
     await button('All virtual keys').click();
     await openDevelopmentKey();
+    await editSelection();
     await composerStep('Review').click();
     await button('Restore QA Code').click();
     await page.goBack();
@@ -1033,12 +1051,13 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
 
   await test.step('disabled key distinguishes retained selection from usable access', async () => {
     // The banner now says the saved selection is shown for review; the "no model access" wording is gone.
-    await button('Disable').click();
+    await keyAction('Disable');
     await page.getByText('This key is disabled. Its saved model selection is shown for review.').waitFor();
     const keys = (await api('workspace')).data.keys;
     expect(keys.find((k: { id: string }) => k.id === 'vk-qa-dev').active).toBe(false);
-    await button('Enable').click();
-    await button('Disable').waitFor();
+    await keyAction('Enable');
+    await expect(page.getByText('This key is disabled. Its saved model selection is shown for review.')).toHaveCount(0);
+    await editSelection();
     await composerStep('Review').click();
     await page.getByText('Verified', { exact: true }).waitFor();
   });
@@ -1194,6 +1213,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(page.getByRole('list', { name: 'Bifrost allows today' })).toContainText('qa-codex, qa-codex-mini');
     await button('Review adoption').click();
     await page.getByRole('dialog').getByRole('button', { name: 'Use this key with Registry', exact: true }).click();
+    await editSelection();
     await composerStep('Review').click();
     await expect(keyChanges()).toContainText('No change.');
     expect((await api('workspace')).data.keys.find((k: { id: string }) => k.id === 'vk-qa-codex').managed).toBe(true);
@@ -1373,6 +1393,11 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
       }
       await keyCard('QA Development Key').getByRole('button', { name: t('Open · QA Development Key', 'Ouvrir · QA Development Key'), exact: true }).click();
       await sweep(language, 'Key page');
+      await button(t('More actions', 'Plus d’actions')).click();
+      await sweep(language, 'Key actions menu');
+      await page.keyboard.press('Escape');
+      await button(t('Edit selection', 'Modifier la sélection')).click();
+      await sweep(language, 'Key editor');
       await page.getByRole('list', { name: t('Key composition steps', 'Étapes de composition de la clé') }).getByRole('button', { name: new RegExp(`^\\d ${t('Review', 'Vérifier')}`) }).click();
       await sweep(language, 'Key review');
       await nav(t('Settings', 'Réglages')).click();
@@ -1423,6 +1448,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     expect((await apply).postDataJSON()).toMatchObject({ keyId: 'vk-qa-mistral', operation: 'adopt', phase: 'apply', keepNative: ['mistral'] });
     // The managed key says which provider stays in Bifrost, on its page and on its card.
     await expect(page.getByRole('list', { name: 'Kept in Bifrost' })).toContainText('Mistral · kept in Bifrost · 3 models');
+    await editSelection();
     await composerStep('Review').click();
     await button('Read again').click();
     await page.getByText('Verified', { exact: true }).first().waitFor();
@@ -1458,7 +1484,8 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await dialog.getByRole('button', { name: 'Use this key with Registry', exact: true }).click();
     expect((await apply).postDataJSON()).toMatchObject({ keyId: 'vk-qa-wildcard', operation: 'adopt', phase: 'apply', keepNative: ['Claude'] });
     await expect(page.getByRole('list', { name: 'Kept in Bifrost' })).toContainText('Claude · kept in Bifrost · all models');
-    await composerStep('Review').click();
+    // The read-first page reads the key back without opening the editor.
+    await expect(page.getByRole('region', { name: 'What this key can call today' })).toContainText('Codex · 1 model');
     await button('Read again').click();
     await page.getByText('Verified', { exact: true }).first().waitFor();
     const key = (await api('workspace')).data.keys.find((k: { id: string }) => k.id === 'vk-qa-wildcard');
@@ -1468,6 +1495,26 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     // Registry never rewrote Bifrost's "*" for Claude: no native write at all.
     expect(key.permissions.providers.find((p: { provider: string }) => p.provider === 'Claude').allModels).toBe(true);
     expect((await (await page.request.get('/__fixture/native-writes')).json()).length).toBe(writes);
+
+    // The live Hermes case (spec #85, fix round 1): a Registry route named like the kept provider
+    // (Claude/qa-haiku while Claude stays in Bifrost) is Registry's. Published and verified, Review shows
+    // no change; a later change lists only itself, never the verified route as "Will gain".
+    await editSelection();
+    await page.getByRole('checkbox', { name: 'Add to this key: QA Haiku', exact: true }).click();
+    await composerStep('Review').click();
+    await button('Publish changes').click();
+    await expect(button('Publish changes')).toBeDisabled();
+    await button('Read again').click();
+    await page.getByText('Verified', { exact: true }).first().waitFor();
+    expect((await api('workspace')).data.keys.find((k: { id: string }) => k.id === 'vk-qa-wildcard').publication.actual).toContain('Claude/qa-haiku');
+    await expect(keyChanges()).toContainText('Compared with the last verified readback');
+    await expect(keyChanges()).toContainText('No change.');
+    await composerStep('Models').click();
+    await page.getByRole('checkbox', { name: 'Add to this key: QA Sonnet', exact: true }).click();
+    await composerStep('Review').click();
+    await expect(keyChanges().getByRole('list', { name: 'Will gain' })).toContainText('Claude/qa-sonnet');
+    await expect(keyChanges().getByRole('list', { name: 'Will gain' })).not.toContainText('Claude/qa-haiku');
+    await button('Discard draft').click();
     await button('All virtual keys').click();
   });
 

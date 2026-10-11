@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast, Toaster } from "sonner";
-import { Activity, ArrowLeft, ArrowRight, CircleHelp, Database, Download, FileJson, KeyRound, Languages, Layers3, LogOut, Plus, Search, Settings2, Sun, Moon } from "lucide-react";
+import { Activity, ArrowLeft, ArrowRight, CircleHelp, Database, Download, FileJson, KeyRound, Languages, Layers3, LogOut, MoreHorizontal, Plus, Search, Settings2, Sun, Moon } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdownMenu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,7 +36,8 @@ import { ViewControls, defaultViewOptions, updateViewOverride, type ViewOptions 
 import { LanguageContext, useCopy, useFormat, type Language } from "../lib/locale";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { Switch } from "../components/ui/switch";
-import KeyComposer from "../features/keys/KeyComposer";
+import KeyComposer, { PublicationCard } from "../features/keys/KeyComposer";
+import { KeySummary } from "../features/keys/KeySummary";
 import { permissionSummary, preserveAdoptionDraft } from "../features/keys/KeyComposer.state";
 import { keyFormState, type KeyFormDraft } from "../features/keys/key-form";
 import { KeyCreateForm } from "../features/keys/KeyCreateForm";
@@ -136,6 +138,8 @@ function RegistryApp({ language, onLanguageChange }: { language: Language; onLan
   const groupBaseline = useRef<Group | null>(null);
   const [keyForm, setKeyForm] = useState<KeyFormDraft | null>(null);
   const [renameForm, setRenameForm] = useState<{ id: string; name: string } | null>(null);
+  // A managed key opens read-first; "Edit selection" opens the composer for that key (an unpublished draft keeps it open).
+  const [editingKey, setEditingKey] = useState<string | null>(null);
   const [adoption, setAdoption] = useState<{ keyId: string; operation: AdoptionOperation } | null>(null);
   // Help opens beside the page ("?"); the guided tour is offered once per browser, then only on request.
   const [helpOpen, setHelpOpen] = useState(false);
@@ -314,6 +318,7 @@ function RegistryApp({ language, onLanguageChange }: { language: Language; onLan
   useEffect(() => { contentRef.current?.scrollTo(0, 0); }, [page, pageId]);
   const key = data.keys.find(k => k.id === pageId);
   useEffect(() => {
+    setEditingKey(null);
     if (!key) { if (!pendingKeyDraft.current) setDraft(null); return; }
     if (pendingKeyDraft.current?.keyId === key.id) {
       setDraft(pendingKeyDraft.current.policy);
@@ -322,6 +327,7 @@ function RegistryApp({ language, onLanguageChange }: { language: Language; onLan
   }, [key?.id]);
   const activePolicy = draft || key?.policy;
   const isDirty = Boolean(key && draft && !same(key.policy, draft));
+  const keyEditing = Boolean(key && (editingKey === key.id || isDirty));
   const modelIsDirty = Boolean(modelDraft && modelBaseline.current && (!same(modelDraft, modelBaseline.current) || modelOverrides.length > 0));
   const groupIsDirty = Boolean(groupDraft && groupBaseline.current && !same(groupDraft, groupBaseline.current));
   const startTour = () => { markTourSeen(); setTourOffer(false); setHelpOpen(false); setTourRun(run => run + 1); };
@@ -507,8 +513,10 @@ function RegistryApp({ language, onLanguageChange }: { language: Language; onLan
         {page === "keys" && !key && <KeyLibrary keys={data.keys} groups={data.groups} models={namedModels} view={viewFor("keys")} onViewChange={next => setView("keys", next)} onResetView={() => resetView("keys")} busy={!!busy} snapshotMode={snapshotMode} onCreate={() => setKeyForm({ name: "", client: "" })} onOpen={item => go("keys", item.id)} />}
         {page === "keys" && key && activePolicy && <>
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-sm border bg-card p-3">
-            <div className="min-w-0"><Button type="button" variant="ghost" size="sm" className="mb-1 -ml-2" onClick={() => go("keys")}><ArrowLeft className="size-3.5" />{copyText("All virtual keys", "Toutes les clés virtuelles")}</Button><h1 className="text-xl font-semibold tracking-tight sm:text-2xl">{key.name}</h1><p className="break-all text-xs text-muted-foreground">{key.client || key.id} · {copyText(key.managed === false ? "Bifrost key · Registry policy not adopted" : "Registry-managed key", key.managed === false ? "Clé Bifrost · sélection Registry non adoptée" : "Clé gérée par Registry")}</p></div>
-            <div className="flex flex-wrap items-center gap-2"><VirtualKeySecret keyId={key.id} disabled={!!busy || snapshotMode} onUnauthorized={requireLogin} />{key.managed !== false && <><Button variant="outline" disabled={!!busy || isDirty} onClick={() => setAdoption({ keyId: key.id, operation: "rebind" })}>{copyText("Review binding", "Examiner l’association")}</Button><Button variant="outline" disabled={!!busy} onClick={() => setRenameForm({ id: key.id, name: key.name })}>{copyText("Rename", "Renommer")}</Button><Button variant="outline" disabled={!!busy} onClick={() => { void commit({ ...data, keys: data.keys.map(item => item.id === key.id ? { ...item, active: !item.active } : item) }, key.active ? copyText("Disabling key…", "Désactivation de la clé…") : copyText("Enabling key…", "Activation de la clé…"), [key.id]); }}>{key.active ? copyText("Disable", "Désactiver") : copyText("Enable", "Activer")}</Button></>}</div>
+            <div className="min-w-0"><Button type="button" variant="ghost" size="sm" className="mb-1 -ml-2" onClick={() => go("keys")}><ArrowLeft className="size-3.5" />{copyText("All virtual keys", "Toutes les clés virtuelles")}</Button><h1 className="text-xl font-semibold tracking-tight sm:text-2xl">{key.name}</h1><p className="text-xs text-muted-foreground"><span className="wrap-anywhere">{key.client || key.id}</span> · {copyText(key.managed === false ? "Bifrost key · Registry policy not adopted" : "Registry-managed key", key.managed === false ? "Clé Bifrost · sélection Registry non adoptée" : "Clé gérée par Registry")}</p></div>
+            {/* Read-first, like a model card: one primary action, the rare ones in "More actions". */}
+            <div className="flex flex-wrap items-center gap-2"><VirtualKeySecret keyId={key.id} disabled={!!busy || snapshotMode} onUnauthorized={requireLogin} />{key.managed !== false && <><DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" disabled={!!busy} aria-label={copyText("More actions", "Plus d’actions")}><MoreHorizontal className="size-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={() => setRenameForm({ id: key.id, name: key.name })}>{copyText("Rename", "Renommer")}</DropdownMenuItem><DropdownMenuItem onSelect={() => { void commit({ ...data, keys: data.keys.map(item => item.id === key.id ? { ...item, active: !item.active } : item) }, key.active ? copyText("Disabling key…", "Désactivation de la clé…") : copyText("Enabling key…", "Activation de la clé…"), [key.id]); }}>{key.active ? copyText("Disable", "Désactiver") : copyText("Enable", "Activer")}</DropdownMenuItem><DropdownMenuItem disabled={isDirty} onSelect={() => setAdoption({ keyId: key.id, operation: "rebind" })}>{copyText("Review binding", "Examiner l’association")}</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
+              {keyEditing ? <Button variant="outline" disabled={!!busy} onClick={() => isDirty ? setConfirm({ title: copyText("Discard key draft?", "Abandonner le brouillon de clé ?"), text: copyText("Unpublished key selections will be lost.", "Les sélections non publiées seront abandonnées."), confirmLabel: copyText("Discard changes", "Abandonner les modifications"), cancelLabel: copyText("Keep editing", "Continuer à modifier"), action: () => { setDraft(copy(key.policy)); setEditingKey(null); } }) : setEditingKey(null)}>{isDirty ? copyText("Cancel", "Annuler") : copyText("Close editor", "Fermer l’éditeur")}</Button> : <Button disabled={!!busy} onClick={() => setEditingKey(key.id)}>{copyText("Edit selection", "Modifier la sélection")}</Button>}</>}</div>
           </div>
           {(snapshotMode || (key.managed !== false && isDirty)) && <div className="mb-4 space-y-2 rounded-sm border bg-muted/30 p-3 text-sm">
             {snapshotMode && <p>{copyText("The secret was excluded from this capture. You can prepare a selection in the local copy; this does not change Pulsar or verify live access.", "Le secret est exclu de cette capture. Vous pouvez préparer une sélection dans la copie locale ; cela ne modifie pas Pulsar et ne vérifie pas les accès en direct.")}</p>}
@@ -516,14 +524,15 @@ function RegistryApp({ language, onLanguageChange }: { language: Language; onLan
           </div>}
           {/* An unmanaged key starts with adoption: nothing can be composed or published before it. */}
           {key.managed === false ? <section className="space-y-3 rounded-sm border bg-card p-4">
-            <h3 className="text-base font-semibold">{copyText("Adopt this key first", "Adoptez d’abord cette clé")}</h3>
-            <p className="max-w-prose text-sm text-muted-foreground">{copyText("Review compares the current Bifrost permissions with a Registry selection. Confirm it before composing groups and models for this key. Registry cannot grant more access than Bifrost allows.", "L’examen compare les permissions Bifrost actuelles avec une sélection Registry. Confirmez-la avant de composer les groupes et modèles de cette clé. Registry ne peut pas étendre les droits accordés par Bifrost.")}</p>
+            <h2 className="text-base font-semibold">{copyText("Adopt this key first", "Adoptez d’abord cette clé")}</h2>
+            <p className="max-w-[52ch] text-sm text-muted-foreground">{copyText("Review compares the current Bifrost permissions with a Registry selection. Confirm it before composing groups and models for this key. Registry cannot grant more access than Bifrost allows.", "L’examen compare les permissions Bifrost actuelles avec une sélection Registry. Confirmez-la avant de composer les groupes et modèles de cette clé. Registry ne peut pas étendre les droits accordés par Bifrost.")}</p>
             <div><p className="text-sm font-medium">{copyText("Bifrost allows today", "Bifrost autorise aujourd’hui")} · {permissionSummary(key.permissions, copyText)}</p><KeyPermissions permissions={key.permissions} /></div>
             <div className="flex flex-wrap items-center gap-2"><Badge variant={readinessVariant[readinessState(key)]}>{readinessLabel(readinessState(key), copyText)}</Badge>{readinessReason(key.readiness, copyText) && <span className="text-xs text-chart-warning-ink">{readinessReason(key.readiness, copyText)}</span>}</div>
             {readinessState(key) === "empty" ? <p className="text-sm font-medium">{copyText("Add models to this key in Bifrost first", "Ajoutez d’abord des modèles à cette clé dans Bifrost")}</p> : <Button type="button" disabled={!!busy} onClick={() => setAdoption({ keyId: key.id, operation: "adopt" })}>{snapshotMode ? copyText("Review local selection", "Examiner la sélection locale") : copyText("Review adoption", "Examiner l’adoption")}</Button>}
           </section> : <>
             {!key.active && <p className="mb-4 rounded-sm border border-chart-warning/50 bg-chart-warning/10 p-3 text-sm text-chart-warning-ink">{copyText("This key is disabled. Its saved model selection is shown for review.", "Cette clé est désactivée. Sa sélection enregistrée reste visible pour vérification.")}</p>}
-            <KeyComposer virtualKey={key} draft={activePolicy} onDraftChange={setDraft} models={namedModels} groups={data.groups} preferences={preferences} busy={!!busy} snapshotMode={snapshotMode} expert={effectiveExpert} publishDisabled={reconcileBlocked || (!isDirty && !needsReconcile) || !!busy} onPublish={() => void publishKey()} onDiscard={() => setDraft(copy(key.policy))} onReread={() => void reread()} />
+            {keyEditing ? <KeyComposer virtualKey={key} draft={activePolicy} onDraftChange={setDraft} models={namedModels} groups={data.groups} preferences={preferences} busy={!!busy} snapshotMode={snapshotMode} expert={effectiveExpert} publishDisabled={reconcileBlocked || (!isDirty && !needsReconcile) || !!busy} onPublish={() => void publishKey()} onDiscard={() => setDraft(copy(key.policy))} onReread={() => void reread()} />
+              : <div className="space-y-4"><KeySummary virtualKey={key} models={namedModels} groups={data.groups} /><PublicationCard virtualKey={key} savedIds={exposed(key.policy, data.groups, namedModels)} busy={!!busy} snapshotMode={snapshotMode} onReread={() => void reread()} /></div>}
           </>}
         </>}
         {page === "settings" && <RegistrySettings onStartTour={startTour} preferences={preferences} onPreferencesChange={setPreferences} snapshotMode={snapshotMode} onNavigate={destination => { if (destination === "catalog") setCatalogFocus(null); go(destination); }} onUnauthorized={requireLogin} catalog={referenceCatalog} catalogError={referenceError} providers={catalog.flatMap(model => model.accesses.map(access => access.provider))} modelScopes={`${scopeLabels.registry} · ${scopeLabels.toAdd}`} />}

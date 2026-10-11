@@ -10,7 +10,7 @@ import ModelBrowser from "../catalog/ModelBrowser";
 import { BrandIcon } from "../../components/registry/BrandIcon";
 import { displayProvider, ProviderMark } from "../../components/registry/BrandIcon";
 import type { ViewOptions } from "../../components/registry/ViewOptions";
-import { delta, exposed, members, origin, same, toggleModel, type Group, type Key, type Model, type Policy, type Publication } from "../../domain/registry";
+import { delta, exposed, members, origin, same, toggleModel, type Group, type Key, type Model, type Policy } from "../../domain/registry";
 import { useCopy, useFormat } from "../../lib/locale";
 import { KeptNative } from "./KeptNative";
 import { accessOrigin, keyBaseline, keyComposition, modelOrigin, toggleAccess, toggleVisibleModels, type AccessOrigin, type AliasBadge, type AliasStatus } from "./KeyComposer.state";
@@ -35,17 +35,18 @@ const formats: Policy["naming"][] = ["model", "provider/model", "both"];
 
 export default function KeyComposer({ virtualKey, draft, onDraftChange, models, groups, preferences, busy, snapshotMode, expert, publishDisabled, onPublish, onDiscard, onReread }: Props) {
   const copy = useCopy();
-  const localized = useFormat();
-  const { colon } = localized;
+  const { colon } = useFormat();
   const [step, setStep] = useState(0);
   const [tab, setTab] = useState<"models" | "groups">("models");
   const [showReadback, setShowReadback] = useState(false);
   const composition = useMemo(() => keyComposition(draft, groups, models), [draft, groups, models]);
   const savedIds = useMemo(() => exposed(virtualKey.policy, groups, models), [virtualKey.policy, groups, models]);
   const baseline = useMemo(() => keyBaseline(virtualKey, groups, models), [virtualKey, groups, models]);
-  const changes = delta(baseline.ids, composition.ids);
   const dirty = !same(draft, virtualKey.policy);
+  // An unchanged draft publishes nothing: no change, whatever the baseline.
+  const changes = dirty ? delta(baseline.ids, composition.ids) : { added: [], removed: [] };
   const selected = composition.selected;
+  const [selectedOnly, setSelectedOnly] = useState(false);
   const excluded = composition.excluded;
   const selectedAccessCount = useMemo(() => [...composition.byModel.values()].reduce((sum, m) => sum + m.retained.length, 0), [composition.byModel]);
   const toggleGroup = (id: string) => onDraftChange({ ...draft, groups: draft.groups.includes(id) ? draft.groups.filter(value => value !== id) : [...draft.groups, id] });
@@ -128,8 +129,8 @@ export default function KeyComposer({ virtualKey, draft, onDraftChange, models, 
     {!groups.length && <p className="rounded-sm border border-dashed p-5 text-sm text-muted-foreground">{copy("No groups yet. Select models directly or create a group first.", "Aucun groupe. Choisissez des modèles ou créez d’abord un groupe.")}</p>}
   </div>;
 
-  const browser = <ModelBrowser
-    models={models}
+  const browser = <div className="space-y-3"><label className="flex w-fit cursor-pointer items-center gap-2 text-sm"><Checkbox checked={selectedOnly} onCheckedChange={value => setSelectedOnly(value === true)} />{copy("Show selected only", "Afficher seulement la sélection")} ({selected.length})</label><ModelBrowser
+    models={selectedOnly ? models.filter(model => selected.includes(model.id)) : models}
     selected={selected}
     selectionDetails={selectionDetails}
     onToggle={id => onDraftChange(toggleModel(draft, id, groups))}
@@ -138,7 +139,7 @@ export default function KeyComposer({ virtualKey, draft, onDraftChange, models, 
     compact
     label={copy("Key models", "Modèles de la clé")}
     selectionNote={`${selectedAccessCount} ${copy(selectedAccessCount === 1 ? "provider access selected" : "provider accesses selected", selectedAccessCount === 1 ? "accès fournisseur sélectionné" : "accès fournisseurs sélectionnés")}`}
-  />;
+  /></div>;
 
   const idsPanel = <section className="space-y-3 border-t pt-3">
     <div className="flex flex-wrap items-baseline justify-between gap-2"><h3 className="text-sm font-semibold">{copy("IDs offered to applications", "Identifiants proposés aux applications")}</h3><span className="text-xs text-muted-foreground">{composition.ids.length} {copy("planned IDs", "ID prévus")}</span></div>
@@ -162,23 +163,8 @@ export default function KeyComposer({ virtualKey, draft, onDraftChange, models, 
   </section>;
   const { copy: copyIds } = useCopyToClipboard({ successMessage: copy("Planned IDs copied", "ID prévus copiés"), errorMessage: copy("Could not copy IDs", "Impossible de copier les ID") });
 
-  const readback = virtualKey.publication;
-  const pending = Object.entries(virtualKey.pendingAccessSelection || {});
-  const publication = (publication: Publication | undefined) => <Card className="gap-0 overflow-hidden py-0">
-    <CardHeader className="border-b bg-muted/40 px-4 py-3 sm:px-5"><CardTitle className="flex flex-wrap items-center gap-2 text-base"><Eye className="size-4" />{snapshotMode ? copy("Saved in this local copy", "Enregistré dans cette copie locale") : copy("Published selection and readback", "Sélection publiée et relecture")}{!snapshotMode && <Badge variant={publication?.state === "verified" ? "success" : publication?.state === "drift" ? "warning" : "secondary"}>{publication?.state === "verified" ? copy("Verified", "Vérifiée") : publication?.state === "drift" ? copy("Drift detected", "Écart détecté") : copy("Not verified", "Non vérifiée")}</Badge>}</CardTitle><p className="text-xs text-muted-foreground">{snapshotMode ? copy("Changes stay in this copy; the gateway cannot be read back here.", "Les changements restent dans cette copie ; le gateway ne peut pas y être relu.") : copy("Readback checks the IDs returned by Bifrost. It does not test model inference.", "La relecture vérifie les ID renvoyés par Bifrost, pas les appels aux modèles.")}</p></CardHeader>
-    <CardContent className="space-y-3 px-4 py-4 sm:px-5">
-      {pending.length > 0 && <div role="alert" className="space-y-1 text-xs text-chart-warning-ink">
-        <p>{copy("Several accesses offer these models and none is chosen, so this key does not publish them. In the model's Accesses list, uncheck the accesses this key must not use.", "Plusieurs accès proposent ces modèles et aucun n’est choisi : cette clé ne les publie pas. Dans la liste Accès du modèle, décochez ceux que cette clé ne doit pas utiliser.")}</p>
-        {pending.map(([alias, accesses]) => <p key={alias} className="break-all font-mono">{alias} · {accesses.join(" · ")}</p>)}
-      </div>}
-      {snapshotMode ? <p className="break-all text-xs font-mono">{savedIds.join(" · ") || copy("No saved IDs.", "Aucun ID enregistré.")}</p> : <>
-        <div className="flex flex-wrap items-center gap-2"><Button type="button" variant="outline" size="sm" disabled={busy} onClick={onReread}><RotateCcw className="size-3.5" />{copy("Read again", "Relire")}</Button>{publication?.checkedAt && <span className="break-all text-xs text-muted-foreground">{localized.date(publication.checkedAt)} · {copy("revision", "révision")} {publication.revision.slice(0, 12)}</span>}</div>
-        {publication?.error && <p role="alert" className="text-xs text-chart-warning-ink">{publication.error}</p>}
-        {publication?.state === "drift" && <p className="break-all text-xs text-destructive">{copy("Missing", "Manquants")}{colon} {publication.missing.join(", ") || "—"} · {copy("Unexpected", "Inattendus")}{colon} {publication.unexpected.join(", ") || "—"}</p>}
-        <div className="max-h-36 space-y-1 overflow-auto">{(virtualKey.observed || publication?.actual || []).map((id, index) => <p key={`${id}-${index}`} className="break-all rounded-sm border px-2 py-1 font-mono text-xs">{id}</p>)}{!(virtualKey.observed || publication?.actual || []).length && <p className="text-xs text-muted-foreground">{copy("No successful readback is available.", "Aucune relecture réussie disponible.")}</p>}</div>
-      </>}
-    </CardContent>
-  </Card>;
+  const readback = <PublicationCard virtualKey={virtualKey} savedIds={savedIds} busy={busy} snapshotMode={snapshotMode} onReread={onReread} />;
+
 
   const draftPanelContent = <div className="space-y-3">
     <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="text-sm font-semibold">{copy("Key draft", "Brouillon de clé")}</h2>{dirty && <Badge variant="warning">{copy("Unpublished", "Non publié")}</Badge>}</div>
@@ -200,12 +186,12 @@ export default function KeyComposer({ virtualKey, draft, onDraftChange, models, 
       <ol className="flex flex-wrap items-center gap-1 rounded-sm border bg-card p-1 shadow-sm" aria-label={copy("Key composition steps", "Étapes de composition de la clé")}>{[copy("Models", "Modèles"), copy("Groups", "Groupes"), copy("Review", "Vérifier")].map((label, index) => <li key={label}><Button type="button" size="sm" variant={step === index ? "default" : "ghost"} aria-current={step === index ? "step" : undefined} onClick={() => setStep(index)}><span className={`mr-1 inline-flex size-5 items-center justify-center rounded-full text-xs ${step === index ? "bg-primary-foreground/20" : "bg-muted"}`}>{index + 1}</span>{label}{index === 0 && selected.length > 0 && <Badge variant="secondary" className="ml-1">{selected.length}</Badge>}{index === 1 && draft.groups.length > 0 && <Badge variant="secondary" className="ml-1">{draft.groups.length}</Badge>}</Button></li>)}</ol>
       {step === 0 && <section className="space-y-3"><p className="text-xs text-muted-foreground">{copy("Select model cards. Filters only change what is visible; hidden selections remain.", "Choisissez des fiches modèles. Les filtres changent l’affichage, pas les sélections masquées.")}</p>{browser}</section>}
       {step === 1 && <section className="space-y-3"><p className="text-xs text-muted-foreground">{copy("Groups add their shared models. Local exclusions still take priority.", "Les groupes ajoutent leurs modèles partagés. Les exclusions locales restent prioritaires.")}</p>{groupBrowser}</section>}
-      {step === 2 && <section className="space-y-4"><Card className="gap-0 overflow-hidden py-0"><CardHeader className="border-b bg-muted/40 px-4 py-3"><CardTitle className="text-base">{copy("Review selection", "Vérifier la sélection")}</CardTitle></CardHeader><CardContent className="space-y-3 px-4 py-3">{!selected.length && <p className="text-sm text-muted-foreground">{copy("Nothing selected yet.", "Aucun modèle sélectionné.")}</p>}{modelList(selected)}{excluded.length > 0 && <section><h3 className="mb-1 text-sm font-semibold text-chart-warning-ink">{copy("Local exclusions", "Exclusions locales")}</h3>{modelList(excluded)}</section>}</CardContent></Card><Card className="gap-0 overflow-hidden py-0"><CardContent className="space-y-3 p-4">{changesPanel}{idsPanel}</CardContent></Card>{publication(readback)}</section>}
+      {step === 2 && <section className="space-y-4"><Card className="gap-0 overflow-hidden py-0"><CardHeader className="border-b bg-muted/40 px-4 py-3"><CardTitle className="text-base">{copy("Review selection", "Vérifier la sélection")}</CardTitle></CardHeader><CardContent className="space-y-3 px-4 py-3">{!selected.length && <p className="text-sm text-muted-foreground">{copy("Nothing selected yet.", "Aucun modèle sélectionné.")}</p>}{modelList(selected)}{excluded.length > 0 && <section><h3 className="mb-1 text-sm font-semibold text-chart-warning-ink">{copy("Local exclusions", "Exclusions locales")}</h3>{modelList(excluded)}</section>}</CardContent></Card><Card className="gap-0 overflow-hidden py-0"><CardContent className="space-y-3 p-4">{changesPanel}{idsPanel}</CardContent></Card>{readback}</section>}
       <div className="sticky bottom-0 z-10 flex flex-wrap items-center gap-2 rounded-sm border bg-card p-3 shadow-sm"><span className="text-xs text-muted-foreground">{selected.length} {copy(selected.length === 1 ? "model selected" : "models selected", selected.length === 1 ? "modèle sélectionné" : "modèles sélectionnés")} · {draft.groups.length} {copy(draft.groups.length === 1 ? "group inherited" : "groups inherited", draft.groups.length === 1 ? "groupe hérité" : "groupes hérités")}</span><span className="ml-auto flex flex-wrap gap-2">{step > 0 && <Button type="button" variant="outline" onClick={() => setStep(step - 1)}>{copy("Previous", "Précédent")}</Button>}{step < 2 ? <Button type="button" onClick={() => setStep(step + 1)}>{step === 0 ? copy("Continue to groups", "Continuer vers les groupes") : copy("Review draft", "Vérifier le brouillon")}<ArrowRight className="size-3.5" /></Button> : <><Button type="button" variant="outline" disabled={!dirty || busy} onClick={onDiscard}>{copy("Discard draft", "Abandonner le brouillon")}</Button><Button type="button" disabled={publishDisabled ?? (!dirty || busy)} onClick={onPublish}>{snapshotMode ? copy("Save local selection", "Enregistrer la sélection locale") : copy("Publish changes", "Publier les changements")}</Button></>}</span></div>
     </> : <>
       <div role="tablist" aria-label={copy("Browse models or groups", "Parcourir les modèles ou groupes")} className="flex gap-1 rounded-sm border bg-card p-1 shadow-sm"><Button type="button" role="tab" aria-selected={tab === "models"} variant={tab === "models" ? "secondary" : "ghost"} size="sm" onClick={() => setTab("models")}>{copy("Models", "Modèles")} {selected.length > 0 && <Badge variant="outline">{selected.length}</Badge>}</Button><Button type="button" role="tab" aria-selected={tab === "groups"} variant={tab === "groups" ? "secondary" : "ghost"} size="sm" onClick={() => setTab("groups")}>{copy("Groups", "Groupes")} {draft.groups.length > 0 && <Badge variant="outline">{draft.groups.length}</Badge>}</Button></div>
       <div className="grid min-w-0 items-start gap-3 min-[1280px]:grid-cols-[minmax(0,1fr)_minmax(20rem,0.48fr)]">
-        <div className="min-w-0 space-y-3">{modelTabContent}<div className="rounded-sm border bg-card p-3 text-xs text-muted-foreground">{selected.length} {copy(selected.length === 1 ? "model selected" : "models selected", selected.length === 1 ? "modèle sélectionné" : "modèles sélectionnés")} · {draft.groups.length} {copy(draft.groups.length === 1 ? "group inherited" : "groups inherited", draft.groups.length === 1 ? "groupe hérité" : "groupes hérités")} · {excluded.length} {copy("excluded", "exclus")}</div>{publication(readback)}</div>
+        <div className="min-w-0 space-y-3">{modelTabContent}<div className="rounded-sm border bg-card p-3 text-xs text-muted-foreground">{selected.length} {copy(selected.length === 1 ? "model selected" : "models selected", selected.length === 1 ? "modèle sélectionné" : "modèles sélectionnés")} · {draft.groups.length} {copy(draft.groups.length === 1 ? "group inherited" : "groups inherited", draft.groups.length === 1 ? "groupe hérité" : "groupes hérités")} · {excluded.length} {copy("excluded", "exclus")}</div>{readback}</div>
         <aside className="sticky top-3 hidden max-h-[calc(100dvh-10rem)] min-w-0 flex-col overflow-hidden rounded-sm border bg-card shadow-sm min-[1280px]:flex">
           <div className="min-h-0 flex-1 overflow-y-auto p-3">{draftPanelContent}</div>
           <div className="shrink-0 border-t bg-card p-3">{draftPanelActions}</div>
@@ -214,4 +200,28 @@ export default function KeyComposer({ virtualKey, draft, onDraftChange, models, 
       <div className="min-w-0 space-y-3 min-[1280px]:hidden">{draftPanelContent}<div className="border-t bg-card py-3">{draftPanelActions}</div></div>
     </>}
   </div>;
+}
+
+// What was published and what Bifrost read back; shared by the read-first key page and the editor.
+export function PublicationCard({ virtualKey, savedIds, busy, snapshotMode, onReread }: { virtualKey: Key; savedIds: string[]; busy: boolean; snapshotMode: boolean; onReread: () => void }) {
+  const copy = useCopy();
+  const localized = useFormat();
+  const { colon } = localized;
+  const publication = virtualKey.publication;
+  const pending = Object.entries(virtualKey.pendingAccessSelection || {});
+  return <Card className="gap-0 overflow-hidden py-0">
+    <CardHeader className="border-b bg-muted/40 px-4 py-3 sm:px-5"><CardTitle className="flex flex-wrap items-center gap-2 text-base"><Eye className="size-4" />{snapshotMode ? copy("Saved in this local copy", "Enregistré dans cette copie locale") : copy("Published selection and readback", "Sélection publiée et relecture")}{!snapshotMode && <Badge variant={publication?.state === "verified" ? "success" : publication?.state === "drift" ? "warning" : "secondary"}>{publication?.state === "verified" ? copy("Verified", "Vérifiée") : publication?.state === "drift" ? copy("Drift detected", "Écart détecté") : copy("Not verified", "Non vérifiée")}</Badge>}</CardTitle><p className="text-xs text-muted-foreground">{snapshotMode ? copy("Changes stay in this copy; the gateway cannot be read back here.", "Les changements restent dans cette copie ; le gateway ne peut pas y être relu.") : copy("Readback checks the IDs returned by Bifrost. It does not test model inference.", "La relecture vérifie les ID renvoyés par Bifrost, pas les appels aux modèles.")}</p></CardHeader>
+    <CardContent className="space-y-3 px-4 py-4 sm:px-5">
+      {pending.length > 0 && <div role="alert" className="space-y-1 text-xs text-chart-warning-ink">
+        <p>{copy("Several accesses offer these models and none is chosen, so this key does not publish them. In the model's Accesses list, uncheck the accesses this key must not use.", "Plusieurs accès proposent ces modèles et aucun n’est choisi : cette clé ne les publie pas. Dans la liste Accès du modèle, décochez ceux que cette clé ne doit pas utiliser.")}</p>
+        {pending.map(([alias, accesses]) => <p key={alias} className="break-all font-mono">{alias} · {accesses.join(" · ")}</p>)}
+      </div>}
+      {snapshotMode ? <p className="break-all text-xs font-mono">{savedIds.join(" · ") || copy("No saved IDs.", "Aucun ID enregistré.")}</p> : <>
+        <div className="flex flex-wrap items-center gap-2"><Button type="button" variant="outline" size="sm" disabled={busy} onClick={onReread}><RotateCcw className="size-3.5" />{copy("Read again", "Relire")}</Button>{publication?.checkedAt && <span className="break-all text-xs text-muted-foreground">{localized.date(publication.checkedAt)} · {copy("revision", "révision")} {publication.revision.slice(0, 12)}</span>}</div>
+        {publication?.error && <p role="alert" className="text-xs text-chart-warning-ink">{publication.error}</p>}
+        {publication?.state === "drift" && <p className="break-all text-xs text-destructive">{copy("Missing", "Manquants")}{colon} {publication.missing.join(", ") || "—"} · {copy("Unexpected", "Inattendus")}{colon} {publication.unexpected.join(", ") || "—"}</p>}
+        <div className="max-h-36 space-y-1 overflow-auto">{(virtualKey.observed || publication?.actual || []).map((id, index) => <p key={`${id}-${index}`} className="break-all rounded-sm border px-2 py-1 font-mono text-xs">{id}</p>)}{!(virtualKey.observed || publication?.actual || []).length && <p className="text-xs text-muted-foreground">{copy("No successful readback is available.", "Aucune relecture réussie disponible.")}</p>}</div>
+      </>}
+    </CardContent>
+  </Card>;
 }
