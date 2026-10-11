@@ -16,8 +16,13 @@ import (
 // Subscriptions are custom providers (Claude, Codex, Google, Proxy) whose Bifrost base type names
 // the first party; Proxy serves a base type with no creator.
 func TestWorkspaceInfersCreatorFromSingleFirstPartyProvider(t *testing.T) {
-	models := map[string][]string{"Claude": {"sonnet", "opus", "manual", "cleared", "shared", "later"}, "Codex": {"mini", "shared", "later"}, "Google": {"flash"}, "Proxy": {"plain"}}
-	bases := map[string]string{"Claude": "anthropic", "Codex": "openai", "Google": "gemini", "Proxy": "bedrock"}
+	// OpenRouter and opencode-go are Bifrost providers (no base type); Compat is an OpenAI-compatible
+	// custom provider serving a Claude model. claude-opus-4-6 and every OpenRouter model stay To add.
+	models := map[string][]string{"Claude": {"sonnet", "opus", "manual", "cleared", "shared", "later", "claude-opus-4-6"}, "Codex": {"mini", "shared", "later"}, "Google": {"flash"}, "Proxy": {"plain"},
+		"Compat":      {"claude-compat-1"},
+		"opencode-go": {"claude-haiku-5-5", "muse-spark-1.2", "muse-spark-1.3", "glm-5", "nova-a", "nova-b", "nova-c"},
+		"openrouter":  {"~anthropic/claude-opus-latest", "openai/gpt-9", "~google/gemini-9-pro", "meta-llama/llama-9", "mistralai/thing-1", "unknownlab/thing-2"}}
+	bases := map[string]string{"Claude": "anthropic", "Codex": "openai", "Google": "gemini", "Proxy": "bedrock", "Compat": "openai", "opencode-go": "", "openrouter": ""}
 	creator := func(name string) registry.CatalogValue {
 		return registry.CatalogValue{Value: json.RawMessage(`"` + name + `"`), Source: "manual", Kind: "declared"}
 	}
@@ -53,6 +58,10 @@ func TestWorkspaceInfersCreatorFromSingleFirstPartyProvider(t *testing.T) {
 		case r.URL.Path == "/api/providers":
 			rows := []string{}
 			for name, base := range bases {
+				if base == "" {
+					rows = append(rows, fmt.Sprintf(`{"name":%q}`, name))
+					continue
+				}
 				rows = append(rows, fmt.Sprintf(`{"name":%q,"custom_provider_config":{"base_provider_type":%q}}`, name, base))
 			}
 			return nativeResponse(200, `{"providers":[`+strings.Join(rows, ",")+`]}`), nil
@@ -110,9 +119,30 @@ func TestWorkspaceInfersCreatorFromSingleFirstPartyProvider(t *testing.T) {
 		}
 	}
 
-	// Save every discovered model as a card, as the panel does; two cards carry their own value.
+	// To add tiles (discovered accesses) get the same guess: the provider's base type, the aggregator's
+	// vendor namespace ("~" is OpenRouter's "latest" marker), or a model name family.
 	ws := read()
+	tile := func(native string) *modelDTO {
+		t.Helper()
+		for i := range ws.Discovery {
+			if ws.Discovery[i].Accesses[0].NativeModel == native {
+				return &ws.Discovery[i]
+			}
+		}
+		t.Fatalf("no tile %s", native)
+		return nil
+	}
+	for native, creator := range map[string]string{"claude-opus-4-6": "Anthropic", "~anthropic/claude-opus-latest": "Anthropic", "openai/gpt-9": "OpenAI", "~google/gemini-9-pro": "Google", "meta-llama/llama-9": "Meta", "mistralai/thing-1": "Mistral", "unknownlab/thing-2": "", "claude-haiku-5-5": "Anthropic"} {
+		if got, source := cleanUnknown(tile(native).Creator), tile(native).CreatorSource; got != creator || (creator != "") != (source == "inferred") {
+			t.Fatalf("tile %s: creator %q source %q, want %q inferred", native, got, source, creator)
+		}
+	}
+
+	// Save every other discovered model as a card, as the panel does; some cards carry their own value.
 	for _, m := range ws.Discovery {
+		if m.ID == "claude-opus-4-6" || m.Accesses[0].Provider == "openrouter" {
+			continue
+		}
 		for i := range m.Accesses {
 			m.Accesses[i].Endpoints = []string{"chat/completions"}
 		}
@@ -120,9 +150,13 @@ func TestWorkspaceInfersCreatorFromSingleFirstPartyProvider(t *testing.T) {
 		case "later": // saved with its Claude access alone; a Codex access with a reference is added below
 			m.Accesses = slices.DeleteFunc(m.Accesses, func(a accessDTO) bool { return a.Provider != "Claude" })
 		case "manual":
-			m.Creator = "Custom Creator"
+			m.Creator, m.CreatorSource = "Custom Creator", "manual" // typed over the guess, as the editor does
 		case "cleared":
-			m.CreatorSource = "manual" // the panel's way to say "no creator, do not guess"
+			m.Creator, m.CreatorSource = "Unknown", "manual" // the panel's way to say "no creator, do not guess"
+		case "muse-spark-1.2", "nova-a":
+			m.Creator, m.CreatorSource = "Meta", "manual"
+		case "nova-b":
+			m.Creator, m.CreatorSource = "Other Labs", "manual"
 		}
 		ws.Data.Models = append(ws.Data.Models, m)
 	}
@@ -138,6 +172,11 @@ func TestWorkspaceInfersCreatorFromSingleFirstPartyProvider(t *testing.T) {
 	expect(ws, "manual", "Custom Creator", "manual")
 	expect(ws, "cleared", "", "manual") // a clear is not guessed again
 	expect(ws, "later", "Anthropic", "inferred")
+	expect(ws, "claude-compat-1", "Anthropic", "inferred")  // the model name beats an OpenAI-compatible base type
+	expect(ws, "claude-haiku-5-5", "Anthropic", "inferred") // a known family on a provider with no base type
+	expect(ws, "muse-spark-1.3", "Meta", "inferred")        // a saved sibling of the same name family
+	expect(ws, "nova-c", "", "")                            // siblings disagree: no guess
+	expect(ws, "glm-5", "", "")
 
 	// Add to card: a second access that carries a reference. Its creator replaces the guess, whatever its position.
 	later, labs := card(ws, "later"), "known/later"

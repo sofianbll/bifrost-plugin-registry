@@ -574,8 +574,12 @@ func (s *Server) workspace(ctx context.Context) (workspace, error) {
 			dto.Models = append(dto.Models, ui)
 		}
 	}
+	siblings := siblingCreators(dto.Models)
 	for i := range dto.Models {
-		inferCreator(&dto.Models[i], providers)
+		inferCreator(&dto.Models[i], providers, siblings)
+	}
+	for i := range discovered {
+		inferCreator(&discovered[i], providers, siblings)
 	}
 	refs := map[string]string{}
 	accessIDs := map[string]string{}
