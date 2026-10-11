@@ -21,7 +21,9 @@ export type Model = {
 };
 export type AccessSelector = { added: string[]; excluded: string[] };
 export type Group = { id: string; name: string; description: string; members: string[] };
-export type Policy = { groups: string[]; added: string[]; excluded: string[]; naming: "model" | "provider/model" | "both"; prefer?: Record<string, string>; accessSelection?: Record<string, AccessSelector> };
+export type Policy = { groups: string[]; added: string[]; excluded: string[]; naming: "model" | "provider/model" | "both"; prefer?: Record<string, string>; accessSelection?: Record<string, AccessSelector>;
+  // Providers of an adopted key whose permissions stay in Bifrost (read-only: adoption sets them, and the panel never edits them).
+  keptNative?: string[] };
 export type Publication = { state: "verified" | "drift" | "not_verified"; revision: string; checkedAt: string; observedAt?: string; observedRevision?: string; expected: string[]; actual: string[] | null; missing: string[]; unexpected: string[]; error?: string };
 export type PricingProof = { access: string; state: string; checkedAt: string; error?: string };
 // What Bifrost lets a key use today, from its native provider rows; allModels stands for "*",
@@ -31,7 +33,8 @@ export type NativePermissions = { allProviders: boolean; providers: { provider: 
 // models of one kind ("" provider = the whole key): undiscovered = Bifrost does not list them,
 // unsaved = discovered but no Registry card, all-providers, other = any other reason (see `reasons`,
 // as sent). count = models.length for the first two kinds, reasons.length for the others.
-export type ReadinessBlocker = { provider: string; kind: "undiscovered" | "unsaved" | "all-providers" | "other"; count: number; models: string[]; reasons?: string[] };
+// kept: the adoption preview was asked to keep this provider in Bifrost; the blocker is still listed but blocks nothing.
+export type ReadinessBlocker = { provider: string; kind: "undiscovered" | "unsaved" | "all-providers" | "other"; count: number; models: string[]; reasons?: string[]; kept?: boolean };
 export type Readiness = { state: "ready" | "blocked" | "empty"; blockers: ReadinessBlocker[] };
 // pendingAccessSelection: saved models withheld until an access is chosen, with their candidate access IDs.
 // permissions: absent when Bifrost's answer carried no provider rows (not read yet).

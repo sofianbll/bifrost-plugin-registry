@@ -12,6 +12,7 @@ import { displayProvider, ProviderMark } from "../../components/registry/BrandIc
 import type { ViewOptions } from "../../components/registry/ViewOptions";
 import { delta, exposed, members, origin, same, toggleModel, type Group, type Key, type Model, type Policy, type Publication } from "../../domain/registry";
 import { useCopy, useFormat } from "../../lib/locale";
+import { KeptNative } from "./KeptNative";
 import { accessOrigin, keyBaseline, keyComposition, modelOrigin, toggleAccess, toggleVisibleModels, type AccessOrigin, type AliasBadge, type AliasStatus } from "./KeyComposer.state";
 
 type Props = {
@@ -193,7 +194,7 @@ export default function KeyComposer({ virtualKey, draft, onDraftChange, models, 
 
   const modelTabContent = tab === "models" ? browser : groupBrowser;
   return <div className="min-w-0 space-y-4 pb-8">
-    <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs text-muted-foreground">{copy("Compose the model selection for this Bifrost key.", "Composez la sélection de modèles de cette clé Bifrost.")} {copy("Provider accesses remain governed by Bifrost permissions.", "Les accès fournisseurs restent gouvernés par les permissions Bifrost.")}</p></div>{dirty && <Badge variant="warning">{copy("Unpublished draft", "Brouillon non publié")}</Badge>}</div>
+    <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs text-muted-foreground">{copy("Compose the model selection for this Bifrost key.", "Composez la sélection de modèles de cette clé Bifrost.")} {copy("Provider accesses remain governed by Bifrost permissions.", "Les accès fournisseurs restent gouvernés par les permissions Bifrost.")}</p><div className="mt-2"><KeptNative virtualKey={virtualKey} /></div></div>{dirty && <Badge variant="warning">{copy("Unpublished draft", "Brouillon non publié")}</Badge>}</div>
 
     {!expert ? <>
       <ol className="flex flex-wrap items-center gap-1 rounded-sm border bg-card p-1 shadow-sm" aria-label={copy("Key composition steps", "Étapes de composition de la clé")}>{[copy("Models", "Modèles"), copy("Groups", "Groupes"), copy("Review", "Vérifier")].map((label, index) => <li key={label}><Button type="button" size="sm" variant={step === index ? "default" : "ghost"} aria-current={step === index ? "step" : undefined} onClick={() => setStep(index)}><span className={`mr-1 inline-flex size-5 items-center justify-center rounded-full text-xs ${step === index ? "bg-primary-foreground/20" : "bg-muted"}`}>{index + 1}</span>{label}{index === 0 && selected.length > 0 && <Badge variant="secondary" className="ml-1">{selected.length}</Badge>}{index === 1 && draft.groups.length > 0 && <Badge variant="secondary" className="ml-1">{draft.groups.length}</Badge>}</Button></li>)}</ol>

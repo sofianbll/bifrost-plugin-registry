@@ -18,7 +18,12 @@ type adoptionHarness struct {
 	keyID    string
 	keyModel string
 	reads    int
-	writes   int
+	// Models of mistral, a provider Bifrost does not discover, that the key allows; hidden is one of
+	// them that /v1/models stops listing; keep is the providers the adoption request keeps native.
+	mistral []string
+	hidden  string
+	keep    []string
+	writes  int
 }
 
 func newAdoptionHarness(t *testing.T) *adoptionHarness {
@@ -58,7 +63,7 @@ func newAdoptionHarness(t *testing.T) *adoptionHarness {
 			body, _ := json.Marshal(map[string]any{"virtual_key": map[string]any{
 				"id": h.keyID, "name": "Native", "value": value, "is_active": h.active,
 				"allow_all_providers": false,
-				"provider_configs":    []any{map[string]any{"provider": "openai", "allowed_models": []string{h.keyModel}, "keys": []any{map[string]any{"key_id": "key-a"}}}},
+				"provider_configs":    h.providerConfigs(),
 			}})
 			return nativeResponse(200, string(body)), nil
 		case "/api/providers":
@@ -75,7 +80,13 @@ func newAdoptionHarness(t *testing.T) *adoptionHarness {
 			if r.Header.Get("Authorization") != "Bearer "+h.secret {
 				t.Fatal("model readback did not use native credential")
 			}
-			body, _ := json.Marshal(map[string]any{"data": []any{map[string]any{"id": "openai/" + h.keyModel}}})
+			listed := []any{map[string]any{"id": "openai/" + h.keyModel}}
+			for _, name := range h.mistral {
+				if name != h.hidden {
+					listed = append(listed, map[string]any{"id": "mistral/" + name})
+				}
+			}
+			body, _ := json.Marshal(map[string]any{"data": listed})
 			return nativeResponse(200, string(body)), nil
 		default:
 			t.Fatalf("unexpected native route: %s", r.URL.String())
@@ -85,8 +96,16 @@ func newAdoptionHarness(t *testing.T) *adoptionHarness {
 	return h
 }
 
+func (h *adoptionHarness) providerConfigs() []any {
+	pcs := []any{map[string]any{"provider": "openai", "allowed_models": []string{h.keyModel}, "keys": []any{map[string]any{"key_id": "key-a"}}}}
+	if len(h.mistral) > 0 {
+		pcs = append(pcs, map[string]any{"provider": "mistral", "allowed_models": h.mistral, "allow_all_keys": true})
+	}
+	return pcs
+}
+
 func (h *adoptionHarness) request(operation, phase, token, revision string) *httpResponse {
-	input, _ := json.Marshal(adoptionInput{KeyID: h.keyID, Operation: operation, Phase: phase, PreviewToken: token})
+	input, _ := json.Marshal(adoptionInput{KeyID: h.keyID, Operation: operation, Phase: phase, PreviewToken: token, KeepNative: h.keep})
 	headers := authorized()
 	if revision != "" {
 		headers["If-Match"] = revision
@@ -215,5 +234,96 @@ func TestRebindRotatedManagedNativeKey(t *testing.T) {
 	view, _ := h.server.Store.Load().View(h.keyID)
 	if view.Policy.TokenSHA256 != registry.TokenHash(h.secret) || !view.Policy.Adopted || h.writes != 0 {
 		t.Fatal("rebind changed permissions or failed to change fingerprint", view.Policy)
+	}
+}
+
+func TestAdoptionKeepsAProviderNative(t *testing.T) {
+	h := newAdoptionHarness(t)
+	h.mistral = []string{"large", "small"}
+	blocked := h.preview(t, "adopt")
+	if blocked.CanApply || blocked.Readiness == nil || blocked.Readiness.State != "blocked" || len(blocked.Readiness.Blockers) != 1 || blocked.Readiness.Blockers[0].Kind != blockUndiscovered || blocked.Readiness.Blockers[0].Kept {
+		t.Fatalf("models Registry cannot represent did not block: %+v", blocked)
+	}
+
+	h.keep = []string{"mistral"}
+	p := h.preview(t, "adopt")
+	if !p.CanApply || p.PreviewToken == "" || strings.Join(p.SelectedRoutes, ",") != "openai/alpha" || strings.Join(p.NativeRoutes, ",") != "mistral/large,mistral/small,openai/alpha" || len(p.Blocked) != 0 {
+		t.Fatalf("keeping the provider native did not unblock the rest of the key: %+v", p)
+	}
+	// The dialog still names what is kept, flagged so it does not count as a blocker.
+	if p.Readiness.State != "ready" || len(p.Readiness.Blockers) != 1 || !p.Readiness.Blockers[0].Kept || p.Readiness.Blockers[0].Provider != "mistral" || p.Readiness.Blockers[0].Count != 2 {
+		t.Fatalf("kept provider not reported: %+v", p.Readiness)
+	}
+	// The preview token covers the chosen providers: the same token cannot adopt another choice.
+	h.keep = nil
+	if w := h.request("adopt", "apply", p.PreviewToken, p.Revision); w.code != 409 {
+		t.Fatal("token accepted without the kept provider", w.code, w.body)
+	}
+	h.keep = []string{"nowhere"}
+	if w := h.request("adopt", "preview", "", ""); !strings.Contains(w.body, "not on the native key") {
+		t.Fatal("a provider the key does not have was kept", w.body)
+	}
+	h.keep = []string{"openai", "mistral"}
+	if every := h.preview(t, "adopt"); every.CanApply {
+		t.Fatal("keeping every provider left nothing for Registry to manage", every)
+	}
+	h.keep = []string{"mistral"}
+	w := h.request("adopt", "apply", p.PreviewToken, p.Revision)
+	if w.code != 200 || h.writes != 0 {
+		t.Fatal("adoption with a kept provider failed or wrote natively", w.code, w.body, h.writes)
+	}
+	view, _ := h.server.Store.Load().View(h.keyID)
+	if strings.Join(view.Policy.KeptNative, ",") != "mistral" || strings.Join(view.Policy.NativeModelIDs, ",") != "openai-alpha" || len(view.Routes) != 1 {
+		t.Fatalf("policy lost the kept provider: %+v", view)
+	}
+	ws := perform(h.server, "GET", "/api/workspace", "", authorized())
+	if !strings.Contains(ws.Body.String(), `"keptNative":["mistral"]`) {
+		t.Fatal("workspace does not tell the panel which providers stay in Bifrost", ws.Body.String())
+	}
+	// A rebind keeps the choice.
+	h.secret = "sk-bf-rotated-secret"
+	h.keep = nil
+	rebind := h.preview(t, "rebind")
+	if w := h.request("rebind", "apply", rebind.PreviewToken, rebind.Revision); w.code != 200 {
+		t.Fatal(w.code, w.body)
+	}
+	if view, _ = h.server.Store.Load().View(h.keyID); strings.Join(view.Policy.KeptNative, ",") != "mistral" {
+		t.Fatal("rebind dropped the kept provider", view.Policy)
+	}
+}
+
+func TestKeptNativeRoutesAreReadBackAsExpected(t *testing.T) {
+	h := newAdoptionHarness(t)
+	h.mistral, h.keep = []string{"large", "small"}, []string{"mistral"}
+	p := h.preview(t, "adopt")
+	if w := h.request("adopt", "apply", p.PreviewToken, p.Revision); w.code != 200 {
+		t.Fatal(w.code, w.body)
+	}
+	readback := func() publication {
+		t.Helper()
+		w := perform(h.server, "POST", "/api/keys/vk-native/readback", "", authorized())
+		var ws workspace
+		if w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &ws) != nil {
+			t.Fatal(w.Code, w.Body.String())
+		}
+		for _, k := range ws.Data.Keys {
+			if k.ID == "vk-native" {
+				return k.Publication
+			}
+		}
+		t.Fatal("key missing from workspace")
+		return publication{}
+	}
+	if got := readback(); got.State != "verified" || strings.Join(got.Expected, ",") != "mistral/large,mistral/small,openai/alpha" {
+		t.Fatalf("managed routes plus kept routes should read verified: %+v", got)
+	}
+	h.hidden = "small"
+	if got := readback(); got.State != "drift" || strings.Join(got.Missing, ",") != "mistral/small" || len(got.Unexpected) != 0 {
+		t.Fatalf("a kept route that disappeared is drift: %+v", got)
+	}
+	// Bifrost owns the provider: a model dropped from the key natively is not Registry's drift.
+	h.mistral, h.hidden = []string{"large"}, ""
+	if got := readback(); got.State != "verified" {
+		t.Fatalf("a native permission change on the kept provider is not drift: %+v", got)
 	}
 }

@@ -53,10 +53,12 @@ export const readbackKey = (id: string) => request<Workspace>(`keys/${encodeURIC
 export type AdoptionOperation = "adopt" | "rebind";
 export type AdoptionPreview = { keyId: string; operation: AdoptionOperation; revision: string; previewToken?: string; selectedRoutes: string[]; nativeRoutes: string[]; blocked: string[]; readiness?: Readiness; canApply: boolean; nativePermissionsPreserved: true; evidence?: "snapshot"; source?: string; capturedAt?: string };
 export type AdoptionReceipt = { keyId: string; revision: string; managed: true; nativePermissionsPreserved: true; evidence?: "snapshot"; source?: string; capturedAt?: string };
-export const previewKeyAdoption = (keyId: string, operation: AdoptionOperation) => request<AdoptionPreview>("keys/adopt", {
-  method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ keyId, operation, phase: "preview" }),
+// keepNative: providers of the key whose permissions stay in Bifrost (adopt only). The preview token covers
+// the choice, so apply must send the same list the preview was made with.
+export const previewKeyAdoption = (keyId: string, operation: AdoptionOperation, keepNative: string[] = []) => request<AdoptionPreview>("keys/adopt", {
+  method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ keyId, operation, phase: "preview", ...(keepNative.length ? { keepNative } : {}) }),
 });
-export const applyKeyAdoption = (preview: AdoptionPreview) => request<AdoptionReceipt>("keys/adopt", {
+export const applyKeyAdoption = (preview: AdoptionPreview, keepNative: string[] = []) => request<AdoptionReceipt>("keys/adopt", {
   method: "POST", headers: { "Content-Type": "application/json", "If-Match": preview.revision },
-  body: JSON.stringify({ keyId: preview.keyId, operation: preview.operation, phase: "apply", previewToken: preview.previewToken }),
+  body: JSON.stringify({ keyId: preview.keyId, operation: preview.operation, phase: "apply", previewToken: preview.previewToken, ...(keepNative.length ? { keepNative } : {}) }),
 });
