@@ -36,7 +36,7 @@ import { ViewControls, defaultViewOptions, updateViewOverride, type ViewOptions 
 import { LanguageContext, useCopy, useFormat, type Language } from "../lib/locale";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { Switch } from "../components/ui/switch";
-import KeyComposer, { PublicationCard } from "../features/keys/KeyComposer";
+import KeyComposer from "../features/keys/KeyComposer";
 import { KeySummary } from "../features/keys/KeySummary";
 import { permissionSummary, preserveAdoptionDraft } from "../features/keys/KeyComposer.state";
 import { keyFormState, type KeyFormDraft } from "../features/keys/key-form";
@@ -510,7 +510,7 @@ function RegistryApp({ language, onLanguageChange }: { language: Language; onLan
         {page === "snapshot" && <SnapshotTransfer onUnauthorized={requireLogin} onApplied={() => void load()} />}
         {page === "groups" && <GroupLibrary groups={data.groups} models={namedModels} keys={data.keys} view={viewFor("groups")} onViewChange={next => setView("groups", next)} onResetView={() => resetView("groups")} onCreate={() => openGroup({ id: crypto.randomUUID(), name: "", description: "", members: [] })} onEdit={openGroup} />}
         {page === "catalog" && <CatalogMetadata key={catalogFocus ? `${catalogFocus.target}/${catalogFocus.id}` : "catalog"} catalog={referenceCatalog} catalogError={referenceError} onCatalogChange={setReferenceCatalog} onReload={loadReferenceCatalog} focus={catalogFocus} snapshotMode={snapshotMode} onUnauthorized={requireLogin} onChanged={() => void load()} />}
-        {page === "keys" && !key && <KeyLibrary keys={data.keys} groups={data.groups} models={namedModels} view={viewFor("keys")} onViewChange={next => setView("keys", next)} onResetView={() => resetView("keys")} busy={!!busy} snapshotMode={snapshotMode} onCreate={() => setKeyForm({ name: "", client: "" })} onOpen={item => go("keys", item.id)} />}
+        {page === "keys" && !key && <KeyLibrary keys={data.keys} groups={data.groups} models={namedModels} view={viewFor("keys")} onViewChange={next => setView("keys", next)} onResetView={() => resetView("keys")} busy={!!busy} snapshotMode={snapshotMode} expert={effectiveExpert} onCreate={() => setKeyForm({ name: "", client: "" })} onOpen={item => go("keys", item.id)} />}
         {page === "keys" && key && activePolicy && <>
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-sm border bg-card p-3">
             <div className="min-w-0"><Button type="button" variant="ghost" size="sm" className="mb-1 -ml-2" onClick={() => go("keys")}><ArrowLeft className="size-3.5" />{copyText("All virtual keys", "Toutes les clés virtuelles")}</Button><h1 className="text-xl font-semibold tracking-tight sm:text-2xl">{key.name}</h1><p className="text-xs text-muted-foreground"><span className="wrap-anywhere">{key.client || key.id}</span> · {copyText(key.managed === false ? "Bifrost key · Registry policy not adopted" : "Registry-managed key", key.managed === false ? "Clé Bifrost · sélection Registry non adoptée" : "Clé gérée par Registry")}</p></div>
@@ -532,7 +532,7 @@ function RegistryApp({ language, onLanguageChange }: { language: Language; onLan
           </section> : <>
             {!key.active && <p className="mb-4 rounded-sm border border-chart-warning/50 bg-chart-warning/10 p-3 text-sm text-chart-warning-ink">{copyText("This key is disabled. Its saved model selection is shown for review.", "Cette clé est désactivée. Sa sélection enregistrée reste visible pour vérification.")}</p>}
             {keyEditing ? <KeyComposer virtualKey={key} draft={activePolicy} onDraftChange={setDraft} models={namedModels} groups={data.groups} preferences={preferences} busy={!!busy} snapshotMode={snapshotMode} expert={effectiveExpert} publishDisabled={reconcileBlocked || (!isDirty && !needsReconcile) || !!busy} onPublish={() => void publishKey()} onDiscard={() => setDraft(copy(key.policy))} onReread={() => void reread()} />
-              : <div className="space-y-4"><KeySummary virtualKey={key} models={namedModels} groups={data.groups} /><PublicationCard virtualKey={key} savedIds={exposed(key.policy, data.groups, namedModels)} busy={!!busy} snapshotMode={snapshotMode} onReread={() => void reread()} /></div>}
+              : <KeySummary virtualKey={key} models={namedModels} groups={data.groups} busy={!!busy} snapshotMode={snapshotMode} onReread={() => void reread()} />}
           </>}
         </>}
         {page === "settings" && <RegistrySettings onStartTour={startTour} preferences={preferences} onPreferencesChange={setPreferences} snapshotMode={snapshotMode} onNavigate={destination => { if (destination === "catalog") setCatalogFocus(null); go(destination); }} onUnauthorized={requireLogin} catalog={referenceCatalog} catalogError={referenceError} providers={catalog.flatMap(model => model.accesses.map(access => access.provider))} modelScopes={`${scopeLabels.registry} · ${scopeLabels.toAdd}`} />}

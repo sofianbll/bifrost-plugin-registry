@@ -1,5 +1,5 @@
 import { fixture } from "../../dev/fixtures/registry";
-import { filterKeys } from "./key-library-state";
+import { filterKeys, keyShelves, nearDuplicates } from "./key-library-state";
 
 const { groups, models } = fixture;
 const makeKey = (id: string, name: string, groupIds: string[], active = true) => ({ ...fixture.keys[0], id, name, client: id.startsWith("a") ? "alpha" : "beta", active, policy: { groups: groupIds, added: [], excluded: [], naming: "model" as const } });
@@ -22,6 +22,15 @@ for (const [state, ids] of [["all", "b5,b3,a2,a3,b4"], ["ready", "a2"], ["blocke
 }
 if (filterKeys(triage, groups, models, "", "all", "all", "name").length !== 5) throw new Error("Without a readiness filter every key stays");
 
-// The default order is the worklist: ready, blocked, not read yet, empty, then managed keys; by name inside each.
+// Spec #85 round 2: the default order opens on managed keys, then the worklist: ready, blocked, not read yet, empty; by name inside each.
 const worklist = filterKeys([...triage, { ...makeKey("a4", "Zed", []), managed: false, readiness: { state: "ready" as const, blockers: [] } }], groups, models, "", "all", "all", "readiness").map(key => key.id).join();
-if (worklist !== "a2,a4,a3,b4,b3,b5") throw new Error(`Readiness sorting should read ready, blocked, unknown, empty, managed, got ${worklist}`);
+if (worklist !== "b5,a2,a4,a3,b4,b3") throw new Error(`Readiness sorting should read managed, ready, blocked, unknown, empty, got ${worklist}`);
+
+// Shelves: managed keys, then "To adopt" (ready, blocked, not read yet), then "Empty"; each keeps the list's order.
+const shelves = keyShelves(filterKeys(triage, groups, models, "", "all", "all", "name")).map(shelf => `${shelf.id}:${shelf.keys.map(key => key.id).join("+")}`).join();
+if (shelves !== "managed:b5,adopt:a2+a3+b4,empty:b3") throw new Error(`Keys should shelve as managed, to adopt, empty, got ${shelves}`);
+if (keyShelves([triage[0]]).map(shelf => shelf.id).join() !== "adopt") throw new Error("An empty shelf is not listed");
+
+// Near-duplicate names ("Elson - Poc" and "Elson - POC ") are flagged; distinct names are not.
+const dupes = nearDuplicates([makeKey("x1", "Elson - Poc", []), makeKey("x2", "Elson - POC ", []), makeKey("x3", "Elson", [])]);
+if ([...dupes].sort().join() !== "x1,x2") throw new Error(`Near-duplicate names should be flagged, got ${[...dupes].join()}`);
