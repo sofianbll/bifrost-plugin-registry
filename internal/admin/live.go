@@ -57,9 +57,12 @@ func (a *accessDTO) UnmarshalJSON(data []byte) error {
 }
 
 type modelDTO struct {
-	ID               string            `json:"id"`
-	Name             string            `json:"name"`
-	Creator          string            `json:"creator"`
+	ID      string `json:"id"`
+	Name    string `json:"name"`
+	Creator string `json:"creator"`
+	// Where a saved card's creator comes from: "manual" (stored; with no creator, a clear that must
+	// not be guessed again), "reference" or "inferred". Never stored but for that clear.
+	CreatorSource    string            `json:"creatorSource,omitempty"`
 	Family           string            `json:"family"`
 	InputModalities  []string          `json:"inputModalities"`
 	OutputModalities []string          `json:"outputModalities"`
@@ -503,7 +506,9 @@ func (s *Server) workspace(ctx context.Context) (workspace, error) {
 		if ui.ID == "" {
 			ui = modelDTO{ID: m.Alias, Creator: m.Creator, Family: m.Family, Context: "Unknown", Kind: "Unknown"}
 		}
+		stored, cleared := cleanUnknown(ui.Creator) != "", ui.CreatorSource == "manual"
 		catalogModelFields(&ui, catalogFieldsForAccess(config.Catalog, m.Provider, m.UpstreamModel))
+		ui.CreatorSource = creatorSource(stored, cleared, cleanUnknown(ui.Creator) != "")
 		ui = sanitizeLiveModel(ui)
 		if ui.Name == "" {
 			ui.Name = m.Alias
@@ -516,6 +521,9 @@ func (s *Server) workspace(ctx context.Context) (workspace, error) {
 			index[ui.ID] = len(dto.Models)
 			dto.Models = append(dto.Models, ui)
 		}
+	}
+	for i := range dto.Models {
+		inferCreator(&dto.Models[i], providers)
 	}
 	refs := map[string]string{}
 	accessIDs := map[string]string{}
@@ -766,7 +774,7 @@ func (s *Server) putWorkspace(w http.ResponseWriter, r *http.Request) {
 				reply(w, 422, map[string]string{"error": e.Error()})
 				return
 			}
-			persisted := sanitizeLiveModel(m)
+			persisted := persistedCreator(sanitizeLiveModel(m))
 			stripCatalogAutofill(&persisted, catalogFieldsForAccess(cfg.Catalog, a.Provider, raw))
 			metadata, _ := json.Marshal(persisted)
 			endpoints := a.Endpoints

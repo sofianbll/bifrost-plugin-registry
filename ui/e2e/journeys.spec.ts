@@ -78,8 +78,10 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(badges('QA Opus')).toHaveText(['+1 available']);
     await expect(badges('QA Opus Fast')).toHaveText(['+1 available']);
     // Cards without a Models.dev reference say so once, QA Shared (two subscriptions) included.
-    for (const name of ['qa-sonnet', 'qa-codex-mini', 'qa-flash', 'QA Shared']) await expect(badges(name)).toHaveText(['no reference']);
-    await expect(page.locator('[data-attention]')).toHaveCount(6);
+    await expect(badges('QA Shared')).toHaveText(['no reference']);
+    // Their creator is guessed from the single subscription serving them: one more badge.
+    for (const name of ['qa-sonnet', 'qa-codex-mini', 'qa-flash']) await expect(badges(name)).toHaveText(['no reference', 'inferred creator']);
+    await expect(page.locator('[data-attention]')).toHaveCount(9);
     await scope(/^To add/).click();
     await expect(opens).toHaveCount(60); // first page
     await searchModels().fill('qa-opus');
@@ -233,7 +235,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(card('QA Opus')).toContainText('Anthropic · qa-claude');
     await expect(card('QA Opus').getByText('qa-opus', { exact: true })).toBeVisible();
     await expect(card('QA Opus').getByText('? → ?')).toHaveCount(0);
-    await expect(card('qa-codex-mini')).toContainText('Creator not identified'); // no reference
+    await expect(card('QA Shared')).toContainText('Creator not identified'); // no reference, two subscriptions: nothing to infer
     // The card sheet names it the same way, its common ID below.
     await button('Open QA Opus details').click();
     await expect(sheet().locator('[data-slot="sheet-title"]')).toHaveText('QA Opus');
@@ -244,7 +246,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     const creators = page.getByRole('combobox', { name: 'Creator', exact: true });
     await creators.click();
     // Counts are the models of the current scope: saved cards here, discovered ones in To add.
-    await expect(page.getByRole('option')).toHaveText(['Creator: all', 'Anthropic (3)', 'Fixture Labs (3)', 'Google (1)', 'OpenAI (1)', 'Creator not identified (4)']);
+    await expect(page.getByRole('option')).toHaveText(['Creator: all', 'Anthropic (4)', 'Fixture Labs (3)', 'Google (2)', 'OpenAI (2)', 'Creator not identified (1)']);
     await page.keyboard.press('Escape');
     await scope(/^To add/).click();
     await creators.click();
@@ -255,7 +257,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await button('Clear all').click();
     await scope(/^In Registry/).click();
     // The card sheet names a missing creator the same way, in its field and in Review.
-    await button('Open qa-codex-mini details').click();
+    await button('Open QA Shared details').click();
     await button('Edit').click();
     await sheet().getByRole('button', { name: 'Edit Registry details', exact: true }).click();
     const creatorField = page.getByRole('dialog', { name: 'Edit Registry details' }).getByRole('combobox', { name: 'Creator', exact: true });
@@ -282,7 +284,8 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await logo(card('QA Codex'), 'OpenAI');
     await logo(card('QA Gemini'), 'Google');
     await expect(marks(card('QA Chat'), 'Fixture Labs')).toHaveText('FI');
-    await expect(marks(card('qa-codex-mini'), 'Creator not identified')).toHaveText('?');
+    await expect(marks(card('QA Shared'), 'Creator not identified')).toHaveText('?');
+    await logo(card('qa-codex-mini'), 'OpenAI'); // inferred from its Codex subscription
     // Serving providers in the footer: custom ones through their base type, one display name.
     for (const [model, provider] of [['QA Opus', 'Claude'], ['QA Codex', 'Codex'], ['QA Gemini', 'Google']]) await logo(card(model), provider);
     await button('Use dark theme').click();
@@ -331,6 +334,100 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(keyCard('QA Claude Key')).toContainText('all models of Claude');
     await nav('My models').click();
     await button('Open QA Chat details').waitFor();
+  });
+
+  await test.step('cards without a reference: inferred creator, override, clear, Associate a reference', async () => {
+    // qa-codex-mini, qa-sonnet and qa-flash have no reference and one subscription each (Codex →
+    // openai, Claude → anthropic, Google → gemini); QA Shared spans two, so nothing is guessed.
+    const card = (name: string) => page.locator('[data-slot="card"]').filter({ has: button(`Open ${name} details`) });
+    const unknownFacts = 'Facts unknown — associate a reference';
+    const modelOf = async (id: string) => (await api('workspace')).data.models.find((m: { id: string }) => m.id === id);
+    const writes = () => page.waitForRequest(r => r.method() === 'PUT' && r.url().endsWith('/api/workspace'));
+    for (const [name, creator] of [['qa-codex-mini', 'OpenAI'], ['qa-sonnet', 'Anthropic'], ['qa-flash', 'Google']]) {
+      await expect(card(name)).toContainText(creator);
+      await expect(card(name).locator('[data-attention]')).toHaveText(['no reference', 'inferred creator']);
+      await expect(card(name).getByText(unknownFacts, { exact: true })).toBeVisible();
+      await expect(card(name).getByText('? → ?')).toHaveCount(0);
+      await expect(card(name).getByRole('button', { name: `Associate a reference · ${name}`, exact: true })).toBeVisible();
+    }
+    await expect(card('QA Shared').locator('[data-attention]')).toHaveText(['no reference']);
+    await expect(card('QA Opus').locator('[data-attention]')).toHaveText(['+1 available']);
+    await expect(card('QA Opus').getByRole('button', { name: /^Associate a reference/ })).toHaveCount(0);
+    expect(await modelOf('qa-sonnet')).toMatchObject({ creator: 'Anthropic', creatorSource: 'inferred' });
+    expect(await modelOf('qa-opus')).toMatchObject({ creatorSource: 'reference' });
+
+    // Override: the sheet shows the guess as such; a typed creator replaces it and loses the mark.
+    await button('Open qa-codex-mini details').click();
+    await expect(sheet().getByText('inferred', { exact: true }).first()).toBeVisible(); // read-first: the guess is shown as such
+    await button('Edit').click();
+    await sheet().getByRole('button', { name: 'Edit Registry details', exact: true }).click();
+    const creatorField = page.getByRole('dialog', { name: 'Edit Registry details' }).getByRole('combobox', { name: 'Creator', exact: true });
+    await expect(creatorField).toHaveValue('OpenAI');
+    await creatorField.fill('QA Labs');
+    await button('Keep changes').click();
+    await button('Review').click();
+    await sheet().getByText('Creator: OpenAI → QA Labs', { exact: true }).waitFor();
+    let write = writes();
+    await button('Save model').click();
+    expect((await write).postDataJSON().data.models.find((m: { id: string }) => m.id === 'qa-codex-mini')).toMatchObject({ creator: 'QA Labs', creatorSource: 'manual' });
+    await sheet().waitFor({ state: 'hidden' });
+    await expect(card('qa-codex-mini')).toContainText('QA Labs');
+    await expect(card('qa-codex-mini').locator('[data-attention]')).toHaveText(['no reference']);
+    // Saving one card does not turn the other guesses into stored values.
+    expect(await modelOf('qa-codex-mini')).toMatchObject({ creator: 'QA Labs', creatorSource: 'manual' });
+    expect(await modelOf('qa-sonnet')).toMatchObject({ creator: 'Anthropic', creatorSource: 'inferred' });
+
+    // Clear: an emptied creator stays empty, the guess does not come back.
+    await button('Open qa-codex-mini details').click();
+    await button('Edit').click();
+    await sheet().getByRole('button', { name: 'Edit Registry details', exact: true }).click();
+    await creatorField.fill('');
+    await button('Keep changes').click();
+    await button('Review').click();
+    await sheet().getByText('Creator: QA Labs → Creator not identified', { exact: true }).waitFor();
+    write = writes();
+    await button('Save model').click();
+    await write;
+    await sheet().waitFor({ state: 'hidden' });
+    await expect(card('qa-codex-mini')).toContainText('Creator not identified');
+    await expect(card('qa-codex-mini')).not.toContainText('OpenAI');
+    expect(await modelOf('qa-codex-mini')).toMatchObject({ creatorSource: 'manual' });
+    expect((await modelOf('qa-codex-mini')).creator).toMatch(/^(Unknown)?$/);
+
+    // Associate: search the references, save the correspondence with the card, read its facts.
+    await card('qa-flash').getByRole('button', { name: 'Associate a reference · qa-flash', exact: true }).click();
+    const dialog = page.getByRole('dialog', { name: 'Associate a reference' });
+    const search = dialog.getByRole('textbox', { name: 'Search references', exact: true });
+    await expect(search).toHaveValue('qa-flash'); // starts from the native name
+    await expect(dialog.getByText('No reference matches. Try fewer words.')).toBeVisible();
+    await search.fill('gemini');
+    write = writes();
+    await dialog.getByRole('button', { name: /^QA Gemini/ }).click();
+    const sent = (await write).postDataJSON();
+    expect(sent.data.models.find((m: { id: string }) => m.id === 'qa-flash').accesses.map((a: { referenceId: string }) => a.referenceId)).toEqual(['google/qa-gemini']);
+    await dialog.waitFor({ state: 'hidden' });
+    const flash = card('QA Gemini (qa-flash)'); // the reference names it; QA Gemini keeps its own name
+    await expect(flash).toContainText('Google');
+    await expect(flash.locator('[data-attention]')).toHaveCount(0);
+    await expect(flash.getByText(unknownFacts, { exact: true })).toHaveCount(0);
+    await expect(flash.getByRole('button', { name: /Input: Text, Image; Output: Text/ })).toBeVisible();
+    await expect(flash.getByRole('button', { name: /^Associate a reference/ })).toHaveCount(0);
+    expect(await modelOf('qa-flash')).toMatchObject({ creator: 'Google', creatorSource: 'reference' });
+    expect((await modelOf('qa-flash')).accesses[0].referenceId).toBe('google/qa-gemini');
+    await shot('cards-without-reference');
+
+    // Put the fixture back for the steps that follow: the guesses return, the reference goes.
+    const current = await api('workspace');
+    const models = current.data.models.map((m: { id: string; accesses: { referenceId?: string }[] }) => m.id === 'qa-codex-mini' ? { ...m, creator: 'Unknown', creatorSource: undefined }
+      : m.id === 'qa-flash' ? { ...m, creator: 'Unknown', creatorSource: undefined, accesses: m.accesses.map(a => ({ ...a, referenceId: '' })) } : m);
+    const restored = await page.request.put('/api/workspace', { headers: { ...headers, 'If-Match': current.revision }, data: { data: { ...current.data, models } } });
+    expect(restored.status()).toBe(200);
+    await page.reload();
+    await page.getByLabel('Admin token', { exact: true }).fill(token);
+    await button('Sign in').click();
+    await button('Open QA Chat details').waitFor();
+    await expect(card('qa-flash').locator('[data-attention]')).toHaveText(['no reference', 'inferred creator']);
+    await expect(card('qa-codex-mini').locator('[data-attention]')).toHaveText(['no reference', 'inferred creator']);
   });
 
   await test.step('model cancel protects draft; focus stays in editor', async () => {
