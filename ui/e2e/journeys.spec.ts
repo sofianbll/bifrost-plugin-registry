@@ -1329,6 +1329,9 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await composerStep('Review').click();
     await button('Read again').click();
     await page.getByText('Verified', { exact: true }).first().waitFor();
+    // The readback lists Mistral's routes, but they are Bifrost's: Review must not announce their removal.
+    await expect(page.getByRole('region', { name: 'Changes before publishing' })).toContainText('No change.');
+    await expect(page.getByRole('list', { name: 'Will lose' })).toHaveCount(0);
     const key = (await api('workspace')).data.keys.find((k: { id: string }) => k.id === 'vk-qa-mistral');
     expect(key.managed).toBe(true);
     expect(key.policy.keptNative).toEqual(['mistral']);
