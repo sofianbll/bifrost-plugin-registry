@@ -58,6 +58,12 @@ must(replaced.includes("one access per model"), "the one-access-per-model rule i
 const blocked = text(render("en", { ...removal, canApply: false, previewToken: undefined, after: undefined, blocked: ["Nothing to remove for this provider"] }));
 must(blocked.includes("Nothing to remove for this provider") && !blocked.includes("Requests that use these models will be refused"), "a blocked edit shows its reason, not a consequence");
 
+// A provider row that goes away takes its budgets and rate limit with it (Bifrost), and the confirmation says so.
+const limited: NativeEditPreview = { ...removal, remove: [{ ...removal.remove[0], dropsLimits: true }], after: { allProviders: false, providers: [{ provider: "Codex", allModels: false, models: ["gpt-saved"] }] } };
+must(text(render("en", limited)).includes("Its budgets and rate limit are deleted with it"), "a dropped row with limits says they are deleted");
+must(!plain.includes("budgets"), "a row without limits claims none");
+must(text(render("fr", limited)).includes("Ses budgets et sa limite de débit sont supprimés avec lui"), "French says the limits are deleted too");
+
 // French reads as French (no English sentinel word) and carries the same facts.
 const french = text(render("fr", removal));
 for (const line of ["Mistral · 3 modèles", "Codex · 1 modèle", "Autorisé aujourd’hui", "Autorisé ensuite", "Retiré de la clé", "Les requêtes qui utilisent ces modèles seront refusées"]) must(french.includes(line), `French preview must read "${line}"`);

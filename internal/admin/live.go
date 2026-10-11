@@ -184,6 +184,23 @@ type nativeProviderConfig struct {
 	Keys              []struct {
 		KeyID string `json:"key_id"`
 	} `json:"keys"`
+	// What Bifrost deletes with a row a write leaves out; only whether it is there matters (and the edit token covers it).
+	Budgets      json.RawMessage `json:"budgets"`
+	RateLimit    json.RawMessage `json:"rate_limit"`
+	RateLimitID  json.RawMessage `json:"rate_limit_id"`
+	ModelBudgets json.RawMessage `json:"model_budgets"`
+}
+
+// hasLimits tells whether the row carries a budget or a rate limit of its own.
+func (p nativeProviderConfig) hasLimits() bool {
+	for _, raw := range []json.RawMessage{p.Budgets, p.RateLimit, p.RateLimitID, p.ModelBudgets} {
+		switch string(raw) {
+		case "", "null", "[]", "{}":
+		default:
+			return true
+		}
+	}
+	return false
 }
 
 // permissions summarises the native provider rows; "*" allows every model, blacklisted names are left
@@ -547,6 +564,10 @@ func (s *Server) workspace(ctx context.Context) (workspace, error) {
 		a := accessDTO{Provider: m.Provider, ID: m.Provider + "/" + m.Alias, NativeModel: m.UpstreamModel, Route: "Direct provider", Status: "Configured", Endpoints: append([]string{}, m.Endpoints...), ReferenceID: workspaceReferenceID(config.Catalog, m.Provider, m.UpstreamModel)}
 		if i, ok := index[ui.ID]; ok {
 			dto.Models[i].Accesses = append(dto.Models[i].Accesses, a)
+			// A later access with a reference names the creator the first one could not.
+			if dto.Models[i].CreatorSource == "" && ui.CreatorSource == "reference" {
+				dto.Models[i].Creator, dto.Models[i].CreatorSource = ui.Creator, "reference"
+			}
 		} else {
 			ui.Accesses = []accessDTO{a}
 			index[ui.ID] = len(dto.Models)

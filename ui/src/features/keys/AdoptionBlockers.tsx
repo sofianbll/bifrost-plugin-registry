@@ -29,6 +29,7 @@ const reasons: [RegExp, string, string][] = [
   [/^Duplicate native model route (.+)$/, "$&", "Route de modèle native en double : $1."],
   [/^Native route (.+) is absent from provider discovery$/, "$&", "La route native $1 est absente de la découverte du fournisseur."],
   [/^No enabled native provider key for (.+)$/, "$&", "Aucune clé fournisseur native active pour $1."],
+  [/^Model (\S+) is allowed through (.+?) and (.+): Registry adopts one access per model$/, "$&", "Le modèle $1 est autorisé via $2 et $3 : Registry n’adopte qu’un accès par modèle."],
   [/^Native route (.+) needs a configured direct Registry access with the same native name$/, "Native route $1 needs a configured direct Registry access with the same native name", "La route native $1 nécessite un accès Registry direct configuré, au même nom natif."],
 ];
 export function adoptionReason(reason: string, copyText: Copy) {

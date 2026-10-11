@@ -90,7 +90,8 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(helpPanel).toBeVisible();
     await withinViewport(helpPanel);
     expect(page.url(), 'Help opens beside the page').toBe(address);
-    await expect(page.locator('h2', { hasText: 'My models' }).first()).toBeVisible();
+    // The page's own title (h1) stays rendered behind the panel; the panel's title is an h2.
+    await expect(page.locator('h1', { hasText: 'My models' })).toBeVisible();
     for (const phrase of ['Adopting a key', 'Ready to adopt', 'Keep Mistral in Bifrost', 'Remove these models from the key in Bifrost', 'Replace “all providers” by the explicit list', 'preview and confirm', 'kept in Bifrost', 'inferred creator', 'Associate a reference', 'Add to card', 'no reference']) await expect(helpPanel).toContainText(phrase);
     // Starting the tour closes the panel and puts the focus on the tour card; the page stays usable under it.
     await helpPanel.getByRole('button', { name: 'Start the tour', exact: true }).click();
@@ -252,6 +253,8 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     const dialog = duo.getByRole('dialog');
     await expect(dialog).toContainText('Add to which card?');
     await dialog.getByRole('button', { name: /^QA Opus Copy/ }).waitFor();
+    // Only saved cards are offered: nothing opens a draft over a saved card's ID (a manual access is the other way in).
+    await expect(dialog.getByRole('button', { name: /separate|distincte/i })).toHaveCount(0);
     await dialog.getByRole('button', { name: /^QA Opus · qa-opus$/ }).click();
     await expect(duo.locator('[data-slot="sheet-content"] [data-slot="sheet-title"]')).toHaveText('QA Opus');
     await duo.close();
@@ -578,6 +581,11 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     // Override: the sheet shows the guess as such; a typed creator replaces it and loses the mark.
     await button('Open qa-codex-mini details').click();
     await expect(sheet().getByText('inferred', { exact: true }).first()).toBeVisible(); // read-first: the guess is shown as such
+    // The sheet says what the tile says about unknown facts, not a bare "? → ?".
+    await sheet().getByRole('button', { name: 'Properties', exact: true }).click();
+    await expect(sheet().getByText(unknownFacts, { exact: true })).toBeVisible();
+    await expect(sheet().getByText('? → ?')).toHaveCount(0);
+    await sheet().getByRole('button', { name: 'Overview', exact: true }).click();
     await button('Edit').click();
     await sheet().getByRole('button', { name: 'Edit Registry details', exact: true }).click();
     const creatorField = page.getByRole('dialog', { name: 'Edit Registry details' }).getByRole('combobox', { name: 'Creator', exact: true });
@@ -722,8 +730,14 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(sheet().getByRole('button', { name: '2. Model details', exact: true })).toHaveAttribute('aria-current', 'step');
     await expect(sheet().getByRole('textbox', { name: 'Display name *', exact: true })).toBeVisible();
     await expect(button('Delete')).toHaveCount(0);
+    // The Accesses step and Review do not repeat the title or the common ID under the sheet header.
+    await sheet().getByRole('button', { name: '1. Accesses', exact: true }).click();
+    await expect(sheet().getByText('QA Image', { exact: true })).toHaveCount(1);
+    await expect(sheet().getByText(/^Common model ID/)).toHaveCount(1);
+    await sheet().getByRole('button', { name: '2. Model details', exact: true }).click();
     // Nothing changed: Save is off and says why.
     await button('Review').click();
+    await expect(sheet().getByText('QA Image', { exact: true })).toHaveCount(1);
     await expect(button('Save model')).toBeDisabled();
     await expect(sheet().getByText('No changes', { exact: true })).toBeVisible();
     await sheet().getByRole('button', { name: '2. Model details', exact: true }).click();
@@ -862,6 +876,18 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await sheet().getByText(/^Access removed: Claude · qa-opus$/).waitFor();
     await button('Cancel').click();
     await button('Discard draft').click();
+    await closeSheet();
+    await sheet().waitFor({ state: 'hidden' });
+    // Taking an access off and adding it back returns it last: the card is as saved, so Review and Save agree.
+    await page.getByRole('button', { name: 'Open QA Shared details', exact: true }).click();
+    await sheet().getByRole('button', { name: 'Access', exact: true }).click();
+    await button('Edit accesses').click();
+    await sheet().getByRole('button', { name: /^Remove Claude/ }).click();
+    await sheet().getByRole('button', { name: /^Add Claude/i }).click();
+    await button('Review').click();
+    await expect(sheet().getByText('No changes to the Registry model card.')).toBeVisible();
+    await expect(button('Save model')).toBeDisabled();
+    await button('Cancel').click();
     await closeSheet();
     await sheet().waitFor({ state: 'hidden' });
   });
@@ -1118,7 +1144,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await button('All virtual keys').click();
     await page.getByLabel('Search keys').fill('nothing-matches-qa');
     await page.getByText('No keys match these filters.').waitFor();
-    await expect(page.getByText('Add to which card?')).toHaveCount(0);
+    await expect(page.getByRole('dialog')).toHaveCount(0);
     await page.getByLabel('Search keys').fill('');
     await page.getByText('QA Development Key', { exact: true }).first().waitFor();
   });
@@ -1329,6 +1355,9 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await composerStep('Review').click();
     await button('Read again').click();
     await page.getByText('Verified', { exact: true }).first().waitFor();
+    // The readback lists Mistral's routes, but they are Bifrost's: Review must not announce their removal.
+    await expect(page.getByRole('region', { name: 'Changes before publishing' })).toContainText('No change.');
+    await expect(page.getByRole('list', { name: 'Will lose' })).toHaveCount(0);
     const key = (await api('workspace')).data.keys.find((k: { id: string }) => k.id === 'vk-qa-mistral');
     expect(key.managed).toBe(true);
     expect(key.policy.keptNative).toEqual(['mistral']);

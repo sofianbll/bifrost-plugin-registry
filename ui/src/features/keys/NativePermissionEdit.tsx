@@ -81,6 +81,7 @@ export function NativeEditPreviewBody({ preview }: { preview: NativeEditPreview 
         : copy("Requests that use these models will be refused. Bifrost does not list them today, and no other permission of the key changes.",
           "Les requêtes qui utilisent ces modèles seront refusées. Bifrost ne les liste pas aujourd’hui, et aucune autre permission de la clé ne change.")}
       {dropped && ` ${copy(`${displayProvider(preview.provider!)} has no model left on the key, so it is removed from it.`, `${displayProvider(preview.provider!)} n’a plus aucun modèle sur la clé : le fournisseur en est retiré.`)}`}
+      {dropped && preview.remove.some(row => row.dropsLimits) && ` ${copy("Its budgets and rate limit are deleted with it.", "Ses budgets et sa limite de débit sont supprimés avec lui.")}`}
       {emptied && ` ${copy("The key will allow no model.", "La clé n’autorisera plus aucun modèle.")}`}
     </p> : <div className="rounded-sm border border-destructive/40 bg-destructive/10 p-3">{preview.blocked.map((reason, index) => <p key={`${index}/${reason}`} className="break-words">{editReason(reason, copy)}</p>)}</div>}
     <div className="grid gap-3 sm:grid-cols-2">

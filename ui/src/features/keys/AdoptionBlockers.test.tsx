@@ -31,6 +31,12 @@ must(!plain.includes("needs a configured direct Registry access"), "the plain pe
 const french = text(render("fr", hermes, hermesReasons, () => {}));
 for (const line of ["Mistral · 3 modèles non découverts", "Synthetic Provider · 1 modèle à ajouter", "Voir dans À ajouter", "Bifrost ne liste pas ces modèles"]) must(french.includes(line), `French dialog must read "${line}"`);
 
+// One model reached through two subscriptions cannot be adopted: the reason reads as UI copy in both languages.
+const shared = "Model qa-shared is allowed through Claude/qa-shared and Codex/qa-shared: Registry adopts one access per model";
+const twice: Readiness = { state: "blocked", blockers: [{ provider: "Codex", kind: "other", count: 1, models: ["qa-shared"], reasons: [shared] }] };
+must(text(render("en", twice, [shared])).includes("Model qa-shared is allowed through Claude/qa-shared and Codex/qa-shared"), "the shared-alias reason is shown");
+must(text(render("fr", twice, [shared])).includes("Le modèle qa-shared est autorisé via Claude/qa-shared et Codex/qa-shared : Registry n’adopte qu’un accès par modèle."), "the shared-alias reason is translated");
+
 // An empty key has nothing to adopt yet; say so instead of listing blockers.
 const empty = text(render("en", { state: "empty", blockers: [] }, ["Native key has no representable configured model access"]));
 must(empty.includes("allows no model in Bifrost yet"), "empty key explanation");

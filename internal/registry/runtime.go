@@ -169,6 +169,17 @@ func Endpoint(path string) (string, bool) {
 	}
 	return "", false
 }
+
+// keptRoute is the pass-through route of a "provider/model" of a kept-native provider (Policy.KeptNative):
+// Bifrost owns its permissions, so the guard neither rewrites nor hides it.
+func (v *View) keptRoute(id string) (Route, bool) {
+	provider, model, ok := strings.Cut(id, "/")
+	if !ok || model == "" || !Has(v.Policy.KeptNative, provider) {
+		return Route{}, false
+	}
+	return Route{ExposedID: id, Provider: provider, Alias: model, UpstreamModel: model, Passthrough: true}, true
+}
+
 func (s *Snapshot) Prepare(req *Request) (*Session, *Failure) {
 	token, err := Credential(req.Headers)
 	if err != nil {
@@ -225,6 +236,11 @@ func (s *Snapshot) Prepare(req *Request) (*Session, *Failure) {
 	}
 	resolve := func(name string) (Route, *Failure) {
 		r, ok := v.index[name]
+		if !ok {
+			if r, ok = v.keptRoute(name); ok {
+				r.Endpoints = []string{endpoint}
+			}
+		}
 		if !ok {
 			return Route{}, fail(403, "registry_model_hidden", "Model is not exposed by this virtual key")
 		}
@@ -327,8 +343,14 @@ func (s *Session) Project(body []byte, authenticatedID string) ([]byte, *Failure
 		}
 		native[id] = m
 	}
+	routes := append([]Route{}, s.view.Routes...)
+	for id := range native {
+		if r, ok := s.view.keptRoute(id); ok {
+			routes = append(routes, r)
+		}
+	}
 	out := []map[string]any{}
-	for _, r := range s.view.Routes {
+	for _, r := range routes {
 		// A restricted allowlist makes Bifrost advertise the model provider-prefixed
 		// ("provider-a/shared"), so a shared route over several providers matches any
 		// of their native entries and is projected once. A bare alias is still tried

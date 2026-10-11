@@ -54,8 +54,8 @@ provider, unmanaged keys in every adoption state), not its data.
   `qa-shared` and `qa-shared-codex`, same alias): a creator cannot be inferred from two base
   types, and grouping by serving provider must file it under both.
 - **Disabled provider**: `/api/providers` lists `mistral`, its key reads `enabled: false`, so
-  `/api/models` is never asked for it and no `mistral/…` model is discovered, saved or
-  listed by `/v1/models`, whatever a virtual key allows (see QA Mistral Key below).
+  `/api/models` is never asked for it and no `mistral/…` model is discovered or saved; only
+  the names a virtual key allows explicitly are listed by `/v1/models` (see QA Mistral Key below).
 - **Decisions model**: `typesafe/qa-jev` declares `mode: "decisions"` in its datasheet and is
   linked to the reference `typesafe/qa-jev`, whose namespace has no provider record in the
   embedded Models.dev snapshot (like the real Jev). It is discovered and has no card.
@@ -93,11 +93,13 @@ Adoption cases among the unmanaged keys: **ready** (`vk-qa-codex`, `vk-qa-google
 **empty** (`vk-qa-unmanaged`), **all providers** (`vk-qa-all-providers`), **all models of a
 provider** (`vk-qa-claude`), **blocked by undiscovered models** (`vk-qa-mistral`,
 `vk-qa-hermes`), **blocked by discovered models without a card** (`vk-qa-unsaved`). The
-journeys adopt `vk-qa-codex`, and, after a native permission edit, `vk-qa-hermes` and
-`vk-qa-all-providers`; `vk-qa-google` stays ready. No journey saves `qa-unregistered`.
+journeys adopt `vk-qa-codex`, `vk-qa-mistral` (keeping `mistral` in Bifrost) and, after a
+native permission edit, `vk-qa-hermes` and `vk-qa-all-providers`; `vk-qa-google` stays ready. No journey saves `qa-unregistered`.
 
-`/v1/models` answers a managed key with its Registry routes allowed natively, and an
-unmanaged key with every `provider/model` its native permissions allow.
+`/v1/models` answers an unmanaged key with every `provider/model` its native permissions allow,
+plus the names it allows explicitly on a disabled provider. For a managed key it builds the same
+kind of native list from the key's explicit names, then runs the plugin's own `Session.Project`
+on it (Registry routes only, plus the providers the policy keeps native).
 
 **Native key updates.** A virtual key `PUT` behaves like Bifrost: every provider row gets an
 `id`, `key_ids: ["*"]` reads back as `allow_all_keys` and other IDs as `keys`. The fixture

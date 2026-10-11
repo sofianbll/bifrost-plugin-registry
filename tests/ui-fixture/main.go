@@ -315,28 +315,37 @@ func (b *syntheticBifrost) roundTrip(r *http.Request) (*http.Response, error) {
 				continue
 			}
 			visible := []map[string]string{}
-			if view, ok := b.store.Load().View(key.ID); ok {
-				for _, route := range view.Routes {
-					for _, pc := range key.ProviderConfigs {
-						for _, allowed := range pc.AllowedModels {
-							if pc.Provider == route.Provider && allowed == route.Alias {
-								visible = append(visible, map[string]string{"id": route.ExposedID})
-							}
+			snapshot := b.store.Load()
+			if _, managed := snapshot.View(key.ID); managed {
+				// Bifrost lists the names the key's provider permissions allow, then the plugin's own Project
+				// narrows them to the policy (and keeps a kept-native provider's), exactly as native/main.go does.
+				for _, pc := range key.ProviderConfigs {
+					for _, name := range pc.AllowedModels {
+						if name != "*" {
+							visible = append(visible, map[string]string{"id": pc.Provider + "/" + name})
 						}
 					}
 				}
-			} else {
-				// Without a Registry policy, Bifrost lists what the native permissions allow.
-				for _, p := range providers {
-					for _, m := range p.models {
-						if key.allows(p.name, m.name) {
-							visible = append(visible, map[string]string{"id": p.name + "/" + m.name})
-						}
+				session, failure := snapshot.Prepare(&registry.Request{Method: "GET", Path: "/v1/models", Headers: map[string]string{"Authorization": "Bearer " + secret}})
+				if failure != nil {
+					return respond(failure.Status, map[string]string{"error": failure.Message})
+				}
+				listing, _ := json.Marshal(map[string]any{"data": visible})
+				projected, failure := session.Project(listing, key.ID)
+				if failure != nil {
+					return respond(failure.Status, map[string]string{"error": failure.Message})
+				}
+				return respond(200, json.RawMessage(projected))
+			}
+			// Without a Registry policy, Bifrost lists what the native permissions allow.
+			for _, p := range providers {
+				for _, m := range p.models {
+					if key.allows(p.name, m.name) {
+						visible = append(visible, map[string]string{"id": p.name + "/" + m.name})
 					}
 				}
 			}
-			// A provider without discoverable models (a disabled one) still lists the names a key allows
-			// explicitly, managed or not: that is how a kept-native provider shows in the readback.
+			// A provider without discoverable models (a disabled one) still lists the names a key allows explicitly.
 			for _, pc := range key.ProviderConfigs {
 				if p := findProvider(pc.Provider); p != nil && len(p.models) == 0 {
 					for _, name := range pc.AllowedModels {

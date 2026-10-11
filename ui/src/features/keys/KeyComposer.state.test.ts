@@ -84,6 +84,9 @@ const plannedBaseline = keyBaseline(planned, groups, models);
 if (plannedBaseline.source !== "plan" || !same(plannedBaseline.ids, exposed(planned.policy, groups, models))) throw new Error("Without readback the baseline is the last published plan");
 const verifiedBaseline = keyBaseline({ ...planned, publication: { state: "verified", revision: "r", checkedAt: "", expected: [], actual: ["openai/gpt-5"], missing: [], unexpected: [] } }, groups, models);
 if (verifiedBaseline.source !== "readback" || !same(verifiedBaseline.ids, ["openai/gpt-5"])) throw new Error("A verified readback is the preferred baseline");
+// A kept provider's routes are Bifrost's: they are in the readback, but publishing never removes them.
+const keptBaseline = keyBaseline({ ...planned, policy: { ...planned.policy, keptNative: ["mistral"] }, publication: { state: "verified", revision: "r", checkedAt: "", expected: [], actual: ["mistral/large", "openai/gpt-5"], missing: [], unexpected: [] } }, groups, models);
+if (!same(keptBaseline.ids, ["openai/gpt-5"])) throw new Error(`Kept-native routes must not be diffed as removed: ${JSON.stringify(keptBaseline)}`);
 // Native permissions name native models, which workspace accesses carry.
 const withNative = models.map(model => ({ ...model, accesses: model.accesses.map(access => ({ ...access, nativeModel: model.id })) }));
 const nativeBaseline = keyBaseline({ ...planned, policy: { groups: [], added: [], excluded: [], naming: "both" }, permissions: { allProviders: false, providers: [{ provider: "openai", allModels: false, models: ["gpt-5"] }] } }, groups, withNative);

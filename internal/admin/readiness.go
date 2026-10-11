@@ -129,6 +129,7 @@ func adoptionSelection(cfg registry.Config, vk nativeVK, rows []nativeModel, kee
 	routes := []string{}
 	seenProvider := map[string]bool{}
 	seenRoute := map[string]bool{}
+	viaAlias := map[string]string{} // alias -> the route that already selects it
 	for _, pc := range vk.ProviderConfigs {
 		providerBlocker := func(reason string) adoptionBlocker {
 			return adoptionBlocker{Provider: pc.Provider, Kind: blockOther, Reason: reason}
@@ -197,6 +198,12 @@ func adoptionSelection(cfg registry.Config, vk nativeVK, rows []nativeModel, kee
 				continue
 			}
 			if !registry.Has(keep, pc.Provider) {
+				// A policy holds one access per alias: two would be refused at save (access_selection missing).
+				if first, twice := viaAlias[m.Alias]; twice {
+					blocked = append(blocked, modelBlocker(blockOther, "Model "+m.Alias+" is allowed through "+first+" and "+route+": Registry adopts one access per model"))
+					continue
+				}
+				viaAlias[m.Alias] = route
 				selected = append(selected, m.ID)
 				routes = append(routes, route)
 			}
