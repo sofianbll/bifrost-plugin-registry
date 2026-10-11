@@ -157,6 +157,8 @@ type workspace struct {
 type providerDTO struct {
 	ID               string `json:"id"`
 	BaseProviderType string `json:"baseProviderType,omitempty"`
+	// No enabled key in Bifrost: none of its models is discovered. Read by adoption only.
+	Disabled bool `json:"-"`
 }
 type nativeModel struct {
 	Name             string   `json:"name"`
@@ -410,6 +412,7 @@ func (s *Server) nativeProvidersAndModels(ctx context.Context) ([]providerDTO, [
 			}
 		}
 		if len(ids) == 0 {
+			listed[len(listed)-1].Disabled = true
 			continue
 		}
 		for offset := 0; offset < 10000; offset += 100 {
@@ -607,6 +610,7 @@ func (s *Server) workspace(ctx context.Context) (workspace, error) {
 		if !managed && key.Permissions != nil {
 			_, _, blockers := adoptionSelection(config, vk, rows, nil)
 			key.Readiness = adoptionReadinessOf(vk, append(nativeKeyBlockers(vk), blockers...))
+			key.Readiness.markDisabled(providers)
 		}
 		if managed {
 			key.Policy = policyDTO{Groups: p.Groups, Added: refsToAliases(p.Added, refs), Excluded: refsToAliases(p.Excluded, refs), Naming: p.Naming, Prefer: p.Prefer, AccessSelection: accessSelectionToDTO(p.AccessSelection, config.Models), KeptNative: p.KeptNative}

@@ -622,3 +622,77 @@ func TestReplaceAllModelsKeepsOneAccessPerModel(t *testing.T) {
 		t.Fatal("the key must be adoptable once each model has one access:", code)
 	}
 }
+
+// Spec #85 (critique of the Hermes key): one model allowed through two providers is a decision, not a dead end.
+// The blocker names both providers, and keeping either one in Bifrost adopts the rest; the readback reads verified.
+func TestAliasCollisionIsResolvedByKeepingOneProviderNative(t *testing.T) {
+	h := newPermissionHarness(t)
+	h.sharedModel = true
+	cfg := h.server.Store.Load().Config()
+	cfg.Models = append(cfg.Models, registry.Model{ID: "synth-gpt-saved", Alias: "gpt-saved", Provider: "synth", ProviderKeyIDs: []string{"synth-key"}, UpstreamModel: "gpt-saved", Endpoints: []string{"chat/completions"}, Enabled: true, Configured: true})
+	raw, _ := json.Marshal(cfg)
+	if _, err := h.server.Store.Save(raw, h.server.Store.Load().Revision()); err != nil {
+		t.Fatal(err)
+	}
+	h.keys["vk-plain"]["provider_configs"] = []any{
+		map[string]any{"id": 11, "provider": "synth", "allowed_models": []any{"s-saved", "gpt-saved"}, "blacklisted_models": []any{}, "allow_all_keys": true},
+		map[string]any{"id": 4, "provider": "Codex", "allowed_models": []any{"gpt-saved"}, "blacklisted_models": []any{}, "allow_all_keys": true},
+	}
+	preview := func(keep string) adoptionPreview {
+		t.Helper()
+		w := perform(h.server, "POST", "/api/keys/adopt", `{"keyId":"vk-plain","operation":"adopt","phase":"preview","keepNative":[`+keep+`]}`, authorized())
+		var p adoptionPreview
+		if w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &p) != nil {
+			t.Fatal(w.Code, w.Body.String())
+		}
+		return p
+	}
+	blocked := preview("")
+	if blocked.CanApply || len(blocked.Readiness.Blockers) != 1 || jsonOf(t, blocked.Readiness.Blockers[0]) != `{"provider":"Codex","kind":"collision","count":1,"models":["gpt-saved"],"reasons":["Model gpt-saved is allowed through synth/gpt-saved and Codex/gpt-saved: Registry adopts one access per model"],"with":["synth"]}` {
+		t.Fatalf("a model allowed through two providers must be a collision naming both: %s", jsonOf(t, blocked.Readiness))
+	}
+	if p := preview(`"synth"`); !p.CanApply || strings.Join(p.SelectedRoutes, ",") != "Codex/gpt-saved" {
+		t.Fatalf("keeping the first provider native must adopt the other: %+v", p)
+	}
+	p := preview(`"Codex"`)
+	if !p.CanApply || strings.Join(p.SelectedRoutes, ",") != "synth/gpt-saved,synth/s-saved" || p.Readiness.State != "ready" {
+		t.Fatalf("keeping the second provider native must adopt the first: %+v", p)
+	}
+	headers := authorized()
+	headers["If-Match"] = p.Revision
+	if w := perform(h.server, "POST", "/api/keys/adopt", `{"keyId":"vk-plain","operation":"adopt","phase":"apply","previewToken":"`+p.PreviewToken+`","keepNative":["Codex"]}`, headers); w.Code != 200 {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	if len(h.puts) != 0 {
+		t.Fatal("adoption wrote to Bifrost")
+	}
+	read := perform(h.server, "POST", "/api/keys/vk-plain/readback", "", authorized())
+	if !strings.Contains(read.Body.String(), `"state":"verified"`) {
+		t.Fatalf("the adopted key must read verified: %s", read.Body.String())
+	}
+}
+
+// Bifrost discovers no model of a provider it has disabled (no enabled key, or not listed at all): the blocker says so.
+func TestUndiscoveredModelsOfADisabledProviderSaySo(t *testing.T) {
+	h := newPermissionHarness(t)
+	h.keys["vk-plain"]["provider_configs"] = []any{
+		map[string]any{"id": 11, "provider": "synth", "allowed_models": []any{"s-saved", "s-ghost"}, "blacklisted_models": []any{}, "allow_all_keys": true},
+		map[string]any{"id": 12, "provider": "Mistral", "allowed_models": []any{"m-large"}, "blacklisted_models": []any{}, "allow_all_keys": true},
+	}
+	w := perform(h.server, "POST", "/api/keys/adopt", `{"keyId":"vk-plain","operation":"adopt","phase":"preview"}`, authorized())
+	var p adoptionPreview
+	if w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &p) != nil {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	off := map[string]bool{}
+	for _, b := range p.Readiness.Blockers {
+		off[b.Provider] = b.ProviderDisabled
+	}
+	if want := map[string]bool{"synth": false, "Mistral": true}; !reflect.DeepEqual(off, want) {
+		t.Fatalf("disabled providers = %v, want %v (%s)", off, want, jsonOf(t, p.Readiness))
+	}
+	ws := perform(h.server, "GET", "/api/workspace", "", authorized())
+	if !strings.Contains(ws.Body.String(), `"provider":"Mistral","kind":"undiscovered","count":1,"models":["m-large"],"providerDisabled":true`) {
+		t.Fatal("the key card's readiness must say the provider is disabled too", ws.Body.String())
+	}
+}

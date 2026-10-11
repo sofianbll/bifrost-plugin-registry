@@ -224,7 +224,7 @@ func (s *Server) adoptionPlan(ctx context.Context, input adoptionInput) (adoptio
 		plan.policy = *existing
 		plan.policy.TokenSHA256 = registry.TokenHash(secret)
 	} else {
-		rows, err := s.nativeModels(ctx)
+		providers, rows, err := s.nativeProvidersAndModels(ctx)
 		if err != nil {
 			return plan, 502, errors.New("native model discovery unavailable")
 		}
@@ -255,6 +255,7 @@ func (s *Server) adoptionPlan(ctx context.Context, input adoptionInput) (adoptio
 			}
 		}
 		plan.preview.Readiness = adoptionReadinessOf(vk, plan.blockers)
+		plan.preview.Readiness.markDisabled(providers)
 	}
 	if len(plan.preview.Blocked) == 0 {
 		plan.preview.CanApply = true

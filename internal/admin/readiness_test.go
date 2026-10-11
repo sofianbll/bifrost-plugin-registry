@@ -103,9 +103,9 @@ func TestWorkspaceKeysCarryAdoptionReadiness(t *testing.T) {
 		// Discovered by Bifrost but with no Registry card: the models page can add it.
 		"vk-unsaved": `{"state":"blocked","blockers":[{"provider":"Codex","kind":"unsaved","count":1,"models":["gpt-unsaved"]}]}`,
 		// Bifrost does not list these models (disabled provider): nothing on the models page can add them.
-		"vk-hermes": `{"state":"blocked","blockers":[{"provider":"Mistral","kind":"undiscovered","count":2,"models":["m-large","m-small"]}]}`,
+		"vk-hermes": `{"state":"blocked","blockers":[{"provider":"Mistral","kind":"undiscovered","count":2,"models":["m-large","m-small"],"providerDisabled":true}]}`,
 		// One group per provider and kind, in the order the key lists its providers; a disabled card is "other".
-		"vk-mixed": `{"state":"blocked","blockers":[{"provider":"Mistral","kind":"undiscovered","count":1,"models":["m-large"]},{"provider":"Codex","kind":"unsaved","count":1,"models":["gpt-unsaved"]},{"provider":"Codex","kind":"other","count":1,"models":["gpt-off"],"reasons":["Native route Codex/gpt-off needs a configured direct Registry access with the same native name"]}]}`,
+		"vk-mixed": `{"state":"blocked","blockers":[{"provider":"Mistral","kind":"undiscovered","count":1,"models":["m-large"],"providerDisabled":true},{"provider":"Codex","kind":"unsaved","count":1,"models":["gpt-unsaved"]},{"provider":"Codex","kind":"other","count":1,"models":["gpt-off"],"reasons":["Native route Codex/gpt-off needs a configured direct Registry access with the same native name"]}]}`,
 		"vk-all":   `{"state":"blocked","blockers":[{"provider":"","kind":"all-providers","count":1,"models":[],"reasons":["allow_all_providers grants future providers and cannot be represented safely"]}]}`,
 		// Every model of a provider (or a regex): kept in Bifrost, or replaced by the models Registry holds.
 		"vk-star":   `{"state":"blocked","blockers":[{"provider":"Codex","kind":"dynamic","count":1,"models":[],"reasons":["Dynamic native model allowlist is unsupported for Codex"]}]}`,
@@ -136,7 +136,7 @@ func TestAdoptionPreviewCarriesTheSameReadiness(t *testing.T) {
 	if err := json.Unmarshal(w.Body.Bytes(), &p); err != nil {
 		t.Fatal(err)
 	}
-	want := `{"state":"blocked","blockers":[{"provider":"Mistral","kind":"undiscovered","count":1,"models":["m-large"]},{"provider":"Codex","kind":"unsaved","count":1,"models":["gpt-unsaved"]},{"provider":"Codex","kind":"other","count":1,"models":["gpt-off"],"reasons":["Native route Codex/gpt-off needs a configured direct Registry access with the same native name"]}]}`
+	want := `{"state":"blocked","blockers":[{"provider":"Mistral","kind":"undiscovered","count":1,"models":["m-large"],"providerDisabled":true},{"provider":"Codex","kind":"unsaved","count":1,"models":["gpt-unsaved"]},{"provider":"Codex","kind":"other","count":1,"models":["gpt-off"],"reasons":["Native route Codex/gpt-off needs a configured direct Registry access with the same native name"]}]}`
 	if p.CanApply || string(p.Readiness) != want {
 		t.Fatalf("preview readiness:\n got %s\nwant %s", p.Readiness, want)
 	}
@@ -161,13 +161,15 @@ func TestOneModelThroughTwoSubscriptionsIsNotReady(t *testing.T) {
 
 	_, _, blocked := adoptionSelection(cfg, vk, rows, nil)
 	got := jsonOf(t, adoptionReadinessOf(vk, blocked))
-	want := `{"state":"blocked","blockers":[{"provider":"Codex","kind":"other","count":1,"models":["qa-shared"],"reasons":["Model qa-shared is allowed through Claude/qa-shared and Codex/qa-shared: Registry adopts one access per model"]}]}`
+	want := `{"state":"blocked","blockers":[{"provider":"Codex","kind":"collision","count":1,"models":["qa-shared"],"reasons":["Model qa-shared is allowed through Claude/qa-shared and Codex/qa-shared: Registry adopts one access per model"],"with":["Claude"]}]}`
 	if got != want {
 		t.Fatalf("two accesses of one alias must block adoption:\n got %s\nwant %s", got, want)
 	}
-	// Keeping one subscription in Bifrost leaves a single access to adopt.
-	selected, _, blocked := adoptionSelection(cfg, vk, rows, []string{"Codex"})
-	if len(selected) != 1 || hasBlocking(blocked, "") {
-		t.Fatalf("keeping Codex native should unblock the key: %v %+v", selected, blocked)
+	// Keeping either subscription in Bifrost leaves a single access to adopt.
+	for _, keep := range []string{"Codex", "Claude"} {
+		selected, _, blocked := adoptionSelection(cfg, vk, rows, []string{keep})
+		if len(selected) != 1 || hasBlocking(blocked, "") {
+			t.Fatalf("keeping %s native should unblock the key: %v %+v", keep, selected, blocked)
+		}
 	}
 }
