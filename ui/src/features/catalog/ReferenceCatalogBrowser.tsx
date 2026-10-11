@@ -17,13 +17,14 @@ import { FactLine } from "./FactLine";
 import { AssociateReferenceDialog } from "./AssociateReference";
 import { FactsUnknown, factsUnknown, hasReference } from "./card-identity";
 import { alsoAvailable, declaredEndpoints, matchingAccesses, prefillFromReference } from "./model-editor-data";
-import { attentionOf, cardEntries, cardName, cardsHolding, filterReferenceGroups, filterReferenceModels, groupReferenceModels, sectionsOf, sharedReferenceFacts, shownCount, sortItems, type ReferenceGroup, type SortKey } from "./reference-groups";
+import { attentionOf, readableModelName, cardEntries, cardName, cardsHolding, filterReferenceGroups, filterReferenceModels, groupReferenceModels, sectionsOf, sharedReferenceFacts, shownCount, sortItems, type ReferenceGroup, type SortKey } from "./reference-groups";
 import { cardFormat, gridColumns, type ViewOptions } from "../../components/registry/ViewOptions";
 import { useCopy, useCreatorName, useFormat, useTerm } from "../../lib/locale";
 
 const known = (value: unknown): value is string => typeof value === "string" && !!value.trim();
 const unique = (items: string[]) => [...new Set(items)];
-const nameOf = (group: ReferenceGroup) => known(group.reference?.fields.name?.value) ? group.reference.fields.name.value : group.entries[0]?.model.name || group.key;
+// Without a reference, an aggregator's native ID reads as a name; the ID line under it keeps the exact ID.
+const nameOf = (group: ReferenceGroup) => known(group.reference?.fields.name?.value) ? group.reference.fields.name.value : readableModelName(group.entries[0]?.model.name || group.key);
 // A saved card's own creator, else its reference's, else a grouped model's; "Unknown" is missing.
 const creatorOf = (group: ReferenceGroup, saved?: Model) => [saved?.creator, group.reference?.fields.creator?.value, ...group.entries.map(entry => entry.model.creator)].map(creatorKey).find(creator => creator !== "Unknown") ?? "Unknown";
 const familyOf = (group: ReferenceGroup) => knownValue(group.reference?.fields.family?.value) || knownValue(group.entries[0]?.model.family);
@@ -94,7 +95,8 @@ export default function ReferenceCatalogBrowser({ scope, models, allModels, cata
   };
 
   const render = (filtered: Model[], view: ViewOptions, groupBy: string, filters: ModelFilters, sort: SortKey) => {
-    if (!catalog) return <div role="status" aria-label={copy("Loading model cards…", "Chargement des fiches…")}><CatalogGrid format={cardFormat(view)} columns={gridColumns(view.size)}>{Array.from({ length: 8 }, (_, index) => <Skeleton key={index} className="h-36" />)}</CatalogGrid></div>;
+    // Said in words, and drawn as card outlines: a skeleton in the page's own grey read as a blank page.
+    if (!catalog) return <div role="status" aria-label={copy("Loading model cards…", "Chargement des fiches…")} className="space-y-3"><p className="text-sm text-muted-foreground">{copy("Loading models…", "Chargement des modèles…")}</p><CatalogGrid format={cardFormat(view)} columns={gridColumns(view.size)}>{Array.from({ length: 8 }, (_, index) => <Skeleton key={index} className="h-36 border bg-card" />)}</CatalogGrid></div>;
     const groups = filterReferenceGroups(filtered, catalog, filters, byCard);
     // Reference groups across both scopes: what a card has beside it, whether a model is partly saved.
     const full = new Map(groupReferenceModels(allModels, catalog).map(group => [group.key, group]));
@@ -167,7 +169,7 @@ export default function ReferenceCatalogBrowser({ scope, models, allModels, cata
       const format = cardFormat(view);
       return <CatalogCard key={group.key} format={format} dataTour={tour ? "first-model" : undefined}
         header={header(group)}
-        footer={<>{view.providers && <ProviderSummary ids={entries.flatMap(entry => entry.access ? [entry.access.provider] : [])} />}{associate(group)}{accessMenu(group)}{joinable(group).length > 0 && <Button size="sm" variant="outline" className="h-8" onClick={() => open(group)}>{copy("Add to card", "Ajouter à la fiche")}<ActionLabel label={labelOf(group)} /></Button>}</>}>
+        footer={<>{view.providers && <ProviderSummary ids={entries.flatMap(entry => entry.access ? [entry.access.provider] : [])} />}{associate(group)}{accessMenu(group)}{!byCard && <Button size="sm" variant="outline" className="h-8" onClick={() => open(group)}>{joinable(group).length > 0 ? copy("Add to card", "Ajouter à la fiche") : copy("Add", "Ajouter")}<ActionLabel label={labelOf(group)} /></Button>}</>}>
         {view.description && (common.summary && first.summary ? <p className="line-clamp-2 text-xs leading-relaxed text-foreground/80" title={first.summary}>{first.summary}</p> : !common.summary ? <p className="text-xs text-muted-foreground">{copy("Descriptions vary by access", "Descriptions variables selon les accès")}</p> : null)}
         {unknownFacts(group) ? (view.modalities || view.evidence) && <FactsUnknown associate={canAssociate(group)} /> : <>
         {view.modalities && (common.modalities ? <ModelModalitiesSummary model={first} label={labelOf(group)} stacked={format === "square"} /> : <p className="text-xs text-muted-foreground">{copy("Modalities vary by access", "Modalités variables selon les accès")}</p>)}
