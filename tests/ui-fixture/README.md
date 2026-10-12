@@ -89,19 +89,21 @@ embedded Models.dev snapshot; `tencent/qa-hunyuan`, `meituan/qa-longcat` and
 | QA Hermes Key (`vk-qa-hermes`) | unmanaged | `mistral`: `qa-mistral-large`, `qa-mistral-small` (never discovered) and `Claude`: `qa-haiku`, `qa-opus` (saved); the same case as QA Mistral Key, kept apart so two journeys can each adopt one (the native permission edit adopts this one) |
 | QA To Add Key (`vk-qa-unsaved`) | unmanaged | `synthetic-provider`: `qa-vision` (saved) and `qa-unregistered` (discovered, no card); blocked by the unsaved model |
 | QA Wildcard Key (`vk-qa-wildcard`) | unmanaged | `Claude`: `*` (all models) and `Codex`: `qa-codex` (saved); the journeys adopt it keeping Claude in Bifrost |
+| QA Kept Key (`vk-qa-kept`) | unmanaged | `Codex`: `qa-codex-mini` (saved) and `Google`: `qa-gemini` (saved), `qa-ghost` (Google does not serve it); the journeys adopt it keeping Google in Bifrost, and its readback lacks `Google/qa-ghost` (#99) |
 
 Adoption cases among the unmanaged keys: **ready** (`vk-qa-codex`, `vk-qa-google`),
 **empty** (`vk-qa-unmanaged`), **all providers** (`vk-qa-all-providers`), **all models of a
 provider** (`vk-qa-claude`, `vk-qa-wildcard`), **blocked by undiscovered models** (`vk-qa-mistral`,
-`vk-qa-hermes`), **blocked by discovered models without a card** (`vk-qa-unsaved`). The
+`vk-qa-hermes` on a disabled provider, `vk-qa-kept` on an enabled one), **blocked by discovered models without a card** (`vk-qa-unsaved`). The
 journeys adopt `vk-qa-codex`, `vk-qa-mistral` (keeping `mistral` in Bifrost), `vk-qa-wildcard`
-(keeping `Claude` in Bifrost) and, after a native permission edit, `vk-qa-hermes`,
+(keeping `Claude` in Bifrost), `vk-qa-kept` (keeping `Google` in Bifrost) and, after a native permission edit, `vk-qa-hermes`,
 `vk-qa-all-providers` and `vk-qa-claude`; `vk-qa-google` stays ready. No journey saves `qa-unregistered`.
 
 `/v1/models` answers an unmanaged key with every `provider/model` its native permissions allow,
 plus the names it allows explicitly on a disabled provider. For a managed key it builds the same
-kind of native list from the key's explicit names (a `*` row lists every model its provider
-serves), then runs the plugin's own `Session.Project`
+kind of native list from the key's explicit names, like Bifrost 2.2.6: a name its provider does not
+serve is left out (unless the provider has no discoverable models, as a disabled one), and a `*` row
+lists every model its provider serves; then it runs the plugin's own `Session.Project`
 on it (Registry routes only, plus the providers the policy keeps native).
 
 **Native key updates.** A virtual key `PUT` behaves like Bifrost: every provider row gets an

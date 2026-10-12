@@ -1055,10 +1055,10 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(page.getByRole('button', { name: /^(All virtual keys|Virtual keys|Back)$/ })).toHaveCount(1);
     // Spec #85: a managed key opens read-first on what it can call today, grouped by subscription; the
     // 59-card editor waits behind Edit selection, and the rare actions wait in More actions.
-    // Round 2: one ledger, "This key can call N models", one row per model tagged with its route; what Bifrost
-    // allows (story 36) and the IDs it lists wait in one "Technical check" fold.
+    // Round 2 and #99: one ledger, "This key can call N models", one row per model with the subscriptions that serve
+    // it; what Bifrost allows (story 36) and the IDs it lists wait in one "Technical check" fold.
     const ledger = page.getByRole('region', { name: 'This key can call 2 models', exact: true });
-    await expect(ledger).toContainText('Synthetic Provider · 2 models');
+    await expect(ledger.getByRole('listitem')).toHaveCount(2);
     await expect(ledger).toContainText('via Synthetic Provider');
     await expect(ledger.getByText(/^Bifrost allows today · /)).toBeHidden();
     await ledger.getByText(/^Technical check · /).click();
@@ -1179,6 +1179,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
       ['QA All Providers Key', 'Blocked', 'Every provider allowed'],
       ['QA Claude Key', 'Blocked', 'Claude · all models allowed'],
       ['QA Wildcard Key', 'Blocked', 'Claude · all models allowed'],
+      ['QA Kept Key', 'Blocked', 'Google · 1 model not discovered'],
       ['QA Unmanaged Key', 'Empty', ''],
     ];
     await emptyShelf();
@@ -1190,29 +1191,29 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(keyCard('QA Development Key')).toContainText('Active');
     // The default order opens on managed keys, then the worklist: ready, then blocked; by name inside each.
     // Empty keys wait in their own shelf (opened above; collapsed by default).
-    await expect(page.getByRole('button', { name: /^(Review|Open) · / })).toHaveText(['Open · QA Development Key', 'Open · QA Visual Key', 'Review · QA Codex Key', 'Review · QA Google Key', 'Review · QA All Providers Key', 'Review · QA Claude Key', 'Review · QA Hermes Key', 'Review · QA Mistral Key', 'Review · QA To Add Key', 'Review · QA Wildcard Key', 'Review · QA Unmanaged Key']);
+    await expect(page.getByRole('button', { name: /^(Review|Open) · / })).toHaveText(['Open · QA Development Key', 'Open · QA Visual Key', 'Review · QA Codex Key', 'Review · QA Google Key', 'Review · QA All Providers Key', 'Review · QA Claude Key', 'Review · QA Hermes Key', 'Review · QA Kept Key', 'Review · QA Mistral Key', 'Review · QA To Add Key', 'Review · QA Wildcard Key', 'Review · QA Unmanaged Key']);
     await page.getByRole('button', { name: 'Empty 1', exact: true }).click();
-    await expect(page.getByText('11 of 11 keys shown, 1 in a collapsed shelf', { exact: true })).toBeVisible();
+    await expect(page.getByText('12 of 12 keys shown, 1 in a collapsed shelf', { exact: true })).toBeVisible();
     await emptyShelf();
     // The Keys page triages by readiness; managed keys are their own bucket. Basic keeps the filters in "Filters".
     const readiness = page.getByRole('combobox', { name: 'Filter by readiness', exact: true });
     await keyFilters(); await readiness.click();
-    await expect(page.getByRole('option')).toHaveText(['All adoption states', 'Ready to adopt (2)', 'Blocked (6)', 'Empty (1)', 'Managed (2)']);
-    await page.getByRole('option', { name: 'Blocked (6)', exact: true }).click();
-    await expect(page.getByText('6 of 11 keys shown', { exact: true })).toBeVisible();
+    await expect(page.getByRole('option')).toHaveText(['All adoption states', 'Ready to adopt (2)', 'Blocked (7)', 'Empty (1)', 'Managed (2)']);
+    await page.getByRole('option', { name: 'Blocked (7)', exact: true }).click();
+    await expect(page.getByText('7 of 12 keys shown', { exact: true })).toBeVisible();
     await expect(keyCard('QA Mistral Key')).toHaveCount(1);
     await expect(keyCard('QA Codex Key')).toHaveCount(0);
     await keyFilters(); await readiness.click();
     await page.getByRole('option', { name: 'Ready to adopt (2)', exact: true }).click();
-    await expect(page.getByText('2 of 11 keys shown', { exact: true })).toBeVisible();
+    await expect(page.getByText('2 of 12 keys shown', { exact: true })).toBeVisible();
     await expect(keyCard('QA Google Key')).toHaveCount(1);
     await keyFilters(); await readiness.click();
     await page.getByRole('option', { name: 'Empty (1)', exact: true }).click();
     await expect(keyCard('QA Unmanaged Key')).toHaveCount(1);
-    await expect(page.getByText('1 of 11 keys shown', { exact: true })).toBeVisible();
+    await expect(page.getByText('1 of 12 keys shown', { exact: true })).toBeVisible();
     await keyFilters(); await readiness.click();
     await page.getByRole('option', { name: 'All adoption states', exact: true }).click();
-    await expect(page.getByText('11 of 11 keys shown', { exact: true })).toBeVisible();
+    await expect(page.getByText('12 of 12 keys shown', { exact: true })).toBeVisible();
     await page.keyboard.press('Escape'); // closes Filters
     await shot('after-keys-readiness');
 
@@ -1591,14 +1592,13 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     const apply = page.waitForRequest(r => r.method() === 'POST' && r.url().endsWith('/api/keys/adopt') && r.postDataJSON().phase === 'apply');
     await dialog.getByRole('button', { name: 'Adopt', exact: true }).click();
     expect((await apply).postDataJSON()).toMatchObject({ keyId: 'vk-qa-mistral', operation: 'adopt', phase: 'apply', keepNative: ['Codex', 'mistral'] });
-    // The managed key counts every route it can call once, kept providers included, on its page and on its card:
-    // three Claude routes through Registry, Codex's qa-shared and Mistral's three models kept in Bifrost.
+    // The managed key counts every model it can call once, kept providers included, on its page and on its card
+    // (#99): three Claude models through Registry, QA Shared also through Codex, and Mistral's three kept models.
     const ledger = page.getByRole('region', { name: /^This key can call/ });
-    await expect(ledger).toHaveAccessibleName('This key can call 7 models');
-    await expect(ledger.getByRole('region', { name: 'Mistral', exact: true })).toContainText('Mistral · 3 models');
-    await expect(ledger.getByRole('region', { name: 'Mistral', exact: true })).toContainText('kept in Bifrost');
-    await expect(ledger.getByRole('region', { name: 'Codex', exact: true })).toContainText('kept in Bifrost');
-    await expect(ledger.getByRole('region', { name: 'Claude', exact: true })).toContainText('via Claude');
+    await expect(ledger).toHaveAccessibleName('This key can call 6 models');
+    await expect(ledger.getByRole('listitem').filter({ hasText: 'QA Shared' })).toContainText('via Claude, Codex');
+    await expect(ledger.getByRole('listitem').filter({ hasText: 'qa-mistral-large' })).toContainText('via Mistral');
+    await expect(ledger).toContainText('Kept in Bifrost: Codex, Mistral.');
     await editSelection();
     await composerStep('Review').click();
     await button('Read again').click();
@@ -1614,7 +1614,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     // Registry never rewrote Bifrost's permissions for the kept provider.
     expect(key.permissions.providers.find((p: { provider: string }) => p.provider === 'mistral').models).toEqual(['qa-mistral-large', 'qa-mistral-small', 'qa-mistral-code']);
     await button('All virtual keys').click();
-    await expect(keyCard('QA Mistral Key')).toContainText('7 models · Verified');
+    await expect(keyCard('QA Mistral Key')).toContainText('6 models · Verified');
     await shot('after-keep-native-key-card');
   });
 
@@ -1636,8 +1636,8 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     // Claude allows every model in Bifrost: the total is open ("at least").
     const ledger = page.getByRole('region', { name: /^This key can call/ });
     await expect(ledger).toHaveAccessibleName('This key can call at least 1 model');
-    await expect(ledger.getByRole('region', { name: 'Claude', exact: true })).toContainText('All models Bifrost allows');
-    await expect(ledger).toContainText('Codex · 1 model');
+    await expect(ledger.getByRole('listitem').filter({ hasText: 'All models Bifrost allows' })).toContainText('via Claude');
+    await expect(ledger.getByRole('listitem').filter({ hasText: 'via Codex' })).toHaveCount(1);
     // The read-first page reads the key back without opening the editor, from the technical check.
     await ledger.getByText(/^Technical check · /).click();
     await button('Read again').click();
@@ -1670,6 +1670,33 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(keyChanges().getByRole('list', { name: 'Will gain' })).not.toContainText('Claude/qa-haiku');
     await button('Discard draft').click();
     await button('All virtual keys').click();
+  });
+
+  await test.step('a kept model Bifrost does not list is flagged, not counted, and reads as a difference (#99)', async () => {
+    // The live Hermes shape: Google allows qa-gemini and qa-ghost on this key but does not serve qa-ghost, so it
+    // blocks adoption until Google is kept in Bifrost; Bifrost's /v1/models then leaves Google/qa-ghost out.
+    await nav('Virtual keys').click();
+    await keyCard('QA Kept Key').getByRole('button', { name: 'Review · QA Kept Key', exact: true }).click();
+    await button('Adopt this key').click();
+    const dialog = page.getByRole('dialog');
+    await dialog.getByRole('button', { name: 'Keep Google in Bifrost', exact: true }).click();
+    await expect(dialog).toContainText('Ready to adopt');
+    await dialog.getByRole('button', { name: 'Adopt', exact: true }).click();
+    const ledger = page.getByRole('region', { name: /^This key can call/ });
+    await ledger.getByText(/^Technical check · /).click();
+    await button('Read again').click();
+    await expect(ledger.getByText(/^Technical check · Verified .* · 1 difference$/)).toBeVisible();
+    await expect(ledger).toHaveAccessibleName('This key can call 2 models');
+    await expect(ledger.getByRole('listitem').filter({ hasText: 'Google: Bifrost does not list this one' })).toContainText('qa-ghost');
+    await expect(ledger.getByRole('listitem').filter({ hasText: 'via Google' })).toHaveCount(1);
+    await expect(ledger).toContainText('Kept in Bifrost: Google.');
+    // A kept route is Bifrost's: Registry's own check still reads verified, with no missing route.
+    const key = (await api('workspace')).data.keys.find((k: { id: string }) => k.id === 'vk-qa-kept');
+    expect(key.publication.state).toBe('verified');
+    expect(key.publication.missing).toEqual([]);
+    expect(key.publication.actual).not.toContain('Google/qa-ghost');
+    await button('All virtual keys').click();
+    await expect(keyCard('QA Kept Key')).toContainText('2 models · Verified · 1 difference');
   });
 
   await test.step('a blocked key loses what Registry cannot represent only after a preview and a confirmation, then it is adopted (#93)', async () => {

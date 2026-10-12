@@ -70,7 +70,8 @@ export function KeyLibrary({ keys, groups, models, view, onViewChange, onResetVi
     return <Badge variant={readinessVariant[state]} title={readinessReason(key.readiness, copy) || undefined}>{readinessLabel(state, copy)}</Badge>;
   };
   const reasonLine = (key: Key) => { const reason = readinessReason(key.readiness, copy); return reason && <p className="line-clamp-2 break-words text-xs text-chart-warning-ink" title={reason}>{reason}</p>; };
-  const checkBadge = (key: Key) => { const state = key.publication?.state; return <Badge variant={state === "verified" ? "success" : state === "drift" ? "warning" : "outline"}>{checkState(key, copy)}</Badge>; };
+  // A verified key whose readback lacks a kept model reads "Verified · 1 difference" (#99), as a warning.
+  const checkBadge = (key: Key) => { const state = key.publication?.state; const { differences } = keyLedger(key, models, groups); return <Badge variant={state === "verified" && !differences ? "success" : state === "drift" || state === "verified" ? "warning" : "outline"}>{checkState(key, copy, differences)}</Badge>; };
   const dupeHint = (key: Key) => dupes.has(key.id) && <p className="text-xs text-chart-warning-ink">{copy("Another key has almost the same name", "Une autre clé porte presque le même nom")}</p>;
   const accessChoice = copy("Access choice needed", "Choix d’accès requis");
   const card = (key: Key) => {

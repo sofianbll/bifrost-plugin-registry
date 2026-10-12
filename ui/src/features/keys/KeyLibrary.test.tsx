@@ -28,11 +28,17 @@ if (!frenchSummary.includes("1 fournisseur · 2 modèles")) throw new Error("Fre
 // Spec #85 round 2: a managed card shows the key page's single total (Registry routes plus kept models) and the check.
 const render = (language: "en" | "fr", keys: Key[], options: { expert?: boolean; layout?: "grid" | "table"; snapshotMode?: boolean } = {}) => renderToStaticMarkup(<LanguageContext.Provider value={language}><KeyLibrary keys={keys} groups={fixture.groups} models={fixture.models} view={{ ...defaultViewOptions, layout: options.layout ?? "grid" }} expert={options.expert} onViewChange={() => {}} onResetView={() => {}} busy={false} snapshotMode={options.snapshotMode ?? false} onCreate={() => {}} onOpen={() => {}} /></LanguageContext.Provider>);
 const plain = (html: string) => html.split(/<[^>]*>/).join("");
-const keptKey: Key = { ...fixture.keys[0], managed: true, policy: { groups: [], added: ["gpt-5-mini"], excluded: [], naming: "model", keptNative: ["mistral"] }, permissions: { allProviders: false, providers: [{ provider: "mistral", allModels: false, models: ["a", "b", "c"] }, { provider: "openai", allModels: false, models: ["gpt-5-mini"] }] }, publication: { state: "verified", revision: "r", checkedAt: "2026-10-12T09:30:00Z", expected: [], actual: [], missing: [], unexpected: [] } };
+const keptKey: Key = { ...fixture.keys[0], managed: true, policy: { groups: [], added: ["gpt-5-mini"], excluded: [], naming: "model", keptNative: ["mistral"] }, permissions: { allProviders: false, providers: [{ provider: "mistral", allModels: false, models: ["a", "b", "c"] }, { provider: "openai", allModels: false, models: ["gpt-5-mini"] }] }, publication: { state: "verified", revision: "r", checkedAt: "2026-10-12T09:30:00Z", expected: [], actual: ["gpt-5-mini", "mistral/a", "mistral/b", "mistral/c"], missing: [], unexpected: [] } };
 for (const [language, line] of [["en", "4 models · Verified"], ["fr", "4 modèles · Vérifiée"]] as const) {
   const text = plain(render(language, [keptKey]));
   if (!text.includes(line)) throw new Error(`${language}: the key card must read "${line}", got ${text}`);
   for (const jargon of ["chosen in Registry", "choisis dans Registry", "IDs", "Bifrost allows ·", "kept in Bifrost ·"]) if (text.includes(jargon)) throw new Error(`${language}: one total, no "${jargon}" on the card`);
+}
+// #99: a kept model Bifrost does not list is not counted, and the check says there is a difference.
+const unlisted: Key = { ...keptKey, publication: { ...keptKey.publication!, actual: ["gpt-5-mini", "mistral/a", "mistral/b"] } };
+for (const [language, line] of [["en", "3 models · Verified · 1 difference"], ["fr", "3 modèles · Vérifiée · 1 écart"]] as const) {
+  const text = plain(render(language, [unlisted]));
+  if (!text.includes(line)) throw new Error(`${language}: the key card must read "${line}", got ${text}`);
 }
 const tableText = (language: "en" | "fr") => plain(render(language, [keptKey], { layout: "table" }));
 if (!tableText("en").includes("4 models") || !tableText("en").includes("Oct 12, 2026") || !tableText("fr").includes("12/10/2026")) throw new Error(`The table shows the total and a dated check in the active language: ${tableText("en")}`);
