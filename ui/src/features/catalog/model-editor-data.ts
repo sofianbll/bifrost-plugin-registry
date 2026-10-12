@@ -141,3 +141,12 @@ export function omitUnchangedReferenceIds(draft: Model, workspace: Model[]): Mod
     return rest;
   }) };
 }
+
+// #100: the one plain sentence the Review step opens on: what saving does, from the draft's own name and subscriptions.
+export function reviewSentence({ name, providers, creating }: { name: string; providers: string[]; creating: boolean }, copy: Copy) {
+  const model = name || copy("this model", "ce modèle");
+  if (!creating) return copy(`You’re saving changes to ${model}. Keys that already use it get these changes.`, `Vous enregistrez des modifications de ${model}. Les clés qui l’utilisent déjà reçoivent ces modifications.`);
+  const list = providers.length > 1 ? `${providers.slice(0, -1).join(", ")} ${copy("and", "et")} ${providers.at(-1)}` : providers[0];
+  const from = !list ? "" : providers.length > 1 ? copy(` from your ${list} subscriptions`, ` depuis vos abonnements ${list}`) : copy(` from your ${list} subscription`, ` depuis votre abonnement ${list}`);
+  return copy(`You’re registering ${model}${from}. It appears in My models; no key can use it until you add it to one.`, `Vous enregistrez ${model}${from}. Il apparaîtra dans Mes modèles ; aucune clé ne pourra l’utiliser tant que vous ne l’aurez pas ajouté à une clé.`);
+}
