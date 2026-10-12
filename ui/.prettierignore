@@ -1,3 +1,4 @@
+# Not formatted on purpose: the tab-indented stylesheet, JSON snapshots and docs would churn without value.
 dist
 node_modules
 *.css

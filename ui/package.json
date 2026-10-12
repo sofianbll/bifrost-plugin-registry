@@ -9,8 +9,8 @@
     "prototype:key-composer": "vite --host 127.0.0.1 --port 8772 --strictPort",
     "check:key-composer": "node --import tsx src/experiments/key-composer-prototype/state.test.ts && node --import tsx src/experiments/key-composer-prototype/key-state.test.ts",
     "build": "tsc --noEmit && vite build",
-    "format": "prettier --write src e2e",
-    "format:check": "prettier --check src e2e",
+    "format": "prettier --write src e2e scripts",
+    "format:check": "prettier --check src e2e scripts",
     "check": "node scripts/run-checks.test.mjs && node scripts/run-checks.mjs"
   },
   "dependencies": {
