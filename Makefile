@@ -1,4 +1,4 @@
-.PHONY: check test ui-check script-check lint build serve native
+.PHONY: check test ui-check script-check lint build serve native hooks
 
 check: test ui-check script-check
 
@@ -35,3 +35,6 @@ serve:
 native:
 	@test -n "$(BIFROST_CHECKOUT)" || (echo 'Set BIFROST_CHECKOUT=/path/to/checkout'; exit 1)
 	./scripts/build-with-bifrost.sh "$(BIFROST_CHECKOUT)" ./dist/native
+
+hooks:
+	git config core.hooksPath .githooks
