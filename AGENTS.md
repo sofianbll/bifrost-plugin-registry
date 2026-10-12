@@ -17,3 +17,4 @@ Delegate bounded implementation and focused audits to subagents, each with a nam
 - Track specs and work in [GitHub Issues](docs/agents/issue-tracker.md).
 - Use the [five triage labels](docs/agents/triage-labels.md).
 - Before changing domain behavior, read [the root context and ADR conventions](docs/agents/domain.md).
+- Reviewers apply the [coding standards](CODING_STANDARDS.md).
