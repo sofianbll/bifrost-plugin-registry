@@ -1,14 +1,36 @@
-import { applyKeyAdoption, clearAdminToken, getWorkspace, isWellFormedAdminToken, previewKeyAdoption, putWorkspace, readbackKey, setAdminToken } from "./api";
-import { createCatalogReference, getCatalog, matchCatalogReference, overrideCatalogField, parseCatalogValue, refreshCatalog } from "../features/catalog/catalog-api";
+import {
+  applyKeyAdoption,
+  clearAdminToken,
+  getWorkspace,
+  isWellFormedAdminToken,
+  previewKeyAdoption,
+  putWorkspace,
+  readbackKey,
+  setAdminToken,
+} from "./api";
+import {
+  createCatalogReference,
+  getCatalog,
+  matchCatalogReference,
+  overrideCatalogField,
+  parseCatalogValue,
+  refreshCatalog,
+} from "../features/catalog/catalog-api";
 import { applySnapshot, getSnapshot, getSnapshotCsv, previewSnapshot } from "../features/snapshot/snapshot-api";
 import type { Demo } from "../domain/registry";
 import { revealKeySecret } from "../features/keys/key-secret-api";
 
 const calls: { url: string; init: RequestInit }[] = [];
-const equal = (actual: unknown, expected: unknown) => { if (JSON.stringify(actual) !== JSON.stringify(expected)) throw new Error(`Expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`); };
+const equal = (actual: unknown, expected: unknown) => {
+  if (JSON.stringify(actual) !== JSON.stringify(expected))
+    throw new Error(`Expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+};
 globalThis.fetch = (async (url: string, init: RequestInit) => {
   calls.push({ url, init });
-  return new Response(JSON.stringify({ revision: "next" }), { status: 200, headers: { "Content-Type": "application/json" } });
+  return new Response(JSON.stringify({ revision: "next" }), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
 }) as typeof fetch;
 
 const data: Demo = { models: [], groups: [], keys: [], campaigns: [] };
@@ -39,7 +61,12 @@ equal(calls[5].url, "./api/catalog/refresh");
 equal(new Headers(calls[5].init.headers).get("If-Match"), "catalog-1");
 equal(JSON.parse(calls[5].init.body as string), { sources: ["models.dev"] });
 equal(calls[6].url, "./api/catalog/override");
-equal(JSON.parse(calls[6].init.body as string), { target: "reference", id: "openai/gpt-6", field: "context_length", value: 128000 });
+equal(JSON.parse(calls[6].init.body as string), {
+  target: "reference",
+  id: "openai/gpt-6",
+  field: "context_length",
+  value: 128000,
+});
 equal(calls[7].url, "./api/catalog/match");
 equal(JSON.parse(calls[7].init.body as string), { accessId: "provider/model", referenceId: "openai/gpt-6" });
 equal(calls[8].url, "./api/catalog/reference");
@@ -50,7 +77,11 @@ const french = (_: string, text: string) => text;
 equal(parseCatalogValue("reasoning", "false", english), false);
 equal(parseCatalogValue("input_modalities", '["text","image"]', english), ["text", "image"]);
 let rejected = false;
-try { parseCatalogValue("context_length", "", french); } catch (cause) { rejected = (cause as Error).message === "Saisissez un nombre fini."; }
+try {
+  parseCatalogValue("context_length", "", french);
+} catch (cause) {
+  rejected = (cause as Error).message === "Saisissez un nombre fini.";
+}
 equal(rejected, true);
 setAdminToken("test-admin-token");
 await getSnapshot();
@@ -69,13 +100,28 @@ equal(new Headers(calls[12].init.headers).get("If-Match"), "current-snapshot");
 equal(calls[12].init.body, calls[11].init.body);
 setAdminToken("test-admin-token");
 await previewKeyAdoption("native/key", "adopt");
-await applyKeyAdoption({ keyId: "native/key", operation: "adopt", revision: "adoption-revision", previewToken: "preview-token", selectedRoutes: [], nativeRoutes: [], blocked: [], canApply: true, nativePermissionsPreserved: true });
+await applyKeyAdoption({
+  keyId: "native/key",
+  operation: "adopt",
+  revision: "adoption-revision",
+  previewToken: "preview-token",
+  selectedRoutes: [],
+  nativeRoutes: [],
+  blocked: [],
+  canApply: true,
+  nativePermissionsPreserved: true,
+});
 clearAdminToken();
 equal(calls[13].url, "./api/keys/adopt");
 equal(JSON.parse(calls[13].init.body as string), { keyId: "native/key", operation: "adopt", phase: "preview" });
 equal(calls[14].url, "./api/keys/adopt");
 equal(new Headers(calls[14].init.headers).get("If-Match"), "adoption-revision");
-equal(JSON.parse(calls[14].init.body as string), { keyId: "native/key", operation: "adopt", phase: "apply", previewToken: "preview-token" });
+equal(JSON.parse(calls[14].init.body as string), {
+  keyId: "native/key",
+  operation: "adopt",
+  phase: "apply",
+  previewToken: "preview-token",
+});
 setAdminToken("test-admin-token");
 await revealKeySecret("native/key");
 clearAdminToken();
@@ -86,7 +132,9 @@ equal(calls[15].init.cache, "no-store");
 console.log("Live API request contract: OK");
 
 // A model save carries its metadata corrections in the same revisioned write.
-const stagedCorrections = [{ target: "access" as const, id: "example/model", field: "context_length" as const, value: 32000 }];
+const stagedCorrections = [
+  { target: "access" as const, id: "example/model", field: "context_length" as const, value: 32000 },
+];
 await putWorkspace(data, "draft-revision", stagedCorrections);
 equal(calls.at(-1)?.url, "./api/workspace");
 equal(JSON.parse(calls.at(-1)?.init.body as string), { data, catalogOverrides: stagedCorrections });
@@ -94,13 +142,47 @@ equal(new Headers(calls.at(-1)?.init.headers).get("If-Match"), "draft-revision")
 // Keeping a provider native (#92) travels with both phases, so the preview token matches; no choice sends nothing extra (above).
 setAdminToken("test-admin-token");
 await previewKeyAdoption("native/key", "adopt", ["mistral"]);
-equal(JSON.parse(calls.at(-1)?.init.body as string), { keyId: "native/key", operation: "adopt", phase: "preview", keepNative: ["mistral"] });
-await applyKeyAdoption({ keyId: "native/key", operation: "adopt", revision: "adoption-revision", previewToken: "preview-token", selectedRoutes: [], nativeRoutes: [], blocked: [], canApply: true, nativePermissionsPreserved: true }, ["mistral"]);
-equal(JSON.parse(calls.at(-1)?.init.body as string), { keyId: "native/key", operation: "adopt", phase: "apply", previewToken: "preview-token", keepNative: ["mistral"] });
+equal(JSON.parse(calls.at(-1)?.init.body as string), {
+  keyId: "native/key",
+  operation: "adopt",
+  phase: "preview",
+  keepNative: ["mistral"],
+});
+await applyKeyAdoption(
+  {
+    keyId: "native/key",
+    operation: "adopt",
+    revision: "adoption-revision",
+    previewToken: "preview-token",
+    selectedRoutes: [],
+    nativeRoutes: [],
+    blocked: [],
+    canApply: true,
+    nativePermissionsPreserved: true,
+  },
+  ["mistral"],
+);
+equal(JSON.parse(calls.at(-1)?.init.body as string), {
+  keyId: "native/key",
+  operation: "adopt",
+  phase: "apply",
+  previewToken: "preview-token",
+  keepNative: ["mistral"],
+});
 clearAdminToken();
 // Sign-in checks the pasted token before fetch would throw on it (#55).
 equal(isWellFormedAdminToken("abc123-_.~+/=XYZ"), true);
-equal(["abc     │ def", "abc def", "abc\tdef", "jéton", ""].map(isWellFormedAdminToken), [false, false, false, false, false]);
+equal(["abc     │ def", "abc def", "abc\tdef", "jéton", ""].map(isWellFormedAdminToken), [
+  false,
+  false,
+  false,
+  false,
+  false,
+]);
 let unknownBooleanRejected = false;
-try { parseCatalogValue("reasoning", "", english); } catch { unknownBooleanRejected = true; }
+try {
+  parseCatalogValue("reasoning", "", english);
+} catch {
+  unknownBooleanRejected = true;
+}
 equal(unknownBooleanRejected, true);

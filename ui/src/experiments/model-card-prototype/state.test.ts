@@ -6,7 +6,16 @@ const assertEqual = (actual: unknown, expected: unknown) => {
 };
 
 const model = { limit: { context: 100, output: 10 }, tool_call: true };
-const inherited: Access = { id: "a", providerId: "a", providerName: "A", modelId: "a", baseModelId: "m", authored: {}, resolved: {}, sourcePath: "a" };
+const inherited: Access = {
+  id: "a",
+  providerId: "a",
+  providerName: "A",
+  modelId: "a",
+  baseModelId: "m",
+  authored: {},
+  resolved: {},
+  sourcePath: "a",
+};
 const explicit: Access = { ...inherited, id: "b", authored: { limit: { output: 10 } } };
 let draft = change(emptyDraft(), undefined, "limit.output", "20");
 assertEqual(effective(model, inherited, "limit.output", draft).value, "20");
@@ -33,5 +42,8 @@ assertEqual(effective(catalog.model.metadata, offers[1], "limit.output", local).
 const reset = change(local, offers[1].id, "limit.output", undefined);
 assertEqual(effective(catalog.model.metadata, offers[1], "limit.output", reset).value, 128000);
 assertEqual(Object.keys(original.common).length, 0);
-assertEqual(effective(model, inherited, "structured_output", change(original, undefined, "structured_output", "false")).value, "false");
+assertEqual(
+  effective(model, inherited, "structured_output", change(original, undefined, "structured_output", "false")).value,
+  "false",
+);
 assertEqual(effective(model, inherited, "structured_output", original).value, undefined);
