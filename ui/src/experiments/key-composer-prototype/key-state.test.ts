@@ -1,6 +1,8 @@
 import { editDraft, initialKeys, saveKey } from "./key-state";
 
-const check = (condition: boolean, label: string) => { if (!condition) throw new Error(label); };
+const check = (condition: boolean, label: string) => {
+  if (!condition) throw new Error(label);
+};
 
 const original = structuredClone(initialKeys);
 const draft = editDraft(initialKeys[1]);
@@ -25,6 +27,10 @@ check(updated.at(-1)?.demoToken === created.at(-1)?.demoToken, "stable token");
 check(created.at(-1)?.draft.client === "Hermes (demo)", "edit mutates stored key");
 check(JSON.stringify(initialKeys) === JSON.stringify(original), "cancel mutates storage");
 let witnessRejected = false;
-try { saveKey(initialKeys, draft, "witness"); } catch { witnessRejected = true; }
+try {
+  saveKey(initialKeys, draft, "witness");
+} catch {
+  witnessRejected = true;
+}
 check(witnessRejected, "witness edit accepted");
 console.log("Prototype key create/edit/cancel checks passed");

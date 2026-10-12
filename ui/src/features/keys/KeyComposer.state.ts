@@ -1,8 +1,25 @@
-import { exposed, members, namedIds, origin, retainedAccesses, toggleModel, type Group, type Key, type Model, type Policy } from "../../domain/registry";
+import {
+  exposed,
+  members,
+  namedIds,
+  origin,
+  retainedAccesses,
+  toggleModel,
+  type Group,
+  type Key,
+  type Model,
+  type Policy,
+} from "../../domain/registry";
 import { displayProvider } from "../../components/registry/BrandIcon";
 import type { Copy } from "../../lib/locale";
 
-export function toggleVisibleModels(policy: Policy, visible: string[], target: string[], models: Model[], groups: Group[]): Policy {
+export function toggleVisibleModels(
+  policy: Policy,
+  visible: string[],
+  target: string[],
+  models: Model[],
+  groups: Group[],
+): Policy {
   const visibleIds = new Set(visible);
   const targetIds = new Set(target);
   return models.reduce((next, model) => {
@@ -24,7 +41,12 @@ export function modelOrigin(id: string, policy: Policy, groups: Group[]) {
 
 export type AccessOrigin = "inherited" | "added" | "excluded";
 
-export function accessOrigin(accessId: string, modelId: string, policy: Policy, groups: Group[]): AccessOrigin | undefined {
+export function accessOrigin(
+  accessId: string,
+  modelId: string,
+  policy: Policy,
+  groups: Group[],
+): AccessOrigin | undefined {
   const sel = policy.accessSelection?.[modelId];
   if (sel?.excluded.includes(accessId)) return "excluded";
   if (sel?.added.includes(accessId)) return "added";
@@ -35,7 +57,13 @@ export function accessOrigin(accessId: string, modelId: string, policy: Policy, 
   return undefined;
 }
 
-export function toggleAccess(policy: Policy, modelId: string, accessId: string, models: Model[], groups: Group[]): Policy {
+export function toggleAccess(
+  policy: Policy,
+  modelId: string,
+  accessId: string,
+  models: Model[],
+  groups: Group[],
+): Policy {
   const next: Policy = structuredClone(policy);
   const model = models.find(m => m.id === modelId);
   if (!model || !members(next, groups).includes(modelId)) return next;
@@ -49,7 +77,10 @@ export function toggleAccess(policy: Policy, modelId: string, accessId: string, 
     // Exclude this access.
     excluded = [...new Set([...excluded, accessId])];
   }
-  const { known } = retainedAccesses(model, { ...next, accessSelection: { ...next.accessSelection, [modelId]: { added, excluded } } });
+  const { known } = retainedAccesses(model, {
+    ...next,
+    accessSelection: { ...next.accessSelection, [modelId]: { added, excluded } },
+  });
   if (known.length === model.accesses.length) {
     if (next.accessSelection) {
       const remaining = { ...next.accessSelection };
@@ -95,7 +126,10 @@ export function aliasStatus(policy: Policy, groups: Group[], models: Model[]): R
 export function keyComposition(policy: Policy, groups: Group[], models: Model[]) {
   const selected = members(policy, groups);
   const inherited = new Set(policy.groups.flatMap(id => groups.find(group => group.id === id)?.members || []));
-  const byModel = new Map<string, { retained: string[]; excluded: string[]; unknown: string[]; origins: Record<string, AccessOrigin>; total: number }>();
+  const byModel = new Map<
+    string,
+    { retained: string[]; excluded: string[]; unknown: string[]; origins: Record<string, AccessOrigin>; total: number }
+  >();
   for (const id of selected) {
     const model = models.find(m => m.id === id);
     if (!model) continue;
@@ -125,21 +159,33 @@ export function keyComposition(policy: Policy, groups: Group[], models: Model[])
   };
 }
 
-
 // What Review compares the draft with: the last verified readback, else the last published plan,
 // else the models Bifrost allows today, in the key's ID format; none when neither is known.
-export function keyBaseline(key: Key, groups: Group[], models: Model[]): { source: "readback" | "plan" | "native" | "none"; ids: string[] } {
+export function keyBaseline(
+  key: Key,
+  groups: Group[],
+  models: Model[],
+): { source: "readback" | "plan" | "native" | "none"; ids: string[] } {
   const plan = exposed(key.policy, groups, models);
   // The readback also lists a kept provider's routes; Bifrost owns them and publishing never removes them.
   // A Registry route can start with a kept provider's name too (a "deepseek/…" card served elsewhere): it stays.
   const kept = key.policy.keptNative ?? [];
   const bifrostOwns = (id: string) => !plan.includes(id) && kept.some(provider => id.startsWith(`${provider}/`));
-  if (key.publication?.state === "verified" && key.publication.actual) return { source: "readback", ids: key.publication.actual.filter(id => !bifrostOwns(id)) };
+  if (key.publication?.state === "verified" && key.publication.actual)
+    return { source: "readback", ids: key.publication.actual.filter(id => !bifrostOwns(id)) };
   const permissions = key.permissions;
   if (plan.length) return { source: "plan", ids: plan };
   if (!permissions) return { source: "none", ids: [] };
   const ids = models.flatMap(model => {
-    const allowed = model.accesses.filter(access => permissions.allProviders || permissions.providers.some(p => p.provider === access.provider && (p.allModels || p.models.includes(access.nativeModel ?? "")))).map(access => access.id);
+    const allowed = model.accesses
+      .filter(
+        access =>
+          permissions.allProviders ||
+          permissions.providers.some(
+            p => p.provider === access.provider && (p.allModels || p.models.includes(access.nativeModel ?? "")),
+          ),
+      )
+      .map(access => access.id);
     return allowed.length ? namedIds(key.policy.naming, model.id, allowed) : [];
   });
   return { source: "native", ids };
@@ -159,8 +205,12 @@ export function permissionSummary(permissions: Key["permissions"], copy: Copy) {
     `${providers.length} ${copy(providers.length === 1 ? "provider" : "providers", providers.length === 1 ? "fournisseur" : "fournisseurs")}`,
     listed.length ? `${count} ${copy(count === 1 ? "model" : "models", count === 1 ? "modèle" : "modèles")}` : "",
     all.length ? `${copy("all models of", "tous les modèles de")} ${all.join(", ")}` : "",
-    unknown.length ? `${copy("models depend on the Bifrost version for", "modèles selon la version de Bifrost pour")} ${unknown.join(", ")}` : "",
-  ].filter(Boolean).join(" · ");
+    unknown.length
+      ? `${copy("models depend on the Bifrost version for", "modèles selon la version de Bifrost pour")} ${unknown.join(", ")}`
+      : "",
+  ]
+    .filter(Boolean)
+    .join(" · ");
 }
 
 export function preserveAdoptionDraft(adopted: Policy, draft: Policy): Policy {
@@ -174,7 +224,10 @@ export function preserveAdoptionDraft(adopted: Policy, draft: Policy): Policy {
   };
 }
 
-function mergeAccessSelection(a?: Record<string, { added: string[]; excluded: string[] }>, b?: Record<string, { added: string[]; excluded: string[] }>): Record<string, { added: string[]; excluded: string[] }> | undefined {
+function mergeAccessSelection(
+  a?: Record<string, { added: string[]; excluded: string[] }>,
+  b?: Record<string, { added: string[]; excluded: string[] }>,
+): Record<string, { added: string[]; excluded: string[] }> | undefined {
   if (!a && !b) return undefined;
   const out: Record<string, { added: string[]; excluded: string[] }> = {};
   for (const key of new Set([...Object.keys(a || {}), ...Object.keys(b || {})])) {

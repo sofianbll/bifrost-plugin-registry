@@ -5,11 +5,16 @@ import { useState } from "react";
 const memory = new Map<string, unknown>();
 
 export function useSessionState<T>(key: string | undefined, initial: T) {
-  const [value, setValue] = useState<T>(() => key && memory.has(key) ? memory.get(key) as T : initial);
-  const set = (next: T) => { if (key) memory.set(key, next); setValue(next); };
+  const [value, setValue] = useState<T>(() => (key && memory.has(key) ? (memory.get(key) as T) : initial));
+  const set = (next: T) => {
+    if (key) memory.set(key, next);
+    setValue(next);
+  };
   return [value, set] as const;
 }
 
 // Presets the state of a view that mounts later (a page opened with a filter already applied).
-export const setSessionState = (key: string, value: unknown) => { memory.set(key, value); };
+export const setSessionState = (key: string, value: unknown) => {
+  memory.set(key, value);
+};
 export const clearSessionState = () => memory.clear();

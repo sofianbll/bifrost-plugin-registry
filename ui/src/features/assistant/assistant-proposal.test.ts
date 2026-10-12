@@ -1,11 +1,58 @@
-import { canSaveAssistantSettings, getAssistantChoices, getAssistantSettings, putAssistantSettings, suggestModel } from "./assistant-api";
+import {
+  canSaveAssistantSettings,
+  getAssistantChoices,
+  getAssistantSettings,
+  putAssistantSettings,
+  suggestModel,
+} from "./assistant-api";
 import { applySuggestion, normalizeSuggestion, suggestionRows } from "./assistant-proposal";
 import { clearAdminToken, setAdminToken } from "../../data/api";
 import type { Model } from "../../domain/registry";
 
-const equal = (actual: unknown, expected: unknown) => { if (JSON.stringify(actual) !== JSON.stringify(expected)) throw new Error(`Expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`); };
-const model: Model = { id: "exact-model-id", name: "Manual name", creator: "Unknown", family: "Manual family", context: "Unknown", inputModalities: [], outputModalities: ["Text"], tasks: ["Chat"], kind: "Chat", summary: "Manual summary", capabilities: { Tools: "Observed in simulated campaign", Reasoning: "Unknown" }, accesses: [{ id: "provider/exact-access", provider: "provider", route: "Direct provider", nativeModel: "upstream-exact", status: "Configured" }] };
-const suggestion = normalizeSuggestion({ proposal: { referenceId: "reference/candidate", fields: { name: "AI name", creator: "AI creator", family: "AI family", context_length: 123456, input_modalities: ["text", "image"], output_modalities: ["audio"], reasoning: true, tool_call: true, structured_output: false, id: "wrong-id", accesses: [{ id: "wrong-access" }] } } });
+const equal = (actual: unknown, expected: unknown) => {
+  if (JSON.stringify(actual) !== JSON.stringify(expected))
+    throw new Error(`Expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+};
+const model: Model = {
+  id: "exact-model-id",
+  name: "Manual name",
+  creator: "Unknown",
+  family: "Manual family",
+  context: "Unknown",
+  inputModalities: [],
+  outputModalities: ["Text"],
+  tasks: ["Chat"],
+  kind: "Chat",
+  summary: "Manual summary",
+  capabilities: { Tools: "Observed in simulated campaign", Reasoning: "Unknown" },
+  accesses: [
+    {
+      id: "provider/exact-access",
+      provider: "provider",
+      route: "Direct provider",
+      nativeModel: "upstream-exact",
+      status: "Configured",
+    },
+  ],
+};
+const suggestion = normalizeSuggestion({
+  proposal: {
+    referenceId: "reference/candidate",
+    fields: {
+      name: "AI name",
+      creator: "AI creator",
+      family: "AI family",
+      context_length: 123456,
+      input_modalities: ["text", "image"],
+      output_modalities: ["audio"],
+      reasoning: true,
+      tool_call: true,
+      structured_output: false,
+      id: "wrong-id",
+      accesses: [{ id: "wrong-access" }],
+    },
+  },
+});
 const rows = suggestionRows(model, suggestion);
 equal(rows.find(row => row.key === "name")?.checked, false);
 equal(rows.find(row => row.key === "creator")?.checked, true);
@@ -14,7 +61,10 @@ equal(rows.find(row => row.key === "output_modalities")?.checked, false);
 equal(rows.find(row => row.key === "tool_call")?.checked, false);
 equal(rows.find(row => row.key === "referenceId")?.checked, false);
 equal(rows.find(row => row.key === "reasoning")?.proposed, "Declared (AI suggestion)");
-equal(rows.some(row => row.key === "structured_output" || row.key === "id" || row.key === "accesses"), false);
+equal(
+  rows.some(row => row.key === "structured_output" || row.key === "id" || row.key === "accesses"),
+  false,
+);
 const applied = applySuggestion(model, rows, new Set(rows.filter(row => row.checked).map(row => row.key)));
 equal(applied.id, model.id);
 equal(applied.accesses, model.accesses);
@@ -35,33 +85,101 @@ equal(explicit.capabilities.Tools, "Declared");
 equal(model.capabilities.Tools, "Observed in simulated campaign");
 const matched = applySuggestion(model, rows, new Set(["creator", "referenceId"]));
 equal(matched.creator, "AI creator");
-equal(matched.accesses.map(access => access.referenceId), ["reference/candidate"]);
-equal(matched.accesses.map(access => access.id), model.accesses.map(access => access.id));
-equal(matched.accesses.map(access => access.nativeModel), model.accesses.map(access => access.nativeModel));
+equal(
+  matched.accesses.map(access => access.referenceId),
+  ["reference/candidate"],
+);
+equal(
+  matched.accesses.map(access => access.id),
+  model.accesses.map(access => access.id),
+);
+equal(
+  matched.accesses.map(access => access.nativeModel),
+  model.accesses.map(access => access.nativeModel),
+);
 equal(model.accesses[0].referenceId, undefined);
-equal(suggestionRows(model, { fields: { input_modalities: ["text", "credential"], context_length: -1, reasoning: "true" } }), []);
+equal(
+  suggestionRows(model, {
+    fields: { input_modalities: ["text", "credential"], context_length: -1, reasoning: "true" },
+  }),
+  [],
+);
 equal(canSaveAssistantSettings({ model: "", endpoint: "", virtualKeyId: "" }, "local-revision", null, true), true);
-equal(canSaveAssistantSettings({ model: "existing", endpoint: "responses", virtualKeyId: "key" }, "local-revision", null, true), false);
-equal(canSaveAssistantSettings({ model: "existing", endpoint: "responses", virtualKeyId: "key" }, "local-revision", { models: [{ id: "existing", name: "", provider: "" }], virtualKeys: [{ id: "key", name: "" }] }, false), true);
+equal(
+  canSaveAssistantSettings(
+    { model: "existing", endpoint: "responses", virtualKeyId: "key" },
+    "local-revision",
+    null,
+    true,
+  ),
+  false,
+);
+equal(
+  canSaveAssistantSettings(
+    { model: "existing", endpoint: "responses", virtualKeyId: "key" },
+    "local-revision",
+    { models: [{ id: "existing", name: "", provider: "" }], virtualKeys: [{ id: "key", name: "" }] },
+    false,
+  ),
+  true,
+);
 let malformed = false;
-try { normalizeSuggestion({ proposal: { fields: [] } }); } catch { malformed = true; }
+try {
+  normalizeSuggestion({ proposal: { fields: [] } });
+} catch {
+  malformed = true;
+}
 equal(malformed, true);
 
 const calls: { url: string; init: RequestInit }[] = [];
 globalThis.fetch = (async (url: string, init: RequestInit) => {
   calls.push({ url, init });
-  return new Response(JSON.stringify({ revision: "next", settings: { model: "available", endpoint: "responses", virtualKeyId: "key-id" }, models: [], virtualKeys: [], proposal: { fields: {} } }), { status: 200, headers: { "Content-Type": "application/json" } });
+  return new Response(
+    JSON.stringify({
+      revision: "next",
+      settings: { model: "available", endpoint: "responses", virtualKeyId: "key-id" },
+      models: [],
+      virtualKeys: [],
+      proposal: { fields: {} },
+    }),
+    { status: 200, headers: { "Content-Type": "application/json" } },
+  );
 }) as typeof fetch;
 setAdminToken("admin-test-token");
 await getAssistantSettings();
 await getAssistantChoices();
 await getAssistantChoices("key /with?symbols");
 await putAssistantSettings({ model: "available", endpoint: "responses", virtualKeyId: "key-id" }, "old-revision");
-await suggestModel({ id: "model", name: "Name", creator: "Creator", family: "Family", provider: "provider", nativeModel: "native" });
+await suggestModel({
+  id: "model",
+  name: "Name",
+  creator: "Creator",
+  family: "Family",
+  provider: "provider",
+  nativeModel: "native",
+});
 clearAdminToken();
-equal(calls.map(call => call.url), ["./api/assistant/settings", "./api/assistant/models", "./api/assistant/models?virtualKeyId=key%20%2Fwith%3Fsymbols", "./api/assistant/settings", "./api/assistant/suggest"]);
+equal(
+  calls.map(call => call.url),
+  [
+    "./api/assistant/settings",
+    "./api/assistant/models",
+    "./api/assistant/models?virtualKeyId=key%20%2Fwith%3Fsymbols",
+    "./api/assistant/settings",
+    "./api/assistant/suggest",
+  ],
+);
 equal(new Headers(calls[3].init.headers).get("If-Match"), "old-revision");
 equal(JSON.parse(calls[3].init.body as string), { model: "available", endpoint: "responses", virtualKeyId: "key-id" });
-equal(JSON.parse(calls[4].init.body as string), { draft: { id: "model", name: "Name", creator: "Creator", family: "Family", provider: "provider", nativeModel: "native" } });
+equal(JSON.parse(calls[4].init.body as string), {
+  draft: {
+    id: "model",
+    name: "Name",
+    creator: "Creator",
+    family: "Family",
+    provider: "provider",
+    nativeModel: "native",
+  },
+});
 equal(new Headers(calls[4].init.headers).get("Authorization"), "Bearer admin-test-token");
 console.log("Assistant proposal and HTTP contract: OK");

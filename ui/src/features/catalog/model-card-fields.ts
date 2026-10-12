@@ -1,10 +1,25 @@
 import type { PricingProof } from "../../domain/registry";
 
-export type EditableProperty = "context_length" | "max_output_tokens" | "tool_call" | "structured_output" | "input_cost_usd_per_million" | "output_cost_usd_per_million";
-export type CatalogOverride = { target: "reference" | "access"; id: string; field: EditableProperty; value: number | boolean };
+export type EditableProperty =
+  | "context_length"
+  | "max_output_tokens"
+  | "tool_call"
+  | "structured_output"
+  | "input_cost_usd_per_million"
+  | "output_cost_usd_per_million";
+export type CatalogOverride = {
+  target: "reference" | "access";
+  id: string;
+  field: EditableProperty;
+  value: number | boolean;
+};
 export type PricingApplicationState = "applied" | "pending" | { error: string } | null;
 
-export function stageCatalogOverride(current: CatalogOverride[], next: CatalogOverride, original: unknown): CatalogOverride[] {
+export function stageCatalogOverride(
+  current: CatalogOverride[],
+  next: CatalogOverride,
+  original: unknown,
+): CatalogOverride[] {
   const other = current.filter(item => item.target !== next.target || item.id !== next.id || item.field !== next.field);
   return Object.is(next.value, original) ? other : [...other, next];
 }

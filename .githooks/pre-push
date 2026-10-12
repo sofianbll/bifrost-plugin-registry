@@ -1,0 +1,19 @@
+#!/bin/sh
+# Pre-push guard for the checks CI would otherwise fail on later. Enable once with `make hooks`.
+# It guards branch updates only: tag pushes and branch deletions skip it.
+# shortcut: a deletion is spotted by an all-zero SHA-1; a SHA-256 repository needs 64 zeros here.
+run=
+while read -r _ local_sha remote_ref _; do
+  case "$remote_ref" in
+    refs/heads/*) [ "$local_sha" != 0000000000000000000000000000000000000000 ] && run=1 ;;
+  esac
+done
+[ -n "$run" ] || exit 0
+[ -d ui/node_modules ] || {
+  echo "pre-push: ui/node_modules is missing; run 'npm --prefix ui ci' first, or skip the guard with: git push --no-verify" >&2
+  exit 1
+}
+./scripts/check-case-collisions.sh && npm --prefix ui run check && npm --prefix ui run format:check && npm --prefix ui run build || {
+  echo "pre-push: a check failed and the push was aborted; fix it, or skip the guard with: git push --no-verify" >&2
+  exit 1
+}
