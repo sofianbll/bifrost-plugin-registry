@@ -1,4 +1,4 @@
-import { cardEntries, filterReferenceGroups, filterReferenceModels, groupReferenceModels, sharedReferenceFacts } from "./reference-groups";
+import { attentionOf, readableModelName, cardEntries, cardsHolding, filterReferenceGroups, filterReferenceModels, groupReferenceModels, sectionsOf, sharedReferenceFacts, shownCount, sortItems } from "./reference-groups";
 import type { Catalog } from "./catalog-api";
 import { emptyModelFilters, type Model } from "../../domain/registry";
 
@@ -90,3 +90,72 @@ if (common({ ...facts, inputModalities: ["Text"] }).modalities || common({ ...fa
 if (common({ ...facts, capabilities: { Vision: "Declared", Reasoning: "Declared" } }).capabilities) throw new Error("Different capabilities were presented as shared facts");
 if (!common({ ...facts, capabilities: { Reasoning: "Unknown", Vision: "Declared" } }).capabilities) throw new Error("Capability key order changed the facts");
 console.log("Reference summaries require shared facts across accesses: OK");
+
+// A To add tile belongs to the saved cards holding an access of its reference (one, or several when
+// cards share a reference); a card gets a badge only for what needs attention.
+const pair = groupReferenceModels([models[0], models[1]], cardCatalog)[0];
+if (cardsHolding(sharedGroup, [saved, models[3]]).map(card => card.id).join(",") !== saved.id) throw new Error("A card holding none of the group's accesses was offered");
+if (cardsHolding(pair, [models[0], models[1], models[3]]).map(card => card.id).join(",") !== "alias-one,alias-two") throw new Error("Cards sharing a reference were not all offered");
+if (cardsHolding(pair, []).length) throw new Error("A group without a saved card was offered a card");
+console.log("To add tiles find the saved cards they could join: OK");
+
+const kinds = (group: Parameters<typeof attentionOf>[0], available: number) => JSON.stringify(attentionOf(group, available));
+if (kinds(pair, 0) !== "[]") throw new Error("An ordinary saved card got a badge");
+if (kinds(pair, 2) !== JSON.stringify([{ kind: "available", count: 2 }])) throw new Error("Available accesses were not announced");
+if (kinds(groupReferenceModels([models[2]], catalog)[0], 0) !== JSON.stringify([{ kind: "no-reference" }])) throw new Error("A card without reference was not announced");
+if (kinds(groupReferenceModels([models[2]], catalog)[0], 1) !== JSON.stringify([{ kind: "available", count: 1 }, { kind: "no-reference" }])) throw new Error("Attention badges lost their order");
+const guessed = [{ ...models[2], creatorSource: "inferred" as const }];
+if (kinds(groupReferenceModels(guessed, catalog)[0], 1) !== JSON.stringify([{ kind: "available", count: 1 }, { kind: "no-reference" }, { kind: "inferred-creator" }])) throw new Error("An inferred creator was not announced after the other badges");
+if (kinds(groupReferenceModels([{ ...models[0], creatorSource: "inferred" as const }], catalog)[0], 0) !== JSON.stringify([{ kind: "inferred-creator" }])) throw new Error("An inferred creator needs no missing reference to be announced");
+console.log("Saved cards get attention badges only: OK");
+
+// The To add count counts the same tiles before and after the catalogue loads: without it, grouping
+// follows the reference each access already carries.
+const carried = models.map((row, index) => ({ ...row, accesses: [{ ...row.accesses[0], referenceId: linkedTo[index] }] }));
+if (groupReferenceModels(carried, null).length !== 2 || groupReferenceModels(carried, cardCatalog).length !== 2) throw new Error("The tile count moved when the catalogue arrived");
+if (groupReferenceModels(carried, null).map(group => group.entries.length).join(",") !== "3,1") throw new Error("Grouping without the catalogue lost accesses");
+console.log("Tiles are counted the same way before and after the catalogue loads: OK");
+
+// Sort: name, creator, provider or recently added (the last saved card first); an unknown creator or
+// provider goes last, ties fall back to the name, and the list is never mutated.
+type Row = { name: string; creator: string; provider: string };
+const rows: Row[] = [{ name: "Zed", creator: "Acme", provider: "b" }, { name: "alpha", creator: "", provider: "a" }, { name: "Mid", creator: "Acme", provider: "" }];
+const by = { name: (row: Row) => row.name, creator: (row: Row) => row.creator, provider: (row: Row) => row.provider };
+const order = (sort: Parameters<typeof sortItems>[1]) => sortItems(rows, sort, by).map(row => row.name).join(",");
+if (order("default") !== "Zed,alpha,Mid") throw new Error("Default order changed the list");
+if (order("name") !== "alpha,Mid,Zed") throw new Error(`Name sort: ${order("name")}`);
+if (order("creator") !== "Mid,Zed,alpha") throw new Error(`Creator sort: ${order("creator")}`);
+if (order("provider") !== "alpha,Zed,Mid") throw new Error(`Provider sort: ${order("provider")}`);
+if (order("recent") !== "Mid,alpha,Zed") throw new Error(`Recently added sort: ${order("recent")}`);
+if (rows.map(row => row.name).join(",") !== "Zed,alpha,Mid") throw new Error("Sorting mutated the list");
+console.log("Sorting by name, creator, provider and recently added: OK");
+
+// Sections cover the whole list: an item sits under each of its keys (counted once by the caller),
+// sections are sorted by label, shelves come after the others and "last" sections at the very end.
+type Card = { name: string; providers: string[] };
+const shelfCards: Card[] = [{ name: "shared", providers: ["claude", "codex"] }, { name: "solo", providers: ["codex"] }, { name: "routed", providers: ["openrouter"] }, { name: "free", providers: [] }];
+const sections = sectionsOf(shelfCards, card => card.providers.length ? card.providers : [""], key => ({ label: key || "Unknown", shelf: key === "openrouter", last: key === "" }));
+if (sections.map(section => `${section.label}:${section.items.map(card => card.name)}`).join("|") !== "claude:shared|codex:shared,solo|openrouter:routed|Unknown:free") throw new Error(`Sections: ${sections.map(section => section.label)}`);
+if (sections.map(section => section.shelf).join() !== "false,false,true,false") throw new Error("Only the aggregator is a shelf");
+if (new Set(sections.flatMap(section => section.items)).size !== shelfCards.length) throw new Error("A card went missing from the sections");
+console.log("Sections hold every card under each of its providers, sorted, shelves after: OK");
+
+// The count line says where the cards not shown are: in a closed shelf, or behind "Show more". A card under
+// two providers counts once, and the line says so.
+const [claude, codex, openrouter, unknown] = sections;
+const counted = shownCount([{ ...claude, open: true, shown: claude.items }, { ...codex, open: true, shown: [] }, { ...openrouter, open: false, shown: [] }, { ...unknown, open: true, shown: unknown.items }]);
+if (JSON.stringify(counted) !== JSON.stringify({ total: 4, shown: 2, shelved: 1, paged: 1, repeated: true })) throw new Error(`Count: ${JSON.stringify(counted)}`);
+const single = shownCount([{ items: ["a", "b"], open: true, shown: ["a", "b"] }]);
+if (JSON.stringify(single) !== JSON.stringify({ total: 2, shown: 2, shelved: 0, paged: 0, repeated: false })) throw new Error(`Count: ${JSON.stringify(single)}`);
+console.log("The count line splits what is hidden between shelves and Show more: OK");
+
+// #85 round 2: a To add tile is titled with a name, not an aggregator's raw native ID (kept as the ID line).
+for (const [raw, shown] of [
+  ["~anthropic/claude-fable-latest", "Claude Fable Latest"],
+  ["openai/gpt-5.6-luna", "GPT 5.6 Luna"],
+  ["openai/qa-codex:batch", "QA Codex (batch)"],
+  ["meta-llama/llama-4-maverick", "Llama 4 Maverick"],
+  ["Claude Fable", "Claude Fable"], // already a name
+  ["qa-codex-mini", "qa-codex-mini"], // a plain ID is a saved name, left as is
+]) if (readableModelName(raw) !== shown) throw new Error(`${raw} reads ${readableModelName(raw)}, expected ${shown}`);
+console.log("Aggregator IDs read as names: OK");

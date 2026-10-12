@@ -2,6 +2,7 @@ package registry
 
 import (
 	"bytes"
+	"encoding/json"
 	"slices"
 	"testing"
 )
@@ -39,6 +40,75 @@ func TestAdoptedPolicyNeverExceedsNativeModelCeiling(t *testing.T) {
 	c.Policies[0].NativeModelIDs = []string{"missing"}
 	if _, err := Compile(c); err == nil {
 		t.Fatal("unknown native ceiling model accepted")
+	}
+}
+
+func TestKeptNativeProvidersNeedAdoptionAndSurviveSaving(t *testing.T) {
+	c := fixture()
+	c.Policies[0].KeptNative = []string{"mistral"}
+	if _, err := Compile(c); err == nil {
+		t.Fatal("kept native providers accepted on a key that is not adopted")
+	}
+	c.Policies[0].Adopted, c.Policies[0].NativeModelIDs = true, []string{"a"}
+	c.Policies[0].KeptNative = []string{"mistral", "mistral"}
+	if _, err := Compile(c); err == nil {
+		t.Fatal("duplicate kept native provider accepted")
+	}
+	c.Policies[0].KeptNative = []string{"mistral"}
+	s := mustCompile(t, c)
+	reloaded, err := Compile(s.Config())
+	if err != nil || !slices.Equal(reloaded.Config().Policies[0].KeptNative, []string{"mistral"}) {
+		t.Fatalf("kept native providers lost in the registry file: %v", err)
+	}
+}
+
+// Bifrost owns a kept provider's permissions: the guard must let its requests and its /v1/models entries through
+// untouched, and still refuse everything else the key does not expose.
+func TestKeptNativeProviderPassesPrepareProjectAndCheckAttempt(t *testing.T) {
+	c := fixture()
+	c.Policies[0].Adopted, c.Policies[0].NativeModelIDs, c.Policies[0].KeptNative = true, []string{"a"}, []string{"mistral"}
+	s := mustCompile(t, c)
+
+	r := req(`{"model":"mistral/large","fallbacks":["mistral/small","alpha/smart"]}`)
+	session := mustPrepare(t, s, r)
+	if !bytes.Contains(r.Body, []byte(`"model":"mistral/large"`)) || !bytes.Contains(r.Body, []byte(`["mistral/small","alpha/smart"]`)) {
+		t.Fatalf("kept native request rewritten: %s", r.Body)
+	}
+	if session.CheckAttempt("mistral", "large") != nil || session.CheckAttempt("mistral", "small") != nil {
+		t.Fatal("kept native attempt denied")
+	}
+	if session.CheckAttempt("beta", "smart") == nil {
+		t.Fatal("attempt outside the policy allowed")
+	}
+	for _, model := range []string{"mistral/", "other/large", "large"} {
+		if _, f := s.Prepare(req(`{"model":"` + model + `"}`)); f == nil || f.Code != "registry_model_hidden" {
+			t.Fatalf("%q reached Bifrost: %+v", model, f)
+		}
+	}
+	unsupported := req(`{"model":"mistral/large"}`)
+	unsupported.Path = "/v1/nope"
+	if _, f := s.Prepare(unsupported); f == nil {
+		t.Fatal("unsupported endpoint accepted for a kept native model")
+	}
+
+	list := req("")
+	list.Method, list.Path = "GET", "/v1/models"
+	out, f := mustPrepare(t, s, list).Project([]byte(`{"data":[{"id":"alpha/smart"},{"id":"mistral/large","created":7},{"id":"mistral/small"},{"id":"beta/smart"},{"id":"alien/x"}]}`), "vk-1")
+	if f != nil {
+		t.Fatal(f)
+	}
+	var env struct {
+		Data []struct{ ID string }
+	}
+	if err := json.Unmarshal(out, &env); err != nil {
+		t.Fatal(err)
+	}
+	got := []string{}
+	for _, m := range env.Data {
+		got = append(got, m.ID)
+	}
+	if !slices.Equal(got, []string{"alpha/smart", "mistral/large", "mistral/small"}) {
+		t.Fatalf("projection = %v", got)
 	}
 }
 
@@ -101,5 +171,41 @@ func TestNativeCandidatePreservesOtherGatewayProtocols(t *testing.T) {
 		if _, f = s.Prepare(r); f == nil || f.Code != "registry_unsupported_endpoint" {
 			t.Fatal("managed key used unsupported protocol")
 		}
+	}
+}
+
+// The real gateway shape (Bifrost 2.2.6 probe): deepseek is kept in Bifrost and serves deepseek-v4-pro, which
+// Registry adopts through opencode-go. Each provider-prefixed name keeps its own owner: the kept one passes
+// through untouched, the opencode-go one is Registry's route and never lands on the kept provider. (A kept request
+// may land on a route the policy exposes, as routing rules may: CheckAttempt's own rule.)
+func TestKeptProviderSharingAModelNameWithAManagedOne(t *testing.T) {
+	model := func(id, name string) Model {
+		return Model{ID: id, Alias: name, Provider: "opencode-go", ProviderKeyIDs: []string{"key-o"}, UpstreamModel: name, Endpoints: []string{"chat/completions"}, Enabled: true, Configured: true}
+	}
+	c := Config{SchemaVersion: 1, DefaultNaming: "provider/model", Models: []Model{model("o-pro", "deepseek-v4-pro"), model("o-flash", "deepseek-v4.1-flash")}, Groups: []Group{},
+		Policies: []Policy{{VirtualKeyID: "vk-1", Name: "Probe", TokenSHA256: TokenHash(testToken), Naming: "provider/model", Groups: []string{}, Added: []string{"o-pro", "o-flash"}, Enabled: true,
+			Adopted: true, NativeModelIDs: []string{"o-pro", "o-flash"}, KeptNative: []string{"deepseek"}}}}
+	s := mustCompile(t, c)
+	for _, tc := range []struct{ model, provider, other string }{
+		{"deepseek/deepseek-v4-pro", "deepseek", ""},
+		{"opencode-go/deepseek-v4-pro", "opencode-go", "deepseek"},
+		{"opencode-go/deepseek-v4.1-flash", "opencode-go", "deepseek"},
+		{"deepseek/deepseek-v4.1-flash", "deepseek", ""},
+	} {
+		r := req(`{"model":"` + tc.model + `"}`)
+		session := mustPrepare(t, s, r)
+		if !bytes.Contains(r.Body, []byte(`"model":"`+tc.model+`"`)) {
+			t.Fatalf("%s rewritten: %s", tc.model, r.Body)
+		}
+		name := tc.model[len(tc.provider)+1:]
+		if session.CheckAttempt(tc.provider, name) != nil {
+			t.Fatalf("%s denied on its own provider", tc.model)
+		}
+		if tc.other != "" && session.CheckAttempt(tc.other, name) == nil {
+			t.Fatalf("%s crossed to %s", tc.model, tc.other)
+		}
+	}
+	if _, f := s.Prepare(req(`{"model":"other/deepseek-v4-pro"}`)); f == nil || f.Code != "registry_model_hidden" {
+		t.Fatalf("a provider neither kept nor managed reached Bifrost: %+v", f)
 	}
 }

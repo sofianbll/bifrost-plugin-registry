@@ -490,3 +490,33 @@ func TestCreatorsShowWithoutRefreshAndCorrectionsWin(t *testing.T) {
 		t.Fatalf("manual correction lost: %+v, card %q", references["anthropic/qa-opus"], card.Creator)
 	}
 }
+
+// Models.dev has the reference typesafe/jev-latest but no typesafe provider record: the Bifrost
+// access still links to it, and its card facts come from that reference.
+func TestModelsDevRefreshLinksAccessWithoutProviderRecord(t *testing.T) {
+	body, err := embeddedModelsDevSnapshot()
+	if err != nil {
+		t.Fatal(err)
+	}
+	snapshot, err := parseModelsDevSnapshot(body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := snapshot.Providers["typesafe"]; ok {
+		t.Fatal("snapshot now has a typesafe provider record: this test no longer covers the missing-record case")
+	}
+	current := &registry.Catalog{Accesses: []registry.CatalogAccess{{ID: "typesafe/jev-latest", Provider: "typesafe", Model: "jev-latest", Configured: true}}}
+	refs, accesses, err := modelsDevRows(current, snapshot.Source.SourceAt, snapshot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	registry.ReplaceCatalogSource(current, "models.dev", snapshot.Source.SourceAt, refs, accesses)
+	if got := current.Accesses[0].ReferenceID; got != "typesafe/jev-latest" {
+		t.Fatalf("typesafe/jev-latest linked to %q", got)
+	}
+	var name string
+	_ = json.Unmarshal(catalogFieldsForAccess(current, "typesafe", "jev-latest")["name"].Value, &name)
+	if name == "" {
+		t.Fatal("no reference name for the linked access")
+	}
+}

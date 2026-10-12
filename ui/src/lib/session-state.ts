@@ -10,4 +10,6 @@ export function useSessionState<T>(key: string | undefined, initial: T) {
   return [value, set] as const;
 }
 
+// Presets the state of a view that mounts later (a page opened with a filter already applied).
+export const setSessionState = (key: string, value: unknown) => { memory.set(key, value); };
 export const clearSessionState = () => memory.clear();

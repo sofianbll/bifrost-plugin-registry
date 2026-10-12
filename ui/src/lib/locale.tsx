@@ -10,6 +10,20 @@ export function useCopy() {
 }
 export type Copy = ReturnType<typeof useCopy>;
 
+// The chosen language is remembered per browser: ?lang= wins, then the remembered choice, then English.
+// Storage can be missing or throw (private mode, blocked site data): the URL alone decides then.
+type Memory = Pick<Storage, "getItem" | "setItem">;
+export const languageKey = "bifrost-registry.language";
+const isLanguage = (value: unknown): value is Language => value === "en" || value === "fr";
+export function initialLanguage(search: string, storage: Memory | null) {
+  const asked = new URLSearchParams(search).get("lang");
+  if (isLanguage(asked)) return asked;
+  try { const kept = storage?.getItem(languageKey); return isLanguage(kept) ? kept : "en"; } catch { return "en"; }
+}
+export function rememberLanguage(storage: Memory | null, language: Language) {
+  try { storage?.setItem(languageKey, language); } catch { /* the URL still carries it for this tab */ }
+}
+
 // Values as the UI language writes them: yes/no, unknown, grouped numbers without float noise
 // (0.2, not 0.19999999999999998), prices in USD per million tokens, dates, and the label colon
 // ("Label: value", "Libellé : valeur").
@@ -29,9 +43,18 @@ export function formatPrice(language: Language, value: unknown) {
     ? `${new Intl.NumberFormat(locales[language], { style: "currency", currency: "USD", currencyDisplay: "narrowSymbol", minimumFractionDigits: 0, maximumFractionDigits: 6 }).format(value)}/M`
     : formatValue(language, undefined);
 }
+// How long ago, in the UI language: "2 days ago", "il y a 2 jours".
+export function formatAge(language: Language, value: string, now = Date.now()) {
+  const minutes = (Date.parse(value) - now) / 60_000;
+  const [amount, unit]: [number, Intl.RelativeTimeFormatUnit] = Math.abs(minutes) < 60 ? [minutes, "minute"] : Math.abs(minutes) < 1440 ? [minutes / 60, "hour"] : [minutes / 1440, "day"];
+  return new Intl.RelativeTimeFormat(locales[language], { numeric: "always" }).format(Math.round(amount), unit);
+}
+// A sync older than a day (or none) is not shown as fresh.
+export const syncIsStale = (value: string | undefined, now = Date.now()) => !value || now - Date.parse(value) > 86_400_000;
 export function useFormat() {
   const language = useLanguage();
   return {
+    age: (value: string) => formatAge(language, value),
     value: (value: unknown, unit?: string) => formatValue(language, value, unit),
     price: (value: unknown) => formatPrice(language, value),
     date: (value: string, options?: Intl.DateTimeFormatOptions) => new Date(value).toLocaleString(locales[language], options),

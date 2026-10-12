@@ -1,4 +1,4 @@
-import { ProviderIcons, type ProviderIconType } from "@/lib/constants/icons";
+import { asset, ProviderIcons, type ProviderIconType } from "@/lib/constants/icons";
 import { useSyncExternalStore } from "react";
 import { cn } from "@/lib/utils";
 import { useCreatorName } from "@/lib/locale";
@@ -15,10 +15,11 @@ const providerName: Record<string, string> = {
 };
 export type ProviderAppearance = { icon?: ProviderIconType; image?: string };
 const normalize = (name: string) => name.toLowerCase().replace(/[^a-z0-9]/g, "");
-const asset = (file: string) => `${import.meta.env?.BASE_URL ?? "./"}images/${file}`;
 const marks = new Map<string, ProviderAppearance>([
   ...Object.keys(ProviderIcons).map(icon => [normalize(icon), { icon: icon as ProviderIconType }] as const),
   ["google", { image: asset("google.svg") }], ["moonshot", { image: asset("moonshot.svg") }],
+  // Names whose mark ships under another key: AWS Bedrock and Amazon, SGLang, Microsoft's Azure.
+  ["awsbedrock", { icon: "bedrock" }], ["amazon", { icon: "bedrock" }], ["sglang", { icon: "sgl" }], ["microsoft", { icon: "azure" }],
 ]);
 // The one identity lookup for creators and providers: "Moonshot AI", "moonshotai" and "x-ai" all resolve; a trailing "AI" is optional.
 export function markFor(name = ""): ProviderAppearance | undefined {
@@ -66,16 +67,43 @@ export function setProviderBaseTypes(providers: { id: string; baseProviderType?:
   baseTypes = Object.fromEntries(providers.flatMap(provider => provider.baseProviderType ? [[provider.id, provider.baseProviderType]] : []));
   notifyAppearance();
 }
+// Aggregators resell other creators' models; To add collapses them into shelves.
+export const isAggregator = (id: string) => [id, baseTypes[id]].some(name => name === "openrouter" || name === "vertex");
 // Any other ID reads the way the server names a creator without a Models.dev record (modelsDevCreator):
 // words split on "-" and "_", each capitalised ("typesafe" → "Typesafe", "Claude" stays "Claude").
 export const displayProvider = (id: string) => Object.hasOwn(providerName, id) ? providerName[id]
   : id.split(/[-_]/).filter(Boolean).map(word => word[0].toUpperCase() + word.slice(1)).join(" ");
+// Initials of a name without a mark: its first two letters, else the first with the last, then with each other letter.
+const initialCandidates = (label: string) => {
+  const [first = "?", ...rest] = [...label.replace(/[^\p{L}\p{N}]/gu, "").toUpperCase()];
+  return [...new Set([first + (rest[0] ?? ""), first + (rest.at(-1) ?? ""), ...rest.map(letter => first + letter)])];
+};
+// Names take their turn in alphabetical order and keep the first candidate no earlier name holds, so
+// "Meta" and "Meituan" never both read "ME" and the result does not depend on render order.
+export function distinctInitials(labels: Iterable<string>) {
+  const taken = new Set<string>();
+  return new Map([...new Set(labels)].sort().map(label => {
+    const options = initialCandidates(label);
+    const pick = options.find(option => !taken.has(option)) ?? options[0];
+    taken.add(pick);
+    return [label, pick] as const;
+  }));
+}
+// The creator and provider names shown now (App sets them), so their initials stay distinct.
+let initials = new Map<string, string>();
+export function setMarkLabels(labels: string[]) {
+  const next = distinctInitials(labels.filter(label => label && !markFor(label)));
+  if (JSON.stringify([...next]) === JSON.stringify([...initials])) return;
+  initials = next;
+  notifyAppearance();
+}
 // Black marks turn light on the dark theme.
 const invertInDark = (mark: ProviderAppearance) => mark.icon === "anthropic" || mark.icon === "openai" || mark.icon === "ollama" || mark.image === asset("moonshot.svg");
 function Logo({ mark = {}, label, fallback, compact = false }: { mark?: ProviderAppearance; label: string; fallback?: string; compact?: boolean }) {
   const Icon = mark.icon && ProviderIcons[mark.icon] as ((props: { size: number; className?: string; theme?: string }) => React.ReactNode) | undefined;
   const invert = invertInDark(mark) && "dark:invert";
-  return <span role="img" title={label} aria-label={label} className={cn("flex shrink-0 items-center justify-center rounded-sm text-xs font-semibold", compact ? "size-6" : "size-8 border bg-background")}>{mark.image ? <img src={mark.image} alt="" className={cn("size-5 object-contain", invert)} /> : Icon ? <span aria-hidden="true"><Icon size={20} theme="light" className={cn("size-5 object-contain", invert)} /></span> : fallback ?? label.slice(0, 2).toUpperCase()}</span>;
+  const distinct = useSyncExternalStore(subscribeAppearance, () => initials, () => initials);
+  return <span role="img" title={label} aria-label={label} className={cn("flex shrink-0 items-center justify-center rounded-sm text-xs font-semibold", compact ? "size-6" : "size-8 border bg-background")}>{mark.image ? <img src={mark.image} alt="" className={cn("size-5 object-contain", invert)} /> : Icon ? <span aria-hidden="true"><Icon size={20} theme="light" className={cn("size-5 object-contain", invert)} /></span> : fallback ?? distinct.get(label) ?? initialCandidates(label)[0]}</span>;
 }
 export function ProviderMark({ id }: { id: string }) {
   const custom = useProviderAppearance(id);

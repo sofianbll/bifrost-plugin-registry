@@ -18,7 +18,14 @@ type adoptionHarness struct {
 	keyID    string
 	keyModel string
 	reads    int
-	writes   int
+	// Models of mistral, a provider Bifrost does not discover, that the key allows; hidden is one of
+	// them that /v1/models stops listing; keep is the providers the adoption request keeps native.
+	mistral []string
+	hidden  string
+	keep    []string
+	writes  int
+	// What /v1/models lists for a mistral row of ["*"], as Bifrost expands it.
+	wildcard []string
 }
 
 func newAdoptionHarness(t *testing.T) *adoptionHarness {
@@ -58,7 +65,7 @@ func newAdoptionHarness(t *testing.T) *adoptionHarness {
 			body, _ := json.Marshal(map[string]any{"virtual_key": map[string]any{
 				"id": h.keyID, "name": "Native", "value": value, "is_active": h.active,
 				"allow_all_providers": false,
-				"provider_configs":    []any{map[string]any{"provider": "openai", "allowed_models": []string{h.keyModel}, "keys": []any{map[string]any{"key_id": "key-a"}}}},
+				"provider_configs":    h.providerConfigs(),
 			}})
 			return nativeResponse(200, string(body)), nil
 		case "/api/providers":
@@ -75,7 +82,25 @@ func newAdoptionHarness(t *testing.T) *adoptionHarness {
 			if r.Header.Get("Authorization") != "Bearer "+h.secret {
 				t.Fatal("model readback did not use native credential")
 			}
-			body, _ := json.Marshal(map[string]any{"data": []any{map[string]any{"id": "openai/" + h.keyModel}}})
+			listed := []any{map[string]any{"id": "openai/" + h.keyModel}}
+			names := h.mistral
+			if len(names) == 1 && names[0] == "*" {
+				names = h.wildcard
+			}
+			for _, name := range names {
+				if name != h.hidden {
+					listed = append(listed, map[string]any{"id": "mistral/" + name})
+				}
+			}
+			body, _ := json.Marshal(map[string]any{"data": listed})
+			// A managed key's list goes through the plugin's own projection, as native/main.go does.
+			if session, f := h.server.Store.Load().Prepare(&registry.Request{Method: "GET", Path: "/v1/models", Headers: map[string]string{"Authorization": r.Header.Get("Authorization")}}); f == nil && session.IsManaged() {
+				projected, pf := session.Project(body, h.keyID)
+				if pf != nil {
+					t.Fatal(pf)
+				}
+				body = projected
+			}
 			return nativeResponse(200, string(body)), nil
 		default:
 			t.Fatalf("unexpected native route: %s", r.URL.String())
@@ -85,8 +110,16 @@ func newAdoptionHarness(t *testing.T) *adoptionHarness {
 	return h
 }
 
+func (h *adoptionHarness) providerConfigs() []any {
+	pcs := []any{map[string]any{"provider": "openai", "allowed_models": []string{h.keyModel}, "keys": []any{map[string]any{"key_id": "key-a"}}}}
+	if len(h.mistral) > 0 {
+		pcs = append(pcs, map[string]any{"provider": "mistral", "allowed_models": h.mistral, "allow_all_keys": true})
+	}
+	return pcs
+}
+
 func (h *adoptionHarness) request(operation, phase, token, revision string) *httpResponse {
-	input, _ := json.Marshal(adoptionInput{KeyID: h.keyID, Operation: operation, Phase: phase, PreviewToken: token})
+	input, _ := json.Marshal(adoptionInput{KeyID: h.keyID, Operation: operation, Phase: phase, PreviewToken: token, KeepNative: h.keep})
 	headers := authorized()
 	if revision != "" {
 		headers["If-Match"] = revision
@@ -215,5 +248,188 @@ func TestRebindRotatedManagedNativeKey(t *testing.T) {
 	view, _ := h.server.Store.Load().View(h.keyID)
 	if view.Policy.TokenSHA256 != registry.TokenHash(h.secret) || !view.Policy.Adopted || h.writes != 0 {
 		t.Fatal("rebind changed permissions or failed to change fingerprint", view.Policy)
+	}
+}
+
+func TestAdoptionKeepsAProviderNative(t *testing.T) {
+	h := newAdoptionHarness(t)
+	h.mistral = []string{"large", "small"}
+	blocked := h.preview(t, "adopt")
+	if blocked.CanApply || blocked.Readiness == nil || blocked.Readiness.State != "blocked" || len(blocked.Readiness.Blockers) != 1 || blocked.Readiness.Blockers[0].Kind != blockUndiscovered || blocked.Readiness.Blockers[0].Kept {
+		t.Fatalf("models Registry cannot represent did not block: %+v", blocked)
+	}
+
+	h.keep = []string{"mistral"}
+	p := h.preview(t, "adopt")
+	if !p.CanApply || p.PreviewToken == "" || strings.Join(p.SelectedRoutes, ",") != "openai/alpha" || strings.Join(p.NativeRoutes, ",") != "mistral/large,mistral/small,openai/alpha" || len(p.Blocked) != 0 {
+		t.Fatalf("keeping the provider native did not unblock the rest of the key: %+v", p)
+	}
+	// The dialog still names what is kept, flagged so it does not count as a blocker.
+	if p.Readiness.State != "ready" || len(p.Readiness.Blockers) != 1 || !p.Readiness.Blockers[0].Kept || p.Readiness.Blockers[0].Provider != "mistral" || p.Readiness.Blockers[0].Count != 2 {
+		t.Fatalf("kept provider not reported: %+v", p.Readiness)
+	}
+	// The preview token covers the chosen providers: the same token cannot adopt another choice.
+	h.keep = nil
+	if w := h.request("adopt", "apply", p.PreviewToken, p.Revision); w.code != 409 {
+		t.Fatal("token accepted without the kept provider", w.code, w.body)
+	}
+	h.keep = []string{"nowhere"}
+	if w := h.request("adopt", "preview", "", ""); !strings.Contains(w.body, "not on the native key") {
+		t.Fatal("a provider the key does not have was kept", w.body)
+	}
+	h.keep = []string{"openai", "mistral"}
+	if every := h.preview(t, "adopt"); every.CanApply {
+		t.Fatal("keeping every provider left nothing for Registry to manage", every)
+	}
+	h.keep = []string{"mistral"}
+	w := h.request("adopt", "apply", p.PreviewToken, p.Revision)
+	if w.code != 200 || h.writes != 0 {
+		t.Fatal("adoption with a kept provider failed or wrote natively", w.code, w.body, h.writes)
+	}
+	view, _ := h.server.Store.Load().View(h.keyID)
+	if strings.Join(view.Policy.KeptNative, ",") != "mistral" || strings.Join(view.Policy.NativeModelIDs, ",") != "openai-alpha" || len(view.Routes) != 1 {
+		t.Fatalf("policy lost the kept provider: %+v", view)
+	}
+	ws := perform(h.server, "GET", "/api/workspace", "", authorized())
+	if !strings.Contains(ws.Body.String(), `"keptNative":["mistral"]`) {
+		t.Fatal("workspace does not tell the panel which providers stay in Bifrost", ws.Body.String())
+	}
+	// A rebind keeps the choice.
+	h.secret = "sk-bf-rotated-secret"
+	h.keep = nil
+	rebind := h.preview(t, "rebind")
+	if w := h.request("rebind", "apply", rebind.PreviewToken, rebind.Revision); w.code != 200 {
+		t.Fatal(w.code, w.body)
+	}
+	if view, _ = h.server.Store.Load().View(h.keyID); strings.Join(view.Policy.KeptNative, ",") != "mistral" {
+		t.Fatal("rebind dropped the kept provider", view.Policy)
+	}
+}
+
+func TestKeptNativeRoutesAreReadBackAsExpected(t *testing.T) {
+	h := newAdoptionHarness(t)
+	h.mistral, h.keep = []string{"large", "small"}, []string{"mistral"}
+	p := h.preview(t, "adopt")
+	if w := h.request("adopt", "apply", p.PreviewToken, p.Revision); w.code != 200 {
+		t.Fatal(w.code, w.body)
+	}
+	readback := func() publication {
+		t.Helper()
+		w := perform(h.server, "POST", "/api/keys/vk-native/readback", "", authorized())
+		var ws workspace
+		if w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &ws) != nil {
+			t.Fatal(w.Code, w.Body.String())
+		}
+		for _, k := range ws.Data.Keys {
+			if k.ID == "vk-native" {
+				return k.Publication
+			}
+		}
+		t.Fatal("key missing from workspace")
+		return publication{}
+	}
+	if got := readback(); got.State != "verified" || strings.Join(got.Expected, ",") != "mistral/large,mistral/small,openai/alpha" {
+		t.Fatalf("managed routes plus kept routes should read verified: %+v", got)
+	}
+	// Bifrost 2.2.6 does not list an allowed model its provider does not list (the real gateway probe): a kept
+	// route absent from /v1/models is Bifrost's business, not Registry's drift.
+	h.hidden = "small"
+	if got := readback(); got.State != "verified" || len(got.Missing) != 0 || len(got.Unexpected) != 0 {
+		t.Fatalf("a kept route absent from the list is not drift: %+v", got)
+	}
+	// Bifrost owns the provider: a model dropped from the key natively is not Registry's drift.
+	h.mistral, h.hidden = []string{"large"}, ""
+	if got := readback(); got.State != "verified" {
+		t.Fatalf("a native permission change on the kept provider is not drift: %+v", got)
+	}
+}
+
+// A provider row allowing every model ("*") can be kept in Bifrost like an undiscovered one: Registry never
+// rewrites it, adopts the rest, and the readback tolerates whatever Bifrost lists for it.
+func TestAdoptionKeepsAWildcardProviderNative(t *testing.T) {
+	h := newAdoptionHarness(t)
+	h.mistral, h.wildcard = []string{"*"}, []string{"large", "small"}
+	blocked := h.preview(t, "adopt")
+	if blocked.CanApply || blocked.Readiness == nil || len(blocked.Readiness.Blockers) != 1 || blocked.Readiness.Blockers[0].Kind != blockDynamic || blocked.Readiness.Blockers[0].Provider != "mistral" {
+		t.Fatalf("a wildcard row must block with the dynamic kind: %+v", blocked.Readiness)
+	}
+	h.keep = []string{"mistral"}
+	p := h.preview(t, "adopt")
+	if !p.CanApply || strings.Join(p.SelectedRoutes, ",") != "openai/alpha" || strings.Join(p.NativeRoutes, ",") != "mistral/large,mistral/small,openai/alpha" || p.Readiness.State != "ready" || !p.Readiness.Blockers[0].Kept {
+		t.Fatalf("keeping the wildcard provider must unblock the rest of the key: %+v", p)
+	}
+	if w := h.request("adopt", "apply", p.PreviewToken, p.Revision); w.code != 200 || h.writes != 0 {
+		t.Fatal("adoption failed or wrote natively", w.code, w.body, h.writes)
+	}
+	w := perform(h.server, "POST", "/api/keys/vk-native/readback", "", authorized())
+	var ws workspace
+	if w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &ws) != nil {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	read := false
+	for _, k := range ws.Data.Keys {
+		if k.ID == "vk-native" {
+			read = true
+			if k.Publication.State != "verified" || strings.Join(k.Publication.Expected, ",") != "openai/alpha" {
+				t.Fatalf("Bifrost's wildcard routes are its own: the readback must be verified: %+v", k.Publication)
+			}
+		}
+	}
+	if !read {
+		t.Fatal("key missing from workspace")
+	}
+	// A model Bifrost adds to the provider later is still Bifrost's, not drift.
+	h.wildcard = []string{"large", "small", "new"}
+	w = perform(h.server, "POST", "/api/keys/vk-native/readback", "", authorized())
+	if !strings.Contains(w.Body.String(), `"state":"verified"`) {
+		t.Fatal("a new model on the kept wildcard provider read as drift", w.Body.String())
+	}
+}
+
+// The real gateway shape (Bifrost 2.2.6 probe): the kept provider shares a model name with a provider Registry
+// adopts, and allows a model its provider does not list. /v1/models then does not list that undiscovered model:
+// Bifrost owns the kept provider, so its routes never block the adoption nor read as drift.
+func TestKeptProviderSharingAModelAndAllowingAnUndiscoveredOneIsAdopted(t *testing.T) {
+	h := newPermissionHarness(t)
+	h.sharedModel = true // synth (the kept provider) also serves gpt-saved, whose card is on Codex only
+	h.keys["vk-plain"]["provider_configs"] = []any{
+		map[string]any{"id": 11, "provider": "synth", "allowed_models": []any{"s-saved", "gpt-saved", "s-ghost"}, "blacklisted_models": []any{}, "allow_all_keys": true},
+		map[string]any{"id": 4, "provider": "Codex", "allowed_models": []any{"gpt-saved"}, "blacklisted_models": []any{}, "allow_all_keys": true},
+	}
+	w := perform(h.server, "POST", "/api/keys/adopt", `{"keyId":"vk-plain","operation":"adopt","phase":"preview","keepNative":["synth"]}`, authorized())
+	var p adoptionPreview
+	if w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &p) != nil {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	if !p.CanApply || len(p.Blocked) != 0 || strings.Join(p.SelectedRoutes, ",") != "Codex/gpt-saved" || strings.Join(p.NativeRoutes, ",") != "Codex/gpt-saved,synth/gpt-saved,synth/s-saved" {
+		t.Fatalf("the kept provider's routes must not block the adoption: %+v", p)
+	}
+	headers := authorized()
+	headers["If-Match"] = p.Revision
+	if w := perform(h.server, "POST", "/api/keys/adopt", `{"keyId":"vk-plain","operation":"adopt","phase":"apply","previewToken":"`+p.PreviewToken+`","keepNative":["synth"]}`, headers); w.Code != 200 {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	read := perform(h.server, "POST", "/api/keys/vk-plain/readback", "", authorized())
+	var ws workspace
+	if read.Code != 200 || json.Unmarshal(read.Body.Bytes(), &ws) != nil {
+		t.Fatal(read.Code, read.Body.String())
+	}
+	for _, k := range ws.Data.Keys {
+		if k.ID == "vk-plain" {
+			if k.Publication.State != "verified" {
+				t.Fatalf("the adopted key must read verified: %+v", k.Publication)
+			}
+			return
+		}
+	}
+	t.Fatal("key missing from workspace")
+}
+
+// The live Hermes case: DeepSeek is kept in Bifrost, but a Registry route can also start with "deepseek/" (a card
+// served through another provider). That route is Registry's: missing from the readback, it is drift.
+func TestRegistryRouteNamedLikeAKeptProviderIsStillChecked(t *testing.T) {
+	missing, unexpected := diffModels([]string{"deepseek/deepseek-v4-pro", "deepseek/kept"}, []string{"deepseek/other"}, []string{"deepseek"}, []string{"deepseek/deepseek-v4-pro"})
+	if strings.Join(missing, ",") != "deepseek/deepseek-v4-pro" || len(unexpected) != 0 {
+		t.Fatalf("missing %v, unexpected %v", missing, unexpected)
 	}
 }

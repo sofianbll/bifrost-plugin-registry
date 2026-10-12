@@ -48,7 +48,7 @@ export default function GatewayInventory({ onModels }: { onModels: () => void })
 
   return <div className="space-y-5">
     <header className="flex flex-wrap items-start justify-between gap-3">
-      <div className="min-w-0"><h2 className="text-2xl font-semibold tracking-tight">{copy("Existing gateway", "Gateway existant")}</h2><p className="mt-1 max-w-prose text-sm text-muted-foreground">{copy("Providers, aliases, routing and permissions from", "Fournisseurs, alias, routage et permissions de")} {data.source}.</p></div>
+      <div className="min-w-0"><h1 className="text-2xl font-semibold tracking-tight">{copy("Existing gateway", "Gateway existant")}</h1><p className="mt-1 max-w-prose text-sm text-muted-foreground">{copy("Providers, aliases, routing and permissions from", "Fournisseurs, alias, routage et permissions de")} {data.source}.</p></div>
       <Button variant="outline" onClick={onModels}>{copy("View my models", "Voir mes modèles")}</Button>
     </header>
 

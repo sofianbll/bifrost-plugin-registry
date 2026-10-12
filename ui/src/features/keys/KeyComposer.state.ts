@@ -129,8 +129,12 @@ export function keyComposition(policy: Policy, groups: Group[], models: Model[])
 // What Review compares the draft with: the last verified readback, else the last published plan,
 // else the models Bifrost allows today, in the key's ID format; none when neither is known.
 export function keyBaseline(key: Key, groups: Group[], models: Model[]): { source: "readback" | "plan" | "native" | "none"; ids: string[] } {
-  if (key.publication?.state === "verified" && key.publication.actual) return { source: "readback", ids: key.publication.actual };
   const plan = exposed(key.policy, groups, models);
+  // The readback also lists a kept provider's routes; Bifrost owns them and publishing never removes them.
+  // A Registry route can start with a kept provider's name too (a "deepseek/…" card served elsewhere): it stays.
+  const kept = key.policy.keptNative ?? [];
+  const bifrostOwns = (id: string) => !plan.includes(id) && kept.some(provider => id.startsWith(`${provider}/`));
+  if (key.publication?.state === "verified" && key.publication.actual) return { source: "readback", ids: key.publication.actual.filter(id => !bifrostOwns(id)) };
   const permissions = key.permissions;
   if (plan.length) return { source: "plan", ids: plan };
   if (!permissions) return { source: "none", ids: [] };

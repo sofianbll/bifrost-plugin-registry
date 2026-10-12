@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"maps"
 	"net/http"
 	"net/url"
 	"os"
@@ -37,6 +38,7 @@ type nativeModel struct {
 // gatewayProvider mirrors a Bifrost 2.2.6 provider: custom ones carry a base provider type.
 type gatewayProvider struct {
 	name, baseType, key string
+	disabled            bool // its keys are disabled in Bifrost: no model is discovered, whatever a virtual key allows
 	models              []nativeModel
 }
 
@@ -51,22 +53,35 @@ var providers = []gatewayProvider{
 		{name: "qa-opus", reference: "anthropic/qa-opus", mode: "chat"}, {name: "qa-haiku", reference: "anthropic/qa-haiku", mode: "chat"},
 		// A second native name for the same Models.dev model, saved as its own card.
 		{name: "qa-opus-fast", reference: "anthropic/qa-opus", mode: "chat"},
+		// No Models.dev reference: a saved card the panel can only identify from its subscription.
+		{name: "qa-sonnet", mode: "chat"},
+		// Served by two subscriptions (also on Codex) and saved as one card with two accesses.
+		{name: "qa-shared", mode: "chat"},
 	}},
 	{name: "Codex", baseType: "openai", key: "codex-subscription-key", models: []nativeModel{
 		{name: "qa-codex", reference: "openai/qa-codex", mode: "chat"}, {name: "qa-codex-mini", mode: "chat"},
+		{name: "qa-shared", mode: "chat"},
 	}},
 	{name: "Google", baseType: "gemini", key: "google-subscription-key", models: []nativeModel{
 		{name: "qa-gemini", reference: "google/qa-gemini", mode: "chat"}, {name: "qa-image", reference: "google/qa-image", mode: "image_generation"},
+		{name: "qa-flash", mode: "chat"},
 	}},
 	{name: "openrouter", key: "openrouter-key", models: aggregatorModels()},
+	// Mistral-like: configured but disabled, so none of its models can ever become a card.
+	{name: "mistral", key: "mistral-key", disabled: true},
+	// Jev-like: a decisions-only provider whose model reference has no Models.dev provider record.
+	{name: "typesafe", key: "typesafe-key", models: []nativeModel{{name: "qa-jev", reference: "typesafe/qa-jev", mode: "decisions"}}},
 }
 
 // aggregatorModels pages past the 60-card first screen. anthropic/qa-opus shares its reference
-// with the saved Claude card qa-opus; the variants have no reference. The qwen/ fillers sort
-// after the qa-* cards, so the first screen of the mixed catalogue still shows QA Chat.
+// with the saved Claude card qa-opus; anthropic/qa-opus-pro shares it too but is a variant; the
+// other variants have no reference. Common IDs drop the vendor, so the qwen/ fillers (qwen-qa-NN)
+// sort after the qa-* cards and the first screen of the mixed catalogue still shows QA Chat.
 func aggregatorModels() []nativeModel {
 	models := []nativeModel{
 		{name: "anthropic/qa-opus", reference: "anthropic/qa-opus", mode: "chat", input: 4, output: 20},
+		// A variant the aggregator's metadata links to the same reference: not the same model as the card.
+		{name: "anthropic/qa-opus-pro", reference: "anthropic/qa-opus", mode: "chat", input: 15, output: 75},
 		{name: "~anthropic/qa-opus-latest", mode: "chat"},
 		{name: "openai/qa-codex:batch", mode: "chat"},
 		// Bifrost declares 2e-7 per token; read per million it carries float noise the UI must not show.
@@ -75,7 +90,7 @@ func aggregatorModels() []nativeModel {
 		{name: "meituan/qa-longcat", reference: "meituan/qa-longcat", mode: "chat"},
 	}
 	for i := 1; i <= 60; i++ {
-		models = append(models, nativeModel{name: fmt.Sprintf("qwen/qa-qwen-%02d", i), mode: "chat"})
+		models = append(models, nativeModel{name: fmt.Sprintf("qwen/qwen-qa-%02d", i), mode: "chat"})
 	}
 	return models
 }
@@ -95,6 +110,7 @@ type virtualKey struct {
 }
 
 type providerConfig struct {
+	ID            int      `json:"id,omitempty"`
 	Provider      string   `json:"provider"`
 	AllowedModels []string `json:"allowed_models"` // "*" allows every model of the provider
 	AllowAllKeys  bool     `json:"allow_all_keys"`
@@ -121,6 +137,27 @@ type syntheticBifrost struct {
 	store *registry.Store
 	keys  map[string]*virtualKey
 	next  int
+	// writes records every virtual key update the panel sent, exactly as sent, for the journeys to assert.
+	writes []nativeWrite
+}
+
+type nativeWrite struct {
+	KeyID string          `json:"keyId"`
+	Body  json.RawMessage `json:"body"`
+}
+
+// recordedWrites serves the native key updates received so far at /__fixture/native-writes (fixture only, no secrets).
+func (b *syntheticBifrost) recordedWrites(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/__fixture/native-writes" {
+			next.ServeHTTP(w, r)
+			return
+		}
+		b.Lock()
+		defer b.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(append([]nativeWrite{}, b.writes...))
+	})
 }
 
 func respond(status int, body any) (*http.Response, error) {
@@ -176,7 +213,7 @@ func (b *syntheticBifrost) roundTrip(r *http.Request) (*http.Response, error) {
 			break
 		}
 		if len(parts) == 2 && r.Method == "GET" {
-			return respond(200, map[string]any{"keys": []any{map[string]any{"id": p.key, "enabled": true}}, "total": 1})
+			return respond(200, map[string]any{"keys": []any{map[string]any{"id": p.key, "enabled": !p.disabled}}, "total": 1})
 		}
 		if r.Method == "GET" {
 			return respond(200, map[string]any{"aliases": map[string]any{}})
@@ -242,12 +279,31 @@ func (b *syntheticBifrost) roundTrip(r *http.Request) (*http.Response, error) {
 			return respond(404, map[string]string{"error": "fixture key not found"})
 		}
 		if r.Method == "PUT" {
+			raw, _ := io.ReadAll(r.Body)
 			var input virtualKey
-			if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+			if err := json.Unmarshal(raw, &input); err != nil {
 				return respond(400, map[string]string{"error": "invalid fixture key update"})
 			}
+			b.writes = append(b.writes, nativeWrite{KeyID: id, Body: raw})
 			key.Name, key.Description, key.Active = input.Name, input.Description, input.Active
 			key.AllowAllProviders, key.ProviderConfigs = input.AllowAllProviders, input.ProviderConfigs
+			// Like Bifrost: rows get an id, key_ids ["*"] reads back as allow_all_keys, other ids as keys.
+			for i := range key.ProviderConfigs {
+				pc := &key.ProviderConfigs[i]
+				if pc.ID == 0 {
+					b.next++
+					pc.ID = 1000 + b.next
+				}
+				pc.AllowAllKeys, pc.Keys = slices.Equal(pc.KeyIDs, []string{"*"}), nil
+				for _, keyID := range pc.KeyIDs {
+					if !pc.AllowAllKeys {
+						pc.Keys = append(pc.Keys, struct {
+							KeyID string `json:"key_id"`
+						}{keyID})
+					}
+				}
+				pc.KeyIDs = nil
+			}
 		}
 		if r.Method == "GET" || r.Method == "PUT" {
 			return respond(200, map[string]any{"virtual_key": key})
@@ -259,22 +315,48 @@ func (b *syntheticBifrost) roundTrip(r *http.Request) (*http.Response, error) {
 				continue
 			}
 			visible := []map[string]string{}
-			if view, ok := b.store.Load().View(key.ID); ok {
-				for _, route := range view.Routes {
-					for _, pc := range key.ProviderConfigs {
-						for _, allowed := range pc.AllowedModels {
-							if pc.Provider == route.Provider && allowed == route.Alias {
-								visible = append(visible, map[string]string{"id": route.ExposedID})
-							}
+			snapshot := b.store.Load()
+			if _, managed := snapshot.View(key.ID); managed {
+				// Bifrost lists the names the key's provider permissions allow, then the plugin's own Project
+				// narrows them to the policy (and keeps a kept-native provider's), exactly as native/main.go does.
+				for _, pc := range key.ProviderConfigs {
+					for _, name := range pc.AllowedModels {
+						if name != "*" {
+							visible = append(visible, map[string]string{"id": pc.Provider + "/" + name})
+						}
+					}
+					// "*" lists every model the provider serves (a kept-native Claude row of vk-qa-wildcard).
+					if p := findProvider(pc.Provider); p != nil && slices.Contains(pc.AllowedModels, "*") {
+						for _, m := range p.models {
+							visible = append(visible, map[string]string{"id": pc.Provider + "/" + m.name})
 						}
 					}
 				}
-			} else {
-				// Without a Registry policy, Bifrost lists what the native permissions allow.
-				for _, p := range providers {
-					for _, m := range p.models {
-						if key.allows(p.name, m.name) {
-							visible = append(visible, map[string]string{"id": p.name + "/" + m.name})
+				session, failure := snapshot.Prepare(&registry.Request{Method: "GET", Path: "/v1/models", Headers: map[string]string{"Authorization": "Bearer " + secret}})
+				if failure != nil {
+					return respond(failure.Status, map[string]string{"error": failure.Message})
+				}
+				listing, _ := json.Marshal(map[string]any{"data": visible})
+				projected, failure := session.Project(listing, key.ID)
+				if failure != nil {
+					return respond(failure.Status, map[string]string{"error": failure.Message})
+				}
+				return respond(200, json.RawMessage(projected))
+			}
+			// Without a Registry policy, Bifrost lists what the native permissions allow.
+			for _, p := range providers {
+				for _, m := range p.models {
+					if key.allows(p.name, m.name) {
+						visible = append(visible, map[string]string{"id": p.name + "/" + m.name})
+					}
+				}
+			}
+			// A provider without discoverable models (a disabled one) still lists the names a key allows explicitly.
+			for _, pc := range key.ProviderConfigs {
+				if p := findProvider(pc.Provider); p != nil && len(p.models) == 0 {
+					for _, name := range pc.AllowedModels {
+						if name != "*" {
+							visible = append(visible, map[string]string{"id": pc.Provider + "/" + name})
 						}
 					}
 				}
@@ -344,6 +426,9 @@ func jsonString(s string) json.RawMessage  { b, _ := json.Marshal(s); return b }
 func jsonNumber(n float64) json.RawMessage { b, _ := json.Marshal(n); return b }
 
 func seed() registry.Config {
+	// Registry row IDs are unique and the alias is the card's ID: one card, two rows.
+	sharedOnCodex := subscriptionCard("Codex", "qa-shared", "QA Shared")
+	sharedOnCodex.ID = "qa-shared-codex"
 	models := []registry.Model{
 		model("qa-code", "QA Code", "Fixture Labs", "QA", "Chat"),
 		model("qa-chat", "QA Chat", "Fixture Labs", "QA", "Chat"),
@@ -353,6 +438,9 @@ func seed() registry.Config {
 		subscriptionCard("Claude", "qa-opus-fast", "QA Opus Fast"),
 		subscriptionCard("Codex", "qa-codex", ""), subscriptionCard("Codex", "qa-codex-mini", ""),
 		subscriptionCard("Google", "qa-gemini", ""),
+		// Like qa-codex-mini, no reference: one card per base type (anthropic, openai, gemini).
+		subscriptionCard("Claude", "qa-sonnet", ""), subscriptionCard("Google", "qa-flash", ""),
+		subscriptionCard("Claude", "qa-shared", "QA Shared"), sharedOnCodex,
 	}
 	return registry.Config{SchemaVersion: 1, DefaultNaming: "provider/model", Models: models,
 		Groups: []registry.Group{{ID: "qa-development", Name: "QA Development", ModelIDs: []string{"qa-code", "qa-chat"}}, {ID: "qa-visual", Name: "QA Visual", ModelIDs: []string{"qa-vision"}}},
@@ -368,20 +456,50 @@ func seed() registry.Config {
 			reference("google/qa-image", "QA Image", "", "qa-gemini", text, `["image"]`), reference("deepseek/qa-reasoner", "QA Reasoner", "", "qa-deepseek", text, text),
 			// …and without one (tencent, meituan).
 			reference("tencent/qa-hunyuan", "QA Hunyuan", "", "qa-hunyuan", text, text), reference("meituan/qa-longcat", "QA LongCat", "", "qa-longcat", text, text),
+			reference("typesafe/qa-jev", "QA Jev", "", "qa-jev", text, text),
 		}, Accesses: catalogAccesses(), Sources: []registry.CatalogSource{{ID: "bifrost"}, {ID: "models.dev"}}},
 	}
 }
 
-// seedKeys are the native virtual keys. The last three are unmanaged with native permissions only.
+// seedKeys are the native virtual keys. The first two are managed; every other one is an unmanaged
+// adoption case: empty, all providers, all models of Claude (claude, wildcard), ready (codex, google), blocked
+// by models of a disabled provider (mistral, hermes) or by a discovered model without a card (unsaved).
 func seedKeys() map[string]*virtualKey {
-	return map[string]*virtualKey{
+	keys := map[string]*virtualKey{
 		"vk-qa-dev":           {ID: "vk-qa-dev", Name: "QA Development Key", Description: "Synthetic development client", Value: "sk-bf-qa-fixture-dev", Active: true, ProviderConfigs: []providerConfig{{Provider: provider, AllowedModels: []string{"qa-code", "qa-chat"}}}},
 		"vk-qa-visual":        {ID: "vk-qa-visual", Name: "QA Visual Key", Description: "Synthetic visual client", Value: "sk-bf-qa-fixture-visual", Active: true, ProviderConfigs: []providerConfig{{Provider: provider, AllowedModels: []string{"qa-vision"}}}},
 		"vk-qa-unmanaged":     {ID: "vk-qa-unmanaged", Name: "QA Unmanaged Key", Description: "Synthetic unmanaged client", Value: "sk-bf-qa-fixture-unmanaged", Active: true, ProviderConfigs: []providerConfig{}},
 		"vk-qa-all-providers": {ID: "vk-qa-all-providers", Name: "QA All Providers Key", Description: "Synthetic client allowed every provider", Value: "sk-bf-qa-fixture-all-providers", Active: true, AllowAllProviders: true, ProviderConfigs: []providerConfig{}},
 		"vk-qa-codex":         {ID: "vk-qa-codex", Name: "QA Codex Key", Description: "Synthetic Codex client", Value: "sk-bf-qa-fixture-codex", Active: true, ProviderConfigs: []providerConfig{{Provider: "Codex", AllowedModels: []string{"qa-codex", "qa-codex-mini"}, AllowAllKeys: true}}},
 		"vk-qa-claude":        {ID: "vk-qa-claude", Name: "QA Claude Key", Description: "Synthetic Claude client", Value: "sk-bf-qa-fixture-claude", Active: true, ProviderConfigs: []providerConfig{{Provider: "Claude", AllowedModels: []string{"*"}, AllowAllKeys: true}}},
+		"vk-qa-google":        {ID: "vk-qa-google", Name: "QA Google Key", Description: "Synthetic Google client", Value: "sk-bf-qa-fixture-google", Active: true, ProviderConfigs: []providerConfig{{Provider: "Google", AllowedModels: []string{"qa-gemini", "qa-flash"}, AllowAllKeys: true}}},
+		// The Hermes case: models of a disabled provider (never discovered) beside discovered, saved ones, and
+		// one model (qa-shared) allowed through two providers, so one of them must stay in Bifrost.
+		"vk-qa-mistral": {ID: "vk-qa-mistral", Name: "QA Mistral Key", Description: "Synthetic Mistral client", Value: "sk-bf-qa-fixture-mistral", Active: true, ProviderConfigs: []providerConfig{
+			{Provider: "mistral", AllowedModels: []string{"qa-mistral-large", "qa-mistral-small", "qa-mistral-code"}, AllowAllKeys: true},
+			{Provider: "Claude", AllowedModels: []string{"qa-haiku", "qa-sonnet", "qa-shared"}, AllowAllKeys: true},
+			{Provider: "Codex", AllowedModels: []string{"qa-shared"}, AllowAllKeys: true}}},
+		// The same case for the key whose undiscovered models are removed in Bifrost (#93): the journeys adopt it.
+		"vk-qa-hermes": {ID: "vk-qa-hermes", Name: "QA Hermes Key", Description: "Synthetic Hermes client", Value: "sk-bf-qa-fixture-hermes", Active: true, ProviderConfigs: []providerConfig{
+			{Provider: "mistral", AllowedModels: []string{"qa-mistral-large", "qa-mistral-small"}, AllowAllKeys: true},
+			{Provider: "Claude", AllowedModels: []string{"qa-haiku", "qa-opus"}, AllowAllKeys: true}}},
+		// Every Claude model ("*") beside a ready Codex model: the journeys adopt it keeping Claude in Bifrost
+		// (vk-qa-claude, the same row alone, has "*" replaced by the models saved in Registry).
+		"vk-qa-wildcard": {ID: "vk-qa-wildcard", Name: "QA Wildcard Key", Description: "Synthetic client allowed every Claude model", Value: "sk-bf-qa-fixture-wildcard", Active: true, ProviderConfigs: []providerConfig{
+			{Provider: "Claude", AllowedModels: []string{"*"}, AllowAllKeys: true},
+			{Provider: "Codex", AllowedModels: []string{"qa-codex"}, AllowAllKeys: true}}},
+		// qa-unregistered is discovered but has no card, and no journey saves it.
+		"vk-qa-unsaved": {ID: "vk-qa-unsaved", Name: "QA To Add Key", Description: "Synthetic unsaved client", Value: "sk-bf-qa-fixture-unsaved", Active: true, ProviderConfigs: []providerConfig{{Provider: provider, AllowedModels: []string{"qa-vision", "qa-unregistered"}, AllowAllKeys: true}}},
 	}
+	// Bifrost numbers every provider row; a native update sends the id back so the row keeps its limits.
+	row := 0
+	for _, id := range slices.Sorted(maps.Keys(keys)) {
+		for i := range keys[id].ProviderConfigs {
+			row++
+			keys[id].ProviderConfigs[i].ID = row
+		}
+	}
+	return keys
 }
 
 func main() {
@@ -426,6 +544,7 @@ func run() error {
 	b := &syntheticBifrost{store: store, keys: seedKeys()}
 	server.ConnectNative(roundTrip(b.roundTrip))
 	httpServer := server.HTTPServer("127.0.0.1:4174")
+	httpServer.Handler = b.recordedWrites(httpServer.Handler)
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
 	defer signal.Stop(stop)

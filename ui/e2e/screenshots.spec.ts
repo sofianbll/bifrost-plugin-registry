@@ -19,16 +19,22 @@ test('catalogue grid', async ({ page }) => {
   await capture(page, 'catalogue-grid.png');
 });
 
-const label = { en: { table: 'Table', square: 'Square', medium: 'Medium' }, fr: { table: 'Tableau', square: 'Carré', medium: 'Moyen' } };
+const label = { en: { table: 'Table', square: 'Square', medium: 'Medium', options: 'View options' }, fr: { table: 'Tableau', square: 'Carré', medium: 'Moyen', options: 'Options d’affichage' } };
+
+// Basic mode folds the layout controls into View options (#85); the popover closes before the capture.
+const pick = async (page: Page, language: 'en' | 'fr', ...radios: string[]) => {
+  await page.getByRole('button', { name: label[language].options, exact: true }).click();
+  for (const name of radios) await page.getByRole('radio', { name }).click();
+  await page.keyboard.press('Escape');
+};
 
 test('catalogue table', async ({ page, language }) => {
-  await page.getByRole('radio', { name: label[language].table }).click();
+  await pick(page, language, label[language].table);
   await capture(page, 'catalogue-table.png');
 });
 
 test('display options', async ({ page, language }) => {
-  await page.getByRole('radio', { name: label[language].square }).click();
-  await page.getByRole('radio', { name: label[language].medium }).click();
+  await pick(page, language, label[language].square, label[language].medium);
   await capture(page, 'display-options.png');
 });
 
@@ -40,7 +46,9 @@ test('model card', async ({ page }) => {
 
 test('key composer', async ({ page, language }) => {
   await page.goto(`/?lang=${language}#/keys/vk-qa-dev`);
-  await page.getByRole('heading', { level: 2, name: 'QA Development Key' }).waitFor();
+  await page.getByRole('heading', { level: 1, name: 'QA Development Key' }).waitFor();
+  // The key page opens read-first; the composer is behind Edit selection.
+  await page.getByRole('button', { name: language === 'fr' ? 'Modifier la sélection' : 'Edit selection', exact: true }).click();
   await capture(page, 'key-composer.png');
 });
 

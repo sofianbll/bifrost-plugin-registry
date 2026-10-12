@@ -46,6 +46,11 @@ type provider struct {
 	Status      string        `json:"status,omitempty"`
 	Description string        `json:"description,omitempty"`
 	Keys        []providerKey `json:"keys"`
+	// Set on a custom provider (Claude on the anthropic type); the panel shows the base type's mark.
+	CustomProviderConfig *struct {
+		BaseProviderType string `json:"base_provider_type"`
+		IsKeyLess        bool   `json:"is_key_less,omitempty"`
+	} `json:"custom_provider_config,omitempty"`
 }
 type providerKey struct {
 	ID                string                     `json:"id"`
@@ -163,7 +168,7 @@ func run(args []string) error {
 			writeJSON(w, 200, native.context())
 			return
 		}
-		if strings.HasSuffix(r.URL.Path, "/secret") || strings.HasSuffix(r.URL.Path, "/readback") || (r.URL.Path == "/api/keys" && r.Method == http.MethodPost) || strings.HasPrefix(r.URL.Path, "/api/assistant/") || r.URL.Path == "/api/catalog/refresh" {
+		if strings.HasSuffix(r.URL.Path, "/secret") || strings.HasSuffix(r.URL.Path, "/readback") || r.URL.Path == "/api/keys/native-permissions" || (r.URL.Path == "/api/keys" && r.Method == http.MethodPost) || strings.HasPrefix(r.URL.Path, "/api/assistant/") || r.URL.Path == "/api/catalog/refresh" {
 			writeJSON(w, 409, map[string]string{"error": "Unavailable in offline snapshot review: no native secret, inference, AI, or verified readback"})
 			return
 		}
@@ -340,7 +345,11 @@ func (n *nativeSnapshot) RoundTrip(r *http.Request) (*http.Response, error) {
 	case method == "GET" && path == "/api/providers":
 		rows := make([]map[string]any, 0, len(n.providers))
 		for _, p := range n.providers {
-			rows = append(rows, map[string]any{"name": p.Name})
+			row := map[string]any{"name": p.Name}
+			if p.CustomProviderConfig != nil {
+				row["custom_provider_config"] = p.CustomProviderConfig
+			}
+			rows = append(rows, row)
 		}
 		result = map[string]any{"providers": rows, "total": len(rows)}
 	case strings.HasPrefix(path, "/api/providers/"):

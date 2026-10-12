@@ -1,4 +1,4 @@
-import type { Demo, Model, PricingProof, Publication } from "../domain/registry";
+import type { Demo, Model, NativePermissions, PricingProof, Publication, Readiness } from "../domain/registry";
 import type { CatalogOverride } from "../features/catalog/model-card-fields";
 
 export type Workspace = {
@@ -51,12 +51,29 @@ export const createKey = (name: string, client: string) => request<{ workspace?:
 export const readbackKey = (id: string) => request<Workspace>(`keys/${encodeURIComponent(id)}/readback`, { method: "POST" });
 
 export type AdoptionOperation = "adopt" | "rebind";
-export type AdoptionPreview = { keyId: string; operation: AdoptionOperation; revision: string; previewToken?: string; selectedRoutes: string[]; nativeRoutes: string[]; blocked: string[]; canApply: boolean; nativePermissionsPreserved: true; evidence?: "snapshot"; source?: string; capturedAt?: string };
+export type AdoptionPreview = { keyId: string; operation: AdoptionOperation; revision: string; previewToken?: string; selectedRoutes: string[]; nativeRoutes: string[]; blocked: string[]; readiness?: Readiness; canApply: boolean; nativePermissionsPreserved: true; evidence?: "snapshot"; source?: string; capturedAt?: string };
 export type AdoptionReceipt = { keyId: string; revision: string; managed: true; nativePermissionsPreserved: true; evidence?: "snapshot"; source?: string; capturedAt?: string };
-export const previewKeyAdoption = (keyId: string, operation: AdoptionOperation) => request<AdoptionPreview>("keys/adopt", {
-  method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ keyId, operation, phase: "preview" }),
+// keepNative: providers of the key whose permissions stay in Bifrost (adopt only). The preview token covers
+// the choice, so apply must send the same list the preview was made with.
+export const previewKeyAdoption = (keyId: string, operation: AdoptionOperation, keepNative: string[] = []) => request<AdoptionPreview>("keys/adopt", {
+  method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ keyId, operation, phase: "preview", ...(keepNative.length ? { keepNative } : {}) }),
 });
-export const applyKeyAdoption = (preview: AdoptionPreview) => request<AdoptionReceipt>("keys/adopt", {
+export const applyKeyAdoption = (preview: AdoptionPreview, keepNative: string[] = []) => request<AdoptionReceipt>("keys/adopt", {
   method: "POST", headers: { "Content-Type": "application/json", "If-Match": preview.revision },
-  body: JSON.stringify({ keyId: preview.keyId, operation: preview.operation, phase: "apply", previewToken: preview.previewToken }),
+  body: JSON.stringify({ keyId: preview.keyId, operation: preview.operation, phase: "apply", previewToken: preview.previewToken, ...(keepNative.length ? { keepNative } : {}) }),
+});
+
+// Native permission edit before adoption (#93): remove the models Registry cannot represent from one
+// provider of an unmanaged key, or replace its "all providers", or replace "all models" of one provider by the
+// models Registry holds ("replace-all-models"). Preview first; the apply carries the
+// preview token and an explicit confirmation, and only then writes to Bifrost.
+export type NativeEditOperation = "remove-models" | "replace-all-providers" | "replace-all-models";
+export type NativeEditPreview = { keyId: string; operation: NativeEditOperation; provider?: string; revision: string; previewToken?: string; remove: { provider: string; models: string[]; dropsLimits?: boolean }[]; before: NativePermissions | null; after?: NativePermissions | null; canApply: boolean; blocked: string[] };
+export type NativeEditReceipt = { keyId: string; operation: NativeEditOperation; applied: true; permissions: NativePermissions };
+export const previewNativeEdit = (keyId: string, operation: NativeEditOperation, provider = "") => request<NativeEditPreview>("keys/native-permissions", {
+  method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ keyId, operation, provider, phase: "preview" }),
+});
+export const applyNativeEdit = (preview: NativeEditPreview) => request<NativeEditReceipt>("keys/native-permissions", {
+  method: "POST", headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ keyId: preview.keyId, operation: preview.operation, provider: preview.provider ?? "", phase: "apply", previewToken: preview.previewToken, confirm: true }),
 });

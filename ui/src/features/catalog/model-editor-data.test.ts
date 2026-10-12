@@ -1,4 +1,4 @@
-import { applyModelId, canonicalCapabilities, changeAccessProvider, declaredEndpoints, firstRegistrationIssue, modelEditorOptions, omitUnchangedReferenceIds, prefillFromReference } from "./model-editor-data";
+import { alsoAvailable, applyModelId, canonicalCapabilities, changeAccessProvider, declaredEndpoints, firstRegistrationIssue, matchingAccesses, modelEditorOptions, omitUnchangedReferenceIds, prefillFromReference } from "./model-editor-data";
 import type { Catalog } from "./catalog-api";
 import type { Model } from "../../domain/registry";
 
@@ -55,10 +55,53 @@ equal(omitUnchangedReferenceIds({ ...existing, accesses: [{ ...existing.accesses
 equal(omitUnchangedReferenceIds({ ...existing, accesses: [{ ...existing.accesses[0], referenceId: "" }] }, [existing]).accesses[0].referenceId, "");
 // A new access preselects the operations its native mode implies (Bifrost's parameters datasheet).
 const withMode = (mode: unknown) => ({ id: "p/m", fields: { parameters: { value: { model: "m", provider: "p", mode }, source: "bifrost", updatedAt: null, kind: "declared" as const } }, overrides: {} });
-equal(declaredEndpoints(withMode("chat")), ["chat/completions"]);
+// A chat model answers both text request types Registry offers: Chat Completions and Responses.
+equal(declaredEndpoints(withMode("chat")), ["chat/completions", "responses"]);
 equal(declaredEndpoints(withMode("image_generation")), ["images/generations"]);
 equal(declaredEndpoints(withMode("embedding")), ["embeddings"]);
+equal(declaredEndpoints(withMode("decisions")), ["decisions"]); // Jev: decisions only, no manual tick
 equal(declaredEndpoints(withMode("something-new")), []);
 equal(declaredEndpoints(withMode(undefined)), []);
 equal(declaredEndpoints(undefined), []);
+// No declared mode: what the model outputs decides (the access's own facts, else its reference's).
+const outputs = (value: unknown) => ({ id: "x", fields: { output_modalities: { value, source: "models.dev", updatedAt: null, kind: "declared" as const } }, overrides: {} });
+equal(declaredEndpoints(outputs(["text"])), ["chat/completions", "responses"]);
+equal(declaredEndpoints(withMode(undefined), outputs(["text"])), ["chat/completions", "responses"]);
+equal(declaredEndpoints(outputs(["image"])), ["images/generations"]);
+equal(declaredEndpoints(outputs(["audio"])), ["audio/speech"]);
+equal(declaredEndpoints(outputs(["text", "image"])), ["chat/completions", "responses", "images/generations"]);
+equal(declaredEndpoints(withMode("embedding"), outputs(["text"])), ["embeddings"]); // a declared mode wins
+equal(declaredEndpoints(withMode("something-new"), outputs(["text"])), []); // an unknown declared mode is not guessed
+equal(declaredEndpoints(outputs(["video"])), []);
+
+// "Also available": accesses that are the card's model. An aggregator links "-pro", "-latest" or ":batch"
+// variants to the base reference; only an access under the card's own name is the same model.
+const offer = (provider: string, model: string, referenceId?: string, configured = true) => ({ id: `${provider}/${model}`, provider, model, configured, referenceId, fields: {}, overrides: {} });
+const luna = { provider: "Codex", id: "Codex/gpt-5.6-luna", route: "Direct provider", status: "Configured" as const, nativeModel: "gpt-5.6-luna", referenceId: "openai/gpt-5.6-luna" };
+const offers = [
+  offer("openrouter", "openai/gpt-5.6-luna", "openai/gpt-5.6-luna"),
+  offer("openrouter", "openai/gpt-5.6-luna-pro", "openai/gpt-5.6-luna"),
+  offer("openrouter", "~openai/gpt-luna-latest", "openai/gpt-5.6-luna"),
+  offer("openrouter", "openai/gpt-5.6-luna:batch", "openai/gpt-5.6-luna"),
+  offer("bedrock", "us.openai.gpt-5-6-luna-v1:0", "openai/gpt-5.6-luna"), // plain native name: the reference decides
+  offer("other", "gpt-5.6-luna"), // no reference, the card's own name
+  offer("other", "gpt-5.6-luna-pro"), // no reference, another name
+  offer("gone", "gpt-5.6-luna", "openai/gpt-5.6-luna", false),
+  offer("taken", "gpt-5.6-luna", "openai/gpt-5.6-luna"),
+];
+const taken = { ...existing, id: "other-card", accesses: [{ ...luna, provider: "taken", id: "taken/other-card", nativeModel: "gpt-5.6-luna" }] };
+const matches = (id: string, known: typeof luna[]) => matchingAccesses(offers, id, known, [taken]).map(access => access.id);
+equal(matches("gpt-5.6-luna", [luna]), ["openrouter/openai/gpt-5.6-luna", "bedrock/us.openai.gpt-5-6-luna-v1:0", "other/gpt-5.6-luna"]);
+// The "-pro" card takes the "-pro" access and not the base model's aggregator access.
+equal(matches("gpt-5.6-luna-pro", [{ ...luna, nativeModel: "gpt-5.6-luna-pro" }]), ["openrouter/openai/gpt-5.6-luna-pro", "bedrock/us.openai.gpt-5-6-luna-v1:0", "other/gpt-5.6-luna-pro"]);
+// #85 round 2: the "+N available" badge and the sheet's "Also available · N" are one definition. A card that
+// already holds the Codex access is offered the others once each; "other/gpt-5.6-luna" matches by name only
+// (no reference), so a count over the card's reference groups alone missed it (+3 on the tile, 4 in the sheet).
+const card = { ...existing, id: "gpt-5.6-luna", accesses: [luna] };
+const twice = [...offers, offer("openrouter", "openai/gpt-5.6-luna", "openai/gpt-5.6-luna")];
+equal(alsoAvailable(twice, card, [card, taken]).map(access => access.id), ["openrouter/openai/gpt-5.6-luna", "bedrock/us.openai.gpt-5-6-luna-v1:0", "other/gpt-5.6-luna"]);
+// An access held by the card is not "also" available; one the editor removed comes back as an offer.
+const withOther = { ...card, accesses: [luna, { ...luna, provider: "other", id: "other/gpt-5.6-luna" }] };
+equal(alsoAvailable(offers, withOther, [withOther, taken]).map(access => access.id), ["openrouter/openai/gpt-5.6-luna", "bedrock/us.openai.gpt-5-6-luna-v1:0"]);
+equal(alsoAvailable(offers, card, [withOther, taken], withOther.accesses).map(access => access.id), ["openrouter/openai/gpt-5.6-luna", "bedrock/us.openai.gpt-5-6-luna-v1:0", "other/gpt-5.6-luna"]);
 console.log("model editor data checks passed");

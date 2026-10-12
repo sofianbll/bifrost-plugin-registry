@@ -1,50 +1,36 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ApiError, applyKeyAdoption, previewKeyAdoption, type AdoptionOperation, type AdoptionPreview, type AdoptionReceipt } from "../../data/api";
-import { displayProvider } from "../../components/registry/BrandIcon";
-import { useCopy, useFormat, type Copy } from "../../lib/locale";
+import { useCopy, useFormat } from "../../lib/locale";
+import { AdoptionBlockers } from "./AdoptionBlockers";
+import { NativeEditDialog, type NativeEditRequest } from "./NativePermissionEdit";
+import { KeptProviders } from "./KeptNative";
+import { adoptionProgress, disabledProviders } from "./key-readiness";
 
-const missingAccess = /^Native route (.+) needs a configured direct Registry access with the same native name$/;
-// The server writes its adoption reasons as English text in about twenty places
-// (internal/admin/adoption.go), so they are mapped to UI copy here, in one table:
-// [pattern, English, French], with $1 for a capture and $& for the reason as sent.
-// A reason missing from the table shows as sent; missing-access reasons are listed apart.
-const reasons: [RegExp, string, string][] = [
-  [/^Dynamic native model allowlist is unsupported for (.+)$/, "$1: dynamic model list; adoption is unsupported.", "$1 : liste de modèles dynamique ; adoption non prise en charge."],
-  [/^Native key has no representable configured model access$/, "No configured access can be safely transferred to a Registry selection from this key.", "Aucun accès configuré de cette clé ne peut être repris fidèlement dans une sélection Registry."],
-  [/^Native key identity changed$/, "$&", "L’identité de la clé native a changé."],
-  [/^Native key is inactive or expired$/, "$&", "La clé native est inactive ou expirée."],
-  [/^Native key is controlled by an external access profile$/, "$&", "La clé native dépend d’un profil d’accès externe."],
-  [/^Full native key credential is unavailable$/, "$&", "Le secret complet de la clé native est indisponible."],
-  [/^Registry policy is disabled$/, "$&", "La politique Registry est désactivée."],
-  [/^Registry binding already matches the native key$/, "$&", "L’association Registry correspond déjà à la clé native."],
-  [/^Native model readback is unavailable$/, "$&", "La relecture des modèles natifs est indisponible."],
-  [/^Native model list differs from configured access; import or reconcile the missing routes first$/, "$&", "La liste des modèles natifs diffère des accès configurés ; importez ou réconciliez d’abord les routes manquantes."],
-  [/^allow_all_providers grants future providers and cannot be represented safely$/, "$&", "allow_all_providers accorde aussi les futurs fournisseurs : impossible de le reprendre fidèlement."],
-  [/^Duplicate native model discovery for (.+)$/, "$&", "Modèle natif découvert en double pour $1."],
-  [/^Native provider configuration is missing or duplicated$/, "$&", "Configuration native du fournisseur absente ou en double."],
-  [/^Empty native allowed_models has version-dependent meaning for (.+)$/, "$&", "allowed_models vide pour $1 : sens variable selon la version de Bifrost."],
-  [/^Empty native provider key list has version-dependent meaning for (.+)$/, "$&", "Liste de clés fournisseur vide pour $1 : sens variable selon la version de Bifrost."],
-  [/^Dynamic native blacklist is unsupported for (.+)$/, "$&", "$1 : liste d’exclusion dynamique non prise en charge."],
-  [/^Duplicate native model route (.+)$/, "$&", "Route de modèle native en double : $1."],
-  [/^Native route (.+) is absent from provider discovery$/, "$&", "La route native $1 est absente de la découverte du fournisseur."],
-  [/^No enabled native provider key for (.+)$/, "$&", "Aucune clé fournisseur native active pour $1."],
-];
-function adoptionReason(reason: string, copyText: Copy) {
-  const known = reasons.find(([pattern]) => pattern.test(reason));
-  return known ? reason.replace(known[0], copyText(known[1], known[2])) : reason;
-}
-
-export default function AdoptionDialog({ keyId, operation, onClose, onUnauthorized, onApplied, onGoToModels }: { keyId: string; operation: AdoptionOperation; onClose: () => void; onUnauthorized: () => void; onApplied: (receipt: AdoptionReceipt) => void; onGoToModels?: () => void }) {
+// onShowToAdd: called with the provider/native routes of the unsaved models blocking the key.
+// onNativeEdited: called once the key was edited in Bifrost (#93), so the caller reloads its workspace.
+// Spec #85: the dialog opens on the decisions left (AdoptionBlockers), then what is kept in Bifrost; the accesses
+// Registry will manage wait behind a disclosure. One scroll container (the dialog), so a phone sees the decisions first.
+export default function AdoptionDialog({ keyId, operation, onClose, onUnauthorized, onApplied, onShowToAdd, onNativeEdited }: { keyId: string; operation: AdoptionOperation; onClose: () => void; onUnauthorized: () => void; onApplied: (receipt: AdoptionReceipt) => void; onShowToAdd?: (routes: string[]) => void; onNativeEdited?: () => void }) {
   const copyText = useCopy();
   const { colon } = useFormat();
   const [preview, setPreview] = useState<AdoptionPreview | null>(null);
   const [error, setError] = useState("");
   const [stale, setStale] = useState(false);
   const [busy, setBusy] = useState(false);
-  const label = preview?.evidence === "snapshot" ? copyText("Prepare local selection", "Préparer la sélection locale") : operation === "adopt" ? copyText("Use this key with Registry", "Utiliser cette clé avec Registry") : copyText("Reassociate Bifrost key", "Réassocier la clé Bifrost");
+  const [nativeEdit, setNativeEdit] = useState<NativeEditRequest | null>(null);
+  // Providers kept in Bifrost (#92): the preview and the apply are made for the same choice, so the list
+  // only changes together with the preview it belongs to.
+  const [kept, setKept] = useState<string[]>([]);
+  // Native edits made from this dialog: their rows count as decided once they leave the list.
+  const [edited, setEdited] = useState<string[]>([]);
+  // A provider Bifrost reports as disabled is kept in Bifrost on the first preview only, so "Stop keeping" sticks.
+  const preselected = useRef(false);
+  const snapshot = preview?.evidence === "snapshot";
+  const title = snapshot ? copyText("Prepare local selection", "Préparer la sélection locale") : operation === "adopt" ? copyText("Adopt this key", "Adopter cette clé") : copyText("Reassociate Bifrost key", "Réassocier la clé Bifrost");
+  const confirm = snapshot ? title : operation === "adopt" ? copyText("Adopt", "Adopter") : title;
 
   const report = (cause: unknown) => {
     if (cause instanceof ApiError && cause.status === 401) { onClose(); onUnauthorized(); return; }
@@ -55,34 +41,50 @@ export default function AdoptionDialog({ keyId, operation, onClose, onUnauthoriz
     }
     setError(cause instanceof Error ? cause.message : copyText("Could not associate this key.", "Impossible d’associer cette clé."));
   };
-  const refresh = async () => {
+  const refresh = async (keep = kept) => {
     if (busy) return;
     setBusy(true);
-    try { setPreview(await previewKeyAdoption(keyId, operation)); setStale(false); setError(""); }
+    try {
+      let next = await previewKeyAdoption(keyId, operation, keep);
+      const disabled = operation === "adopt" && !preselected.current ? disabledProviders(next.readiness) : [];
+      preselected.current = true;
+      if (disabled.length) { keep = [...keep, ...disabled]; next = await previewKeyAdoption(keyId, operation, keep); }
+      setPreview(next); setKept(keep); setStale(false); setError("");
+    }
     catch (cause) { report(cause); }
     finally { setBusy(false); }
   };
   useEffect(() => { void refresh(); }, [keyId, operation]);
+  const keep = (provider: string, on: boolean) => void refresh(on ? [...kept.filter(name => name !== provider), provider] : kept.filter(name => name !== provider));
   const apply = async () => {
     if (!preview?.canApply || !preview.previewToken || busy || stale) return;
     setBusy(true);
-    try { onApplied(await applyKeyAdoption(preview)); onClose(); }
+    try { onApplied(await applyKeyAdoption(preview, kept)); onClose(); }
     catch (cause) { report(cause); }
     finally { setBusy(false); }
   };
+  const progress = adoptionProgress(preview?.readiness, kept, edited);
+  const routes = (ids: string[]) => <ul className="mt-2 space-y-1">{ids.map(id => <li key={id} className="break-all font-mono text-xs">{id}</li>)}</ul>;
 
-  const missingCards = preview?.blocked.filter(reason => missingAccess.test(reason)).length || 0;
-  const missingByProvider = Object.entries((preview?.blocked || []).reduce<Record<string, string[]>>((providers, reason) => {
-    const route = reason.match(missingAccess)?.[1];
-    if (!route) return providers;
-    const split = route.indexOf("/");
-    const provider = split > 0 ? displayProvider(route.slice(0, split)) : copyText("Other", "Autre");
-    (providers[provider] ||= []).push(split > 0 ? route.slice(split + 1) : route);
-    return providers;
-  }, {}));
-  return <Dialog open onOpenChange={open => { if (!open && !busy) onClose(); }}><DialogContent className="max-h-[90dvh] w-[calc(100vw-2rem)] max-w-xl overflow-auto"><DialogHeader><DialogTitle>{label}</DialogTitle><DialogDescription>{copyText("Review the selected models and Bifrost permissions before confirming.", "Vérifiez les modèles retenus et les permissions Bifrost avant de confirmer.")}</DialogDescription></DialogHeader>
+  return <Dialog open onOpenChange={open => { if (!open && !busy) onClose(); }}><DialogContent className="max-h-[90dvh] w-[calc(100vw-2rem)] max-w-xl scroll-pb-32 overflow-auto pb-0"><DialogHeader><DialogTitle>{title}</DialogTitle><DialogDescription>{operation === "adopt" ? copyText("Registry takes over the choice of models for this key. Adopting changes nothing in Bifrost: the key keeps its permissions there.", "Registry prend en charge le choix des modèles de cette clé. Adopter ne change rien dans Bifrost : la clé y garde ses permissions.") : copyText("Review the selected models and Bifrost permissions before confirming.", "Vérifiez les modèles retenus et les permissions Bifrost avant de confirmer.")}</DialogDescription></DialogHeader>
     {error && <p role="alert" className="rounded-sm border border-destructive/40 bg-destructive/10 p-3 text-sm">{error}</p>}
-    {preview ? <div className="space-y-3 text-sm">{preview.evidence === "snapshot" && <p className="rounded-sm border bg-primary/5 p-3">{copyText(`Preview calculated from the ${preview.source} snapshot. This action prepares the selection in the local copy; it does not modify the key on Pulsar.`, `Aperçu calculé depuis la capture de ${preview.source}. Cette action prépare la sélection dans la copie locale ; elle ne modifie pas la clé sur Pulsar.`)}</p>}<div className="flex flex-wrap gap-2"><Badge variant={preview.canApply ? "success" : "warning"}>{preview.canApply ? copyText("Ready to apply", "Prêt à appliquer") : missingCards > 1 ? copyText("Models to register", "Modèles à enregistrer") : missingCards ? copyText("Model to register", "Modèle à enregistrer") : copyText("Needs attention", "À résoudre")}</Badge><Badge variant="outline">{copyText("Bifrost permissions preserved", "Permissions Bifrost conservées")}</Badge></div><div className="grid gap-3 sm:grid-cols-2"><section className="min-w-0 rounded-sm border p-3"><h3 className="font-medium">{copyText(`Selected Registry accesses (${preview.selectedRoutes.length})`, `Accès Registry retenus (${preview.selectedRoutes.length})`)}</h3><ul className="mt-2 max-h-40 space-y-1 overflow-auto">{preview.selectedRoutes.map(id => <li key={id} className="break-all font-mono text-xs">{id}</li>)}</ul>{!preview.selectedRoutes.length && <p className="mt-2 text-xs text-muted-foreground">{preview.blocked.length ? copyText("Selection unavailable until the items below are resolved.", "Sélection indisponible tant que les points ci-dessous ne sont pas résolus.") : copyText("No access selected.", "Aucun accès sélectionné.")}</p>}</section><section className="min-w-0 rounded-sm border p-3"><h3 className="font-medium">{preview.evidence === "snapshot" ? copyText("Snapshot accesses", "Accès de la capture") : copyText("Current native accesses", "Accès natifs actuels")} {preview.blocked.length > 0 && preview.nativeRoutes.length === 0 ? `· ${copyText("not verified", "non vérifiés")}` : `(${preview.nativeRoutes.length})`}</h3><ul className="mt-2 max-h-40 space-y-1 overflow-auto">{preview.nativeRoutes.map(id => <li key={id} className="break-all font-mono text-xs">{id}</li>)}</ul>{!preview.nativeRoutes.length && <p className="mt-2 text-xs text-muted-foreground">{preview.blocked.length ? copyText("Native routes were not read back because blockers remain.", "Les routes natives n’ont pas été relues car des blocages subsistent.") : copyText("No accesses returned.", "Aucun accès renvoyé.")}</p>}</section></div>{preview.blocked.length > 0 && <div className="rounded-sm border border-destructive/40 bg-destructive/10 p-3"><h3 className="font-medium">{copyText("Before continuing", "Avant de continuer")}</h3>{missingCards > 0 && <><p className="mt-1">{copyText(`${missingCards} models need a configured Registry access:`, `${missingCards} modèles nécessitent un accès Registry configuré :`)}</p><ul className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-sm">{missingByProvider.map(([provider, names]) => <li key={provider}>{provider} · {names.length}</li>)}</ul><details className="mt-2 text-xs"><summary className="cursor-pointer">{copyText("Show model names", "Afficher les noms des modèles")}</summary>{missingByProvider.map(([provider, names]) => <p key={provider} className="mt-1 break-words"><strong>{provider}{colon}</strong> {names.join(", ")}</p>)}</details>{onGoToModels && <Button type="button" variant="outline" size="sm" className="mt-3" onClick={onGoToModels}>{copyText("Go to models", "Aller aux modèles")}</Button>}</>}{preview.blocked.filter(reason => !missingAccess.test(reason)).map((reason, index) => <p key={`${index}/${reason}`} className="mt-2 break-words">{adoptionReason(reason, copyText)}</p>)}{preview.blocked.some(reason => reason.startsWith("Dynamic native model allowlist")) && <p className="mt-3 text-xs">{copyText("Keep this native key as it is, or review a key with explicit model permissions. Registry cannot safely reproduce this dynamic selection.", "Gardez cette clé native en l’état, ou examinez une clé aux permissions de modèles explicites. Registry ne sait pas reproduire fidèlement cette sélection dynamique.")}</p>}</div>}{!preview.previewToken && preview.canApply && <p className="text-xs text-destructive">{copyText("Confirmation is unavailable. Refresh the preview.", "La confirmation est indisponible. Actualisez l’aperçu.")}</p>}{stale && <p role="status" className="text-xs text-destructive">{copyText("This preview is out of date.", "Cet aperçu n’est plus à jour.")}</p>}<details className="text-xs text-muted-foreground"><summary className="cursor-pointer">{copyText("Technical identifiers", "Identifiants techniques")}</summary><p className="mt-1 break-all">{copyText("Key", "Clé")}{colon} <code>{keyId}</code></p><p className="break-all">{copyText("Registry revision", "Révision Registry")} : <code>{preview.revision}</code></p></details></div> : <p className="text-sm text-muted-foreground">{busy ? copyText("Loading preview…", "Chargement de l’aperçu…") : copyText("Preview unavailable.", "Aperçu indisponible.")}</p>}
-    <DialogFooter className="flex-row flex-wrap justify-end gap-2"><Button variant="outline" disabled={busy} onClick={() => void refresh()}>{copyText("Refresh preview", "Actualiser l’aperçu")}</Button><Button variant="outline" disabled={busy} onClick={onClose}>{copyText("Cancel", "Annuler")}</Button><Button disabled={busy || stale || !preview?.canApply || !preview.previewToken} onClick={() => void apply()}>{label}</Button></DialogFooter>
+    {preview ? <div className="space-y-3 text-sm">
+      {snapshot && <p className="rounded-sm border bg-primary/5 p-3">{copyText(`Preview calculated from the ${preview.source} snapshot. This action prepares the selection in the local copy; it does not modify the key on Pulsar.`, `Aperçu calculé depuis la capture de ${preview.source}. Cette action prépare la sélection dans la copie locale ; elle ne modifie pas la clé sur Pulsar.`)}</p>}
+      {preview.canApply && <Badge variant="success">{operation === "adopt" ? copyText("Ready to adopt", "Prête à adopter") : copyText("Ready to apply", "Prêt à appliquer")}</Badge>}
+      {preview.blocked.length > 0 && <AdoptionBlockers readiness={preview.readiness} reasons={preview.blocked} onShowToAdd={onShowToAdd} onKeep={operation === "adopt" ? keep : undefined} onEditNative={operation === "adopt" && !snapshot ? setNativeEdit : undefined} />}
+      <KeptProviders readiness={preview.readiness} kept={kept} onKeep={keep} />
+      {preview.selectedRoutes.length > 0 ? <details className="rounded-sm border p-3"><summary className="cursor-pointer font-medium">{copyText(`Accesses Registry will manage (${preview.selectedRoutes.length})`, `Accès que Registry gérera (${preview.selectedRoutes.length})`)}</summary>
+        {routes(preview.selectedRoutes)}
+        {preview.nativeRoutes.length > 0 && <><p className="mt-3 font-medium">{snapshot ? copyText(`Snapshot accesses (${preview.nativeRoutes.length})`, `Accès de la capture (${preview.nativeRoutes.length})`) : copyText(`Bifrost lists today (${preview.nativeRoutes.length})`, `Bifrost liste aujourd’hui (${preview.nativeRoutes.length})`)}</p>{routes(preview.nativeRoutes)}</>}
+      </details> : !preview.blocked.length && <p className="text-xs text-muted-foreground">{copyText("No access selected.", "Aucun accès sélectionné.")}</p>}
+      {!preview.previewToken && preview.canApply && <p className="text-xs text-destructive">{copyText("Confirmation is unavailable. Refresh the preview.", "La confirmation est indisponible. Actualisez l’aperçu.")}</p>}
+      <div className="flex flex-wrap items-center gap-2">{stale && <p role="status" className="text-xs text-destructive">{copyText("This preview is out of date.", "Cet aperçu n’est plus à jour.")}</p>}<Button variant="outline" size="sm" disabled={busy} onClick={() => void refresh()}>{copyText("Refresh preview", "Actualiser l’aperçu")}</Button></div>
+      <details className="text-xs text-muted-foreground"><summary className="cursor-pointer">{copyText("Technical identifiers", "Identifiants techniques")}</summary><p className="mt-1 break-all">{copyText("Key", "Clé")}{colon} <code>{keyId}</code></p><p className="break-all">{copyText("Registry revision", "Révision Registry")}{colon} <code>{preview.revision}</code></p></details>
+    </div> : <p className="text-sm text-muted-foreground">{busy ? copyText("Loading preview…", "Chargement de l’aperçu…") : copyText("Preview unavailable.", "Aperçu indisponible.")}</p>}
+    {/* Sticky, so Cancel and Adopt stay in reach on a phone while the decisions scroll (the dialog is the one scroll container). */}
+    <DialogFooter className="sticky bottom-0 -mx-6 flex-row flex-wrap items-center justify-end gap-2 border-t bg-white px-6 py-3 dark:bg-card">
+      {progress.total > 0 && <p className="w-full text-xs text-muted-foreground sm:mr-auto sm:w-auto">{copyText(`${progress.decided} of ${progress.total} decided`, `${progress.decided} sur ${progress.total} ${progress.total > 1 ? "décidées" : "décidée"}`)}</p>}
+      <Button variant="outline" className="flex-1 sm:flex-none" disabled={busy} onClick={onClose}>{copyText("Cancel", "Annuler")}</Button><Button className="flex-1 sm:flex-none" disabled={busy || stale || !preview?.canApply || !preview.previewToken} onClick={() => void apply()}>{confirm}</Button></DialogFooter>
+    {nativeEdit && <NativeEditDialog keyId={keyId} request={nativeEdit} onClose={() => setNativeEdit(null)} onUnauthorized={onUnauthorized} onEdited={() => { setEdited(done => [...done, nativeEdit.provider]); void refresh(); onNativeEdited?.(); }} />}
   </DialogContent></Dialog>;
 }

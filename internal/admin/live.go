@@ -57,9 +57,12 @@ func (a *accessDTO) UnmarshalJSON(data []byte) error {
 }
 
 type modelDTO struct {
-	ID               string            `json:"id"`
-	Name             string            `json:"name"`
-	Creator          string            `json:"creator"`
+	ID      string `json:"id"`
+	Name    string `json:"name"`
+	Creator string `json:"creator"`
+	// Where a saved card's creator comes from: "manual" (stored; with no creator, a clear that must
+	// not be guessed again), "reference" or "inferred". Never stored but for that clear.
+	CreatorSource    string            `json:"creatorSource,omitempty"`
 	Family           string            `json:"family"`
 	InputModalities  []string          `json:"inputModalities"`
 	OutputModalities []string          `json:"outputModalities"`
@@ -83,6 +86,8 @@ type policyDTO struct {
 	Naming          string                             `json:"naming"`
 	Prefer          map[string]string                  `json:"prefer,omitempty"`
 	AccessSelection map[string]registry.AccessSelector `json:"accessSelection,omitempty"`
+	// Providers of an adopted key whose permissions stay in Bifrost; read-only, set by adoption.
+	KeptNative []string `json:"keptNative,omitempty"`
 }
 type publication struct {
 	State            string   `json:"state"`
@@ -117,6 +122,8 @@ type keyDTO struct {
 	PendingAccessSelection map[string][]string `json:"pendingAccessSelection,omitempty"`
 	// What Bifrost lets the key use today; absent when the native answer carried no provider rows.
 	Permissions *nativePermissions `json:"permissions,omitempty"`
+	// Whether the key can be adopted now (unmanaged keys whose permissions were read); the adoption plan's verdict.
+	Readiness *adoptionReadiness `json:"readiness,omitempty"`
 }
 type nativePermissions struct {
 	AllProviders bool                 `json:"allProviders"`
@@ -150,6 +157,8 @@ type workspace struct {
 type providerDTO struct {
 	ID               string `json:"id"`
 	BaseProviderType string `json:"baseProviderType,omitempty"`
+	// No enabled key in Bifrost: none of its models is discovered. Read by adoption only.
+	Disabled bool `json:"-"`
 }
 type nativeModel struct {
 	Name             string   `json:"name"`
@@ -177,6 +186,23 @@ type nativeProviderConfig struct {
 	Keys              []struct {
 		KeyID string `json:"key_id"`
 	} `json:"keys"`
+	// What Bifrost deletes with a row a write leaves out; only whether it is there matters (and the edit token covers it).
+	Budgets      json.RawMessage `json:"budgets"`
+	RateLimit    json.RawMessage `json:"rate_limit"`
+	RateLimitID  json.RawMessage `json:"rate_limit_id"`
+	ModelBudgets json.RawMessage `json:"model_budgets"`
+}
+
+// hasLimits tells whether the row carries a budget or a rate limit of its own.
+func (p nativeProviderConfig) hasLimits() bool {
+	for _, raw := range []json.RawMessage{p.Budgets, p.RateLimit, p.RateLimitID, p.ModelBudgets} {
+		switch string(raw) {
+		case "", "null", "[]", "{}":
+		default:
+			return true
+		}
+	}
+	return false
 }
 
 // permissions summarises the native provider rows; "*" allows every model, blacklisted names are left
@@ -313,6 +339,8 @@ func (s *Server) liveHandler(w http.ResponseWriter, r *http.Request) {
 		s.createKey(w, r)
 	case r.URL.Path == "/api/keys/adopt" && r.Method == http.MethodPost:
 		s.adoptKey(w, r)
+	case r.URL.Path == "/api/keys/native-permissions" && r.Method == http.MethodPost:
+		s.editNativePermissions(w, r)
 	case strings.HasPrefix(r.URL.Path, "/api/keys/") && strings.HasSuffix(r.URL.Path, "/secret") && r.Method == http.MethodPost:
 		id := strings.TrimSuffix(strings.TrimPrefix(r.URL.Path, "/api/keys/"), "/secret")
 		if id == "" || strings.Contains(id, "/") {
@@ -384,6 +412,7 @@ func (s *Server) nativeProvidersAndModels(ctx context.Context) ([]providerDTO, [
 			}
 		}
 		if len(ids) == 0 {
+			listed[len(listed)-1].Disabled = true
 			continue
 		}
 		for offset := 0; offset < 10000; offset += 100 {
@@ -442,6 +471,14 @@ func modelID(name string) string {
 	}
 	return id
 }
+
+// splitVendor separates an aggregator's "vendor/model" ("~vendor/model" keeps its marker in the vendor).
+func splitVendor(name string) (vendor, bare string) {
+	if i := strings.LastIndex(name, "/"); i > 0 && i < len(name)-1 {
+		return name[:i], name[i+1:]
+	}
+	return "", name
+}
 func registryID(provider, name string) string {
 	h := sha256.Sum256([]byte(provider + "\x00" + name))
 	return "access-" + hex.EncodeToString(h[:8])
@@ -450,20 +487,39 @@ func nativeToDiscovery(rows []nativeModel) []modelDTO {
 	models := []modelDTO{}
 	byName := map[string]int{}
 	used := map[string]string{}
+	// An aggregator names models "vendor/model". The common ID drops the vendor, like the direct
+	// provider's ("claude-fable-5", not "anthropic-claude-fable-5"), and the same model through
+	// both is one discovered model. A bare name that several vendors share keeps its vendor.
+	vendors := map[string]map[string]bool{}
+	for _, row := range rows {
+		if vendor, bare := splitVendor(row.Name); vendor != "" {
+			if vendors[bare] == nil {
+				vendors[bare] = map[string]bool{}
+			}
+			vendors[bare][vendor] = true
+		}
+	}
 	for _, row := range rows {
 		if row.Provider == "" || row.Name == "" {
 			continue
 		}
-		id := modelID(row.Name)
-		if prev := used[id]; prev != "" && prev != row.Name {
-			sum := sha256.Sum256([]byte(row.Name))
+		key := row.Name
+		if vendor, bare := splitVendor(key); vendor != "" && len(vendors[bare]) == 1 {
+			key = bare
+		}
+		id := modelID(key)
+		if prev := used[id]; prev != "" && prev != key {
+			sum := sha256.Sum256([]byte(key))
 			id += "-" + hex.EncodeToString(sum[:4])
 		}
-		used[id] = row.Name
-		i, ok := byName[row.Name]
+		used[id] = key
+		i, ok := byName[key]
+		if ok && row.Name == key {
+			models[i].Name = key // the plain name, whichever provider came first
+		}
 		if !ok {
 			i = len(models)
-			byName[row.Name] = i
+			byName[key] = i
 			models = append(models, modelDTO{ID: id, Name: row.Name, Creator: "Unknown", Family: "Unknown", InputModalities: []string{}, OutputModalities: []string{}, Tasks: []string{}, Kind: "Unknown", Summary: "", Context: "Unknown", Capabilities: map[string]string{}, Accesses: []accessDTO{}})
 		}
 		a := accessDTO{Provider: row.Provider, ID: row.Provider + "/" + id, Route: "Direct provider", Status: "Configured", NativeModel: row.Name, Endpoints: []string{}}
@@ -501,7 +557,9 @@ func (s *Server) workspace(ctx context.Context) (workspace, error) {
 		if ui.ID == "" {
 			ui = modelDTO{ID: m.Alias, Creator: m.Creator, Family: m.Family, Context: "Unknown", Kind: "Unknown"}
 		}
+		stored, cleared := cleanUnknown(ui.Creator) != "", ui.CreatorSource == "manual"
 		catalogModelFields(&ui, catalogFieldsForAccess(config.Catalog, m.Provider, m.UpstreamModel))
+		ui.CreatorSource = creatorSource(stored, cleared, cleanUnknown(ui.Creator) != "")
 		ui = sanitizeLiveModel(ui)
 		if ui.Name == "" {
 			ui.Name = m.Alias
@@ -509,11 +567,22 @@ func (s *Server) workspace(ctx context.Context) (workspace, error) {
 		a := accessDTO{Provider: m.Provider, ID: m.Provider + "/" + m.Alias, NativeModel: m.UpstreamModel, Route: "Direct provider", Status: "Configured", Endpoints: append([]string{}, m.Endpoints...), ReferenceID: workspaceReferenceID(config.Catalog, m.Provider, m.UpstreamModel)}
 		if i, ok := index[ui.ID]; ok {
 			dto.Models[i].Accesses = append(dto.Models[i].Accesses, a)
+			// A later access with a reference names the creator the first one could not.
+			if dto.Models[i].CreatorSource == "" && ui.CreatorSource == "reference" {
+				dto.Models[i].Creator, dto.Models[i].CreatorSource = ui.Creator, "reference"
+			}
 		} else {
 			ui.Accesses = []accessDTO{a}
 			index[ui.ID] = len(dto.Models)
 			dto.Models = append(dto.Models, ui)
 		}
+	}
+	siblings := siblingCreators(dto.Models)
+	for i := range dto.Models {
+		inferCreator(&dto.Models[i], providers, siblings)
+	}
+	for i := range discovered {
+		inferCreator(&discovered[i], providers, siblings)
 	}
 	refs := map[string]string{}
 	accessIDs := map[string]string{}
@@ -542,8 +611,13 @@ func (s *Server) workspace(ctx context.Context) (workspace, error) {
 		active := vk.IsActive == nil || *vk.IsActive
 		key := keyDTO{ID: vk.ID, Name: vk.Name, Client: vk.Description, Active: active, Managed: managed, Policy: policyDTO{Groups: []string{}, Added: []string{}, Excluded: []string{}, Naming: config.DefaultNaming}, Publication: publication{State: "not_verified", Revision: snap.Revision(), Expected: []string{}, Missing: []string{}, Unexpected: []string{}}, Revision: 1}
 		key.Permissions = vk.permissions()
+		if !managed && key.Permissions != nil {
+			_, _, blockers := adoptionSelection(config, vk, rows, nil)
+			key.Readiness = adoptionReadinessOf(vk, append(nativeKeyBlockers(vk), blockers...))
+			key.Readiness.markDisabled(providers)
+		}
 		if managed {
-			key.Policy = policyDTO{Groups: p.Groups, Added: refsToAliases(p.Added, refs), Excluded: refsToAliases(p.Excluded, refs), Naming: p.Naming, Prefer: p.Prefer, AccessSelection: accessSelectionToDTO(p.AccessSelection, config.Models)}
+			key.Policy = policyDTO{Groups: p.Groups, Added: refsToAliases(p.Added, refs), Excluded: refsToAliases(p.Excluded, refs), Naming: p.Naming, Prefer: p.Prefer, AccessSelection: accessSelectionToDTO(p.AccessSelection, config.Models), KeptNative: p.KeptNative}
 			if key.Policy.Naming == "" {
 				key.Policy.Naming = config.DefaultNaming
 			}
@@ -562,11 +636,8 @@ func (s *Server) workspace(ctx context.Context) (workspace, error) {
 					proof.CheckedAt = ""
 					proof.Expected = []string{}
 					if view, ok := snap.View(vk.ID); ok {
-						for _, route := range view.Routes {
-							proof.Expected = append(proof.Expected, route.ExposedID)
-						}
+						proof.Expected = expectedRoutes(view, vk)
 					}
-					sort.Strings(proof.Expected)
 					proof.Missing = []string{}
 					proof.Unexpected = []string{}
 					proof.Error = "Registry configuration changed; readback required"
@@ -622,7 +693,7 @@ func accessSelectionToDTO(sel map[string]registry.AccessSelector, models []regis
 	}
 	out := map[string]registry.AccessSelector{}
 	for alias, s := range sel {
-		dto := registry.AccessSelector{}
+		dto := registry.AccessSelector{Added: []string{}, Excluded: []string{}} // the panel reads both as lists
 		for _, id := range s.Added {
 			if access := idToAccess[id]; access != "" {
 				dto.Added = append(dto.Added, access)
@@ -760,7 +831,7 @@ func (s *Server) putWorkspace(w http.ResponseWriter, r *http.Request) {
 				reply(w, 422, map[string]string{"error": e.Error()})
 				return
 			}
-			persisted := sanitizeLiveModel(m)
+			persisted := persistedCreator(sanitizeLiveModel(m))
 			stripCatalogAutofill(&persisted, catalogFieldsForAccess(cfg.Catalog, a.Provider, raw))
 			metadata, _ := json.Marshal(persisted)
 			endpoints := a.Endpoints
@@ -885,11 +956,8 @@ func (s *Server) putWorkspace(w http.ResponseWriter, r *http.Request) {
 		prior := s.live.proofs[pp.VirtualKeyID]
 		p := publication{State: "not_verified", Revision: saved.Revision(), Expected: []string{}, Actual: prior.Actual, Missing: []string{}, Unexpected: []string{}, ObservedAt: prior.ObservedAt, ObservedRevision: prior.ObservedRevision, Error: "Readback required"}
 		if view, ok := saved.View(pp.VirtualKeyID); ok {
-			for _, route := range view.Routes {
-				p.Expected = append(p.Expected, route.ExposedID)
-			}
+			p.Expected = expectedRoutes(view, nativeByID[pp.VirtualKeyID])
 		}
-		sort.Strings(p.Expected)
 		s.live.proofs[pp.VirtualKeyID] = p
 	}
 	// The optimistic Registry save must win before any native side effect.
@@ -901,7 +969,9 @@ func (s *Server) putWorkspace(w http.ResponseWriter, r *http.Request) {
 	for _, pp := range plan.VirtualKeys {
 		if oldPolicy[pp.VirtualKeyID].Adopted {
 			// Adoption only binds an existing native key. Registry edits may narrow
-			// its own view, but must never rewrite its Bifrost permissions.
+			// its own view, but must never rewrite its Bifrost permissions, so the provider rows of
+			// kept-native providers (policy.KeptNative) stay untouched. A future native write for an
+			// adopted key must repost those rows as read (full-key repost rule), never rebuild them.
 			continue
 		}
 		vk := nativeByID[pp.VirtualKeyID]
@@ -1171,10 +1241,7 @@ func (s *Server) readback(w http.ResponseWriter, r *http.Request, id string) {
 	}
 	prior := s.live.proofs[id]
 	p := publication{State: "not_verified", Revision: snap.Revision(), CheckedAt: time.Now().UTC().Format(time.RFC3339), Expected: []string{}, Missing: []string{}, Unexpected: []string{}, ObservedAt: prior.ObservedAt, ObservedRevision: prior.ObservedRevision}
-	for _, route := range view.Routes {
-		p.Expected = append(p.Expected, route.ExposedID)
-	}
-	sort.Strings(p.Expected)
+	p.Expected = expectedRoutes(view, nativeVK{})
 	finish := func() {
 		if p.State == "not_verified" && p.Actual == nil {
 			p.Actual = prior.Actual
@@ -1195,6 +1262,8 @@ func (s *Server) readback(w http.ResponseWriter, r *http.Request, id string) {
 		finish()
 		return
 	}
+	// Kept providers are read live: Bifrost owns their permissions, so Registry expects what the key allows now.
+	p.Expected = expectedRoutes(view, response.VirtualKey)
 	secret := response.VirtualKey.Value
 	if len(p.Expected) == 0 {
 		p.Error = "No native provider access selected"
@@ -1230,18 +1299,7 @@ func (s *Server) readback(w http.ResponseWriter, r *http.Request, id string) {
 				sort.Strings(p.Actual)
 				p.ObservedAt = p.CheckedAt
 				p.ObservedRevision = p.Revision
-				want := map[string]bool{}
-				for _, v := range p.Expected {
-					want[v] = true
-					if !seen[v] {
-						p.Missing = append(p.Missing, v)
-					}
-				}
-				for _, v := range p.Actual {
-					if !want[v] {
-						p.Unexpected = append(p.Unexpected, v)
-					}
-				}
+				p.Missing, p.Unexpected = diffModels(p.Expected, p.Actual, view.Policy.KeptNative, exposedIDs(view))
 				p.State = "verified"
 				if len(p.Missing)+len(p.Unexpected) > 0 {
 					p.State = "drift"

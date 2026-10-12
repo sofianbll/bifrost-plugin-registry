@@ -102,6 +102,9 @@ type Policy struct {
 	Enabled         bool                      `json:"enabled"`
 	Adopted         bool                      `json:"adopted,omitempty"`
 	NativeModelIDs  []string                  `json:"native_model_ids,omitempty"`
+	// KeptNative lists providers of an adopted key whose native permissions stay in Bifrost: Registry
+	// neither manages nor rewrites them, and readback expects their routes as the native key allows them.
+	KeptNative []string `json:"kept_native,omitempty"`
 }
 
 type Route struct {
@@ -524,6 +527,9 @@ func Compile(c Config) (*Snapshot, error) {
 			}
 		} else if len(p.NativeModelIDs) > 0 {
 			return nil, fmt.Errorf("policy %s: native model ceiling requires adoption", p.VirtualKeyID)
+		}
+		if len(p.KeptNative) > 0 && (!p.Adopted || !unique(p.KeptNative)) {
+			return nil, fmt.Errorf("policy %s: kept native providers require adoption and unique names", p.VirtualKeyID)
 		}
 		selected := map[string]bool{}
 		for _, gid := range p.Groups {

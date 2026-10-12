@@ -9,9 +9,9 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"slices"
 	"sort"
 	"strings"
-	"time"
 
 	"bifrost-registry/internal/registry"
 )
@@ -59,6 +59,8 @@ type adoptionInput struct {
 	Operation    string `json:"operation"`
 	Phase        string `json:"phase"`
 	PreviewToken string `json:"previewToken,omitempty"`
+	// Providers of the key whose permissions stay native: adopt only; the preview token covers the choice.
+	KeepNative []string `json:"keepNative,omitempty"`
 }
 
 type adoptionPreview struct {
@@ -71,12 +73,26 @@ type adoptionPreview struct {
 	Blocked                    []string `json:"blocked"`
 	CanApply                   bool     `json:"canApply"`
 	NativePermissionsPreserved bool     `json:"nativePermissionsPreserved"`
+	// The blockers grouped for display (adopt only); Blocked keeps the plain reasons.
+	Readiness *adoptionReadiness `json:"readiness,omitempty"`
 }
 
 type adoptionPlan struct {
 	preview        adoptionPreview
 	policy         registry.Policy
 	nativeEvidence []nativeModel
+	blockers       []adoptionBlocker
+}
+
+// block records each reason in the plain list and in the structured one the readiness groups;
+// a kept provider's blockers only go to the structured one.
+func (p *adoptionPlan) block(blockers ...adoptionBlocker) {
+	for _, b := range blockers {
+		p.blockers = append(p.blockers, b)
+		if !b.Kept {
+			p.preview.Blocked = append(p.preview.Blocked, b.Reason)
+		}
+	}
 }
 
 func (s *Server) adoptKey(w http.ResponseWriter, r *http.Request) {
@@ -185,25 +201,20 @@ func (s *Server) adoptionPlan(ctx context.Context, input adoptionInput) (adoptio
 	}
 	vk := detail.VirtualKey
 	if vk.ID != input.KeyID {
-		plan.preview.Blocked = append(plan.preview.Blocked, "Native key identity changed")
+		plan.block(otherBlocker("Native key identity changed"))
 	}
-	if vk.IsActive != nil && !*vk.IsActive || vk.ExpiresAt != nil && !vk.ExpiresAt.After(time.Now()) {
-		plan.preview.Blocked = append(plan.preview.Blocked, "Native key is inactive or expired")
-	}
-	if vk.IsAccessProfileManaged {
-		plan.preview.Blocked = append(plan.preview.Blocked, "Native key is controlled by an external access profile")
-	}
+	plan.block(nativeKeyBlockers(vk)...)
 	secret, err := registry.Credential(map[string]string{"x-bf-vk": vk.Value})
 	if err != nil || secret != vk.Value || strings.ContainsAny(vk.Value, "*…") {
-		plan.preview.Blocked = append(plan.preview.Blocked, "Full native key credential is unavailable")
+		plan.block(otherBlocker("Full native key credential is unavailable"))
 		secret = ""
 	}
 	if input.Operation == "rebind" {
 		if !existing.Enabled {
-			plan.preview.Blocked = append(plan.preview.Blocked, "Registry policy is disabled")
+			plan.block(otherBlocker("Registry policy is disabled"))
 		}
 		if secret != "" && registry.TokenHash(secret) == existing.TokenSHA256 {
-			plan.preview.Blocked = append(plan.preview.Blocked, "Registry binding already matches the native key")
+			plan.block(otherBlocker("Registry binding already matches the native key"))
 		}
 		if view, ok := snap.View(input.KeyID); ok {
 			for _, route := range view.Routes {
@@ -213,29 +224,38 @@ func (s *Server) adoptionPlan(ctx context.Context, input adoptionInput) (adoptio
 		plan.policy = *existing
 		plan.policy.TokenSHA256 = registry.TokenHash(secret)
 	} else {
-		selected, routes, rows, blocked, err := s.nativeAdoptionSelection(ctx, cfg, vk)
+		providers, rows, err := s.nativeProvidersAndModels(ctx)
 		if err != nil {
-			return plan, 502, err
+			return plan, 502, errors.New("native model discovery unavailable")
 		}
+		keep := keptProviders(input.KeepNative)
+		for _, name := range keep {
+			if !vk.hasProvider(name) {
+				plan.block(otherBlocker("Kept provider " + name + " is not on the native key"))
+			}
+		}
+		selected, routes, blocked := adoptionSelection(cfg, vk, rows, keep)
 		plan.preview.SelectedRoutes = routes
 		plan.nativeEvidence = rows
-		plan.preview.Blocked = append(plan.preview.Blocked, blocked...)
+		plan.block(blocked...)
 		plan.policy = registry.Policy{
 			VirtualKeyID: input.KeyID, Name: vk.Name, TokenSHA256: registry.TokenHash(secret),
 			Naming: "provider/model", Added: selected, Groups: []string{}, Enabled: true,
-			Adopted: true, NativeModelIDs: selected,
+			Adopted: true, NativeModelIDs: selected, KeptNative: keep, AccessSelection: adoptedAccesses(cfg, selected),
 		}
-		if secret != "" && len(blocked) == 0 {
+		if secret != "" && !hasBlocking(blocked, "") {
 			ids, err := s.nativeModelIDs(ctx, secret)
 			if err != nil {
-				plan.preview.Blocked = append(plan.preview.Blocked, "Native model readback is unavailable")
+				plan.block(otherBlocker("Native model readback is unavailable"))
 			} else {
 				plan.preview.NativeRoutes = ids
-				if !sameStrings(ids, routes) {
-					plan.preview.Blocked = append(plan.preview.Blocked, "Native model list differs from configured access; import or reconcile the missing routes first")
+				if missing, unexpected := diffModels(append(append([]string{}, routes...), keptNativeRoutes(vk, keep)...), ids, keep, routes); len(missing)+len(unexpected) > 0 {
+					plan.block(otherBlocker("Native model list differs from configured access; import or reconcile the missing routes first"))
 				}
 			}
 		}
+		plan.preview.Readiness = adoptionReadinessOf(vk, plan.blockers)
+		plan.preview.Readiness.markDisabled(providers)
 	}
 	if len(plan.preview.Blocked) == 0 {
 		plan.preview.CanApply = true
@@ -244,103 +264,12 @@ func (s *Server) adoptionPlan(ctx context.Context, input adoptionInput) (adoptio
 			Native              nativeVK
 			Selected, Observed  []string
 			Evidence            []nativeModel
-		}{snap.Revision(), input.Operation, vk, plan.preview.SelectedRoutes, plan.preview.NativeRoutes, plan.nativeEvidence})
+			Keep                []string
+		}{snap.Revision(), input.Operation, vk, plan.preview.SelectedRoutes, plan.preview.NativeRoutes, plan.nativeEvidence, plan.policy.KeptNative})
 		h := sha256.Sum256(data)
 		plan.preview.PreviewToken = hex.EncodeToString(h[:])
 	}
 	return plan, 200, nil
-}
-
-func (s *Server) nativeAdoptionSelection(ctx context.Context, cfg registry.Config, vk nativeVK) ([]string, []string, []nativeModel, []string, error) {
-	blocked := []string{}
-	if vk.AllowAllProviders {
-		blocked = append(blocked, "allow_all_providers grants future providers and cannot be represented safely")
-	}
-	rows, err := s.nativeModels(ctx)
-	if err != nil {
-		return nil, nil, nil, nil, errors.New("native model discovery unavailable")
-	}
-	discovered := map[string]nativeModel{}
-	for _, row := range rows {
-		key := row.Provider + "/" + row.Name
-		if _, duplicate := discovered[key]; duplicate {
-			blocked = append(blocked, "Duplicate native model discovery for "+key)
-		}
-		discovered[key] = row
-	}
-	models := map[string]registry.Model{}
-	for _, model := range cfg.Models {
-		models[model.Provider+"/"+model.Alias] = model
-	}
-	selected := []string{}
-	routes := []string{}
-	seenProvider := map[string]bool{}
-	seenRoute := map[string]bool{}
-	for _, pc := range vk.ProviderConfigs {
-		if pc.Provider == "" || seenProvider[pc.Provider] {
-			blocked = append(blocked, "Native provider configuration is missing or duplicated")
-			continue
-		}
-		seenProvider[pc.Provider] = true
-		if len(pc.AllowedModels) == 0 {
-			blocked = append(blocked, "Empty native allowed_models has version-dependent meaning for "+pc.Provider)
-			continue
-		}
-		keyIDs := pc.keyIDs()
-		if len(keyIDs) == 0 {
-			blocked = append(blocked, "Empty native provider key list has version-dependent meaning for "+pc.Provider)
-			continue
-		}
-		for _, name := range pc.BlacklistedModels {
-			if name == "*" || strings.HasPrefix(name, "regex:") {
-				blocked = append(blocked, "Dynamic native blacklist is unsupported for "+pc.Provider)
-			}
-		}
-		for _, name := range pc.AllowedModels {
-			if name == "" || name == "*" || strings.HasPrefix(name, "regex:") {
-				blocked = append(blocked, "Dynamic native model allowlist is unsupported for "+pc.Provider)
-				continue
-			}
-			if registry.Has(pc.BlacklistedModels, name) {
-				continue
-			}
-			route := pc.Provider + "/" + name
-			if seenRoute[route] {
-				blocked = append(blocked, "Duplicate native model route "+route)
-				continue
-			}
-			seenRoute[route] = true
-			m, ok := models[route]
-			if !ok || !m.Enabled || (!m.Verified && !m.Configured) || m.Passthrough || m.Alias != m.UpstreamModel {
-				blocked = append(blocked, "Native route "+route+" needs a configured direct Registry access with the same native name")
-				continue
-			}
-			row, ok := discovered[route]
-			if !ok {
-				blocked = append(blocked, "Native route "+route+" is absent from provider discovery")
-				continue
-			}
-			usable := false
-			for _, id := range row.AccessibleByKeys {
-				if registry.Has(m.ProviderKeyIDs, id) && (pc.AllowAllKeys || registry.Has(keyIDs, id)) {
-					usable = true
-					break
-				}
-			}
-			if !usable {
-				blocked = append(blocked, "No enabled native provider key for "+route)
-				continue
-			}
-			selected = append(selected, m.ID)
-			routes = append(routes, route)
-		}
-	}
-	if len(selected) == 0 {
-		blocked = append(blocked, "Native key has no representable configured model access")
-	}
-	sort.Strings(selected)
-	sort.Strings(routes)
-	return selected, routes, rows, blocked, nil
 }
 
 func (s *Server) nativeModelIDs(ctx context.Context, secret string) ([]string, error) {
@@ -367,14 +296,107 @@ func (s *Server) nativeModelIDs(ctx context.Context, secret string) ([]string, e
 	return ids, nil
 }
 
-func sameStrings(a, b []string) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i] != b[i] {
-			return false
+// adoptedAccesses records, for each adopted model whose alias other accesses share (a card served by two
+// providers), that those accesses are out: the key adopted one access per model, and the panel's draft
+// must not read the whole card as added. Nil when no alias is shared.
+func adoptedAccesses(cfg registry.Config, selected []string) map[string]registry.AccessSelector {
+	var out map[string]registry.AccessSelector
+	for _, id := range selected {
+		var alias string
+		for _, m := range cfg.Models {
+			if m.ID == id {
+				alias = m.Alias
+			}
+		}
+		for _, m := range cfg.Models {
+			if m.Alias == alias && m.ID != id && !registry.Has(selected, m.ID) {
+				if out == nil {
+					out = map[string]registry.AccessSelector{}
+				}
+				sel := out[alias]
+				sel.Added = []string{}
+				sel.Excluded = append(sel.Excluded, m.ID)
+				out[alias] = sel
+			}
 		}
 	}
-	return true
+	return out
+}
+
+// keptProviders is the sorted, de-duplicated choice of providers to keep native.
+func keptProviders(names []string) []string {
+	var out []string
+	for _, name := range names {
+		if name != "" && !registry.Has(out, name) {
+			out = append(out, name)
+		}
+	}
+	sort.Strings(out)
+	return out
+}
+
+func (vk nativeVK) hasProvider(name string) bool {
+	for _, pc := range vk.ProviderConfigs {
+		if pc.Provider == name {
+			return true
+		}
+	}
+	return false
+}
+
+// keptNativeRoutes are the explicit routes the native key allows on the kept providers; a wildcard or
+// regex allowlist names none, and blacklisted names are not allowed.
+func keptNativeRoutes(vk nativeVK, keep []string) []string {
+	out := []string{}
+	for _, pc := range vk.ProviderConfigs {
+		if !registry.Has(keep, pc.Provider) {
+			continue
+		}
+		for _, name := range pc.AllowedModels {
+			if name != "" && name != "*" && !strings.HasPrefix(name, "regex:") && !registry.Has(pc.BlacklistedModels, name) {
+				out = append(out, pc.Provider+"/"+name)
+			}
+		}
+	}
+	sort.Strings(out)
+	return out
+}
+
+// expectedRoutes are the IDs a key's /v1/models should list: its Registry routes plus the explicit
+// routes of the providers it keeps native, as the native key allows them now.
+func expectedRoutes(view *registry.View, vk nativeVK) []string {
+	out := append(keptNativeRoutes(vk, view.Policy.KeptNative), exposedIDs(view)...)
+	sort.Strings(out)
+	return out
+}
+
+// exposedIDs are the IDs of the key's Registry routes.
+func exposedIDs(view *registry.View) []string {
+	out := []string{}
+	for _, route := range view.Routes {
+		out = append(out, route.ExposedID)
+	}
+	return out
+}
+
+// diffModels compares what /v1/models lists with what is expected. A kept provider is Bifrost's own: its
+// routes are neither missing nor unexpected. Bifrost 2.2.6 lists only the models a provider itself lists, so
+// an explicit name its provider does not list (undiscovered) is absent, and a wildcard lists names no row has.
+// A Registry route (managed) stays checked even when it starts with a kept provider's name.
+func diffModels(expected, actual, keep, managed []string) (missing, unexpected []string) {
+	missing, unexpected = []string{}, []string{}
+	kept := func(id string) bool {
+		return !slices.Contains(managed, id) && slices.ContainsFunc(keep, func(provider string) bool { return strings.HasPrefix(id, provider+"/") })
+	}
+	for _, id := range expected {
+		if !slices.Contains(actual, id) && !kept(id) {
+			missing = append(missing, id)
+		}
+	}
+	for _, id := range actual {
+		if !slices.Contains(expected, id) && !kept(id) {
+			unexpected = append(unexpected, id)
+		}
+	}
+	return missing, unexpected
 }

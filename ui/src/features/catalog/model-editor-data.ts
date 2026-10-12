@@ -1,4 +1,4 @@
-import type { Catalog, CatalogRecord } from "./catalog-api";
+import type { Catalog, CatalogAccess, CatalogRecord } from "./catalog-api";
 import { registryEndpoints, sameAccess, type Access, type Model } from "../../domain/registry";
 import type { SearchOption } from "../../components/registry/SearchableSelect";
 import type { Copy } from "../../lib/locale";
@@ -45,14 +45,45 @@ export function firstRegistrationIssue(model: Model): RegistrationIssue | undefi
 }
 
 // Registry endpoints implied by the mode Bifrost declares for a native model (its parameters
-// datasheet). A missing or unknown mode preselects nothing; saved accesses keep their own.
+// datasheet); without a mode, by what the model outputs (the access's facts, else its reference's).
+// An unknown mode or output preselects nothing; saved accesses keep their own.
 const modeEndpoints: Record<string, string[]> = {
-  chat: ["chat/completions"], completion: ["completions"], responses: ["responses"], embedding: ["embeddings"],
-  image_generation: ["images/generations"], audio_speech: ["audio/speech"], rerank: ["rerank"], ocr: ["ocr"],
+  chat: ["chat/completions", "responses"], completion: ["completions"], responses: ["responses"], embedding: ["embeddings"],
+  image_generation: ["images/generations"], audio_speech: ["audio/speech"], decisions: ["decisions"], rerank: ["rerank"], ocr: ["ocr"],
 };
-export function declaredEndpoints(access?: CatalogRecord): string[] {
+const outputEndpoints: Record<string, string[]> = { text: ["chat/completions", "responses"], image: ["images/generations"], audio: ["audio/speech"] };
+
+export function declaredEndpoints(access?: CatalogRecord, reference?: CatalogRecord): string[] {
   const parameters = access?.fields.parameters?.value as { mode?: unknown } | undefined;
-  return typeof parameters?.mode === "string" ? [...(modeEndpoints[parameters.mode] ?? [])] : [];
+  if (typeof parameters?.mode === "string") return [...(modeEndpoints[parameters.mode] ?? [])];
+  const outputs = access?.fields.output_modalities?.value ?? reference?.fields.output_modalities?.value;
+  const implied = new Set(Array.isArray(outputs) ? outputs.flatMap(output => typeof output === "string" ? outputEndpoints[output.toLowerCase()] ?? [] : []) : []);
+  return registryEndpoints.filter(endpoint => implied.has(endpoint));
+}
+
+// A native name without its aggregator's "vendor/" prefix, punctuation and case: "openai/GPT-5.6-luna" -> "gpt56luna".
+const bareName = (name: string) => (name.split("/").at(-1) ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
+
+// Configured accesses that are the card's model: one it already holds, one under a name the card uses (an
+// aggregator's "vendor/" prefix aside), or a plain native name linked to the same reference. An aggregator links
+// "-pro", "-latest" or ":batch" variants to the base reference, so its prefixed names never match on that alone.
+// shortcut: a plain native name (Bedrock, dated IDs) is trusted on its reference alone, tighten if variants show up there.
+// An access another card holds is never offered (Bifrost routes one access to one card).
+export function matchingAccesses(accesses: CatalogAccess[], cardId: string, known: Access[], saved: Model[]) {
+  const references = new Set(known.flatMap(access => access.referenceId ? [access.referenceId] : []));
+  const names = new Set([cardId, ...known.map(access => access.nativeModel ?? "")].map(bareName).filter(Boolean));
+  return accesses.filter(access => access.configured && (
+    names.has(bareName(access.model)) || known.some(row => sameAccess(row, access)) ||
+    (!!access.referenceId && references.has(access.referenceId) && !access.model.includes("/"))
+  ) && !saved.some(card => card.id !== cardId && card.accesses.some(row => sameAccess(row, access))));
+}
+
+// The one "Also available" list: the card tile's "+N available" badge and the sheet's Access tab both count it.
+// Matching accesses the card does not hold, once per provider and native model. removed: saved accesses the
+// editor took off the card, offered back.
+export function alsoAvailable(accesses: CatalogAccess[], card: Model, saved: Model[], removed: Access[] = []) {
+  const offered = matchingAccesses(accesses, card.id, [...card.accesses, ...removed], saved).filter(access => !card.accesses.some(row => sameAccess(row, access)));
+  return [...new Map(offered.map(access => [`${access.provider}/${access.model}`, access])).values()];
 }
 
 export type AccessCandidate = Pick<Access, "provider" | "nativeModel" | "status"> & { source: string };
