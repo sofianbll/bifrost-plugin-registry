@@ -775,10 +775,20 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await inCard.getByRole('button', { name: 'Change requests for Google', exact: true }).click();
     await expect(inCard.getByRole('checkbox', { name: /^Image generation/ })).toBeChecked();
     await expect(inCard.getByRole('checkbox', { name: /^Chat Completions/ })).not.toBeChecked();
+    await expect(sheet().locator('[data-slot="sheet-title"]'), '#101: one verb for registering').toHaveText('Register a model');
     await button('Next: model details').click();
     await button('Review').click();
+    // #100: Review opens on one plain sentence of consequence; Basic shows no Registry ID or endpoint before the fold.
+    const review = sheet().locator('#editor-journey-step-2');
+    await expect(review).toContainText('You’re registering QA Image from your Google subscription. It appears in My models; no key can use it until you add it to one.');
+    const technical = review.locator('details').filter({ has: page.getByText('Technical details', { exact: true }) });
+    await expect(technical).not.toHaveAttribute('open');
+    for (const jargon of ['Google/qa-image', 'images/generations', 'Registry ID', 'Registry exposed ID', 'Registry endpoints', 'Documentary record', 'Selected operations define']) await expect(review.getByText(jargon).first(), `${jargon} waits behind the fold`).toBeHidden();
+    await technical.getByText('Technical details', { exact: true }).click();
+    await expect(technical).toContainText('Registry exposed ID: Google/qa-image');
+    await expect(technical).toContainText('Registry endpoints: images/generations');
     const write = page.waitForRequest(r => r.method() === 'PUT' && r.url().endsWith('/api/workspace'));
-    await button('Save model').click();
+    await button('Register').click();
     const saved = (await write).postDataJSON().data.models.find((m: { id: string }) => m.id === 'qa-image');
     expect(saved.accesses.map((a: { id: string; endpoints: string[] }) => [a.id, a.endpoints])).toEqual([['Google/qa-image', ['images/generations']]]);
     await sheet().waitFor({ state: 'hidden' });
@@ -878,6 +888,9 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(sheet().locator('[id^="editor-journey-step-"]').evaluateAll(parts => parts.map(part => part.id))).resolves.toEqual(['editor-journey-step-0', 'editor-journey-step-1', 'editor-journey-step-2']);
     await expect(sheet().locator('#editor-journey-step-0')).toContainText('In this card');
     await expect(sheet().locator('#editor-journey-step-2')).toContainText('Review before saving');
+    // Expert opens the technical fold of Review; the edit flow says what saving changes, in plain words.
+    await expect(sheet().locator('#editor-journey-step-2').locator('details')).toHaveAttribute('open');
+    await expect(sheet().locator('#editor-journey-step-2')).toContainText('You’re saving changes to QA Chat. Keys that already use it get these changes.');
     await expect(sheet().locator('#editor-journey-summary')).toBeVisible();
     await expect(sheet().getByRole('textbox', { name: 'Display name *', exact: true })).toBeVisible();
     await button('Review').click();
@@ -1246,9 +1259,11 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(dialog.getByText('qa-shared', { exact: true })).toBeVisible();
     await expect(dialog.getByRole('button', { name: /^Show in To add/ })).toHaveCount(0);
     // One model allowed through Claude and Codex: either provider can stay in Bifrost.
-    await expect(decisions).toContainText('Codex · 1 model also allowed through Claude');
-    await expect(decisions).toContainText('Registry adopts one access per model');
-    for (const name of ['Keep Codex in Bifrost', 'Keep Claude in Bifrost']) await expect(dialog.getByRole('button', { name, exact: true })).toBeVisible();
+    // #100, #101: in plain words, with the two choices labelled by outcome.
+    await expect(decisions).toContainText('1 model is allowed through Codex and Claude.');
+    await expect(decisions).toContainText('Registry uses one subscription per model: choose the one to use, and Bifrost keeps handling the other for this key.');
+    for (const name of ['Use Claude for this model', 'Use Codex for this model']) await expect(dialog.getByRole('button', { name, exact: true })).toBeVisible();
+    for (const jargon of ['native', 'readback', 'cannot hold']) await expect(dialog).not.toContainText(jargon);
     // What Registry would manage waits behind a disclosure.
     await expect(dialog.getByText('Accesses Registry will manage (3)', { exact: true })).toBeVisible();
     await expect(dialog.getByText('Claude/qa-haiku', { exact: true })).toBeHidden();
@@ -1310,8 +1325,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await button('All virtual keys').click();
     await keyCard('QA Claude Key').getByRole('button', { name: 'Review · QA Claude Key', exact: true }).click();
     await button('Adopt this key').click();
-    await expect(dialog).toContainText('Claude: this key allows every model, including future ones, so it cannot be adopted as is.');
-    await expect(dialog).toContainText('Claude · all models allowed');
+    await expect(dialog).toContainText('This key allows every Claude model, including future ones, so Registry can’t copy it as is.');
     await expect(dialog.getByRole('button', { name: 'Keep Claude in Bifrost', exact: true })).toBeVisible();
     await expect(dialog.getByRole('button', { name: /^Replace “all models” by the models saved in Registry/ })).toBeVisible();
     await expect(dialog).not.toContainText('review a key that lists its models one by one');
@@ -1447,6 +1461,18 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
       await expect(popover).not.toContainText('0.19999');
       await sweep(language, 'Accesses popover of a model to add');
       await page.keyboard.press('Escape');
+      // #100: registering ends on one plain sentence of consequence, IDs folded away, in both languages.
+      await open('QA Reasoner').click();
+      await button(t('Next: model details', 'Suivant : fiche modèle')).click();
+      await button(t('Review', 'Vérifier')).click();
+      await expect(sheet().locator('#editor-journey-step-2')).toContainText(language === 'fr'
+        ? /Vous enregistrez QA Reasoner depuis (votre abonnement|vos abonnements) .+\. Il apparaîtra dans Mes modèles ; aucune clé ne pourra l’utiliser tant que vous ne l’aurez pas ajouté à une clé\./
+        : /You’re registering QA Reasoner from your .+ subscriptions?\. It appears in My models; no key can use it until you add it to one\./);
+      await expect(sheet().getByText(t('Technical details', 'Détails techniques'), { exact: true })).toBeVisible();
+      await expect(sheet().getByText(t('Registry exposed ID', 'ID exposé Registry'), { exact: false }).first()).toBeHidden();
+      await sweep(language, 'Register review');
+      await button(t('Cancel', 'Annuler')).click();
+      await sheet().waitFor({ state: 'hidden' });
       await page.getByRole('textbox', { name: t('Search models', 'Rechercher des modèles'), exact: true }).fill('');
       await scope(new RegExp(`^${t('In Registry', 'Dans Registry')}`)).click();
       // The card sheet: every tab, the access chooser and Review.
@@ -1461,6 +1487,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
       await button(t('Edit accesses', 'Modifier les accès')).click();
       await sweep(language, 'Access chooser');
       await button(t('Review', 'Vérifier')).click();
+      await expect(sheet().locator('#editor-journey-step-2')).toContainText(t('You’re saving changes to QA Opus saved. Keys that already use it get these changes.', 'Vous enregistrez des modifications de QA Opus saved. Les clés qui l’utilisent déjà reçoivent ces modifications.'));
       await sweep(language, 'Card review (nothing to save)');
       await page.keyboard.press('Escape');
       await sheet().waitFor({ state: 'hidden' });
@@ -1519,6 +1546,10 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
         if (name !== 'QA To Add Key') {
           await page.getByRole('dialog').getByRole('button', { name: t('Stop keeping Mistral in Bifrost', 'Ne plus garder Mistral dans Bifrost'), exact: true }).click();
           await page.getByRole('dialog').getByRole('button', { name: t('Keep Mistral in Bifrost', 'Garder Mistral dans Bifrost'), exact: true }).waitFor();
+          // #100: the blockers read as plain sentences in both languages.
+          if (name === 'QA Mistral Key') await expect(page.getByRole('dialog')).toContainText(t('So Bifrost shows none of its models, and Registry can’t manage the 3 models this key allows.', 'Bifrost n’en montre donc aucun modèle : Registry ne peut pas gérer les 3 modèles que cette clé autorise.'));
+          if (name === 'QA Mistral Key') await expect(page.getByRole('dialog')).toContainText(t('1 model is allowed through Codex and Claude.', '1 modèle est autorisé via Codex et Claude.'));
+          if (name === 'QA Mistral Key') await expect(page.getByRole('dialog').getByRole('button', { name: t('Use Codex for this model', 'Utiliser Codex pour ce modèle'), exact: true })).toBeVisible();
           await sweep(language, `Adoption dialog of ${name}, provider not kept`);
         }
         if (name === 'QA Hermes Key') await nativeEdit(t('Remove these models from the key in Bifrost', 'Retirer ces modèles de la clé dans Bifrost'), t('Remove models from the key in Bifrost', 'Retirer des modèles de la clé dans Bifrost'), 'Native edit preview of the Hermes key');
@@ -1571,8 +1602,8 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(dialog.getByRole('heading', { name: '1 decision before adopting' })).toBeVisible();
     await expect(dialog.getByText('1 of 2 decided', { exact: true })).toBeVisible();
     await expect(dialog.getByRole('button', { name: 'Adopt', exact: true })).toBeDisabled();
-    // The collision is resolved inline: keeping Codex in Bifrost lets Registry adopt qa-shared through Claude.
-    await dialog.getByRole('button', { name: 'Keep Codex in Bifrost', exact: true }).click();
+    // The collision is resolved inline: using Claude for qa-shared keeps Codex in Bifrost.
+    await dialog.getByRole('button', { name: 'Use Claude for this model', exact: true }).click();
     await expect(kept).toContainText('Codex kept in Bifrost');
     await expect(dialog).toContainText('Ready to adopt');
     await expect(dialog.getByText('2 of 2 decided', { exact: true })).toBeVisible();
@@ -1624,7 +1655,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
     await keyCard('QA Wildcard Key').getByRole('button', { name: 'Review · QA Wildcard Key', exact: true }).click();
     await button('Adopt this key').click();
     const dialog = page.getByRole('dialog');
-    await expect(dialog).toContainText('Claude · all models allowed');
+    await expect(dialog).toContainText('This key allows every Claude model, including future ones, so Registry can’t copy it as is.');
     await expect(dialog.getByRole('button', { name: 'Adopt', exact: true })).toBeDisabled();
     await dialog.getByRole('button', { name: 'Keep Claude in Bifrost', exact: true }).click();
     await expect(dialog.getByRole('region', { name: 'Kept in Bifrost' })).toContainText('Claude · all models kept in Bifrost');
