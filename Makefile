@@ -39,3 +39,4 @@ native:
 
 hooks:
 	git config core.hooksPath .githooks
+	git config blame.ignoreRevsFile .git-blame-ignore-revs
