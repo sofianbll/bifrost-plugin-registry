@@ -1,0 +1,6 @@
+#!/bin/sh
+# Pre-push guard for the checks CI would otherwise fail on later. Enable once with `make hooks`.
+./scripts/check-case-collisions.sh && npm --prefix ui run check && npm --prefix ui run build || {
+  echo "pre-push: a check failed and the push was aborted; fix it, or skip the guard with: git push --no-verify" >&2
+  exit 1
+}
