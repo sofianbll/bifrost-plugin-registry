@@ -1192,7 +1192,7 @@ test('UX journeys', async ({ page, pageErrors: errors, browser, baseURL }, testI
       ['QA All Providers Key', 'Blocked', 'Every provider allowed'],
       ['QA Claude Key', 'Blocked', 'Claude · all models allowed'],
       ['QA Wildcard Key', 'Blocked', 'Claude · all models allowed'],
-      ['QA Kept Key', 'Blocked', 'Google · 1 model not discovered'],
+      ['QA Kept Key', 'Blocked', 'Google: Bifrost doesn’t show 1 model'],
       ['QA Unmanaged Key', 'Empty', ''],
     ];
     await emptyShelf();

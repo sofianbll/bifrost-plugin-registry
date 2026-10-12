@@ -21,12 +21,13 @@ export function blockerLine(blocker: ReadinessBlocker, copy: Copy) {
   const provider = blocker.provider ? displayProvider(blocker.provider) : "";
   const models = `${blocker.count} ${copy(blocker.count === 1 ? "model" : "models", blocker.count === 1 ? "modèle" : "modèles")}`;
   const what = blocker.kind === "undiscovered" && blocker.providerDisabled ? `${copy("disabled in Bifrost", "désactivé dans Bifrost")} · ${models}`
-    : blocker.kind === "undiscovered" ? `${models} ${copy("not discovered", blocker.count === 1 ? "non découvert" : "non découverts")}`
     : blocker.kind === "collision" ? `${models} ${copy("also allowed through", blocker.count === 1 ? "aussi autorisé via" : "aussi autorisés via")} ${(blocker.with ?? []).map(displayProvider).join(", ")}`
     : blocker.kind === "unsaved" ? `${models} ${copy("to add", "à ajouter")}`
     : blocker.kind === "all-providers" ? copy("Every provider allowed", "Tous les fournisseurs autorisés")
     : blocker.kind === "dynamic" ? copy("all models allowed", "tous les modèles autorisés")
     : copy(provider ? "cannot be adopted as is" : "Cannot be adopted as is", provider ? "adoption impossible en l’état" : "Adoption impossible en l’état");
+  // Plain words, as in the adoption dialog (#100): "Mistral: Bifrost doesn’t show 3 models".
+  if (blocker.kind === "undiscovered" && !blocker.providerDisabled) return `${provider}${copy(": ", " : ")}${copy(`Bifrost doesn’t show ${models}`, `Bifrost ne montre pas ${models}`)}`;
   return blocker.kind === "all-providers" || !provider && blocker.kind === "other" ? what : `${provider} · ${what}`;
 }
 

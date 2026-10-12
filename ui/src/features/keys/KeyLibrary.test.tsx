@@ -62,7 +62,7 @@ if (!render("en", [native], { expert: true }).includes('aria-label="Filter by re
 // #87: every unmanaged key says ready, blocked (and why) or empty, in grid and table, in both languages.
 const verdicts: [string, Key, string, string, string][] = [
   ["ready", { ...native, name: "Ready Key", readiness: { state: "ready", blockers: [] } }, "Ready to adopt", "Prête à adopter", ""],
-  ["blocked", { ...native, name: "Blocked Key", readiness: { state: "blocked", blockers: [{ provider: "mistral", kind: "undiscovered", count: 3, models: ["a", "b", "c"] }] } }, "Blocked", "Bloquée", "Mistral · 3 models not discovered"],
+  ["blocked", { ...native, name: "Blocked Key", readiness: { state: "blocked", blockers: [{ provider: "mistral", kind: "undiscovered", count: 3, models: ["a", "b", "c"] }] } }, "Blocked", "Bloquée", "Mistral: Bifrost doesn’t show 3 models"],
   ["empty", { ...native, name: "Empty Key", readiness: { state: "empty", blockers: [] } }, "Empty", "Vide", ""],
   ["not read", { ...native, name: "Unread Key" }, "Adoption needed", "À adopter", ""],
 ];

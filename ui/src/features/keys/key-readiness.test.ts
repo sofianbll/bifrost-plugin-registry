@@ -22,9 +22,9 @@ equal(readinessState(unmanaged({ state: "blocked", blockers: [mistral] })), "blo
 equal(readinessState(unmanaged({ state: "empty", blockers: [] })), "empty", "empty");
 
 // One line per blocker: provider, count, and what is wrong, in both languages.
-equal(blockerLine(mistral, english), "Mistral · 3 models not discovered", "undiscovered");
-equal(blockerLine({ ...mistral, count: 1, models: ["large"] }, english), "Mistral · 1 model not discovered", "one undiscovered");
-equal(blockerLine(mistral, french), "Mistral · 3 modèles non découverts", "undiscovered in French");
+equal(blockerLine(mistral, english), "Mistral: Bifrost doesn’t show 3 models", "undiscovered");
+equal(blockerLine({ ...mistral, count: 1, models: ["large"] }, english), "Mistral: Bifrost doesn’t show 1 model", "one undiscovered");
+equal(blockerLine(mistral, french), "Mistral : Bifrost ne montre pas 3 modèles", "undiscovered in French");
 equal(blockerLine(unsaved, english), "Synthetic Provider · 1 model to add", "unsaved");
 equal(blockerLine(unsaved, french), "Synthetic Provider · 1 modèle à ajouter", "unsaved in French");
 equal(blockerLine(everyProvider, english), "Every provider allowed", "all providers");
@@ -40,10 +40,10 @@ equal(blockerLine(collision, english), "Codex · 1 model also allowed through Cl
 equal(blockerLine({ ...collision, count: 2, models: ["a", "b"] }, french), "Codex · 2 modèles aussi autorisés via Claude", "collision, in French");
 
 // The card's short reason: the first two blockers, then how many more; nothing when there is nothing to explain.
-equal(readinessReason({ state: "blocked", blockers: [mistral] }, english), "Mistral · 3 models not discovered", "one blocker");
-equal(readinessReason({ state: "blocked", blockers: [mistral, unsaved] }, english), "Mistral · 3 models not discovered; Synthetic Provider · 1 model to add", "two blockers");
-equal(readinessReason({ state: "blocked", blockers: [mistral, unsaved, everyProvider] }, english), "Mistral · 3 models not discovered; Synthetic Provider · 1 model to add; +1 more", "three blockers");
-equal(readinessReason({ state: "blocked", blockers: [mistral, unsaved, everyProvider] }, french), "Mistral · 3 modèles non découverts ; Synthetic Provider · 1 modèle à ajouter ; +1", "three blockers in French, French spacing");
+equal(readinessReason({ state: "blocked", blockers: [mistral] }, english), "Mistral: Bifrost doesn’t show 3 models", "one blocker");
+equal(readinessReason({ state: "blocked", blockers: [mistral, unsaved] }, english), "Mistral: Bifrost doesn’t show 3 models; Synthetic Provider · 1 model to add", "two blockers");
+equal(readinessReason({ state: "blocked", blockers: [mistral, unsaved, everyProvider] }, english), "Mistral: Bifrost doesn’t show 3 models; Synthetic Provider · 1 model to add; +1 more", "three blockers");
+equal(readinessReason({ state: "blocked", blockers: [mistral, unsaved, everyProvider] }, french), "Mistral : Bifrost ne montre pas 3 modèles ; Synthetic Provider · 1 modèle à ajouter ; +1", "three blockers in French, French spacing");
 equal(readinessReason({ state: "ready", blockers: [] }, english), "", "ready needs no reason");
 equal(readinessReason({ state: "empty", blockers: [] }, english), "", "empty needs no reason");
 equal(readinessReason(undefined, english), "", "no verdict");
