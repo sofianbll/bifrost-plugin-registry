@@ -1,4 +1,4 @@
-import { alsoAvailable, applyModelId, canonicalCapabilities, changeAccessProvider, declaredEndpoints, firstRegistrationIssue, matchingAccesses, modelEditorOptions, omitUnchangedReferenceIds, prefillFromReference } from "./model-editor-data";
+import { alsoAvailable, applyModelId, canonicalCapabilities, changeAccessProvider, declaredEndpoints, firstRegistrationIssue, matchingAccesses, modelEditorOptions, omitUnchangedReferenceIds, prefillFromReference, reviewSentence } from "./model-editor-data";
 import type { Catalog } from "./catalog-api";
 import type { Model } from "../../domain/registry";
 
@@ -104,4 +104,13 @@ equal(alsoAvailable(twice, card, [card, taken]).map(access => access.id), ["open
 const withOther = { ...card, accesses: [luna, { ...luna, provider: "other", id: "other/gpt-5.6-luna" }] };
 equal(alsoAvailable(offers, withOther, [withOther, taken]).map(access => access.id), ["openrouter/openai/gpt-5.6-luna", "bedrock/us.openai.gpt-5-6-luna-v1:0"]);
 equal(alsoAvailable(offers, card, [withOther, taken], withOther.accesses).map(access => access.id), ["openrouter/openai/gpt-5.6-luna", "bedrock/us.openai.gpt-5-6-luna-v1:0", "other/gpt-5.6-luna"]);
+// #100: the Review step opens on one plain sentence of consequence, built from the draft.
+const fr = (_: string, french: string) => french;
+equal(reviewSentence({ name: "glm-5.1", providers: ["OpenCode Go"], creating: true }, english), "You’re registering glm-5.1 from your OpenCode Go subscription. It appears in My models; no key can use it until you add it to one.");
+equal(reviewSentence({ name: "glm-5.1", providers: ["OpenCode Go"], creating: true }, fr), "Vous enregistrez glm-5.1 depuis votre abonnement OpenCode Go. Il apparaîtra dans Mes modèles ; aucune clé ne pourra l’utiliser tant que vous ne l’aurez pas ajouté à une clé.");
+equal(reviewSentence({ name: "DeepSeek V4", providers: ["OpenCode Go", "DeepSeek", "OpenRouter"], creating: true }, english), "You’re registering DeepSeek V4 from your OpenCode Go, DeepSeek and OpenRouter subscriptions. It appears in My models; no key can use it until you add it to one.");
+equal(reviewSentence({ name: "DeepSeek V4", providers: ["OpenCode Go", "DeepSeek"], creating: true }, fr), "Vous enregistrez DeepSeek V4 depuis vos abonnements OpenCode Go et DeepSeek. Il apparaîtra dans Mes modèles ; aucune clé ne pourra l’utiliser tant que vous ne l’aurez pas ajouté à une clé.");
+equal(reviewSentence({ name: "", providers: [], creating: true }, english), "You’re registering this model. It appears in My models; no key can use it until you add it to one.");
+equal(reviewSentence({ name: "glm-5.1", providers: ["OpenCode Go"], creating: false }, english), "You’re saving changes to glm-5.1. Keys that already use it get these changes.");
+equal(reviewSentence({ name: "glm-5.1", providers: ["OpenCode Go"], creating: false }, fr), "Vous enregistrez des modifications de glm-5.1. Les clés qui l’utilisent déjà reçoivent ces modifications.");
 console.log("model editor data checks passed");
