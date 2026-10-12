@@ -12,7 +12,7 @@ npm run check
 npm run build
 ```
 
-`npm run check` runs the frontend logic checks. `npm run build` runs TypeScript and Vite and writes ignored assets to `dist/`. The repository's build script embeds those assets in the plugin. `npm run dev` starts Vite on `127.0.0.1`; live workspace operations require the plugin API, which the dev server does not supply.
+`npm run check` runs the frontend logic checks: tests named `*.test.ts(x)` under `ui/src` run automatically. `npm run build` runs TypeScript and Vite and writes ignored assets to `dist/`. The repository's build script embeds those assets in the plugin. `npm run dev` starts Vite on `127.0.0.1`; live workspace operations require the plugin API, which the dev server does not supply.
 
 ## Current application scope
 
