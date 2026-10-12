@@ -7,5 +7,10 @@ export function selectionCounts(selected: string[], visible: string[]) {
   const selectedIds = new Set(selected);
   const visibleIds = new Set(visible);
   const visibleSelected = [...visibleIds].filter(id => selectedIds.has(id)).length;
-  return { visibleSelected, visibleTotal: visibleIds.size, hiddenSelected: [...selectedIds].filter(id => !visibleIds.has(id)).length, totalSelected: selectedIds.size };
+  return {
+    visibleSelected,
+    visibleTotal: visibleIds.size,
+    hiddenSelected: [...selectedIds].filter(id => !visibleIds.has(id)).length,
+    totalSelected: selectedIds.size,
+  };
 }
