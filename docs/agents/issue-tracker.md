@@ -13,6 +13,19 @@ Issues and specs for this repo live as GitHub issues. Use the `gh` CLI for all o
 
 Infer the repo from `git remote -v`; `gh` does this automatically when run inside a clone.
 
+## Cloud sessions (GraphQL blocked)
+
+Cloud sessions block GraphQL, so `gh issue` and `gh pr` commands fail with 403. Use these REST calls through `gh api`; `{owner}` and `{repo}` resolve from the clone.
+
+- **Read an issue**: `gh api repos/{owner}/{repo}/issues/<number>`, then `.../issues/<number>/comments`.
+- **List blocking edges**: `gh api repos/{owner}/{repo}/issues/<number>/dependencies/blocked_by`.
+- **Comment**: `gh api -X POST repos/{owner}/{repo}/issues/<number>/comments -F body=@<file>`.
+- **Close**: `gh api -X PATCH repos/{owner}/{repo}/issues/<number> -f state=closed -f state_reason=completed`.
+- **Open a draft PR**: `gh api -X POST repos/{owner}/{repo}/pulls -f title=<title> -f head=<branch> -f base=main -F draft=true -F body=@<file>`.
+- **Read check runs**: `gh api repos/{owner}/{repo}/commits/<sha>/check-runs`.
+- **Mark a PR ready for review**: run `gh pr ready <number>` from a local checkout, since it needs GraphQL.
+- **Closing keywords**: GitHub applies a closing keyword to the first number only. Write one keyword per issue: `Closes #1, closes #2, closes #3`. A list behind one `Closes` leaves the others open.
+
 ## Pull requests as a triage surface
 
 **PRs as a request surface: no.** _(Set to `yes` if this repo treats external PRs as feature requests; `/triage` reads this flag.)_
