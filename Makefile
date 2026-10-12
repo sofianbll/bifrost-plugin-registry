@@ -6,7 +6,7 @@ test:
 	./scripts/test.sh
 
 ui-check:
-	cd ui && npm ci && npm run check && npm run build
+	cd ui && npm ci && npm run check && npm run format:check && npm run build
 
 script-check:
 	python3 scripts/test_import_bifrost_datasheets.py
