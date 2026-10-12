@@ -12,6 +12,7 @@ script-check:
 	python3 scripts/test_import_bifrost_datasheets.py
 	for f in scripts/*.sh packaging/*.sh; do bash -n "$$f" || exit 1; done
 	bash scripts/test-github-setup.sh
+	bash scripts/check-case-collisions.sh
 	@if command -v bun >/dev/null 2>&1 && [ -d dist/models-dev-upstream ]; then \
 		bun scripts/build-modelsdev-snapshot.test.ts; \
 	else \

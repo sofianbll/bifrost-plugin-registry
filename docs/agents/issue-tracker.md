@@ -23,7 +23,7 @@ Cloud sessions block GraphQL, so `gh issue` and `gh pr` commands fail with 403. 
 - **Close**: `gh api -X PATCH repos/{owner}/{repo}/issues/<number> -f state=closed -f state_reason=completed`.
 - **Open a draft PR**: `gh api -X POST repos/{owner}/{repo}/pulls -f title=<title> -f head=<branch> -f base=main -F draft=true -F body=@<file>`.
 - **Read check runs**: `gh api repos/{owner}/{repo}/commits/<sha>/check-runs`.
-- **Mark a PR ready for review**: run `gh pr ready <number>` from a local checkout, since it needs GraphQL.
+- **Mark a PR ready for review**: `gh api -X POST repos/{owner}/{repo}/pulls/<number>/ccr/ready_for_review`. The same family covers `.../ccr/convert_to_draft`, `PUT|DELETE .../ccr/auto_merge`, `GET .../ccr/review_threads` and `POST .../ccr/comments/<comment-id>/resolve`; the 403 error message lists them.
 - **Refresh the README screenshots**: `gh workflow run e2e.yml --ref <branch> -f update-screenshots=true`; find the run with `gh api "repos/{owner}/{repo}/actions/runs?branch=<branch>&event=workflow_dispatch"`; list its artifacts with `gh api repos/{owner}/{repo}/actions/runs/<run-id>/artifacts`; download `docs-images` with `gh api repos/{owner}/{repo}/actions/artifacts/<artifact-id>/zip > docs-images.zip`. Unzip into a new empty directory, copy its `en/` and `fr/` folders into `docs/images/`, and commit them in their own commit.
 - **Closing keywords**: GitHub applies a closing keyword to the first number only. Write one keyword per issue: `Closes #1, closes #2, closes #3`. A list behind one `Closes` leaves the others open.
 

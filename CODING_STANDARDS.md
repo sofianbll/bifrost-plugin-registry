@@ -14,8 +14,8 @@ A derived or guessed value (an inferred creator, a card's display name) is displ
 Reason: a plain save must not turn a guess into the user's data.
 Example: `persistedCreator` in `internal/admin/inferred_creator.go` drops an inferred creator before the card is stored and keeps a typed one.
 
-## A write to the native gateway is previewed, token-bound, confirmed and read back
+## A destructive edit of a native gateway key is previewed, token-bound, confirmed and read back
 
-Every write to the native Bifrost gateway shows a preview, carries a token bound to that preview, waits for an explicit confirmation, then reads the result back and compares it with the preview.
-Reason: the gateway owns the user's keys and limits, so the user sees and approves the exact change and the Registry verifies what the gateway holds.
-Example: `internal/admin/native_permissions.go` runs the full cycle; `internal/admin/adoption.go` shares the preview and its bound token.
+A destructive edit of a native gateway key (removing models or providers from its permissions) shows a preview, carries a token bound to that preview, waits for an explicit confirmation, then reads the key back and compares it with the preview.
+Reason: the gateway owns the user's keys, so the user sees and approves the exact change and the Registry verifies what the gateway holds afterwards.
+Example: `internal/admin/native_permissions.go` runs the full cycle.

@@ -48,7 +48,6 @@ jobs:
         with:
           persist-credentials: false
       - run: make script-check
-      - run: ./scripts/check-case-collisions.sh
 
   lint:
     runs-on: ubuntu-24.04
