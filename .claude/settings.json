@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "if [ \"${CLAUDE_CODE_REMOTE:-}\" = true ]; then make -C \"$CLAUDE_PROJECT_DIR\" hooks; fi"
+            "command": "if [ \"${CLAUDE_CODE_REMOTE:-}\" = true ]; then make -C \"${CLAUDE_PROJECT_DIR:-.}\" hooks; fi"
           }
         ]
       }
