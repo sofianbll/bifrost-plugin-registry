@@ -91,6 +91,10 @@ Liste prévue après publication des modifications en cours. Sa valeur dépend d
 Fiche unique d'un modèle portant son identifiant commun et regroupant ses accès par fournisseur, construite à partir des propriétés natives connues de Bifrost puis enrichie dans Registry. Les différences propres aux accès sont conservées ; une information déclarée et une capacité vérifiée restent identifiables séparément.
 _Avoid_ : fiche sans préciser le modèle, fiche par provider
 
+**Enregistrer un modèle** :
+Créer la fiche modèle dans Registry, depuis un modèle découvert ou saisi à la main. Cela ne donne accès à aucune clé : le modèle n'est utilisable qu'une fois ajouté à une clé ou à un groupe.
+_Avoid_ : ajouter un modèle (« ajouter » est réservé à rattacher un accès à une fiche, ou une fiche à une clé ou à un groupe)
+
 **Enrichissement de fiche** :
 Complément ou correction des informations d'une fiche, en réutilisant les propriétés existantes pour une même donnée. Un champ natif absent ou incomplet ne justifie pas la création d'une propriété concurrente dans Registry.
 
