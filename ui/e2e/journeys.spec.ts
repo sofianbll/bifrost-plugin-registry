@@ -1259,12 +1259,17 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(sheet().locator("#editor-journey-step-2")).toContainText("Review before saving");
     // Expert opens the technical fold of Review; the edit flow says what saving changes, in plain words.
     await expect(sheet().locator("#editor-journey-step-2").locator("details")).toHaveAttribute("open");
-    await expect(sheet().locator("#editor-journey-step-2")).toContainText(
-      "You’re saving changes to QA Chat. Keys that already use it get these changes.",
-    );
+    // #101: with nothing changed the sentence says so, instead of "You’re saving changes" above "No changes".
+    await expect(sheet().locator("#editor-journey-step-2")).toContainText("No changes to save for QA Chat yet.");
+    await expect(sheet().locator("#editor-journey-step-2")).not.toContainText("You’re saving changes");
     await expect(sheet().locator("#editor-journey-summary")).toBeVisible();
     await expect(sheet().getByRole("textbox", { name: "Display name *", exact: true })).toBeVisible();
+    // #101: Review sits far below the top of the one scroll, so the footer button has to bring it into view.
+    const reviewHeading = sheet().getByRole("heading", { name: "Review before saving", exact: true });
+    await expect(reviewHeading, "the review starts below the first screen").not.toBeInViewport();
     await button("Review").click();
+    await expect(reviewHeading, "the footer Review button scrolls to the review").toBeInViewport();
+    await expect(reviewHeading, "and moves focus to its heading").toBeFocused();
     await expect(button("Save model")).toBeDisabled();
     await expect(sheet().getByText("No changes", { exact: true })).toBeVisible();
     await button("Cancel").click();
@@ -2163,10 +2168,7 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
       await sweep(language, "Access chooser");
       await button(t("Review", "Vérifier")).click();
       await expect(sheet().locator("#editor-journey-step-2")).toContainText(
-        t(
-          "You’re saving changes to QA Opus saved. Keys that already use it get these changes.",
-          "Vous enregistrez des modifications de QA Opus saved. Les clés qui l’utilisent déjà reçoivent ces modifications.",
-        ),
+        t("No changes to save for QA Opus saved yet.", "Rien à enregistrer pour QA Opus saved pour le moment."),
       );
       await sweep(language, "Card review (nothing to save)");
       await page.keyboard.press("Escape");

@@ -15,6 +15,14 @@ type Props = {
   hideSteps?: boolean;
 };
 
+// Expert shows every step in one scroll: whatever moves to a step brings its section into view.
+export function revealJourneyStep(index: number, last: boolean) {
+  (
+    document.getElementById(`editor-journey-step-${index}`) ??
+    (last ? document.getElementById("editor-journey-summary") : null)
+  )?.scrollIntoView({ block: "start", behavior: "smooth" });
+}
+
 // Basic or Expert is the header switch's choice: the editor has no switch of its own.
 export function EditorJourney({
   labels,
@@ -44,11 +52,7 @@ export function EditorJourney({
                       aria-current={step === index ? "step" : undefined}
                       onClick={() => {
                         const accepted = onStepChange(index);
-                        if (expert && accepted !== false)
-                          (
-                            document.getElementById(`editor-journey-step-${index}`) ??
-                            (index === labels.length - 1 ? document.getElementById("editor-journey-summary") : null)
-                          )?.scrollIntoView({ block: "start", behavior: "smooth" });
+                        if (expert && accepted !== false) revealJourneyStep(index, index === labels.length - 1);
                       }}
                     >
                       {index + 1}. {label}

@@ -339,6 +339,23 @@ equal(
   reviewSentence({ name: "glm-5.1", providers: ["OpenCode Go"], creating: false }, fr),
   "Vous enregistrez des modifications de glm-5.1. Les clés qui l’utilisent déjà reçoivent ces modifications.",
 );
+// #101: an edit with nothing changed says so instead of "You’re saving changes".
+equal(
+  reviewSentence({ name: "glm-5.1", providers: ["OpenCode Go"], creating: false, changed: false }, english),
+  "No changes to save for glm-5.1 yet.",
+);
+equal(
+  reviewSentence({ name: "glm-5.1", providers: ["OpenCode Go"], creating: false, changed: false }, fr),
+  "Rien à enregistrer pour glm-5.1 pour le moment.",
+);
+equal(
+  reviewSentence({ name: "glm-5.1", providers: ["OpenCode Go"], creating: false, changed: true }, english),
+  "You’re saving changes to glm-5.1. Keys that already use it get these changes.",
+);
+equal(
+  reviewSentence({ name: "", providers: [], creating: true, changed: false }, english),
+  "You’re registering this model. It appears in My models; no key can use it until you add it to one.",
+);
 // #100: Basic names an access by its provider; a provider held twice keeps its native models, Expert always shows them.
 const held = [
   { provider: "Claude", id: "Claude/a", nativeModel: "a" },
