@@ -41,7 +41,7 @@ const base = e2e('journeys');
 export default defineConfig<Options>({
   ...base,
   testMatch: 'journeys.spec.ts',
-  timeout: 180_000, // one test, many steps
+  timeout: 300_000, // one test, many steps: about 150 s on a CI runner, so keep a wide margin
   // The journeys mutate the fixture: a retry would start from the state the failed run left.
   retries: 0,
   use: { ...base.use, trace: 'retain-on-failure' },
