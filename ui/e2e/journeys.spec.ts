@@ -364,10 +364,10 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(badges("QA Opus Fast")).toHaveCount(0);
     // Cards without a Models.dev reference say so once, QA Shared (two subscriptions) included.
     await expect(badges("QA Shared")).toHaveText(["no reference"]);
-    // Their creator is guessed from the single subscription serving them: still the one badge, "no reference".
+    // Their creator is guessed from the single subscription serving them: one more badge.
     for (const name of ["qa-sonnet", "qa-codex-mini", "qa-flash"])
-      await expect(badges(name)).toHaveText(["no reference"]);
-    await expect(page.locator("[data-attention]")).toHaveCount(5);
+      await expect(badges(name)).toHaveText(["no reference", "inferred creator"]);
+    await expect(page.locator("[data-attention]")).toHaveCount(8);
     // Said once per tile: "+1 available" is the badge, not also a count in the Accesses button.
     await expect(
       card("QA Opus").getByRole("button", { name: /^Accesses/ }),
@@ -988,7 +988,7 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
       ["qa-flash", "Google"],
     ]) {
       await expect(card(name)).toContainText(creator);
-      await expect(card(name).locator("[data-attention]")).toHaveText(["no reference"]);
+      await expect(card(name).locator("[data-attention]")).toHaveText(["no reference", "inferred creator"]);
       await expect(card(name).getByText(unknownFacts, { exact: true })).toBeVisible();
       await expect(card(name).getByText("? → ?")).toHaveCount(0);
       const associate = card(name).getByRole("button", { name: `Associate a reference · ${name}`, exact: true });
@@ -1111,8 +1111,8 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await button("Sign in").click();
     await button("Open QA Chat details").waitFor();
     await groupModels("No grouping"); // a reload opens grouped by provider again
-    await expect(card("qa-flash").locator("[data-attention]")).toHaveText(["no reference"]);
-    await expect(card("qa-codex-mini").locator("[data-attention]")).toHaveText(["no reference"]);
+    await expect(card("qa-flash").locator("[data-attention]")).toHaveText(["no reference", "inferred creator"]);
+    await expect(card("qa-codex-mini").locator("[data-attention]")).toHaveText(["no reference", "inferred creator"]);
   });
 
   await test.step("model cancel protects draft; focus stays in editor", async () => {
@@ -1594,6 +1594,94 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
       await sheet().waitFor({ state: "hidden" });
     }
     await setExpert(false);
+  });
+
+  await test.step("Basic corrects a numeric value in Edit details and an access's settings in Edit accesses", async () => {
+    // Expert is hidden under 1280 px, so Basic keeps every correction: the card's values in the one "Edit details"
+    // dialog, an access's own in its settings, in plain words and without a button per value.
+    const writes = () => page.waitForRequest(r => r.method() === "PUT" && r.url().endsWith("/api/workspace"));
+    const editDetails = async () => {
+      await page.getByRole("button", { name: "Open QA Opus saved details", exact: true }).click();
+      await button("Edit").click();
+      await sheet().getByRole("button", { name: "Edit details", exact: true }).click();
+      return page.getByRole("dialog", { name: "Edit details" });
+    };
+    const correct = async (value: string) => {
+      const dialog = await editDetails();
+      const context = dialog.getByRole("spinbutton", { name: /^Context length/ });
+      await context.fill(value);
+      await dialog.getByRole("button", { name: "Keep changes", exact: true }).click();
+      await button("Review").click();
+      const write = writes();
+      await button("Save model").click();
+      return (await write).postDataJSON();
+    };
+    let dialog = await editDetails();
+    const context = dialog.getByRole("spinbutton", { name: /^Context length/ });
+    await expect(context, "the shown value is the card's").toHaveValue("131072");
+    for (const name of [/^Maximum output/, /^Input price/, /^Output price/])
+      await expect(dialog.getByRole("spinbutton", { name }), `${name} is corrected here too`).toBeVisible();
+    for (const name of [/^Tool calling(?! evidence)/, /^Structured output(?! evidence)/])
+      await expect(dialog.getByRole("combobox", { name }), `${name} is corrected here too`).toBeVisible();
+    await expect(dialog.getByRole("combobox", { name: "Family", exact: true }), "Basic has no family").toHaveCount(0);
+    await expectNoBasicJargon(page, "the Edit details dialog");
+    // A value that is not a whole number is refused beside the field and keeps the dialog open.
+    await context.fill("12.5");
+    await expect(dialog.getByRole("alert")).toContainText("Enter a nonnegative whole number.");
+    await expect(dialog.getByRole("button", { name: "Keep changes", exact: true })).toBeDisabled();
+    await context.fill("131072"); // back to what is shown: nothing to keep, no error
+    await expect(dialog.getByRole("alert")).toHaveCount(0);
+    await context.fill("200000");
+    await dialog.getByRole("button", { name: "Keep changes", exact: true }).click();
+    await expect(sheet().getByText(/Correction added to the draft/)).toBeVisible();
+    await button("Review").click();
+    const review = sheet().locator("#editor-journey-step-2");
+    await expect(review).toContainText("Catalog corrections saved with this model");
+    await expect(review.getByRole("listitem").filter({ hasText: "Context length" })).toContainText(/200,?000/);
+    await expectNoBasicJargon(page, "the Review of a corrected value");
+    const write = writes();
+    await button("Save model").click();
+    expect((await write).postDataJSON().catalogOverrides).toEqual([
+      expect.objectContaining({ target: "reference", id: "anthropic/qa-opus", field: "context_length", value: 200000 }),
+    ]);
+    await sheet().waitFor({ state: "hidden" });
+    // The corrected value is read back as customized, in Properties.
+    await page.getByRole("button", { name: "Open QA Opus saved details", exact: true }).click();
+    await sheet().getByRole("tab", { name: "Properties", exact: true }).click();
+    await expect(sheet().getByText("customized", { exact: true })).toHaveCount(1);
+    await closeSheet();
+    await sheet().waitFor({ state: "hidden" });
+    // Put the fixture back for the steps that follow.
+    expect((await correct("131072")).catalogOverrides).toEqual([
+      expect.objectContaining({ target: "reference", field: "context_length", value: 131072 }),
+    ]);
+    await sheet().waitFor({ state: "hidden" });
+
+    // An access's settings: reached from "Edit accesses", with its own values, without its IDs or route.
+    await page.getByRole("button", { name: "Open QA Opus saved details", exact: true }).click();
+    await sheet().getByRole("tab", { name: "Access", exact: true }).click();
+    await button("Edit accesses").click();
+    await sheet().getByRole("button", { name: "Access settings for Claude", exact: true }).click();
+    dialog = page.getByRole("dialog", { name: "Edit provider access" });
+    await expect(dialog.getByRole("combobox", { name: "Reference for this access", exact: true })).toBeVisible();
+    await expect(dialog.getByText("Values for this access", { exact: true })).toBeVisible();
+    for (const name of ["Model at this provider *", "Registry exposed ID"])
+      await expect(
+        dialog.getByRole("textbox", { name, exact: true }),
+        `${name} is Expert's for a found access`,
+      ).toHaveCount(0);
+    await expectNoBasicJargon(page, "an access's settings");
+    await dialog.getByRole("spinbutton", { name: /^Context length/ }).fill("65536");
+    await dialog.getByRole("button", { name: "Keep changes", exact: true }).click();
+    await button("Review").click();
+    await expect(
+      sheet().locator("#editor-journey-step-2").getByRole("listitem").filter({ hasText: "provider access" }),
+      "the access's own correction is listed apart from the card's",
+    ).toContainText(/Context length/);
+    await button("Cancel").click();
+    await button("Discard draft").click();
+    await closeSheet();
+    await sheet().waitFor({ state: "hidden" });
   });
 
   await test.step("Basic keeps the native IDs of a provider the card holds twice, and only those", async () => {

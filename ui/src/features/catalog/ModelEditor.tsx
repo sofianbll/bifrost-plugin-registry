@@ -442,6 +442,8 @@ export default function ModelEditor({
     value: string;
   } | null>(null);
   const [propertyNotice, setPropertyNotice] = useState("");
+  // Basic: the numeric corrections typed in "Edit details" and in an access's settings, only those that differ from what is shown.
+  const [valueEdits, setValueEdits] = useState<Record<string, string>>({});
   const [registrationIssue, setRegistrationIssue] = useState<ReturnType<typeof firstRegistrationIssue>>();
   const copy = useCopy();
   const { colon } = useFormat();
@@ -498,6 +500,7 @@ export default function ModelEditor({
   const closeEdit = () => {
     setEditing(null);
     setEditDraft(null);
+    setValueEdits({});
   };
   // Basic names a saved card by its title alone; creating or Expert, the sheet also says what it is for or its ID.
   const describes = creating || expert;
@@ -693,18 +696,20 @@ export default function ModelEditor({
         );
       })()
     : undefined;
+  const isPriceKey = (key: string) => key === "input_cost_usd_per_million" || key === "output_cost_usd_per_million";
+  const valueProblem = (key: EditableProperty) =>
+    key === "tool_call" || key === "structured_output"
+      ? copy("Choose yes or no.", "Choisir Oui ou Non.")
+      : isPriceKey(key)
+        ? copy("Enter a nonnegative number.", "Saisir un nombre positif ou nul.")
+        : copy("Enter a nonnegative whole number.", "Saisir un entier positif ou nul.");
   let proposed: number | boolean | undefined;
   let propertyValidation = "";
   if (property) {
     try {
       proposed = parsePropertyValue(property.key, property.value);
     } catch {
-      propertyValidation =
-        property.key === "tool_call" || property.key === "structured_output"
-          ? copy("Choose yes or no.", "Choisir Oui ou Non.")
-          : property.key === "input_cost_usd_per_million" || property.key === "output_cost_usd_per_million"
-            ? copy("Enter a nonnegative number.", "Saisir un nombre positif ou nul.")
-            : copy("Enter a nonnegative whole number.", "Saisir un entier positif ou nul.");
+      propertyValidation = valueProblem(property.key);
     }
   }
   const propertyPreview =
@@ -759,6 +764,99 @@ export default function ModelEditor({
     );
     setProperty(null);
   };
+  // Basic corrects values inside the dialogs it already has: the card's in "Edit details", an access's in its settings.
+  // The same corrections as Expert's per-value dialog, staged the same way, one Keep for all of them.
+  type ValueTarget = CatalogOverride["target"];
+  const valueKey = (target: ValueTarget, id: string, key: string) => JSON.stringify([target, id, key]);
+  const unreadableEdit = ([k, raw]: [string, string]) => {
+    try {
+      parsePropertyValue((JSON.parse(k) as [ValueTarget, string, EditableProperty])[2], raw);
+      return false;
+    } catch {
+      return true;
+    }
+  };
+  const valueIssues = Object.entries(valueEdits).some(unreadableEdit);
+  const keepValueEdits = () => {
+    if (!catalog || !Object.keys(valueEdits).length) return;
+    let next = stagedOverrides;
+    for (const [k, raw] of Object.entries(valueEdits)) {
+      const [target, id, field] = JSON.parse(k) as [ValueTarget, string, EditableProperty];
+      const original = (target === "reference" ? catalog.references : catalog.accesses).find(record => record.id === id)
+        ?.fields[field]?.value;
+      next = stageCatalogOverride(next, { target, id, field, value: parsePropertyValue(field, raw) }, original);
+    }
+    setStagedOverrides(next);
+    onOverridesChange?.(next);
+    setPropertyNotice(
+      Object.keys(valueEdits).some(k => isPriceKey((JSON.parse(k) as string[])[2]))
+        ? copy(
+            "Correction added to the draft. Price corrections are saved with the model and applied as native Bifrost pricing overrides.",
+            "Correction ajoutée au brouillon. Les corrections de prix sont enregistrées avec le modèle et appliquées comme overrides de tarification natifs Bifrost.",
+          )
+        : copy(
+            "Correction added to the draft. It will be saved with the Registry model; no native Bifrost value is activated here.",
+            "Correction ajoutée au brouillon. Elle sera enregistrée avec le modèle dans Registry ; aucune valeur native Bifrost n’est activée ici.",
+          ),
+    );
+  };
+  const valueFields = (target: ValueTarget, id: string, fact: (key: string) => CatalogField | undefined) => (
+    <div className="grid gap-3 sm:grid-cols-2">
+      {facts
+        .filter(([key]) => editableProperties.has(key))
+        .map(([key, unit]) => {
+          const field = key as EditableProperty;
+          const k = valueKey(target, id, key);
+          const shown = fact(key)?.value === undefined ? "" : String(fact(key)?.value);
+          const typed = valueEdits[k] ?? shown;
+          const set = (next: string) =>
+            setValueEdits(({ [k]: _dropped, ...others }) => (next === shown ? others : { ...others, [k]: next }));
+          const problem = k in valueEdits && unreadableEdit([k, valueEdits[k]]) ? valueProblem(field) : "";
+          return (
+            <label key={key} className="block text-sm">
+              {fieldLabel(key, copy)}
+              {unit === "tokens" && (
+                <span className="text-xs text-muted-foreground"> · {copy("in tokens", "en tokens")}</span>
+              )}
+              {unit === "$/M" && (
+                <span className="text-xs text-muted-foreground">
+                  {" "}
+                  · {copy("$ per million tokens", "$ par million de tokens")}
+                </span>
+              )}
+              {unit === "" ? (
+                <select
+                  className="mt-1 h-9 w-full rounded-sm border bg-background px-3"
+                  aria-invalid={!!problem}
+                  value={typed}
+                  onChange={event => set(event.target.value)}
+                >
+                  <option value="">{copy("Choose yes or no", "Choisir Oui ou Non")}</option>
+                  <option value="true">{copy("Yes", "Oui")}</option>
+                  <option value="false">{copy("No", "Non")}</option>
+                </select>
+              ) : (
+                <Input
+                  className="mt-1"
+                  type="number"
+                  min="0"
+                  step={isPriceKey(key) ? "0.0001" : "1"}
+                  inputMode={isPriceKey(key) ? "decimal" : "numeric"}
+                  aria-invalid={!!problem}
+                  value={typed}
+                  onChange={event => set(event.target.value)}
+                />
+              )}
+              {problem && (
+                <span role="alert" className="mt-1 block text-xs text-destructive">
+                  {problem}
+                </span>
+              )}
+            </label>
+          );
+        })}
+    </div>
+  );
   const reviewLabels: Record<string, string> = {
     name: copy("Display name", "Nom affiché"),
     creator: copy("Creator", "Créateur"),
@@ -1102,18 +1200,33 @@ export default function ModelEditor({
                   </>
                 )}
               </p>
-              <Button
-                variant="ghost"
-                size="sm"
-                aria-label={copy(
-                  `Remove ${displayProvider(access.provider)} · ${access.nativeModel}`,
-                  `Retirer ${displayProvider(access.provider)} · ${access.nativeModel}`,
+              <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
+                {!expert && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    aria-label={copy(
+                      `Access settings for ${displayProvider(access.provider)}`,
+                      `Réglages de l’accès ${displayProvider(access.provider)}`,
+                    )}
+                    onClick={() => openEdit("access", draft.accesses.indexOf(access))}
+                  >
+                    {copy("Access settings", "Réglages de l’accès")}
+                  </Button>
                 )}
-                onClick={() => update({ accesses: draft.accesses.filter(row => row !== access) })}
-              >
-                <X className="size-4" />
-                {copy("Remove", "Retirer")}
-              </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  aria-label={copy(
+                    `Remove ${displayProvider(access.provider)} · ${access.nativeModel}`,
+                    `Retirer ${displayProvider(access.provider)} · ${access.nativeModel}`,
+                  )}
+                  onClick={() => update({ accesses: draft.accesses.filter(row => row !== access) })}
+                >
+                  <X className="size-4" />
+                  {copy("Remove", "Retirer")}
+                </Button>
+              </div>
             </div>
             <EndpointChoices
               access={access}
@@ -2130,6 +2243,24 @@ export default function ModelEditor({
               </p>
             </div>
           )}
+          {editing === "details" && !expert && displayedReference && (
+            <section className="space-y-3 border-t pt-3">
+              <h4 className="text-sm font-semibold">{copy("Values", "Valeurs")}</h4>
+              <p className="text-xs text-muted-foreground">
+                {copy(
+                  "Values come from Models.dev unless you corrected them.",
+                  "Les valeurs viennent de Models.dev, sauf si vous les avez corrigées.",
+                )}
+              </p>
+              {valueFields("reference", displayedReference.id, commonFact)}
+              <p className="text-xs text-muted-foreground">
+                {copy(
+                  "Price corrections are saved with the model and applied as native Bifrost pricing overrides.",
+                  "Les corrections de prix sont enregistrées avec le modèle et appliquées comme overrides de tarification natifs Bifrost.",
+                )}
+              </p>
+            </section>
+          )}
           {editing === "access" && form.accesses[editingAccess] && (
             <div className="space-y-3">
               <SearchableSelect
@@ -2138,23 +2269,31 @@ export default function ModelEditor({
                 options={options.providers}
                 onChange={provider => changeEditAccess(editingAccess, { provider })}
               />
-              <label className="block text-sm">
-                {copy("Model at this provider *", "Modèle chez ce fournisseur *")}
-                <Input
-                  className="mt-1 font-mono"
-                  value={form.accesses[editingAccess].nativeModel || ""}
-                  readOnly={!!catalogAccess(form.accesses[editingAccess])}
-                  onChange={event => changeEditAccess(editingAccess, { nativeModel: event.target.value })}
-                />
-              </label>
-              <p className="text-xs text-muted-foreground">
-                {catalogAccess(form.accesses[editingAccess])
-                  ? copy("Discovered in Bifrost · read only.", "Identifiant découvert dans Bifrost · lecture seule.")
-                  : copy(
-                      "Manual access: enter the exact ID configured in Bifrost.",
-                      "Accès manuel : reprendre l’identifiant exact configuré dans Bifrost.",
-                    )}
-              </p>
+              {/* Basic types a manual access's native ID; a discovered access's IDs and route are read-only facts, so Expert's. */}
+              {(expert || !catalogAccess(form.accesses[editingAccess])) && (
+                <>
+                  <label className="block text-sm">
+                    {copy("Model at this provider *", "Modèle chez ce fournisseur *")}
+                    <Input
+                      className="mt-1 font-mono"
+                      value={form.accesses[editingAccess].nativeModel || ""}
+                      readOnly={!!catalogAccess(form.accesses[editingAccess])}
+                      onChange={event => changeEditAccess(editingAccess, { nativeModel: event.target.value })}
+                    />
+                  </label>
+                  <p className="text-xs text-muted-foreground">
+                    {catalogAccess(form.accesses[editingAccess])
+                      ? copy(
+                          "Discovered in Bifrost · read only.",
+                          "Identifiant découvert dans Bifrost · lecture seule.",
+                        )
+                      : copy(
+                          "Manual access: enter the exact ID configured in Bifrost.",
+                          "Accès manuel : reprendre l’identifiant exact configuré dans Bifrost.",
+                        )}
+                  </p>
+                </>
+              )}
               <SearchableSelect
                 label={copy("Reference for this access", "Fiche documentaire pour cet accès")}
                 value={form.accesses[editingAccess].referenceId || ""}
@@ -2173,10 +2312,12 @@ export default function ModelEditor({
                   <code className="block break-all">{form.accesses[editingAccess].referenceId}</code>
                 </details>
               )}
-              <label className="block text-sm">
-                {copy("Registry exposed ID", "ID exposé Registry")}
-                <Input className="mt-1 font-mono" value={form.accesses[editingAccess].id} readOnly />
-              </label>
+              {(expert || !catalogAccess(form.accesses[editingAccess])) && (
+                <label className="block text-sm">
+                  {copy("Registry exposed ID", "ID exposé Registry")}
+                  <Input className="mt-1 font-mono" value={form.accesses[editingAccess].id} readOnly />
+                </label>
+              )}
               <EndpointChoices
                 access={form.accesses[editingAccess]}
                 technical={expert}
@@ -2198,11 +2339,21 @@ export default function ModelEditor({
                   </SelectContent>
                 </Select>
               </div>
-              <p className="text-xs text-muted-foreground">
-                {copy("Route", "Route")}
-                {colon} {form.accesses[editingAccess].route}.{" "}
-                {copy("Native routing is configured separately.", "Le routage natif se règle séparément.")}
-              </p>
+              {(expert || !catalogAccess(form.accesses[editingAccess])) && (
+                <p className="text-xs text-muted-foreground">
+                  {copy("Route", "Route")}
+                  {colon} {form.accesses[editingAccess].route}.{" "}
+                  {copy("Native routing is configured separately.", "Le routage natif se règle séparément.")}
+                </p>
+              )}
+              {!expert && catalogAccess(form.accesses[editingAccess]) && (
+                <section className="space-y-3 border-t pt-3">
+                  <h4 className="text-sm font-semibold">{copy("Values for this access", "Valeurs de cet accès")}</h4>
+                  {valueFields("access", catalogAccess(form.accesses[editingAccess])!.id, key =>
+                    accessFact(form.accesses[editingAccess], key),
+                  )}
+                </section>
+              )}
               <Button
                 variant="ghost"
                 size="sm"
@@ -2220,7 +2371,8 @@ export default function ModelEditor({
             </Button>
             <Button
               disabled={
-                editing === "identity"
+                valueIssues ||
+                (editing === "identity"
                   ? !form.name.trim()
                   : editing === "access"
                     ? !form.accesses[editingAccess]?.endpoints?.length ||
@@ -2232,9 +2384,10 @@ export default function ModelEditor({
                           (!!access.referenceId &&
                             !catalog?.references.some(reference => reference.id === access.referenceId)),
                       )
-                    : false
+                    : false)
               }
               onClick={() => {
+                keepValueEdits();
                 if (editDraft) onChange(editDraft);
                 closeEdit();
                 setRegistrationIssue(undefined);

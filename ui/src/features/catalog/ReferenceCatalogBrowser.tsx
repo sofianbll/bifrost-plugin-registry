@@ -279,16 +279,10 @@ export default function ReferenceCatalogBrowser({
             : {
                 key: attention.kind,
                 text: copy("no reference", "sans référence"),
-                title:
-                  group.entries[0]?.model.creatorSource === "inferred"
-                    ? copy(
-                        "No Models.dev reference is linked to this card. Its creator is a guess: edit the card to correct or clear it.",
-                        "Aucune fiche documentaire Models.dev n’est associée à cette fiche. Son créateur est déduit : modifiez la fiche pour le corriger ou l’effacer.",
-                      )
-                    : copy(
-                        "No Models.dev reference is linked to this card",
-                        "Aucune fiche documentaire Models.dev n’est associée à cette fiche",
-                      ),
+                title: copy(
+                  "No Models.dev reference is linked to this card",
+                  "Aucune fiche documentaire Models.dev n’est associée à cette fiche",
+                ),
               },
       );
     };
