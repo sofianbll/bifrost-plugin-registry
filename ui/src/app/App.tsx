@@ -773,8 +773,8 @@ function RegistryApp({
     if (firstRegistrationIssue(modelDraft)) {
       setModelError(
         copyText(
-          "Provide the shared ID, the name, at least one Registry endpoint per access and every valid provider access.",
-          "Renseignez l’identifiant commun, le nom, au moins un endpoint Registry par accès et chaque accès fournisseur valide.",
+          "Provide the call name, the name, at least one request type per access and every valid provider access.",
+          "Renseignez le nom d’appel, le nom, au moins un type de requête par accès et chaque accès fournisseur valide.",
         ),
       );
       return;
