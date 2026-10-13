@@ -71,18 +71,14 @@ must(
   plain.includes("allows every provider, including ones added later") && !plain.includes("allow_all_providers"),
   "the all-providers reason reads in plain words",
 );
-// Names sit behind a disclosure; only models the models page can add get a way there.
+// Critique round 5: a decision names the models it concerns where it is read, not behind "Show model names".
+must(!english.includes("Show model names") && !english.includes("<details"), "no model names behind a disclosure");
 must(
-  english
-    .split(/<details[\s\S]*?<\/details>/)
-    .join("")
-    .includes("qa-mistral-large") === false,
-  "model names stay behind their disclosure",
+  plain.includes("Models: qa-mistral-large, qa-mistral-small, qa-mistral-code") &&
+    plain.includes("Model: qa-unregistered"),
+  `each decision names its models inline, got ${plain}`,
 );
-must(
-  english.includes("qa-mistral-large, qa-mistral-small, qa-mistral-code") && english.includes("qa-unregistered"),
-  "model names are listed",
-);
+// Only models the models page can add get a way there.
 must(count(english, /Show in To add/g) === 1, "only the unsaved models link to To add");
 must(!render("en", hermes, hermesReasons).includes("Show in To add"), "no link without a destination");
 must(
@@ -90,9 +86,44 @@ must(
   "the plain per-model reasons are replaced by the grouped list",
 );
 
+// At most three names, then "+N" (a button that shows the others): the fifth model is not printed until asked.
+const many: Readiness = {
+  state: "blocked",
+  blockers: [
+    {
+      provider: "mistral",
+      kind: "undiscovered",
+      count: 5,
+      models: ["qa-a", "qa-b", "qa-c", "qa-d", "qa-e"],
+    },
+  ],
+};
+const manyEnglish = render("en", many, [], undefined, () => {});
+must(
+  text(manyEnglish).includes("Models: qa-a, qa-b, qa-c +2 more models") &&
+    !manyEnglish.includes("qa-d") &&
+    /<button[^>]*aria-expanded="false"[^>]*>\+2<span class="sr-only"> more models<\/span><\/button>/.test(manyEnglish),
+  `three names then +2, got ${text(manyEnglish)}`,
+);
+must(
+  text(render("fr", many, [], undefined, () => {})).includes("Modèles : qa-a, qa-b, qa-c +2 autres modèles"),
+  "and in French",
+);
+must(
+  text(
+    render("en", { state: "blocked", blockers: [{ ...many.blockers[0], models: ["qa-a", "qa-b", "qa-c"] }] }, []),
+  ).includes("Models: qa-a, qa-b, qa-c") &&
+    !text(
+      render("en", { state: "blocked", blockers: [{ ...many.blockers[0], models: ["qa-a", "qa-b", "qa-c"] }] }, []),
+    ).includes("+"),
+  "three names need no +N",
+);
+
 const french = text(render("fr", hermes, hermesReasons, () => {}));
 for (const line of [
   "2 décisions avant d’adopter",
+  "Modèles : qa-mistral-large, qa-mistral-small, qa-mistral-code",
+  "Modèle : qa-unregistered",
   "Bifrost ne montre pas 3 modèles Mistral : Registry ne peut donc pas les gérer.",
   "Avant d’adopter : enregistrer 1 modèle Synthetic Provider",
   "Voir dans À ajouter",
@@ -146,6 +177,7 @@ must(
   "both outcomes are offered",
 );
 must(text(collision).includes("Registry uses one subscription per model"), "the collision explains itself");
+must(text(collision).includes("Model: qa-shared"), "the choice names the model it settles");
 const collisionFrench = text(render("fr", twice, [shared], undefined, () => {}));
 for (const line of [
   "1 modèle est autorisé via Codex et Claude.",
@@ -414,7 +446,7 @@ must(
       () => {},
     ),
   ).includes(
-    "Bifrost ne montre pas 1 modèle DeepSeek : Registry ne peut donc pas le gérer.Laissez Bifrost continuer à gérer DeepSeek pour cette clé, ou retirez ce modèle de la clé.",
+    "Bifrost ne montre pas 1 modèle DeepSeek : Registry ne peut donc pas le gérer.Modèle : deepseek-v4Laissez Bifrost continuer à gérer DeepSeek pour cette clé, ou retirez ce modèle de la clé.",
   ),
   "and in French",
 );

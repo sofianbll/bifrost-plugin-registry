@@ -18,6 +18,20 @@ export function useDay() {
   const language = useLanguage();
   return (value: string) => formatDay(language, value);
 }
+// The same day with the time, no seconds: "Oct 12, 2026, 9:30 AM", "12/10/2026 09:30". Next to a day (the fold's
+// summary) it reads in the same format, instead of the browser's "10/12/2026, 9:30:00 AM".
+export const formatMoment = (language: Language, value: string) =>
+  new Date(value).toLocaleString(language === "fr" ? "fr-FR" : "en-US", {
+    ...(language === "fr"
+      ? { day: "2-digit", month: "2-digit", year: "numeric" }
+      : { month: "short", day: "numeric", year: "numeric" }),
+    hour: language === "fr" ? "2-digit" : "numeric",
+    minute: "2-digit",
+  });
+export function useMoment() {
+  const language = useLanguage();
+  return (value: string) => formatMoment(language, value);
+}
 
 // What a managed key can call (#99): one row per model, counted once whatever the subscriptions that serve it. A
 // model is its common ID (a card's alias or ID; a kept name without a card is its own). Registry routes come from
@@ -116,6 +130,13 @@ export const checkState = (key: Key, copy: Copy, differences = 0) =>
       ? copy("Differences found", "Écarts trouvés")
       : copy("Not checked yet", "Pas encore vérifiée");
 
+// What a check does, said once for the key page and the editor.
+export const checkNote = (copy: Copy) =>
+  copy(
+    "Checked with Bifrost: Registry asks Bifrost which model IDs this key lists. The models are not called.",
+    "Vérifié avec Bifrost : Registry demande à Bifrost quels ID de modèles cette clé liste. Les modèles ne sont pas appelés.",
+  );
+
 type Props = {
   virtualKey: Key;
   models: Model[];
@@ -129,8 +150,8 @@ type Props = {
 export function KeySummary({ virtualKey, models, groups, busy, snapshotMode, onReread }: Props) {
   const copy = useCopy();
   const day = useDay();
-  const localized = useFormat();
-  const { colon } = localized;
+  const moment = useMoment();
+  const { colon } = useFormat();
   const ledger = keyLedger(virtualKey, models, groups);
   const publication = virtualKey.publication;
   const pending = Object.entries(virtualKey.pendingAccessSelection || {});
@@ -138,10 +159,27 @@ export function KeySummary({ virtualKey, models, groups, busy, snapshotMode, onR
     ? exposed(virtualKey.policy, groups, models)
     : virtualKey.observed || publication?.actual || [];
   const total = ledgerTotal(ledger, copy);
-  const title =
+  // Until Bifrost has been asked, the list is Registry's plan, not a confirmed fact: the headline says so and the
+  // check sits beside it, not only in the fold (critique round 5).
+  const unchecked = !snapshotMode && publication?.state !== "verified" && publication?.state !== "drift";
+  const checkLabel = ids.length
+    ? copy("Check again", "Vérifier à nouveau")
+    : copy("Check with Bifrost", "Vérifier avec Bifrost");
+  const headline =
     ledger.total || ledger.open
       ? copy(`This key can call ${total}`, `Cette clé peut appeler ${total}`)
       : copy("This key cannot call any model yet", "Cette clé ne peut encore appeler aucun modèle");
+  // A key that can call nothing claims no list to confirm: only the check stays beside it.
+  const title =
+    unchecked && (ledger.total || ledger.open)
+      ? `${headline} · ${copy("not checked yet", "pas encore vérifiée")}`
+      : headline;
+  const checkButton = (
+    <Button type="button" variant="outline" size="sm" disabled={busy} onClick={onReread}>
+      <RotateCcw className="size-3.5" />
+      {checkLabel}
+    </Button>
+  );
   const openRow = (row: LedgerRow) =>
     row.open === "all"
       ? copy("All models Bifrost allows", "Tous les modèles autorisés par Bifrost")
@@ -166,9 +204,12 @@ export function KeySummary({ virtualKey, models, groups, busy, snapshotMode, onR
         : copy("provider/model", "fournisseur/modèle");
   return (
     <section aria-labelledby={`ledger-${virtualKey.id}`} className="space-y-4 rounded-sm border bg-card p-4">
-      <h2 id={`ledger-${virtualKey.id}`} className="text-base font-semibold">
-        {title}
-      </h2>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 id={`ledger-${virtualKey.id}`} className="text-base font-semibold">
+          {title}
+        </h2>
+        {unchecked && checkButton}
+      </div>
       {ledger.rows.length ? (
         <ul className="divide-y text-sm">
           {ledger.rows.map(row => (
@@ -253,21 +294,13 @@ export function KeySummary({ virtualKey, models, groups, busy, snapshotMode, onR
             </p>
           ) : (
             <>
-              <p className="text-xs text-muted-foreground">
-                {copy(
-                  "Checked with Bifrost: Registry asks Bifrost which model IDs this key lists. The models are not called.",
-                  "Vérifié avec Bifrost : Registry demande à Bifrost quels ID de modèles cette clé liste. Les modèles ne sont pas appelés.",
-                )}
-              </p>
+              <p className="text-xs text-muted-foreground">{checkNote(copy)}</p>
               <div className="flex flex-wrap items-center gap-2">
-                <Button type="button" variant="outline" size="sm" disabled={busy} onClick={onReread}>
-                  <RotateCcw className="size-3.5" />
-                  {ids.length ? copy("Read again", "Relire") : copy("Check with Bifrost", "Vérifier avec Bifrost")}
-                </Button>
+                {/* While the key is unchecked its button sits beside the headline; here it only checks again. */}
+                {!unchecked && checkButton}
                 {publication?.checkedAt && (
                   <span className="break-all text-xs text-muted-foreground">
-                    {localized.date(publication.checkedAt)} · {copy("revision", "révision")}{" "}
-                    {publication.revision.slice(0, 12)}
+                    {moment(publication.checkedAt)} · {copy("revision", "révision")} {publication.revision.slice(0, 12)}
                   </span>
                 )}
               </div>
@@ -295,7 +328,9 @@ export function KeySummary({ virtualKey, models, groups, busy, snapshotMode, onR
               ))}
               {!ids.length && (
                 <li className="text-xs text-muted-foreground">
-                  {copy("Nothing read from Bifrost yet.", "Rien n’a encore été lu dans Bifrost.")}
+                  {snapshotMode
+                    ? copy("No saved model IDs.", "Aucun ID de modèle enregistré.")
+                    : copy("Not checked with Bifrost yet.", "Pas encore vérifiée avec Bifrost.")}
                 </li>
               )}
             </ul>

@@ -7,6 +7,7 @@ import {
   decidedLabel,
   decisionsHeading,
   disabledProviders,
+  prerequisiteLine,
   readinessLabel,
   readinessReason,
   readinessState,
@@ -215,6 +216,48 @@ equal(
   decisionsHeading({ decided: 2, total: 4 }, french),
   "4 décisions avant d’adopter · 2 déjà prises",
   "plural, French",
+);
+// Critique round 5: models to register are no decision (the counts above leave them out), so the footer states them
+// beside the count: one provider is named, several are summed, none says nothing.
+const vertex = { ...unsaved, provider: "vertex", count: 8 };
+equal(
+  prerequisiteLine({ state: "blocked", blockers: [vertex, mistral] }, english),
+  "Register 8 Vertex AI models first",
+  "one provider's models to register, English",
+);
+equal(
+  prerequisiteLine({ state: "blocked", blockers: [vertex, mistral] }, french),
+  "Enregistrez d’abord 8 modèles Vertex AI",
+  "one provider's models to register, French",
+);
+equal(
+  prerequisiteLine({ state: "blocked", blockers: [{ ...vertex, count: 1 }] }, english),
+  "Register 1 Vertex AI model first",
+  "singular",
+);
+equal(
+  prerequisiteLine(
+    { state: "blocked", blockers: [vertex, { ...unsaved, provider: "synthetic-provider", count: 2 }] },
+    english,
+  ),
+  "Register 10 models first",
+  "several providers are summed, without a name",
+);
+equal(
+  prerequisiteLine({ state: "blocked", blockers: [mistral, codex] }, english),
+  "",
+  "decisions only: no prerequisite",
+);
+equal(
+  prerequisiteLine({ state: "blocked", blockers: [{ ...vertex, kept: true }] }, english),
+  "",
+  "a kept row waits for nothing",
+);
+equal(prerequisiteLine(undefined, english), "", "no verdict, no prerequisite");
+equal(
+  adoptionProgress({ state: "blocked", blockers: [vertex] }, [], []),
+  { decided: 0, total: 0 },
+  "the prerequisite is not counted as a decision",
 );
 // A provider Bifrost reports as disabled is kept in Bifrost from the start (still undoable).
 equal(

@@ -24,6 +24,7 @@ import {
 } from "../../domain/registry";
 import { useCopy, useFormat } from "../../lib/locale";
 import { KeptNative } from "./KeptNative";
+import { checkNote, checkState, useMoment } from "./KeySummary";
 import {
   accessOrigin,
   keyBaseline,
@@ -419,7 +420,7 @@ export default function KeyComposer({
       <h3 className="text-sm font-semibold">{changesTitle}</h3>
       <p className="text-xs text-muted-foreground">
         {baseline.source === "readback"
-          ? copy("Compared with the last verified readback", "Comparé à la dernière relecture vérifiée")
+          ? copy("Compared with what Bifrost last confirmed", "Comparé à ce que Bifrost a confirmé en dernier")
           : baseline.source === "plan"
             ? copy("Compared with the last published plan", "Comparé au dernier plan publié")
             : baseline.source === "native"
@@ -729,10 +730,11 @@ export function PublicationCard({
   onReread: () => void;
 }) {
   const copy = useCopy();
-  const localized = useFormat();
-  const { colon } = localized;
+  const moment = useMoment();
+  const { colon } = useFormat();
   const publication = virtualKey.publication;
   const pending = Object.entries(virtualKey.pendingAccessSelection || {});
+  const listed = virtualKey.observed || publication?.actual || [];
   return (
     <Card className="gap-0 overflow-hidden py-0">
       <CardHeader className="border-b bg-muted/40 px-4 py-3 sm:px-5">
@@ -740,31 +742,24 @@ export function PublicationCard({
           <Eye className="size-4" />
           {snapshotMode
             ? copy("Saved in this local copy", "Enregistré dans cette copie locale")
-            : copy("Published selection and readback", "Sélection publiée et relecture")}
+            : copy("Published selection and Bifrost check", "Sélection publiée et vérification avec Bifrost")}
           {!snapshotMode && (
             <Badge
               variant={
                 publication?.state === "verified" ? "success" : publication?.state === "drift" ? "warning" : "secondary"
               }
             >
-              {publication?.state === "verified"
-                ? copy("Verified", "Vérifiée")
-                : publication?.state === "drift"
-                  ? copy("Drift detected", "Écart détecté")
-                  : copy("Not verified", "Non vérifiée")}
+              {checkState(virtualKey, copy)}
             </Badge>
           )}
         </CardTitle>
         <p className="text-xs text-muted-foreground">
           {snapshotMode
             ? copy(
-                "Changes stay in this copy; the gateway cannot be read back here.",
-                "Les changements restent dans cette copie ; le gateway ne peut pas y être relu.",
+                "Changes stay in this copy; Bifrost cannot be checked from here.",
+                "Les changements restent dans cette copie ; Bifrost ne peut pas être vérifié d’ici.",
               )
-            : copy(
-                "Readback checks the IDs returned by Bifrost. It does not test model inference.",
-                "La relecture vérifie les ID renvoyés par Bifrost, pas les appels aux modèles.",
-              )}
+            : checkNote(copy)}
         </p>
       </CardHeader>
       <CardContent className="space-y-3 px-4 py-4 sm:px-5">
@@ -792,12 +787,13 @@ export function PublicationCard({
             <div className="flex flex-wrap items-center gap-2">
               <Button type="button" variant="outline" size="sm" disabled={busy} onClick={onReread}>
                 <RotateCcw className="size-3.5" />
-                {copy("Read again", "Relire")}
+                {listed.length
+                  ? copy("Check again", "Vérifier à nouveau")
+                  : copy("Check with Bifrost", "Vérifier avec Bifrost")}
               </Button>
               {publication?.checkedAt && (
                 <span className="break-all text-xs text-muted-foreground">
-                  {localized.date(publication.checkedAt)} · {copy("revision", "révision")}{" "}
-                  {publication.revision.slice(0, 12)}
+                  {moment(publication.checkedAt)} · {copy("revision", "révision")} {publication.revision.slice(0, 12)}
                 </span>
               )}
             </div>
@@ -814,14 +810,14 @@ export function PublicationCard({
               </p>
             )}
             <div className="max-h-36 space-y-1 overflow-auto">
-              {(virtualKey.observed || publication?.actual || []).map((id, index) => (
+              {listed.map((id, index) => (
                 <p key={`${id}-${index}`} className="break-all rounded-sm border px-2 py-1 font-mono text-xs">
                   {id}
                 </p>
               ))}
-              {!(virtualKey.observed || publication?.actual || []).length && (
+              {!listed.length && (
                 <p className="text-xs text-muted-foreground">
-                  {copy("No successful readback is available.", "Aucune relecture réussie disponible.")}
+                  {copy("Not checked with Bifrost yet.", "Pas encore vérifiée avec Bifrost.")}
                 </p>
               )}
             </div>

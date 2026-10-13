@@ -373,10 +373,18 @@ for (const [language, label] of [
   }
 }
 
-// Story 39: every key action is named after its key, in grid and table, in both languages.
+// Story 39: every key action is named after its key, in grid and table, in both languages. Critique round 5: the
+// action also names where it leads: "Adopt" for a key that can be adopted (or not read yet), "See what blocks it" for
+// one that cannot, "Open" for a managed key.
 const named = [
   { ...native, id: "a", name: "Key A" },
-  { ...native, id: "b", name: "Key B" },
+  {
+    ...native,
+    id: "b",
+    name: "Key B",
+    readiness: { state: "blocked" as const, blockers: [] },
+  },
+  { ...native, id: "e", name: "Key E", readiness: { state: "ready" as const, blockers: [] } },
   { ...fixture.keys[0], id: "c", name: "Key C", managed: true },
   { ...fixture.keys[0], id: "d", name: "Key D", managed: true },
 ];
@@ -400,11 +408,11 @@ for (const language of ["en", "fr"] as const) {
     );
     const actions = [...html.matchAll(/<button[^>]*>(.*?)<\/button>/g)]
       .map(match => match[1].split(/<[^>]*>/).join(""))
-      .filter(name => /^(Review|Open|Examiner|Ouvrir)\b/.test(name));
+      .filter(name => /^(Review|Open|Adopt|See what|Examiner|Ouvrir|Adopter|Voir ce qui)\b/.test(name));
     const expected =
       language === "en"
-        ? ["Open · Key C", "Open · Key D", "Review · Key A", "Review · Key B"]
-        : ["Ouvrir · Key C", "Ouvrir · Key D", "Examiner · Key A", "Examiner · Key B"];
+        ? ["Open · Key C", "Open · Key D", "Adopt · Key E", "See what blocks it · Key B", "Adopt · Key A"]
+        : ["Ouvrir · Key C", "Ouvrir · Key D", "Adopter · Key E", "Voir ce qui bloque · Key B", "Adopter · Key A"];
     if (JSON.stringify(actions) !== JSON.stringify(expected))
       throw new Error(`${language} ${layout}: key actions must name their key, got ${JSON.stringify(actions)}`);
   }

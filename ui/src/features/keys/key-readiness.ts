@@ -91,6 +91,20 @@ export const decisionsHeading = ({ decided, total }: Progress, copy: Copy) =>
 export const decidedLabel = ({ decided, total }: Progress, copy: Copy) =>
   copy(`${decided} of ${total} decided`, `${decided} sur ${total} ${total > 1 ? "décidées" : "décidée"}`);
 
+// What has to happen outside the dialog before Adopt can work: models to register first. It is no numbered decision
+// (adoptionProgress leaves it out, only the models page settles it); the footer states it beside the decided count.
+// One provider is named; several are summed ("Register 10 models first"), their names being in the section above.
+export function prerequisiteLine(readiness: Readiness | undefined, copy: Copy) {
+  const unsaved = (readiness?.blockers ?? []).filter(blocker => blocker.kind === "unsaved" && !blocker.kept);
+  const count = unsaved.reduce((sum, blocker) => sum + blocker.count, 0);
+  if (!count) return "";
+  const name = unsaved.length === 1 ? displayProvider(unsaved[0].provider) : "";
+  return copy(
+    `Register ${count}${name && ` ${name}`} ${count === 1 ? "model" : "models"} first`,
+    `Enregistrez d’abord ${count} ${count === 1 ? "modèle" : "modèles"}${name && ` ${name}`}`,
+  );
+}
+
 // Providers Bifrost reports as disabled, not kept yet: the dialog keeps them in Bifrost from the start.
 export const disabledProviders = (readiness: Readiness | undefined) => [
   ...new Set(

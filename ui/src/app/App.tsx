@@ -441,7 +441,10 @@ function RegistryApp({
   };
   const markReadbackFailure = (id: string, error: unknown) => {
     const fromServer = error instanceof ApiError ? error.publication : undefined;
-    const message = error instanceof Error ? error.message : copyText("Readback unavailable", "Relecture indisponible");
+    const message =
+      error instanceof Error
+        ? error.message
+        : copyText("Check with Bifrost unavailable", "Vérification avec Bifrost indisponible");
     setData(old => ({
       ...old,
       keys: old.keys.map(k => {
@@ -469,7 +472,7 @@ function RegistryApp({
   const verify = async (ids: string[]) => {
     let verified = true;
     for (const id of [...new Set(ids)]) {
-      setBusy(copyText("Verifying /v1/models…", "Vérification de /v1/models…"));
+      setBusy(copyText("Checking with Bifrost…", "Vérification avec Bifrost…"));
       try {
         const workspace = await readbackKey(id);
         applyWorkspace(workspace);
@@ -479,7 +482,7 @@ function RegistryApp({
         verified = false;
         markReadbackFailure(id, error);
         toast.warning(
-          `${id}: ${error instanceof Error ? error.message : copyText("Readback unavailable", "Relecture indisponible")}`,
+          `${id}: ${error instanceof Error ? error.message : copyText("Check with Bifrost unavailable", "Vérification avec Bifrost indisponible")}`,
         );
       }
     }
@@ -537,10 +540,10 @@ function RegistryApp({
             )
           : verifyIds.length
             ? verified
-              ? copyText("Published and verified through /v1/models.", "Publié et vérifié via /v1/models.")
+              ? copyText("Published and verified with Bifrost.", "Publié et vérifié avec Bifrost.")
               : copyText(
-                  "Saved; readback has drift or could not be verified.",
-                  "Enregistré ; la relecture diffère ou n’a pas pu être vérifiée.",
+                  "Published; Bifrost differs or could not be checked.",
+                  "Publié ; Bifrost diffère ou n’a pas pu être vérifié.",
                 )
             : copyText("Saved.", "Enregistré."),
       );
@@ -924,7 +927,7 @@ function RegistryApp({
   };
   const reread = async () => {
     if (!key || key.managed === false) return;
-    await operation(copyText("Verifying /v1/models…", "Vérification de /v1/models…"), async () => {
+    await operation(copyText("Checking with Bifrost…", "Vérification avec Bifrost…"), async () => {
       let workspace: Workspace;
       try {
         workspace = await readbackKey(key.id);
@@ -936,10 +939,10 @@ function RegistryApp({
       const state = workspace.data.keys.find(k => k.id === key.id)?.publication?.state;
       toast[state === "verified" ? "success" : "warning"](
         state === "verified"
-          ? copyText("Readback verified.", "Relecture vérifiée.")
+          ? copyText("Verified with Bifrost.", "Vérifiée avec Bifrost.")
           : state === "drift"
-            ? copyText("Readback differs from published policy.", "La relecture diffère de la politique publiée.")
-            : copyText("Readback unavailable.", "Relecture indisponible."),
+            ? copyText("Bifrost differs from the published selection.", "Bifrost diffère de la sélection publiée.")
+            : copyText("Could not check with Bifrost.", "Vérification avec Bifrost impossible."),
       );
     });
   };
@@ -1217,7 +1220,7 @@ function RegistryApp({
                     checked={expert}
                     onCheckedChange={setExpertMode}
                     className="h-6 data-[state=checked]:bg-chart-success data-[state=unchecked]:bg-muted-foreground/50 [&>span]:bg-white dark:[&>span]:bg-white"
-                    aria-label={copyText("Use Expert key composer", "Utiliser la composition de clé Expert")}
+                    aria-label={copyText("Expert mode", "Mode Expert")}
                   />
                 </label>
               )}
@@ -1296,7 +1299,8 @@ function RegistryApp({
                     {connection.capturedAt && (
                       <>
                         {" "}
-                        · {copyText("captured", "capturée")} {localized.date(connection.capturedAt)}
+                        · {copyText("captured", "capturée")}{" "}
+                        {localized.date(connection.capturedAt, { dateStyle: "medium", timeStyle: "short" })}
                       </>
                     )}
                   </p>
@@ -1506,12 +1510,15 @@ function RegistryApp({
                       </Button>
                       <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">{key.name}</h1>
                       <p className="text-xs text-muted-foreground">
-                        <span className="wrap-anywhere">{key.client || key.id}</span> ·{" "}
+                        {/* The client names the key; its raw ID is Expert detail, not a subtitle in Basic. */}
+                        {(key.client || effectiveExpert) && (
+                          <>
+                            <span className="wrap-anywhere">{key.client || key.id}</span> ·{" "}
+                          </>
+                        )}
                         {copyText(
-                          key.managed === false ? "Bifrost key · Registry policy not adopted" : "Registry-managed key",
-                          key.managed === false
-                            ? "Clé Bifrost · sélection Registry non adoptée"
-                            : "Clé gérée par Registry",
+                          key.managed === false ? "Bifrost key · not adopted yet" : "Registry-managed key",
+                          key.managed === false ? "Clé Bifrost · pas encore adoptée" : "Clé gérée par Registry",
                         )}
                       </p>
                     </div>
@@ -1561,7 +1568,7 @@ function RegistryApp({
                                 disabled={isDirty}
                                 onSelect={() => setAdoption({ keyId: key.id, operation: "rebind" })}
                               >
-                                {copyText("Review binding", "Examiner l’association")}
+                                {copyText("Re-link the Bifrost key", "Relier à nouveau la clé Bifrost")}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -1611,8 +1618,8 @@ function RegistryApp({
                       {key.managed !== false && isDirty && (
                         <p className="text-muted-foreground">
                           {copyText(
-                            "Save or discard this draft before reviewing the key association.",
-                            "Enregistrez ou abandonnez ce brouillon avant d’examiner l’association de la clé.",
+                            "Publish or discard this draft before re-linking the Bifrost key.",
+                            "Publiez ou abandonnez ce brouillon avant de relier à nouveau la clé Bifrost.",
                           )}
                         </p>
                       )}
@@ -1626,8 +1633,8 @@ function RegistryApp({
                       </h2>
                       <p className="max-w-[52ch] text-sm text-muted-foreground">
                         {copyText(
-                          "Review compares the current Bifrost permissions with a Registry selection. Confirm it before composing groups and models for this key. Registry cannot grant more access than Bifrost allows.",
-                          "L’examen compare les permissions Bifrost actuelles avec une sélection Registry. Confirmez-la avant de composer les groupes et modèles de cette clé. Registry ne peut pas étendre les droits accordés par Bifrost.",
+                          "Adopting compares what Bifrost allows today with a Registry selection, and you confirm it before composing groups and models for this key. Registry cannot grant more access than Bifrost allows.",
+                          "Adopter compare ce que Bifrost autorise aujourd’hui avec une sélection Registry ; vous la confirmez avant de composer les groupes et modèles de cette clé. Registry ne peut pas étendre les droits accordés par Bifrost.",
                         )}
                       </p>
                       <div>
@@ -1661,7 +1668,7 @@ function RegistryApp({
                           onClick={() => setAdoption({ keyId: key.id, operation: "adopt" })}
                         >
                           {snapshotMode
-                            ? copyText("Review local selection", "Examiner la sélection locale")
+                            ? copyText("Prepare local selection", "Préparer la sélection locale")
                             : copyText("Adopt this key", "Adopter cette clé")}
                         </Button>
                       )}
@@ -1727,7 +1734,13 @@ function RegistryApp({
             </main>
           </div>
         </div>
-        <HelpSheet open={helpOpen} onOpenChange={setHelpOpen} canStart={!isDirty} onStart={startTour} />
+        <HelpSheet
+          open={helpOpen}
+          onOpenChange={setHelpOpen}
+          canStart={!isDirty}
+          onStart={startTour}
+          expert={effectiveExpert}
+        />
         {tourRun > 0 && (
           <Tour
             key={tourRun}
@@ -1809,10 +1822,15 @@ function RegistryApp({
                 )}
               </SheetTitle>
               <SheetDescription>
-                {copyText(
-                  "Choose the registered models in this shared selection. Review the key impact before saving.",
-                  "Choisissez les modèles enregistrés de cette sélection partagée. Vérifiez l’impact sur les clés avant l’enregistrement.",
-                )}
+                {snapshotMode
+                  ? copyText(
+                      "Choose the registered models in this shared selection. Review the key impact before saving locally.",
+                      "Choisissez les modèles enregistrés de cette sélection partagée. Vérifiez l’impact sur les clés avant l’enregistrement local.",
+                    )
+                  : copyText(
+                      "Choose the registered models in this shared selection. Review the key impact before publishing.",
+                      "Choisissez les modèles enregistrés de cette sélection partagée. Vérifiez l’impact sur les clés avant la publication.",
+                    )}
               </SheetDescription>
             </SheetHeader>
             {groupDraft && (

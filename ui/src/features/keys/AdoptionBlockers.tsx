@@ -1,7 +1,8 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { displayProvider } from "../../components/registry/BrandIcon";
 import type { Readiness, ReadinessBlocker } from "../../domain/registry";
-import { useCopy, type Copy } from "../../lib/locale";
+import { useCopy, useFormat, type Copy } from "../../lib/locale";
 import { adoptionProgress, blockerLine, decisionsHeading } from "./key-readiness";
 import { NativeEditButton, nativeEditFor, type NativeEditRequest } from "./NativePermissionEdit";
 
@@ -49,8 +50,8 @@ const reasons: [RegExp, string, string][] = [
   ],
   [
     /^Native model list differs from configured access; import or reconcile the missing routes first$/,
-    "The models this key allows don’t match what Bifrost shows; add or fix the missing models first.",
-    "Les modèles autorisés par cette clé ne correspondent pas à ce que montre Bifrost ; ajoutez ou corrigez d’abord les modèles manquants.",
+    "The models this key allows don’t match what Bifrost shows; register or fix the missing models first.",
+    "Les modèles autorisés par cette clé ne correspondent pas à ce que montre Bifrost ; enregistrez ou corrigez d’abord les modèles manquants.",
   ],
   [
     /^allow_all_providers grants future providers and cannot be represented safely$/,
@@ -106,8 +107,8 @@ export function adoptionReason(reason: string, copyText: Copy) {
 }
 
 // What stops a key from being adopted, as a short numbered list of decisions (spec #85): one row per provider
-// (the key as a whole when it has its own blockers), each blocker with its count, its model names behind a
-// disclosure, and the choices that resolve the row. Every row is required: the key cannot be adopted before.
+// (the key as a whole when it has its own blockers), each blocker with its count, the models it concerns named in
+// the line (three, then "+N"), and the choices that resolve the row. Every row is required: the key cannot be adopted before.
 // Unsaved models are no decision (only the models page settles them): they follow, unnumbered, under "Before
 // adopting", with onShowToAdd. Choices: onKeep (#92) for undiscovered models, a provider
 // that allows every model (dynamic) or a model allowed through two providers (collision, where either provider
@@ -234,15 +235,43 @@ export function AdoptionBlockers({
   );
 }
 
+// The models a decision is about, named where the decision is read (critique round 5): the first three, then "+N" to
+// see the rest. Names are identifiers, so they are set in mono.
+const namedModels = 3;
 function ModelNames({ models }: { models: string[] }) {
   const copyText = useCopy();
+  const { colon } = useFormat();
+  const [all, setAll] = useState(false);
+  if (!models.length) return null;
+  const more = models.length - namedModels;
   return (
-    models.length > 0 && (
-      <details className="mt-1 text-xs">
-        <summary className="cursor-pointer">{copyText("Show model names", "Afficher les noms des modèles")}</summary>
-        <p className="mt-1 break-words font-mono">{models.join(", ")}</p>
-      </details>
-    )
+    <p className="mt-1 break-words text-xs">
+      {copyText(models.length === 1 ? "Model" : "Models", models.length === 1 ? "Modèle" : "Modèles")}
+      {colon} <span className="font-mono">{(all ? models : models.slice(0, namedModels)).join(", ")}</span>
+      {more > 0 && (
+        <>
+          {" "}
+          <button
+            type="button"
+            aria-expanded={all}
+            className="rounded-sm underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            onClick={() => setAll(!all)}
+          >
+            {all ? (
+              copyText("Show fewer", "Afficher moins")
+            ) : (
+              <>
+                +{more}
+                <span className="sr-only">
+                  {" "}
+                  {copyText(more === 1 ? "more model" : "more models", more === 1 ? "autre modèle" : "autres modèles")}
+                </span>
+              </>
+            )}
+          </button>
+        </>
+      )}
+    </p>
   );
 }
 
@@ -336,6 +365,7 @@ function DecisionRow({
                   `Bifrost ne montre donc aucun de ses modèles : Registry ne peut pas gérer ${blocker.count === 1 ? "le modèle" : `les ${blocker.count} modèles`} que cette clé autorise.`,
                 )}
               </p>
+              <ModelNames models={blocker.models} />
               {undiscoveredChoices(blocker)}
             </>
           ) : blocker.kind === "undiscovered" ? (
@@ -346,6 +376,7 @@ function DecisionRow({
                   `Bifrost ne montre pas ${blocker.count} ${models(blocker.count)} ${name} : Registry ne peut donc pas ${blocker.count === 1 ? "le" : "les"} gérer.`,
                 )}
               </p>
+              <ModelNames models={blocker.models} />
               {undiscoveredChoices(blocker)}
             </>
           ) : blocker.kind === "collision" ? (
@@ -356,7 +387,8 @@ function DecisionRow({
                   `${blocker.count} ${blocker.count === 1 ? "modèle est autorisé" : "modèles sont autorisés"} via ${and(sharers.map(displayProvider))}.`,
                 )}
               </p>
-              <p className="text-xs">
+              <ModelNames models={blocker.models} />
+              <p className="mt-1 text-xs">
                 {keepable
                   ? copyText(
                       "Registry uses one subscription per model: choose the one to use, and Bifrost keeps handling the other for this key.",
@@ -385,9 +417,9 @@ function DecisionRow({
                   {adoptionReason(reason, copyText)}
                 </p>
               ))}
+              <ModelNames models={blocker.models} />
             </>
           )}
-          <ModelNames models={blocker.models} />
         </div>
       ))}
       {choices > 0 && (

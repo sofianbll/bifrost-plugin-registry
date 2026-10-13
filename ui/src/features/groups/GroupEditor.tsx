@@ -43,6 +43,8 @@ export function GroupEditor({
   const copy = useCopy();
   const [selectionView, setSelectionView] = useState<"cards" | "tree">("cards");
   const [step, setStep] = useState(0);
+  // "Required" turns into an error only once the name was left empty or a step was tried without it.
+  const [nameTouched, setNameTouched] = useState(false);
   if (!group) return null;
   const saved = groups.find(item => item.id === group.id);
   const existing = !!saved;
@@ -62,19 +64,23 @@ export function GroupEditor({
       members: group.members.includes(id) ? group.members.filter(member => member !== id) : [...group.members, id],
     });
 
+  const nameError = nameTouched && !group.name.trim();
   const details = (
     <div className="space-y-3">
-      <Field data-invalid={!group.name.trim()}>
+      <Field data-invalid={nameError}>
         <FieldLabel htmlFor="group-name">{copy("Group name", "Nom du groupe")} *</FieldLabel>
         <Input
           id="group-name"
           aria-required="true"
-          aria-invalid={!group.name.trim()}
+          aria-invalid={nameError}
           autoFocus
           value={group.name}
           onChange={event => onChange({ ...group, name: event.target.value })}
+          onBlur={() => setNameTouched(true)}
         />
-        <FieldDescription>{copy("Required", "Obligatoire")}</FieldDescription>
+        <FieldDescription className={nameError ? "text-destructive" : undefined}>
+          {nameError ? copy("Enter a group name.", "Saisissez un nom de groupe.") : copy("Required", "Obligatoire")}
+        </FieldDescription>
       </Field>
       <Field>
         <FieldLabel htmlFor="group-description">{copy("Description", "Description")}</FieldLabel>
@@ -136,8 +142,8 @@ export function GroupEditor({
       ) : (
         <p className="rounded-sm border border-dashed p-6 text-center text-sm text-muted-foreground">
           {copy(
-            "No registered models are available. Add a model in Models first.",
-            "Aucun modèle enregistré. Ajoutez d’abord un modèle dans Modèles.",
+            "No registered models are available. Register a model in Models first.",
+            "Aucun modèle enregistré. Enregistrez d’abord un modèle dans Modèles.",
           )}
         </p>
       )}
@@ -171,7 +177,7 @@ export function GroupEditor({
                   <h4 className="font-semibold">{key.name}</h4>
                   <Badge variant={changed ? "warning" : "secondary"}>
                     {changed
-                      ? copy("Will change on save", "Changera à l’enregistrement")
+                      ? copy("Will change on publish", "Changera à la publication")
                       : copy("No model change", "Aucun changement de modèles")}
                   </Badge>
                 </div>
@@ -237,6 +243,7 @@ export function GroupEditor({
 
   const changeStep = (next: number) => {
     if (next > 0 && !group.name.trim()) {
+      setNameTouched(true);
       setStep(0);
       return false;
     }
