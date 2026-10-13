@@ -170,10 +170,8 @@ export function KeySummary({ virtualKey, models, groups, busy, snapshotMode, onR
       ? copy(`This key can call ${total}`, `Cette clé peut appeler ${total}`)
       : copy("This key cannot call any model yet", "Cette clé ne peut encore appeler aucun modèle");
   // A key that can call nothing claims no list to confirm: only the check stays beside it.
-  const title =
-    unchecked && (ledger.total || ledger.open)
-      ? `${headline} · ${copy("not checked yet", "pas encore vérifiée")}`
-      : headline;
+  const headlineSaysUnchecked = unchecked && (ledger.total > 0 || ledger.open);
+  const title = headlineSaysUnchecked ? `${headline} · ${copy("not checked yet", "pas encore vérifiée")}` : headline;
   const checkButton = (
     <Button type="button" variant="outline" size="sm" disabled={busy} onClick={onReread}>
       <RotateCcw className="size-3.5" />
@@ -277,7 +275,9 @@ export function KeySummary({ virtualKey, models, groups, busy, snapshotMode, onR
       )}
       <details className="border-t pt-3 text-sm">
         <summary className="cursor-pointer font-medium">
-          {copy("Technical check", "Vérification technique")} · {verdict}
+          {copy("Technical check", "Vérification technique")}
+          {/* The headline already says "not checked yet": the fold does not repeat it. */}
+          {!headlineSaysUnchecked && ` · ${verdict}`}
         </summary>
         <div className="mt-3 space-y-3">
           {snapshotMode ? (

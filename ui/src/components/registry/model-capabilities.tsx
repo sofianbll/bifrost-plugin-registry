@@ -213,14 +213,14 @@ export function ModelCapabilitiesPanel({ model, context }: { model: CapabilityFa
   return (
     <div className="min-w-0 space-y-3.5">
       {section(
-        copy("Output", "Sorties"),
-        [...output, ...extra(model.outputModalities.filter(name => !output.some(item => item.modality === name)))],
-        model.outputModalities,
-      )}
-      {section(
         copy("Input", "Entrées"),
         [...input, ...extra(model.inputModalities.filter(name => !input.some(item => item.modality === name)))],
         model.inputModalities,
+      )}
+      {section(
+        copy("Output", "Sorties"),
+        [...output, ...extra(model.outputModalities.filter(name => !output.some(item => item.modality === name)))],
+        model.outputModalities,
       )}
       {section(copy("Features", "Fonctionnalités"), [
         ...features,
@@ -265,8 +265,8 @@ export function ModelModalitiesPanel({ model }: { model: CapabilityFacts }) {
   );
   return (
     <div className="min-w-0 space-y-3.5">
-      {section(copy("Output", "Sorties"), model.outputModalities)}
       {section(copy("Input", "Entrées"), model.inputModalities)}
+      {section(copy("Output", "Sorties"), model.outputModalities)}
     </div>
   );
 }

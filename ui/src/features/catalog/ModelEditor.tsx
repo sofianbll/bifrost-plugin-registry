@@ -551,6 +551,8 @@ export default function ModelEditor({
   // starts without an ID and searches the catalogue for it first, whatever it types.
   const [startedEmpty] = useState(!draft.id);
   const [registrationIssue, setRegistrationIssue] = useState<ReturnType<typeof firstRegistrationIssue>>();
+  // An empty display name is a neutral prompt until the field was left or Review was tried without it.
+  const [nameTouched, setNameTouched] = useState(false);
   const copy = useCopy();
   const { colon } = useFormat();
   // #101: creating a card is "registering" in English (French already says "enregistrer" for both); editing keeps "saving".
@@ -683,6 +685,15 @@ export default function ModelEditor({
   );
   const validId = /^[a-z0-9][a-z0-9._-]*$/.test(draft.id);
   const canContinue = validId && validAccesses.length > 0;
+  const nameInvalid = !draft.name.trim() && (nameTouched || registrationIssue === "name");
+  // Only the display name is missing and nobody has looked at it yet: the summary prompts, it does not scold.
+  const namePrompt =
+    !draft.name.trim() &&
+    !nameTouched &&
+    !registrationIssue &&
+    firstRegistrationIssue({ ...draft, name: "-" }) === undefined;
+  // Nothing typed yet (a model entered by hand): what is missing is a prompt, not an error.
+  const blankDraft = !draft.id && !draft.accesses.some(access => access.provider || access.nativeModel);
   // Searching the catalogue for the model: Expert until the ID is valid, Basic for a model entered by hand. Otherwise
   // Expert changes the ID in a fold and Basic in the "Call name" field.
   const picksModel = creating && (expert ? !validId : startedEmpty);
@@ -1164,7 +1175,7 @@ export default function ModelEditor({
         )}
       </div>
       {!canSave && (
-        <p className="text-xs text-destructive">
+        <p className={blankDraft || namePrompt ? "text-xs text-muted-foreground" : "text-xs text-destructive"}>
           {copy(
             `Complete the required fields before ${committing}.`,
             "Complétez les champs obligatoires avant l’enregistrement.",
@@ -1250,7 +1261,7 @@ export default function ModelEditor({
   );
 
   const chooser = (all || step === "choose") && (
-    <section id={stepId("choose")} className="space-y-4">
+    <section id={stepId("choose")} className="scroll-mt-4 space-y-4">
       <div>
         {creating && (
           <>
@@ -1416,7 +1427,7 @@ export default function ModelEditor({
         {copy("Enter access manually", "Saisir un accès manuellement")}
       </Button>
       {!canContinue && (
-        <p role="status" className="text-sm text-destructive">
+        <p role="status" className={blankDraft ? "text-sm text-muted-foreground" : "text-sm text-destructive"}>
           {cannotContinueText(expert, copy)}
         </p>
       )}
@@ -1482,18 +1493,19 @@ export default function ModelEditor({
         {chooser}
 
         {(all || step === "card") && (
-          <div id={stepId("card")} className="space-y-5">
+          <div id={stepId("card")} className="scroll-mt-4 space-y-5">
             {!readOnly && (
               <section className="grid gap-3 rounded-sm border bg-card p-4 sm:grid-cols-2">
-                <Field data-invalid={!draft.name.trim()}>
+                <Field data-invalid={nameInvalid}>
                   <FieldLabel htmlFor="model-display-name">{copy("Display name", "Nom affiché")} *</FieldLabel>
                   <Input
                     id="model-display-name"
                     aria-required="true"
-                    aria-invalid={!draft.name.trim()}
+                    aria-invalid={nameInvalid}
                     autoFocus={!draft.name.trim()}
                     value={draft.name}
                     onChange={event => update({ name: event.target.value })}
+                    onBlur={() => setNameTouched(true)}
                   />
                   <FieldDescription>
                     {!draft.name.trim()
@@ -2032,7 +2044,7 @@ export default function ModelEditor({
 
         {/* #100: Review opens on one plain sentence of consequence; IDs, endpoints and documentary records wait in a fold (open in Expert). */}
         {(all || step === "review") && (
-          <section id={stepId("review")} className="space-y-4">
+          <section id={stepId("review")} className="scroll-mt-4 space-y-4">
             <div>
               <h3
                 id="model-review-heading"

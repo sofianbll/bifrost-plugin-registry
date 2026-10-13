@@ -161,11 +161,12 @@ function SheetHeader({
       className={cn("flex items-center gap-1 w-full pr-0", sheetContext?.expandable ? "p-0" : "mb-6", headerClassName)}
       {...props}
     >
+      {/* Below sm the panel already fills the screen: like the width slider, this control only exists from sm up. */}
       {sheetContext?.expandable && sheetContext?.side === "right" && (
         <button
           type="button"
           onClick={() => sheetContext?.setExpanded(!sheetContext?.expanded)}
-          className="shrink-0 cursor-pointer rounded-sm p-2 opacity-70 hover:bg-accent hover:opacity-100 focus-visible:ring-2 focus-visible:ring-ring"
+          className="shrink-0 cursor-pointer rounded-sm p-2 opacity-70 hover:bg-accent hover:opacity-100 focus-visible:ring-2 focus-visible:ring-ring max-sm:hidden"
         >
           {sheetContext?.expanded ? (
             <ArrowRightFromLineIcon className="size-4" />

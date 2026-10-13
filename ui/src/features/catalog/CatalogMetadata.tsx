@@ -292,7 +292,11 @@ export default function CatalogMetadata({
                       onClick={() => void mutate(revision => refreshCatalog(revision, [source.id]))}
                     >
                       {copy("Refresh", "Actualiser")}{" "}
-                      {source.sourceAt ? copy("local catalog", "catalogue local") : source.id}
+                      {source.sourceAt
+                        ? copy("local catalog", "catalogue local")
+                        : /bifrost/i.test(source.id)
+                          ? "Bifrost"
+                          : sourceLabel(source.id, copy)}
                     </Button>
                   </div>
                 ))
