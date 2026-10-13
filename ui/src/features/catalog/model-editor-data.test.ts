@@ -1,7 +1,10 @@
 import {
   alsoAvailable,
   applyModelId,
+  associationStatus,
   canonicalCapabilities,
+  cannotContinueText,
+  cannotSaveText,
   changeAccessProvider,
   declaredEndpoints,
   firstRegistrationIssue,
@@ -9,6 +12,10 @@ import {
   modelEditorOptions,
   omitUnchangedReferenceIds,
   prefillFromReference,
+  registrationIssueText,
+  reviewSentence,
+  showsNativeModel,
+  type RegistrationIssue,
 } from "./model-editor-data";
 import type { Catalog } from "./catalog-api";
 import type { Model } from "../../domain/registry";
@@ -303,5 +310,162 @@ equal(
 equal(
   alsoAvailable(offers, card, [withOther, taken], withOther.accesses).map(access => access.id),
   ["openrouter/openai/gpt-5.6-luna", "bedrock/us.openai.gpt-5-6-luna-v1:0", "other/gpt-5.6-luna"],
+);
+// #100: the Review step opens on one plain sentence of consequence, built from the draft.
+const fr = (_: string, french: string) => french;
+equal(
+  reviewSentence({ name: "glm-5.1", providers: ["OpenCode Go"], creating: true }, english),
+  "You’re registering glm-5.1 from your OpenCode Go subscription. It appears in My models; no key can use it until you add it to one.",
+);
+equal(
+  reviewSentence({ name: "glm-5.1", providers: ["OpenCode Go"], creating: true }, fr),
+  "Vous enregistrez glm-5.1 depuis votre abonnement OpenCode Go. Il apparaîtra dans Mes modèles ; aucune clé ne pourra l’utiliser tant que vous ne l’aurez pas ajouté à une clé.",
+);
+equal(
+  reviewSentence(
+    { name: "DeepSeek V4", providers: ["OpenCode Go", "DeepSeek", "OpenRouter"], creating: true },
+    english,
+  ),
+  "You’re registering DeepSeek V4 from your OpenCode Go, DeepSeek and OpenRouter subscriptions. It appears in My models; no key can use it until you add it to one.",
+);
+equal(
+  reviewSentence({ name: "DeepSeek V4", providers: ["OpenCode Go", "DeepSeek"], creating: true }, fr),
+  "Vous enregistrez DeepSeek V4 depuis vos abonnements OpenCode Go et DeepSeek. Il apparaîtra dans Mes modèles ; aucune clé ne pourra l’utiliser tant que vous ne l’aurez pas ajouté à une clé.",
+);
+equal(
+  reviewSentence({ name: "", providers: [], creating: true }, english),
+  "You’re registering this model. It appears in My models; no key can use it until you add it to one.",
+);
+equal(
+  reviewSentence({ name: "glm-5.1", providers: ["OpenCode Go"], creating: false }, english),
+  "You’re saving changes to glm-5.1. Keys that already use it get these changes.",
+);
+equal(
+  reviewSentence({ name: "glm-5.1", providers: ["OpenCode Go"], creating: false }, fr),
+  "Vous enregistrez des modifications de glm-5.1. Les clés qui l’utilisent déjà reçoivent ces modifications.",
+);
+// #101: an edit with nothing changed says so instead of "You’re saving changes".
+equal(
+  reviewSentence({ name: "glm-5.1", providers: ["OpenCode Go"], creating: false, changed: false }, english),
+  "No changes to save for glm-5.1 yet.",
+);
+equal(
+  reviewSentence({ name: "glm-5.1", providers: ["OpenCode Go"], creating: false, changed: false }, fr),
+  "Rien à enregistrer pour glm-5.1 pour le moment.",
+);
+equal(
+  reviewSentence({ name: "glm-5.1", providers: ["OpenCode Go"], creating: false, changed: true }, english),
+  "You’re saving changes to glm-5.1. Keys that already use it get these changes.",
+);
+equal(
+  reviewSentence({ name: "", providers: [], creating: true, changed: false }, english),
+  "You’re registering this model. It appears in My models; no key can use it until you add it to one.",
+);
+// #100: Basic names an access by its provider; a provider held twice keeps its native models, Expert always shows them.
+const held = [
+  { provider: "Claude", id: "Claude/a", nativeModel: "a" },
+  { provider: "Claude", id: "Claude/b", nativeModel: "b" },
+  { provider: "Codex", id: "Codex/a", nativeModel: "a" },
+].map(access => ({ ...access, route: "Direct provider", status: "Configured" as const }));
+equal(
+  held.map(access => showsNativeModel(held, access, false)),
+  [true, true, false],
+);
+equal(showsNativeModel(held, held[2], true), true);
+equal(showsNativeModel(held.slice(1), held[1], false), false);
+// Basic says how a reference was linked only when it needs a look, and never in the Expert words.
+const found = (patch: Record<string, unknown>) => ({ ...patch }) as Parameters<typeof associationStatus>[1];
+const linked = { ...held[0], referenceId: "creator/new-model" };
+const states = [
+  [linked, found({ referenceId: "creator/new-model", mappingManual: true })],
+  [linked, found({ referenceId: "creator/new-model" })],
+  [{ ...held[0] }, found({})],
+  [{ ...held[0], referenceId: "creator/new-model" }, found({})],
+  [{ ...held[0], referenceId: "" }, found({ referenceId: "creator/new-model" })],
+] as const;
+equal(
+  states.map(([access, row]) => associationStatus(access, row, true, english)),
+  [
+    "Mapping chosen in Registry",
+    "Automatically suggested mapping · verify",
+    "No mapping",
+    "Mapping proposed in this draft",
+    "Unlink proposed in this draft",
+  ],
+);
+equal(
+  states.map(([access, row]) => associationStatus(access, row, false, english)),
+  [
+    "",
+    "Suggested automatically · check that it fits",
+    "",
+    "Reference proposed in this draft",
+    "Unlink proposed in this draft",
+  ],
+);
+equal(associationStatus(held[0], found({ referenceId: "x" }), false, fr), "Suggérée automatiquement · à vérifier");
+equal(associationStatus(linked, found({}), false, fr), "Fiche documentaire proposée dans ce brouillon");
+// The error states in Basic use no word of the technical vocabulary, in either language; Expert keeps the exact terms.
+const issues: RegistrationIssue[] = ["id", "name", "operations", "access"];
+const technicalWords = /endpoint|native|natif|Registry|identifiant commun|common model ID|ID Registry/i;
+const basicTexts = (copy: (english: string, french: string) => string) => [
+  ...issues.map(issue => registrationIssueText(issue, false, copy)),
+  cannotContinueText(false, copy),
+  cannotSaveText(false, "registering", copy),
+];
+for (const [language, copy] of [
+  ["English", english],
+  ["French", fr],
+] as const)
+  for (const text of basicTexts(copy)) equal([language, text, technicalWords.test(text)], [language, text, false]);
+equal(
+  issues.map(issue => registrationIssueText(issue, false, english)),
+  [
+    "Enter a valid call name.",
+    "A display name is required.",
+    "Choose at least one request type for every access.",
+    "Complete each access: its provider and its model at that provider.",
+  ],
+);
+equal(
+  issues.map(issue => registrationIssueText(issue, false, fr)),
+  [
+    "Saisissez un nom d’appel valide.",
+    "Le nom affiché est obligatoire.",
+    "Choisissez au moins un type de requête pour chaque accès.",
+    "Complétez chaque accès : son fournisseur et son modèle chez ce fournisseur.",
+  ],
+);
+equal(
+  issues.map(issue => registrationIssueText(issue, true, english)),
+  [
+    "Enter a valid common model ID.",
+    "A display name is required.",
+    "Choose at least one Registry endpoint for every provider access.",
+    "Complete each provider access: provider, native model ID, and matching Registry ID.",
+  ],
+);
+equal(
+  registrationIssueText("access", true, fr),
+  "Complétez chaque accès fournisseur : fournisseur, ID natif et ID Registry correspondant.",
+);
+equal(
+  cannotContinueText(true, english),
+  "Choose a valid common model ID and at least one complete provider access to prepare the card.",
+);
+equal(
+  cannotSaveText(true, "registering", english),
+  "Complete the name, choose endpoints for every access, and complete each provider access before registering.",
+);
+equal(
+  cannotSaveText(false, "saving", english),
+  "Complete the name, choose request types for every access, and complete each access before saving.",
+);
+// The native-model rule also names the rows of a preview, which are discovered accesses (a provider and a model).
+equal(
+  [{ provider: "Claude" }, { provider: "Claude" }, { provider: "Codex" }].map((row, _, rows) =>
+    showsNativeModel(rows, row, false),
+  ),
+  [true, true, false],
 );
 console.log("model editor data checks passed");

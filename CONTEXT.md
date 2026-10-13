@@ -21,7 +21,7 @@ Identité d'un modèle et de sa variante, indépendante du service qui le propos
 Entrée permettant d'appeler un modèle par un fournisseur d'accès avec son identifiant exact. Ses limites, prix et capacités peuvent différer de ceux d'un autre accès au même modèle.
 
 **Identifiant commun du modèle (alias)** :
-Nom d'appel porté par la fiche modèle, commun à ses accès fournisseurs. Il correspond aux identifiants exacts des accès retenus pour le groupe ou la clé concernée ; il est distinct du nom affiché de la fiche.
+Nom d'appel porté par la fiche modèle, commun à ses accès fournisseurs. Il correspond aux identifiants exacts des accès retenus pour le groupe ou la clé concernée ; il est distinct du nom affiché de la fiche. Basic le dit « Nom d'appel » (EN : « Call name »), sans « alias » ni « identifiant ».
 
 **Sélection d'accès** :
 Choix des accès fournisseurs activés pour une fiche dans un groupe ou une clé virtuelle. La présence d'un accès dans la fiche ne signifie pas qu'il est activé dans toutes les sélections.
@@ -41,6 +41,10 @@ Série de modèles apparentés d'un créateur, par exemple Claude, GPT ou Gemini
 
 **Fournisseur d'accès** :
 Service par lequel le modèle est appelé, par exemple Bedrock ou Anthropic pour Claude. Un modèle peut avoir plusieurs accès, chacun avec son identifiant et ses capacités observées.
+_Avoid_ : créateur
+
+**Abonnement** :
+Mot courant, dans l'interface Basic, pour le fournisseur d'accès (Claude, Codex, OpenCode Go) : les deux mots nomment la même chose, « fournisseur » étant celui de Bifrost et d'Expert. Un écran n'emploie pas l'un et l'autre pour deux choses différentes.
 _Avoid_ : créateur
 
 **Modalité** :
@@ -84,12 +88,52 @@ _Avoid_ : protocole, endpoint
 **Catalogue publié** :
 Liste réellement renvoyée au client lorsqu'il demande les modèles avec sa clé.
 
+**Vérifiée** :
+Se dit d'une clé dont le catalogue publié, relu avec cette clé, correspond à ce que Registry y a publié. Elle atteste le catalogue observé à cet instant, ni le routage ni les capacités. Un modèle que Bifrost ne liste pas n'entre jamais dans le total vérifié : il est signalé comme écart. « Vérifiée · 1 écart » se lit : Bifrost a confirmé la clé, mais 1 permission conservée dans Bifrost n'y est pas listée ; une infobulle et l'aide le disent.
+_Avoid_ : testée, qualifiée
+
+**Vérifier avec Bifrost** :
+Demander à Bifrost quels identifiants de modèles une clé liste et les comparer à ce que Registry a publié. Les modèles ne sont pas appelés. Trois résultats : Vérifiée, Écarts trouvés, Pas encore vérifiée. Le bouton se lit « Vérifier avec Bifrost » tant que Bifrost n'a pas été interrogé pour la clé, puis « Vérifier à nouveau ».
+_Avoid_ : relecture, readback (dans un texte affiché en Basic)
+
+**Pas encore vérifiée** :
+État d'une clé pour laquelle on n'a pas encore demandé à Bifrost ce qu'elle liste. Le total affiché est alors le plan de Registry, pas un fait confirmé : l'en-tête le dit et le bouton « Vérifier avec Bifrost » se trouve à côté.
+_Avoid_ : non vérifiée (réservé à un échec de la vérification)
+
 **Aperçu du brouillon** :
 Liste prévue après publication des modifications en cours. Sa valeur dépend des données disponibles ; elle ne constitue pas une observation de l'API publiée.
+
+**Publier** :
+Appliquer à un groupe ou à une clé les modifications du brouillon : Registry sauvegarde la révision puis vérifie avec Bifrost. Dans une copie locale, on enregistre localement : rien n'est publié.
+_Avoid_ : enregistrer (réservé à la fiche modèle), sauvegarder
 
 **Model card (fiche modèle)** :
 Fiche unique d'un modèle portant son identifiant commun et regroupant ses accès par fournisseur, construite à partir des propriétés natives connues de Bifrost puis enrichie dans Registry. Les différences propres aux accès sont conservées ; une information déclarée et une capacité vérifiée restent identifiables séparément.
 _Avoid_ : fiche sans préciser le modèle, fiche par provider
+
+**Enregistrer un modèle** :
+Créer la fiche modèle dans Registry, depuis un modèle découvert ou saisi à la main. Cela ne donne accès à aucune clé : le modèle n'est utilisable qu'une fois ajouté à une clé ou à un groupe.
+_Avoid_ : ajouter un modèle (« ajouter » est réservé à rattacher un accès à une fiche, ou une fiche à une clé ou à un groupe)
+
+**Ajouter** :
+Rattacher un accès à une fiche, ou une fiche à une clé ou à un groupe.
+_Avoid_ : créer une fiche (c'est Enregistrer)
+
+**Adopter une clé** :
+Confier à Registry le choix des modèles d'une clé créée dans Bifrost, sans élargir ses accès. Adopter ne change rien dans Bifrost en soi ; seules les options marquées « Modifie Bifrost » modifient la clé. Le bouton d'une carte de clé nomme la suite : Adopter, Voir ce qui bloque, ou Ouvrir.
+_Avoid_ : importer, examiner (comme nom d'une action de carte)
+
+**Décision d'adoption** :
+Choix obligatoire que la fenêtre d'adoption demande avant d'adopter, une ligne par fournisseur, avec les modèles concernés nommés dans la ligne. Le compte « n sur N décidées » ne compte que les décisions. Un blocage qu'aucun bouton ne règle (clé désactivée ou expirée dans Bifrost) n'en est pas une : c'est un préalable.
+_Avoid_ : étape, blocage (une décision est la réponse à un blocage)
+
+**Préalable à l'adoption** :
+Ce qu'il faut faire hors de la fenêtre avant d'adopter, comme enregistrer des modèles que Bifrost liste sans fiche, ou activer une clé désactivée ou expirée dans Bifrost puis actualiser l'aperçu. Il se dit à côté du compte des décisions, sans en être une.
+_Avoid_ : décision
+
+**Relier à nouveau la clé Bifrost** :
+Refaire le lien entre une clé gérée par Registry et la clé Bifrost correspondante, quand celle-ci a changé.
+_Avoid_ : examiner l'association, binding, réassocier
 
 **Enrichissement de fiche** :
 Complément ou correction des informations d'une fiche, en réutilisant les propriétés existantes pour une même donnée. Un champ natif absent ou incomplet ne justifie pas la création d'une propriété concurrente dans Registry.

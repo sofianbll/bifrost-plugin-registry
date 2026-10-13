@@ -61,7 +61,7 @@ export default function CatalogMetadata({
   const copy = useCopy();
   const format = useFormat();
   const { colon } = format;
-  const dated = (value?: string | null) => (value ? format.date(value) : copy("Never", "Jamais"));
+  const dated = (value?: string | null) => (value ? format.moment(value) : copy("Never", "Jamais"));
   const language = useLanguage();
   const [mode, setMode] = useState<Target>(focus?.target || "access");
   const [query, setQuery] = useState("");
@@ -292,7 +292,11 @@ export default function CatalogMetadata({
                       onClick={() => void mutate(revision => refreshCatalog(revision, [source.id]))}
                     >
                       {copy("Refresh", "Actualiser")}{" "}
-                      {source.sourceAt ? copy("local catalog", "catalogue local") : source.id}
+                      {source.sourceAt
+                        ? copy("local catalog", "catalogue local")
+                        : /bifrost/i.test(source.id)
+                          ? "Bifrost"
+                          : sourceLabel(source.id, copy)}
                     </Button>
                   </div>
                 ))

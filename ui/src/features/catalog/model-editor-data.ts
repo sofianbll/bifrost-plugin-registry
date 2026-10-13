@@ -74,6 +74,60 @@ export function modelEditorOptions(catalog: Catalog | null, workspace: Model[], 
 
 export type RegistrationIssue = "id" | "name" | "operations" | "access";
 
+// What the registration banner says. Expert names the exact fields; Basic says "call name", "request type" and
+// "access", with the labels of the dialog that fixes it ("Provider in Bifrost", "Model at this provider").
+export function registrationIssueText(issue: RegistrationIssue, expert: boolean, copy: Copy) {
+  if (issue === "name") return copy("A display name is required.", "Le nom affiché est obligatoire.");
+  if (issue === "id")
+    return expert
+      ? copy("Enter a valid common model ID.", "Saisissez un identifiant commun valide.")
+      : copy("Enter a valid call name.", "Saisissez un nom d’appel valide.");
+  if (issue === "operations")
+    return expert
+      ? copy(
+          "Choose at least one Registry endpoint for every provider access.",
+          "Choisissez au moins un endpoint Registry pour chaque accès fournisseur.",
+        )
+      : copy(
+          "Choose at least one request type for every access.",
+          "Choisissez au moins un type de requête pour chaque accès.",
+        );
+  return expert
+    ? copy(
+        "Complete each provider access: provider, native model ID, and matching Registry ID.",
+        "Complétez chaque accès fournisseur : fournisseur, ID natif et ID Registry correspondant.",
+      )
+    : copy(
+        "Complete each access: its provider and its model at that provider.",
+        "Complétez chaque accès : son fournisseur et son modèle chez ce fournisseur.",
+      );
+}
+
+// The line under the accesses while the card cannot go on, and the one in Review while it cannot be saved.
+export function cannotContinueText(expert: boolean, copy: Copy) {
+  return expert
+    ? copy(
+        "Choose a valid common model ID and at least one complete provider access to prepare the card.",
+        "Choisissez un identifiant commun valide et au moins un accès fournisseur complet pour préparer la fiche.",
+      )
+    : copy(
+        "Choose a valid call name and at least one complete access to prepare the card.",
+        "Choisissez un nom d’appel valide et au moins un accès complet pour préparer la fiche.",
+      );
+}
+
+export function cannotSaveText(expert: boolean, committing: string, copy: Copy) {
+  return expert
+    ? copy(
+        `Complete the name, choose endpoints for every access, and complete each provider access before ${committing}.`,
+        "Complétez le nom et chaque accès, puis choisissez ses endpoints avant l’enregistrement.",
+      )
+    : copy(
+        `Complete the name, choose request types for every access, and complete each access before ${committing}.`,
+        "Complétez le nom et chaque accès, puis choisissez ses types de requêtes avant l’enregistrement.",
+      );
+}
+
 export function firstRegistrationIssue(model: Model): RegistrationIssue | undefined {
   if (!/^[a-z0-9][a-z0-9._-]*$/.test(model.id)) return "id";
   if (!model.name.trim()) return "name";
@@ -161,6 +215,35 @@ export function alsoAvailable(accesses: CatalogAccess[], card: Model, saved: Mod
   return [...new Map(offered.map(access => [`${access.provider}/${access.model}`, access])).values()];
 }
 
+// Basic names an access by its provider alone (#100). Expert, and the rows of a provider the card holds twice,
+// also show the native model: it is all that tells those rows apart.
+export function showsNativeModel(
+  accesses: Pick<Access, "provider">[],
+  access: Pick<Access, "provider">,
+  expert: boolean,
+) {
+  return expert || accesses.filter(row => row.provider === access.provider).length > 1;
+}
+
+// How an access came to its reference. Expert names every state; Basic says only what needs a look (a change
+// proposed in the draft, a guess to check) and nothing for a reference the user chose or for none.
+export function associationStatus(access: Access, found: CatalogAccess | undefined, expert: boolean, copy: Copy) {
+  if (access.referenceId !== undefined && access.referenceId !== found?.referenceId)
+    return access.referenceId
+      ? expert
+        ? copy("Mapping proposed in this draft", "Correspondance proposée dans ce brouillon")
+        : copy("Reference proposed in this draft", "Fiche documentaire proposée dans ce brouillon")
+      : copy("Unlink proposed in this draft", "Dissociation proposée dans ce brouillon");
+  if (found?.mappingManual === true)
+    return expert ? copy("Mapping chosen in Registry", "Correspondance choisie dans Registry") : "";
+  // The catalog API omits mappingManual when it is false.
+  if (found?.referenceId)
+    return expert
+      ? copy("Automatically suggested mapping · verify", "Association suggérée automatiquement · à vérifier")
+      : copy("Suggested automatically · check that it fits", "Suggérée automatiquement · à vérifier");
+  return expert ? copy("No mapping", "Aucune correspondance") : "";
+}
+
 export type AccessCandidate = Pick<Access, "provider" | "nativeModel" | "status"> & { source: string };
 
 export function canonicalCapabilities(values: Model["capabilities"]): Model["capabilities"] {
@@ -232,4 +315,37 @@ export function omitUnchangedReferenceIds(draft: Model, workspace: Model[]): Mod
       return rest;
     }),
   };
+}
+
+// #100: the one plain sentence the Review step opens on: what saving does, from the draft's own name and subscriptions.
+export function reviewSentence(
+  {
+    name,
+    providers,
+    creating,
+    changed = true,
+  }: { name: string; providers: string[]; creating: boolean; changed?: boolean },
+  copy: Copy,
+) {
+  const model = name || copy("this model", "ce modèle");
+  if (!creating && !changed)
+    return copy(`No changes to save for ${model} yet.`, `Rien à enregistrer pour ${model} pour le moment.`);
+  if (!creating)
+    return copy(
+      `You’re saving changes to ${model}. Keys that already use it get these changes.`,
+      `Vous enregistrez des modifications de ${model}. Les clés qui l’utilisent déjà reçoivent ces modifications.`,
+    );
+  const list =
+    providers.length > 1
+      ? `${providers.slice(0, -1).join(", ")} ${copy("and", "et")} ${providers.at(-1)}`
+      : providers[0];
+  const from = !list
+    ? ""
+    : providers.length > 1
+      ? copy(` from your ${list} subscriptions`, ` depuis vos abonnements ${list}`)
+      : copy(` from your ${list} subscription`, ` depuis votre abonnement ${list}`);
+  return copy(
+    `You’re registering ${model}${from}. It appears in My models; no key can use it until you add it to one.`,
+    `Vous enregistrez ${model}${from}. Il apparaîtra dans Mes modèles ; aucune clé ne pourra l’utiliser tant que vous ne l’aurez pas ajouté à une clé.`,
+  );
 }

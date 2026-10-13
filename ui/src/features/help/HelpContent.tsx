@@ -1,12 +1,14 @@
 import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { useCopy, useFormat } from "../../lib/locale";
+import { differenceCount, differenceNote } from "../keys/KeySummary";
 
 // The short help, shared by the side sheet ("?") and Settings → Help. Labels are set in bold, spelled
 // as the buttons and badges read in the same language (not <q>: some labels carry their own quotes).
 const Q = ({ children }: { children: ReactNode }) => <span className="font-semibold text-foreground">{children}</span>;
 
-export function HelpContent() {
+// expert: Expert also shows the words only Expert uses (the common model ID); Basic never meets them.
+export function HelpContent({ expert = false }: { expert?: boolean }) {
   const copy = useCopy();
   const { colon } = useFormat();
   return (
@@ -18,7 +20,7 @@ export function HelpContent() {
             <strong>{copy("Models", "Modèles")}</strong>
             {colon}{" "}
             {copy(
-              "read your saved cards. “To add” lists the models Bifrost found and you have not saved yet.",
+              "read your registered cards. “To add” lists the models Bifrost found and you have not registered yet.",
               "lisez vos fiches enregistrées. « À ajouter » liste les modèles trouvés par Bifrost et pas encore enregistrés.",
             )}
           </span>
@@ -40,8 +42,8 @@ export function HelpContent() {
             <strong>{copy("Virtual keys", "Clés virtuelles")}</strong>
             {colon}{" "}
             {copy(
-              "choose the models each key can call, check the preview, publish; Registry then confirms with Bifrost that the key lists what you chose.",
-              "choisissez les modèles que chaque clé peut appeler, vérifiez l’aperçu, publiez ; Registry confirme ensuite auprès de Bifrost que la clé liste bien ce que vous avez choisi.",
+              "choose the models each key can call: work through Models, Groups and Review, then publish. Registry then checks with Bifrost that the key lists what you chose.",
+              "choisissez les modèles que chaque clé peut appeler : passez par Modèles, Groupes et Vérifier, puis publiez. Registry vérifie ensuite avec Bifrost que la clé liste bien ce que vous avez choisi.",
             )}
           </span>
         </li>
@@ -67,7 +69,7 @@ export function HelpContent() {
             )}
           </li>
           <li>
-            <Q>{copy("Keep Mistral in Bifrost", "Garder Mistral dans Bifrost")}</Q>{" "}
+            <Q>{copy("Keep [provider] in Bifrost", "Garder [fournisseur] dans Bifrost")}</Q>{" "}
             {copy(
               "leaves that provider’s permissions in Bifrost. Registry manages the rest and shows the provider on the key as “kept in Bifrost”.",
               "laisse les permissions de ce fournisseur dans Bifrost. Registry gère le reste et affiche le fournisseur sur la clé : « conservé dans Bifrost ».",
@@ -129,7 +131,7 @@ export function HelpContent() {
           <li>
             <Q>{copy("Add to card", "Ajouter à la fiche")}</Q>{" "}
             {copy(
-              "opens that saved card on its accesses; the available access waits under “Also available” until you add it and save.",
+              "opens that registered card on its accesses; the available access waits under “Also available” until you add it and save.",
               "ouvre cette fiche enregistrée sur ses accès ; l’accès disponible attend sous « Également disponibles » tant que vous ne l’ajoutez pas et n’enregistrez pas.",
             )}
           </li>
@@ -138,6 +140,41 @@ export function HelpContent() {
       <section className="space-y-2">
         <h3 className="font-semibold">{copy("Words used here", "Vocabulaire")}</h3>
         <dl className="grid gap-x-4 gap-y-1 text-muted-foreground sm:grid-cols-[auto_1fr] sm:gap-y-2">
+          <div className="contents">
+            <dt>
+              <Q>{copy("Access", "Accès")}</Q>
+            </dt>
+            <dd className="mb-2 sm:mb-0">
+              {copy(
+                "one way to call a model: a subscription with the exact model name it uses. A card can hold several accesses, each with its own price and limits.",
+                "une manière d’appeler un modèle : un abonnement avec le nom exact du modèle chez lui. Une fiche peut porter plusieurs accès, chacun avec son prix et ses limites.",
+              )}
+            </dd>
+          </div>
+          <div className="contents">
+            <dt>
+              <Q>{copy("Subscription, provider", "Abonnement, fournisseur")}</Q>
+            </dt>
+            <dd className="mb-2 sm:mb-0">
+              {copy(
+                "the service a model is called through, such as Claude, Codex or OpenCode Go. Both words name the same thing; “provider” is Bifrost’s. The creator is the company that made the model, and can be another one.",
+                "le service par lequel on appelle un modèle, comme Claude, Codex ou OpenCode Go. Les deux mots désignent la même chose ; « fournisseur » est celui de Bifrost. Le créateur est l’entreprise qui a conçu le modèle, et peut être une autre.",
+              )}
+            </dd>
+          </div>
+          {expert && (
+            <div className="contents">
+              <dt>
+                <Q>{copy("Common model ID", "Identifiant commun du modèle")}</Q>
+              </dt>
+              <dd className="mb-2 sm:mb-0">
+                {copy(
+                  "the name applications use to call a model, shared by all its accesses. It is not the display name of the card.",
+                  "le nom d’appel du modèle, commun à tous ses accès. Ce n’est pas le nom affiché de la fiche.",
+                )}
+              </dd>
+            </div>
+          )}
           <div className="contents">
             <dt>
               <Q>{copy("Reference", "Fiche documentaire")}</Q>
@@ -173,14 +210,21 @@ export function HelpContent() {
           </div>
           <div className="contents">
             <dt>
-              <Q>{copy("Readback", "Relecture")}</Q>
+              <Q>{copy("Checked with Bifrost", "Vérifiée avec Bifrost")}</Q>
             </dt>
             <dd className="mb-2 sm:mb-0">
               {copy(
-                "after publishing, Registry reads the key back from Bifrost to check it lists what you chose.",
-                "après publication, Registry relit la clé dans Bifrost pour vérifier qu’elle liste bien ce que vous avez choisi.",
+                "after publishing, Registry asks Bifrost which model IDs the key lists and compares them with what you chose. The models are not called.",
+                "après la publication, Registry demande à Bifrost quels ID de modèles la clé liste et les compare à ce que vous avez choisi. Les modèles ne sont pas appelés.",
               )}
             </dd>
+          </div>
+          <div className="contents">
+            <dt>
+              {/* The chip's own wording and tooltip, from the helpers that write them on the key (ADR 0001). */}
+              <Q>{`${copy("Verified", "Vérifiée")} · ${differenceCount(1, copy)}`}</Q>
+            </dt>
+            <dd className="mb-2 sm:mb-0">{differenceNote(1, copy)}</dd>
           </div>
           <div className="contents">
             <dt>

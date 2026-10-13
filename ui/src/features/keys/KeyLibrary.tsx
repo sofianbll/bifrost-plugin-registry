@@ -21,7 +21,7 @@ import {
   type ReadinessState,
 } from "./key-readiness";
 import { permissionSummary } from "./KeyComposer.state";
-import { checkState, keyLedger, ledgerTotal, useDay } from "./KeySummary";
+import { CheckBadge, keyLedger, ledgerTotal } from "./KeySummary";
 import { useSessionState } from "../../lib/session-state";
 
 type Props = {
@@ -53,9 +53,7 @@ export function KeyLibrary({
   onOpen,
 }: Props) {
   const copy = useCopy();
-  const localized = useFormat();
-  const day = useDay();
-  const { colon } = localized;
+  const { colon, day } = useFormat();
   const filterId = useId();
   // Search and filters survive leaving the page for the session.
   const [search, onSearch] = useSessionState("keys.search", "");
@@ -107,6 +105,16 @@ export function KeyLibrary({
       </Badge>
     );
   };
+  // The card button names what the page it opens is for: adopting a key that can be, the blockers of one that
+  // cannot, else just opening it. The page behind is the same; only the name says where it leads.
+  const openLabel = (key: Key) => {
+    const state = readinessState(key);
+    return state === "ready" || state === "unknown"
+      ? copy("Adopt", "Adopter")
+      : state === "blocked"
+        ? copy("See what blocks it", "Voir ce qui bloque")
+        : copy("Open", "Ouvrir");
+  };
   const reasonLine = (key: Key) => {
     const reason = readinessReason(key.readiness, copy);
     return (
@@ -117,14 +125,10 @@ export function KeyLibrary({
       )
     );
   };
-  const checkBadge = (key: Key) => {
-    const state = key.publication?.state;
-    return (
-      <Badge variant={state === "verified" ? "success" : state === "drift" ? "warning" : "outline"}>
-        {checkState(key, copy)}
-      </Badge>
-    );
-  };
+  // A verified key whose readback lacks a kept model reads "Verified · 1 difference" (#99), as a warning.
+  const checkBadge = (key: Key) => (
+    <CheckBadge virtualKey={key} differences={keyLedger(key, models, groups).differences} idle="outline" />
+  );
   const dupeHint = (key: Key) =>
     dupes.has(key.id) && (
       <p className="text-xs text-chart-warning-ink">
@@ -176,7 +180,7 @@ export function KeyLibrary({
               disabled={busy}
               onClick={() => onOpen(key)}
             >
-              {key.managed === false ? copy("Review", "Examiner") : copy("Open", "Ouvrir")}
+              {openLabel(key)}
               <ActionLabel label={labelOf(key)} />
               <ArrowRight className="size-3.5" />
             </Button>
@@ -306,7 +310,7 @@ export function KeyLibrary({
               </TableCell>
               <TableCell className="text-right">
                 <Button type="button" size="sm" variant="ghost" disabled={busy} onClick={() => onOpen(key)}>
-                  {key.managed === false ? copy("Review", "Examiner") : copy("Open", "Ouvrir")}
+                  {openLabel(key)}
                   <ActionLabel label={labelOf(key)} />
                   <ArrowRight className="size-3.5" />
                 </Button>
@@ -457,7 +461,7 @@ export function KeyLibrary({
         ) : (
           <Popover>
             <PopoverTrigger asChild>
-              <Button size="sm" variant="outline">
+              <Button size="sm" variant="outline" className="max-sm:h-9">
                 <ListFilter className="size-4" />
                 {copy("Filters", "Filtres")}
                 {activeFilters ? ` (${activeFilters})` : ""}

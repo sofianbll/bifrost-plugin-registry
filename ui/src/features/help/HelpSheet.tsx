@@ -11,11 +11,13 @@ export function HelpSheet({
   onOpenChange,
   canStart,
   onStart,
+  expert = false,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   canStart: boolean;
   onStart: () => void;
+  expert?: boolean;
 }) {
   const copy = useCopy();
   const starting = useRef(false);
@@ -52,13 +54,13 @@ export function HelpSheet({
             {!canStart && (
               <p className="text-xs text-muted-foreground">
                 {copy(
-                  "Save or discard your key draft first.",
-                  "Enregistrez ou abandonnez d’abord votre brouillon de clé.",
+                  "Publish or discard your key draft first.",
+                  "Publiez ou abandonnez d’abord votre brouillon de clé.",
                 )}
               </p>
             )}
           </div>
-          <HelpContent />
+          <HelpContent expert={expert} />
         </div>
       </SheetContent>
     </Sheet>

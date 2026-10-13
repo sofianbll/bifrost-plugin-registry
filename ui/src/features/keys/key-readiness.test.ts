@@ -4,10 +4,16 @@ import type { Copy } from "../../lib/locale";
 import {
   adoptionProgress,
   blockerLine,
+  decidedLabel,
+  decisionsHeading,
   disabledProviders,
+  fixReasons,
+  fixStep,
+  prerequisiteLine,
   readinessLabel,
   readinessReason,
   readinessState,
+  splitBlockers,
   unsavedRoutes,
 } from "./key-readiness";
 
@@ -49,13 +55,13 @@ equal(readinessState(unmanaged({ state: "blocked", blockers: [mistral] })), "blo
 equal(readinessState(unmanaged({ state: "empty", blockers: [] })), "empty", "empty");
 
 // One line per blocker: provider, count, and what is wrong, in both languages.
-equal(blockerLine(mistral, english), "Mistral · 3 models not discovered", "undiscovered");
+equal(blockerLine(mistral, english), "Mistral: Bifrost doesn’t show 3 models", "undiscovered");
 equal(
   blockerLine({ ...mistral, count: 1, models: ["large"] }, english),
-  "Mistral · 1 model not discovered",
+  "Mistral: Bifrost doesn’t show 1 model",
   "one undiscovered",
 );
-equal(blockerLine(mistral, french), "Mistral · 3 modèles non découverts", "undiscovered in French");
+equal(blockerLine(mistral, french), "Mistral : Bifrost ne montre pas 3 modèles", "undiscovered in French");
 equal(blockerLine(unsaved, english), "Synthetic Provider · 1 model to add", "unsaved");
 equal(blockerLine(unsaved, french), "Synthetic Provider · 1 modèle à ajouter", "unsaved in French");
 equal(blockerLine(everyProvider, english), "Every provider allowed", "all providers");
@@ -108,22 +114,22 @@ equal(
 // The card's short reason: the first two blockers, then how many more; nothing when there is nothing to explain.
 equal(
   readinessReason({ state: "blocked", blockers: [mistral] }, english),
-  "Mistral · 3 models not discovered",
+  "Mistral: Bifrost doesn’t show 3 models",
   "one blocker",
 );
 equal(
   readinessReason({ state: "blocked", blockers: [mistral, unsaved] }, english),
-  "Mistral · 3 models not discovered; Synthetic Provider · 1 model to add",
+  "Mistral: Bifrost doesn’t show 3 models; Synthetic Provider · 1 model to add",
   "two blockers",
 );
 equal(
   readinessReason({ state: "blocked", blockers: [mistral, unsaved, everyProvider] }, english),
-  "Mistral · 3 models not discovered; Synthetic Provider · 1 model to add; +1 more",
+  "Mistral: Bifrost doesn’t show 3 models; Synthetic Provider · 1 model to add; +1 more",
   "three blockers",
 );
 equal(
   readinessReason({ state: "blocked", blockers: [mistral, unsaved, everyProvider] }, french),
-  "Mistral · 3 modèles non découverts ; Synthetic Provider · 1 modèle à ajouter ; +1",
+  "Mistral : Bifrost ne montre pas 3 modèles ; Synthetic Provider · 1 modèle à ajouter ; +1",
   "three blockers in French, French spacing",
 );
 equal(readinessReason({ state: "ready", blockers: [] }, english), "", "ready needs no reason");
@@ -192,6 +198,166 @@ equal(
   "an edit that did not settle the row is not",
 );
 equal(adoptionProgress(undefined, [], []), { decided: 0, total: 0 }, "no verdict, nothing to decide");
+// #101: the heading and the footer say the same count, rows decided from the start (a provider disabled in Bifrost) included.
+const autoKept = adoptionProgress(
+  {
+    state: "blocked",
+    blockers: [{ ...disabledMistral, kept: true }, block("deepseek", "undiscovered", ["v4"]), codex],
+  },
+  ["mistral"],
+  [],
+);
+equal(autoKept, { decided: 1, total: 3 }, "one row decided from the start, two to decide");
+equal(decisionsHeading(autoKept, english), "3 decisions before adopting · 1 already made", "heading, English");
+equal(decidedLabel(autoKept, english), "1 of 3 decided", "footer, English");
+equal(decisionsHeading(autoKept, french), "3 décisions avant d’adopter · 1 déjà prise", "heading, French");
+equal(decidedLabel(autoKept, french), "1 sur 3 décidées", "footer, French");
+equal(decisionsHeading({ decided: 0, total: 1 }, english), "1 decision before adopting", "none made, singular");
+equal(decisionsHeading({ decided: 0, total: 1 }, french), "1 décision avant d’adopter", "none made, singular, French");
+equal(decisionsHeading({ decided: 2, total: 4 }, english), "4 decisions before adopting · 2 already made", "plural");
+equal(
+  decisionsHeading({ decided: 2, total: 4 }, french),
+  "4 décisions avant d’adopter · 2 déjà prises",
+  "plural, French",
+);
+// Critique round 5: models to register are no decision (the counts above leave them out), so the footer states them
+// beside the count: one provider is named, several are summed, none says nothing.
+const vertex = { ...unsaved, provider: "vertex", count: 8 };
+equal(
+  prerequisiteLine({ state: "blocked", blockers: [vertex, mistral] }, english),
+  "Register 8 Vertex AI models first",
+  "one provider's models to register, English",
+);
+equal(
+  prerequisiteLine({ state: "blocked", blockers: [vertex, mistral] }, french),
+  "Enregistrez d’abord 8 modèles Vertex AI",
+  "one provider's models to register, French",
+);
+equal(
+  prerequisiteLine({ state: "blocked", blockers: [{ ...vertex, count: 1 }] }, english),
+  "Register 1 Vertex AI model first",
+  "singular",
+);
+equal(
+  prerequisiteLine(
+    { state: "blocked", blockers: [vertex, { ...unsaved, provider: "synthetic-provider", count: 2 }] },
+    english,
+  ),
+  "Register 10 models first",
+  "several providers are summed, without a name",
+);
+equal(
+  prerequisiteLine({ state: "blocked", blockers: [mistral, codex] }, english),
+  "",
+  "decisions only: no prerequisite",
+);
+equal(
+  prerequisiteLine({ state: "blocked", blockers: [{ ...vertex, kept: true }] }, english),
+  "",
+  "a kept row waits for nothing",
+);
+equal(prerequisiteLine(undefined, english), "", "no verdict, no prerequisite");
+equal(
+  adoptionProgress({ state: "blocked", blockers: [vertex] }, [], []),
+  { decided: 0, total: 0 },
+  "the prerequisite is not counted as a decision",
+);
+// Final critique, P1: a blocker no choice settles is a prerequisite, not a decision. A key disabled or expired in
+// Bifrost has no provider and no button, so "2 decisions · 0 of 2 decided" could never reach Adopt.
+const inactiveReason = "Native key is inactive or expired";
+const inactive = block("", "other", [], [inactiveReason]);
+const profile = block("", "other", [], ["Native key is controlled by an external access profile"]);
+const noProviderKey = block("Codex", "other", [], ["No enabled native provider key for Codex/x"]);
+equal(
+  adoptionProgress({ state: "blocked", blockers: [inactive] }, [], []),
+  { decided: 0, total: 0 },
+  "a key-level blocker alone is no decision",
+);
+equal(
+  adoptionProgress({ state: "blocked", blockers: [inactive, profile, noProviderKey] }, [], []),
+  { decided: 0, total: 0 },
+  "key-level and provider reasons with no choice are no decision either",
+);
+equal(
+  adoptionProgress({ state: "blocked", blockers: [inactive, mistral] }, [], []),
+  { decided: 0, total: 1 },
+  "a key-level blocker beside one provider decision: total 1",
+);
+equal(
+  adoptionProgress({ state: "blocked", blockers: [inactive, { ...mistral, kept: true }] }, ["mistral"], []),
+  { decided: 1, total: 1 },
+  "the decision once made; the key-level blocker still is not one",
+);
+equal(
+  adoptionProgress({ state: "blocked", blockers: [inactive, everyProvider] }, [], []),
+  { decided: 0, total: 1 },
+  "every provider is a decision (a native edit settles it)",
+);
+// A provider's own reason with no choice sits in its decision row once another blocker of that provider has a choice
+// (keeping the provider settles both); alone, it is a prerequisite.
+const mixed = block("mistral", "other", [], ["Empty native allowed_models has version-dependent meaning for mistral"]);
+equal(
+  [...splitBlockers({ state: "blocked", blockers: [mixed, mistral, inactive] }).decisions].map(([p, b]) => [
+    p,
+    b.length,
+  ]),
+  [["mistral", 2]],
+  "the reason rides with its provider's decision",
+);
+equal(
+  splitBlockers({
+    state: "blocked",
+    blockers: [mixed, inactive, unsaved, { ...mistral, kept: true }],
+  }).prerequisites.map(blocker => blocker.provider),
+  ["mistral", ""],
+  "the others are prerequisites; models to add and kept rows are neither",
+);
+equal(fixReasons({ state: "blocked", blockers: [inactive, mistral] }), [inactiveReason], "reasons to fix in Bifrost");
+equal(fixReasons(undefined), [], "none without a verdict");
+// The heading says there is nothing to decide, not "0 decisions"; the footer count is not shown at zero.
+equal(decisionsHeading({ decided: 0, total: 0 }, english), "Nothing to decide yet", "no decision, English");
+equal(decisionsHeading({ decided: 0, total: 0 }, french), "Rien à décider pour l’instant", "no decision, French");
+// The next step and the footer clause for it, in both languages; the footer keeps one clause per distinct need.
+equal(
+  fixStep(inactiveReason, english),
+  "Enable or renew this key in Bifrost, then press Refresh preview.",
+  "next step, inactive key",
+);
+equal(
+  fixStep(inactiveReason, french),
+  "Activez ou renouvelez cette clé dans Bifrost, puis appuyez sur Actualiser l’aperçu.",
+  "next step, inactive key, French",
+);
+equal(
+  fixStep("Native key is controlled by an external access profile", english),
+  "Fix this in Bifrost, then press Refresh preview.",
+  "next step, any other reason",
+);
+equal(
+  prerequisiteLine({ state: "blocked", blockers: [inactive] }, english),
+  "Enable or renew the key in Bifrost first",
+  "the footer says why Adopt is off: the key",
+);
+equal(
+  prerequisiteLine({ state: "blocked", blockers: [inactive] }, french),
+  "Activez ou renouvelez d’abord la clé dans Bifrost",
+  "the footer clause, in French",
+);
+equal(
+  prerequisiteLine({ state: "blocked", blockers: [profile, noProviderKey] }, english),
+  "Fix the key in Bifrost first",
+  "several reasons of one kind: one clause",
+);
+equal(
+  prerequisiteLine({ state: "blocked", blockers: [vertex, inactive, mistral] }, english),
+  "Register 8 Vertex AI models first · Enable or renew the key in Bifrost first",
+  "models to register and a key to fix: both clauses, models first",
+);
+equal(
+  prerequisiteLine({ state: "blocked", blockers: [{ ...inactive, kept: true }] }, english),
+  "",
+  "a kept row waits for nothing",
+);
 // A provider Bifrost reports as disabled is kept in Bifrost from the start (still undoable).
 equal(
   disabledProviders({

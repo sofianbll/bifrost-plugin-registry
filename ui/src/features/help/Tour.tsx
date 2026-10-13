@@ -4,12 +4,13 @@ import { Button } from "@/components/ui/button";
 import { useCopy, type Copy } from "../../lib/locale";
 import { pickAnchor, tourSteps, type TourStep } from "./tourSteps";
 
-const stepCopy = (id: TourStep["id"], copy: Copy) =>
+// The step texts, also read by the help test.
+export const stepCopy = (id: TourStep["id"], copy: Copy) =>
   ({
     models: {
       title: copy("My models", "Mes modèles"),
       text: copy(
-        "These are your saved model cards. Open one to read it; use Edit to change it. “To add” lists what Bifrost found and you have not saved yet.",
+        "These are your registered model cards. Open one to read it; use Edit to change it. “To add” lists what Bifrost found and you have not registered yet.",
         "Voici vos fiches modèles enregistrées. Ouvrez-en une pour la lire, puis Modifier pour la changer. « À ajouter » liste ce que Bifrost a trouvé et que vous n’avez pas encore enregistré.",
       ),
     },
@@ -23,8 +24,8 @@ const stepCopy = (id: TourStep["id"], copy: Copy) =>
     keys: {
       title: copy("Virtual keys", "Clés virtuelles"),
       text: copy(
-        "A key lists the models one app or person can call. Pick groups and models, check the preview, then publish.",
-        "Une clé liste les modèles qu’une application ou une personne peut appeler. Choisissez des groupes et des modèles, vérifiez l’aperçu, puis publiez.",
+        "A key lists the models one app or person can call. In Edit selection, work through Models, Groups and Review, then publish.",
+        "Une clé liste les modèles qu’une application ou une personne peut appeler. Dans Modifier la sélection, passez par Modèles, Groupes et Vérifier, puis publiez.",
       ),
     },
     adoption: {
@@ -36,7 +37,8 @@ const stepCopy = (id: TourStep["id"], copy: Copy) =>
     },
   })[id];
 
-// Offered once on the first visit, inline so that it covers nothing.
+// Offered once on the first visit, inline so that it covers nothing. The app shows it on My models only, and a
+// phone does not show it at all (it would push the page down): "?" starts the tour from any page and width.
 export function TourOffer({
   canStart,
   onStart,
@@ -53,19 +55,16 @@ export function TourOffer({
       onKeyDown={event => {
         if (event.key === "Escape") onDismiss();
       }}
-      className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-sm border bg-muted/30 p-3 text-sm"
+      className="mb-5 hidden flex-wrap items-center justify-between gap-3 rounded-sm border bg-muted/30 p-3 text-sm sm:flex"
     >
       <div className="min-w-0 flex-1">
         <p className="font-medium">
           {copy("New here? Take a one-minute tour.", "Nouveau ici ? Faites un tour d’une minute.")}
         </p>
-        <p className={canStart ? "text-muted-foreground max-sm:hidden" : "text-muted-foreground"}>
+        <p className="text-muted-foreground">
           {canStart
             ? copy("Models, Groups, Keys, then adopting a key.", "Modèles, groupes, clés, puis l’adoption d’une clé.")
-            : copy(
-                "Save or discard your key draft first.",
-                "Enregistrez ou abandonnez d’abord votre brouillon de clé.",
-              )}
+            : copy("Publish or discard your key draft first.", "Publiez ou abandonnez d’abord votre brouillon de clé.")}
         </p>
       </div>
       <div className="flex flex-wrap items-center gap-2">

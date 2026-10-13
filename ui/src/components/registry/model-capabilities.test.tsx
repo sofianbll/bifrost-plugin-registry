@@ -53,7 +53,13 @@ for (const item of ["Entrées", "Sorties", "Texte", "Image", "Audio", "Vidéo"])
 if (/Fonctionnalités|Raisonnement|Vision|data-capability=|Source et portée/.test(modalityPanel))
   throw new Error("modality details include capability inventory");
 if ((modalityPanel.match(/<li /g) ?? []).length !== 5) throw new Error("modality details include unlisted entries");
+// The contract reads Input, Output, Features, as the summary strip does (input arrow output).
+const inOrder = (html: string, words: string[]) =>
+  words.every((word, index) => index === 0 || html.indexOf(word) > html.indexOf(words[index - 1]));
+if (!inOrder(modalityPanel, ["Entrées", "Sorties"])) throw new Error("modality details must list Input before Output");
 const panel = render(<ModelCapabilitiesPanel model={model} />);
+if (!inOrder(panel, ["Entrées", "Sorties", "Fonctionnalités"]))
+  throw new Error("the capability panel must list Input, Output, Features");
 if (!/Non renseigné/.test(panel)) throw new Error("empty output hidden");
 if (!/data-capability-state="Unknown"/.test(panel)) throw new Error("unknown state hidden");
 if (/Non pris en charge/.test(panel)) throw new Error("unknown misrepresented");

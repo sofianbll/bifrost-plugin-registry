@@ -106,7 +106,7 @@ import { LanguageContext, initialLanguage, rememberLanguage, useCopy, useFormat,
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { Switch } from "../components/ui/switch";
 import KeyComposer from "../features/keys/KeyComposer";
-import { KeySummary } from "../features/keys/KeySummary";
+import { checkFailed, keyLedger, KeySummary, verifiedToast } from "../features/keys/KeySummary";
 import { permissionSummary, preserveAdoptionDraft } from "../features/keys/KeyComposer.state";
 import { keyFormState, type KeyFormDraft } from "../features/keys/key-form";
 import { KeyCreateForm } from "../features/keys/KeyCreateForm";
@@ -169,6 +169,23 @@ function CloseMobileSidebarOnRoute({ routeKey }: { routeKey: string }) {
   return null;
 }
 
+// "Snapshot copy · Pulsar · captured Oct 12, 2026, 9:30 AM": the capture time in the UI's one time format.
+export function SnapshotSource({ source, capturedAt }: { source?: string; capturedAt?: string }) {
+  const copyText = useCopy();
+  const { moment } = useFormat();
+  return (
+    <>
+      {copyText("Snapshot copy", "Copie d’instantané")} · <span className="font-medium">{source || "Registry"}</span>
+      {capturedAt && (
+        <>
+          {" "}
+          · {copyText("captured", "capturée")} {moment(capturedAt)}
+        </>
+      )}
+    </>
+  );
+}
+
 function RegistryApp({
   language,
   onLanguageChange,
@@ -177,7 +194,6 @@ function RegistryApp({
   onLanguageChange: (language: Language) => void;
 }) {
   const copyText = useCopy();
-  const localized = useFormat();
   const keyNameMessages = {
     required: copyText("Enter a key name.", "Saisissez un nom de clé."),
     duplicate: copyText("A key with this name already exists.", "Une clé portant ce nom existe déjà."),
@@ -441,7 +457,7 @@ function RegistryApp({
   };
   const markReadbackFailure = (id: string, error: unknown) => {
     const fromServer = error instanceof ApiError ? error.publication : undefined;
-    const message = error instanceof Error ? error.message : copyText("Readback unavailable", "Relecture indisponible");
+    const message = error instanceof Error ? error.message : checkFailed(copyText);
     setData(old => ({
       ...old,
       keys: old.keys.map(k => {
@@ -466,24 +482,30 @@ function RegistryApp({
       }),
     }));
   };
+  // Differences are the kept routes Bifrost does not list on the keys it confirmed (ADR 0001): "Verified" is never plain.
   const verify = async (ids: string[]) => {
     let verified = true;
+    let differences = 0;
     for (const id of [...new Set(ids)]) {
-      setBusy(copyText("Verifying /v1/models…", "Vérification de /v1/models…"));
+      setBusy(copyText("Checking with Bifrost…", "Vérification avec Bifrost…"));
       try {
         const workspace = await readbackKey(id);
         applyWorkspace(workspace);
-        if (workspace.data.keys.find(k => k.id === id)?.publication?.state !== "verified") verified = false;
+        const checked = workspace.data.keys.find(k => k.id === id);
+        if (checked?.publication?.state === "verified")
+          differences += keyLedger(checked, workspace.data.models, workspace.data.groups).differences;
+        else verified = false;
       } catch (error) {
         if (error instanceof ApiError && error.status === 401) throw error;
         verified = false;
         markReadbackFailure(id, error);
+        // The key is named, not its id.
         toast.warning(
-          `${id}: ${error instanceof Error ? error.message : copyText("Readback unavailable", "Relecture indisponible")}`,
+          `${data.keys.find(k => k.id === id)?.name || id}: ${error instanceof Error ? error.message : checkFailed(copyText)}`,
         );
       }
     }
-    return verified;
+    return { verified, differences };
   };
   const commit = async (next: Demo, label: string, verifyIds: string[] = [], overrides?: CatalogOverride[]) =>
     operation(label, async () => {
@@ -528,7 +550,8 @@ function RegistryApp({
       applyWorkspace(saved);
       setNeedsReconcile(false);
       setReconcileBlocked(false);
-      const verified = verifyIds.length && !snapshotMode ? await verify(verifyIds) : true;
+      const { verified, differences } =
+        verifyIds.length && !snapshotMode ? await verify(verifyIds) : { verified: true, differences: 0 };
       toast[verified ? "success" : "warning"](
         snapshotMode
           ? copyText(
@@ -537,10 +560,10 @@ function RegistryApp({
             )
           : verifyIds.length
             ? verified
-              ? copyText("Published and verified through /v1/models.", "Publié et vérifié via /v1/models.")
+              ? verifiedToast(copyText, differences, true)
               : copyText(
-                  "Saved; readback has drift or could not be verified.",
-                  "Enregistré ; la relecture diffère ou n’a pas pu être vérifiée.",
+                  "Published; Bifrost differs or could not be checked.",
+                  "Publié ; Bifrost diffère ou n’a pas pu être vérifié.",
                 )
             : copyText("Saved.", "Enregistré."),
       );
@@ -598,6 +621,8 @@ function RegistryApp({
     markTourSeen();
     setTourOffer(false);
     setHelpOpen(false);
+    // Step 1 speaks of registered cards: its ring must not land on a tile of To add.
+    setModelScope("registry");
     setTourRun(run => run + 1);
   };
   const dismissTour = () => {
@@ -750,8 +775,8 @@ function RegistryApp({
     if (firstRegistrationIssue(modelDraft)) {
       setModelError(
         copyText(
-          "Provide the shared ID, the name, at least one Registry endpoint per access and every valid provider access.",
-          "Renseignez l’identifiant commun, le nom, au moins un endpoint Registry par accès et chaque accès fournisseur valide.",
+          "Provide the call name, the name, at least one request type per access and every valid provider access.",
+          "Renseignez le nom d’appel, le nom, au moins un type de requête par accès et chaque accès fournisseur valide.",
         ),
       );
       return;
@@ -924,7 +949,7 @@ function RegistryApp({
   };
   const reread = async () => {
     if (!key || key.managed === false) return;
-    await operation(copyText("Verifying /v1/models…", "Vérification de /v1/models…"), async () => {
+    await operation(copyText("Checking with Bifrost…", "Vérification avec Bifrost…"), async () => {
       let workspace: Workspace;
       try {
         workspace = await readbackKey(key.id);
@@ -933,13 +958,14 @@ function RegistryApp({
         throw error;
       }
       applyWorkspace(workspace);
-      const state = workspace.data.keys.find(k => k.id === key.id)?.publication?.state;
+      const checked = workspace.data.keys.find(k => k.id === key.id);
+      const state = checked?.publication?.state;
       toast[state === "verified" ? "success" : "warning"](
-        state === "verified"
-          ? copyText("Readback verified.", "Relecture vérifiée.")
+        checked && state === "verified"
+          ? verifiedToast(copyText, keyLedger(checked, workspace.data.models, workspace.data.groups).differences)
           : state === "drift"
-            ? copyText("Readback differs from published policy.", "La relecture diffère de la politique publiée.")
-            : copyText("Readback unavailable.", "Relecture indisponible."),
+            ? copyText("Bifrost differs from the published selection.", "Bifrost diffère de la sélection publiée.")
+            : checkFailed(copyText),
       );
     });
   };
@@ -1048,7 +1074,7 @@ function RegistryApp({
                   e.preventDefault();
                   go("models");
                 }}
-                className="min-w-0"
+                className="-my-px min-w-0 py-px max-sm:-my-[7px] max-sm:py-[7px]"
               >
                 <img
                   src={`${import.meta.env.BASE_URL}bifrost-logo.webp`}
@@ -1143,7 +1169,7 @@ function RegistryApp({
                   aria-label={copyText(`Help for ${title}`, `Aide pour ${title}`)}
                   data-help
                   onClick={() => setHelpOpen(true)}
-                  className="inline-flex rounded-sm p-1 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="inline-flex items-center justify-center rounded-sm p-1 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring max-sm:size-9"
                 >
                   <CircleHelp className="size-4" />
                 </button>
@@ -1217,7 +1243,7 @@ function RegistryApp({
                     checked={expert}
                     onCheckedChange={setExpertMode}
                     className="h-6 data-[state=checked]:bg-chart-success data-[state=unchecked]:bg-muted-foreground/50 [&>span]:bg-white dark:[&>span]:bg-white"
-                    aria-label={copyText("Use Expert key composer", "Utiliser la composition de clé Expert")}
+                    aria-label={copyText("Expert mode", "Mode Expert")}
                   />
                 </label>
               )}
@@ -1269,7 +1295,9 @@ function RegistryApp({
                   </Button>
                 </div>
               )}
-              {tourOffer && <TourOffer canStart={!isDirty} onStart={startTour} onDismiss={dismissTour} />}
+              {tourOffer && page === "models" && (
+                <TourOffer canStart={!isDirty} onStart={startTour} onDismiss={dismissTour} />
+              )}
               {page === "models" && pendingKeyDraft.current && (
                 <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-sm border bg-muted/30 p-3 text-sm">
                   <span>
@@ -1291,14 +1319,7 @@ function RegistryApp({
               {snapshotMode && (
                 <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
                   <p className="min-w-0 flex-1 text-foreground/80">
-                    {copyText("Snapshot copy", "Copie d’instantané")} ·{" "}
-                    <span className="font-medium">{connection.source || "Registry"}</span>
-                    {connection.capturedAt && (
-                      <>
-                        {" "}
-                        · {copyText("captured", "capturée")} {localized.date(connection.capturedAt)}
-                      </>
-                    )}
+                    <SnapshotSource source={connection.source} capturedAt={connection.capturedAt} />
                   </p>
                   {connection.partial && (
                     <details className="max-w-full">
@@ -1363,54 +1384,57 @@ function RegistryApp({
                 ))}
               {page === "models" && (
                 <>
-                  <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-                    <div className="min-w-60 flex-1">
+                  <div className="mb-4">
+                    {/* The scope switch sits on the title row: the description under it changes length with the scope
+                        and must not move the control the person just clicked. */}
+                    <div className="flex flex-wrap items-center justify-between gap-3">
                       <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
                         {copyText("My models", "Mes modèles")}
                       </h1>
-                      <p className="mt-1 max-w-prose text-sm text-foreground/70">
-                        {modelScope === "registry" ? (
-                          copyText(
-                            "Model cards saved in Registry, with their provider accesses.",
-                            "Fiches modèles enregistrées dans Registry, avec leurs accès fournisseurs.",
-                          )
-                        ) : (
-                          <>
-                            {copyText(
-                              "Models discovered in Bifrost and not saved yet. Open one to register it.",
-                              "Modèles découverts dans Bifrost et pas encore enregistrés. Ouvrez-en un pour l’enregistrer.",
-                            )}{" "}
-                            <Button
-                              variant="link"
-                              size="sm"
-                              className="h-auto p-0 align-baseline"
-                              onClick={() => openModel(newModel(), true)}
-                            >
-                              {copyText("Advanced: enter an access manually", "Avancé : saisir un accès manuellement")}
-                            </Button>
-                          </>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <ToggleGroup
+                          type="single"
+                          variant="outline"
+                          className="bg-card"
+                          value={modelScope}
+                          onValueChange={value => value && setModelScope(value as typeof modelScope)}
+                          aria-label={copyText("Model scope", "Portée des modèles")}
+                        >
+                          <ToggleGroupItem value="registry">{scopeLabels.registry}</ToggleGroupItem>
+                          <ToggleGroupItem value="to-add">{scopeLabels.toAdd}</ToggleGroupItem>
+                        </ToggleGroup>
+                        {modelScope === "registry" && (
+                          <Button onClick={() => setModelScope("to-add")}>
+                            <Plus className="size-4" />
+                            {copyText("Register a model", "Enregistrer un modèle")}
+                          </Button>
                         )}
-                      </p>
+                      </div>
                     </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <ToggleGroup
-                        type="single"
-                        variant="outline"
-                        className="bg-card"
-                        value={modelScope}
-                        onValueChange={value => value && setModelScope(value as typeof modelScope)}
-                        aria-label={copyText("Model scope", "Portée des modèles")}
-                      >
-                        <ToggleGroupItem value="registry">{scopeLabels.registry}</ToggleGroupItem>
-                        <ToggleGroupItem value="to-add">{scopeLabels.toAdd}</ToggleGroupItem>
-                      </ToggleGroup>
-                      {modelScope === "registry" && (
-                        <Button onClick={() => setModelScope("to-add")}>
-                          <Plus className="size-4" />
-                          {copyText("Register a model", "Enregistrer un modèle")}
-                        </Button>
+                    <p className="mt-1 max-w-prose text-sm text-foreground/70">
+                      {modelScope === "registry" ? (
+                        copyText(
+                          "Model cards saved in Registry, with their provider accesses.",
+                          "Fiches modèles enregistrées dans Registry, avec leurs accès fournisseurs.",
+                        )
+                      ) : (
+                        <>
+                          {copyText(
+                            "Models discovered in Bifrost and not saved yet. Open one to register it.",
+                            "Modèles découverts dans Bifrost et pas encore enregistrés. Ouvrez-en un pour l’enregistrer.",
+                          )}{" "}
+                          {/* A 24 px target (WCAG 2.5.8); the negative margin keeps the line height. */}
+                          <Button
+                            variant="link"
+                            size="sm"
+                            className="-my-0.5 h-auto min-h-6 p-0 align-baseline"
+                            onClick={() => openModel(newModel(), true)}
+                          >
+                            {copyText("Advanced: enter an access manually", "Avancé : saisir un accès manuellement")}
+                          </Button>
+                        </>
                       )}
-                    </div>
+                    </p>
                   </div>
                   {catalog.length ? (
                     <ReferenceCatalogBrowser
@@ -1448,7 +1472,7 @@ function RegistryApp({
                           )}
                         </p>
                         <Button variant="outline" onClick={() => openModel(newModel(), true)}>
-                          {copyText("Add model", "Ajouter un modèle")} <ArrowRight className="size-4" />
+                          {copyText("Register a model", "Enregistrer un modèle")} <ArrowRight className="size-4" />
                         </Button>
                       </CardContent>
                     </Card>
@@ -1458,6 +1482,7 @@ function RegistryApp({
               {page === "snapshot" && <SnapshotTransfer onUnauthorized={requireLogin} onApplied={() => void load()} />}
               {page === "groups" && (
                 <GroupLibrary
+                  expert={effectiveExpert}
                   groups={data.groups}
                   models={namedModels}
                   keys={data.keys}
@@ -1506,12 +1531,15 @@ function RegistryApp({
                       </Button>
                       <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">{key.name}</h1>
                       <p className="text-xs text-muted-foreground">
-                        <span className="wrap-anywhere">{key.client || key.id}</span> ·{" "}
+                        {/* The client names the key; its raw ID is Expert detail, not a subtitle in Basic. */}
+                        {(key.client || effectiveExpert) && (
+                          <>
+                            <span className="wrap-anywhere">{key.client || key.id}</span> ·{" "}
+                          </>
+                        )}
                         {copyText(
-                          key.managed === false ? "Bifrost key · Registry policy not adopted" : "Registry-managed key",
-                          key.managed === false
-                            ? "Clé Bifrost · sélection Registry non adoptée"
-                            : "Clé gérée par Registry",
+                          key.managed === false ? "Bifrost key · not adopted yet" : "Registry-managed key",
+                          key.managed === false ? "Clé Bifrost · pas encore adoptée" : "Clé gérée par Registry",
                         )}
                       </p>
                     </div>
@@ -1561,7 +1589,7 @@ function RegistryApp({
                                 disabled={isDirty}
                                 onSelect={() => setAdoption({ keyId: key.id, operation: "rebind" })}
                               >
-                                {copyText("Review binding", "Examiner l’association")}
+                                {copyText("Re-link the Bifrost key", "Relier à nouveau la clé Bifrost")}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -1611,8 +1639,8 @@ function RegistryApp({
                       {key.managed !== false && isDirty && (
                         <p className="text-muted-foreground">
                           {copyText(
-                            "Save or discard this draft before reviewing the key association.",
-                            "Enregistrez ou abandonnez ce brouillon avant d’examiner l’association de la clé.",
+                            "Publish or discard this draft before re-linking the Bifrost key.",
+                            "Publiez ou abandonnez ce brouillon avant de relier à nouveau la clé Bifrost.",
                           )}
                         </p>
                       )}
@@ -1626,8 +1654,8 @@ function RegistryApp({
                       </h2>
                       <p className="max-w-[52ch] text-sm text-muted-foreground">
                         {copyText(
-                          "Review compares the current Bifrost permissions with a Registry selection. Confirm it before composing groups and models for this key. Registry cannot grant more access than Bifrost allows.",
-                          "L’examen compare les permissions Bifrost actuelles avec une sélection Registry. Confirmez-la avant de composer les groupes et modèles de cette clé. Registry ne peut pas étendre les droits accordés par Bifrost.",
+                          "Adopting compares what Bifrost allows today with a Registry selection, and you confirm it before composing groups and models for this key. Registry cannot grant more access than Bifrost allows.",
+                          "Adopter compare ce que Bifrost autorise aujourd’hui avec une sélection Registry ; vous la confirmez avant de composer les groupes et modèles de cette clé. Registry ne peut pas étendre les droits accordés par Bifrost.",
                         )}
                       </p>
                       <div>
@@ -1661,7 +1689,7 @@ function RegistryApp({
                           onClick={() => setAdoption({ keyId: key.id, operation: "adopt" })}
                         >
                           {snapshotMode
-                            ? copyText("Review local selection", "Examiner la sélection locale")
+                            ? copyText("Prepare local selection", "Préparer la sélection locale")
                             : copyText("Adopt this key", "Adopter cette clé")}
                         </Button>
                       )}
@@ -1727,7 +1755,13 @@ function RegistryApp({
             </main>
           </div>
         </div>
-        <HelpSheet open={helpOpen} onOpenChange={setHelpOpen} canStart={!isDirty} onStart={startTour} />
+        <HelpSheet
+          open={helpOpen}
+          onOpenChange={setHelpOpen}
+          canStart={!isDirty}
+          onStart={startTour}
+          expert={effectiveExpert}
+        />
         {tourRun > 0 && (
           <Tour
             key={tourRun}
@@ -1809,10 +1843,15 @@ function RegistryApp({
                 )}
               </SheetTitle>
               <SheetDescription>
-                {copyText(
-                  "Choose the registered models in this shared selection. Review the key impact before saving.",
-                  "Choisissez les modèles enregistrés de cette sélection partagée. Vérifiez l’impact sur les clés avant l’enregistrement.",
-                )}
+                {snapshotMode
+                  ? copyText(
+                      "Choose the registered models in this shared selection. Review the key impact before saving locally.",
+                      "Choisissez les modèles enregistrés de cette sélection partagée. Vérifiez l’impact sur les clés avant l’enregistrement local.",
+                    )
+                  : copyText(
+                      "Choose the registered models in this shared selection. Review the key impact before publishing.",
+                      "Choisissez les modèles enregistrés de cette sélection partagée. Vérifiez l’impact sur les clés avant la publication.",
+                    )}
               </SheetDescription>
             </SheetHeader>
             {groupDraft && (

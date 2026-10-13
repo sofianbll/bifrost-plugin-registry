@@ -70,6 +70,21 @@ export function formatAge(language: Language, value: string, now = Date.now()) {
         : [minutes / 1440, "day"];
   return new Intl.RelativeTimeFormat(locales[language], { numeric: "always" }).format(Math.round(amount), unit);
 }
+// A day in the UI language: "12/10/2026" in French, "Oct 12, 2026" in English (never the ambiguous 10/12/2026).
+const dayFormats: Record<Language, Intl.DateTimeFormatOptions> = {
+  en: { month: "short", day: "numeric", year: "numeric" },
+  fr: { day: "2-digit", month: "2-digit", year: "numeric" },
+};
+export const formatDay = (language: Language, value: string) =>
+  new Date(value).toLocaleDateString(locales[language], dayFormats[language]);
+// The same day with the time, never with seconds: "Oct 12, 2026, 9:30 AM", "12/10/2026 09:30". The one format for
+// every time the UI shows, so a day and a time side by side read alike.
+export const formatMoment = (language: Language, value: string) =>
+  new Date(value).toLocaleString(locales[language], {
+    ...dayFormats[language],
+    hour: language === "fr" ? "2-digit" : "numeric",
+    minute: "2-digit",
+  });
 // A sync older than a day (or none) is not shown as fresh.
 export const syncIsStale = (value: string | undefined, now = Date.now()) =>
   !value || now - Date.parse(value) > 86_400_000;
@@ -79,6 +94,8 @@ export function useFormat() {
     age: (value: string) => formatAge(language, value),
     value: (value: unknown, unit?: string) => formatValue(language, value, unit),
     price: (value: unknown) => formatPrice(language, value),
+    day: (value: string) => formatDay(language, value),
+    moment: (value: string) => formatMoment(language, value),
     date: (value: string, options?: Intl.DateTimeFormatOptions) =>
       new Date(value).toLocaleString(locales[language], options),
     colon: colons[language],

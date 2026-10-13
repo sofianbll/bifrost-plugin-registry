@@ -7,15 +7,14 @@ import type { Model } from "../../domain/registry";
 import { useCopy, useFormat } from "../../lib/locale";
 
 // The Accesses popover of a card footer, named after its card (label: its distinct name). It lists
-// the model's accesses, unless the page passes its own body (children) and a count of the accesses
-// available beside the card.
+// the model's accesses, unless the page passes its own body (children). The accesses available beside
+// the card are said once, by the card's "+N available" badge, not here.
 export function ModelAccessMenu({
   model,
   note,
   status,
   label = model.name,
   count = model.accesses.length,
-  available = 0,
   children,
 }: {
   model: Model;
@@ -23,7 +22,6 @@ export function ModelAccessMenu({
   status?: string;
   label?: string;
   count?: number;
-  available?: number;
   children?: ReactNode;
 }) {
   const copy = useCopy();
@@ -33,12 +31,6 @@ export function ModelAccessMenu({
       <PopoverTrigger asChild>
         <Button type="button" size="sm" variant="ghost" className="h-8 px-2 text-xs">
           {copy("Accesses", "Accès")} · {count}
-          {available > 0 && (
-            <span className="ml-1 text-muted-foreground">
-              +{available}
-              <span className="sr-only"> {copy("available", available > 1 ? "disponibles" : "disponible")}</span>
-            </span>
-          )}
           <ActionLabel label={label} />
         </Button>
       </PopoverTrigger>

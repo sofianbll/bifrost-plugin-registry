@@ -5,6 +5,7 @@ import { createContext, useContext, useState } from "react";
 
 import { useCopy } from "@/lib/locale";
 import { cn } from "@/lib/utils";
+import { useRestoreFocus } from "./restore-focus";
 
 // Context to share expanded state between SheetContent and SheetHeader
 type SheetContextValue = {
@@ -60,6 +61,7 @@ function SheetContent({
   onPointerDownOutside,
   onInteractOutside,
   onOpenAutoFocus,
+  onCloseAutoFocus,
   style,
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Content> & {
@@ -68,6 +70,7 @@ function SheetContent({
 }) {
   const [expanded, setExpanded] = useState(false);
   const [width, setWidth] = useState(75);
+  const restoreFocus = useRestoreFocus(onOpenAutoFocus, onCloseAutoFocus);
 
   // Check if the target is a portaled element (like react-select menu)
   const isPortaledElement = (target: HTMLElement | null): boolean => {
@@ -109,7 +112,8 @@ function SheetContent({
           data-slot="sheet-content"
           onPointerDownOutside={handlePointerDownOutside}
           onInteractOutside={handleInteractOutside}
-          onOpenAutoFocus={onOpenAutoFocus}
+          onOpenAutoFocus={restoreFocus.onOpenAutoFocus}
+          onCloseAutoFocus={restoreFocus.onCloseAutoFocus}
           className={cn(
             "bg-card data-[state=open]:animate-in data-[state=closed]:animate-out overflow-hidden fixed z-50 flex min-h-0 flex-col shadow-lg transition-all ease-in-out overscroll-none data-[state=closed]:duration-100 data-[state=open]:duration-100",
             side === "right" &&
@@ -161,11 +165,12 @@ function SheetHeader({
       className={cn("flex items-center gap-1 w-full pr-0", sheetContext?.expandable ? "p-0" : "mb-6", headerClassName)}
       {...props}
     >
+      {/* Below sm the panel already fills the screen: like the width slider, this control only exists from sm up. */}
       {sheetContext?.expandable && sheetContext?.side === "right" && (
         <button
           type="button"
           onClick={() => sheetContext?.setExpanded(!sheetContext?.expanded)}
-          className="shrink-0 cursor-pointer rounded-sm p-2 opacity-70 hover:bg-accent hover:opacity-100 focus-visible:ring-2 focus-visible:ring-ring"
+          className="shrink-0 cursor-pointer rounded-sm p-2 opacity-70 hover:bg-accent hover:opacity-100 focus-visible:ring-2 focus-visible:ring-ring max-sm:hidden"
         >
           {sheetContext?.expanded ? (
             <ArrowRightFromLineIcon className="size-4" />

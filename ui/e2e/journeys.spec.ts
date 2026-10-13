@@ -5,8 +5,8 @@
 // Scope: real Registry HTTP server + production React build; synthetic Bifrost, no native ABI
 // or provider inference qualification. The journeys share one page and are destructive, so this
 // is one test of sequential steps run against a fresh fixture (see playwright.config.ts).
-import type { Locator, Page } from "@playwright/test";
-import { expect, skipTour, test, token } from "./fixtures";
+import type { Locator, Page, Route } from "@playwright/test";
+import { expect, expectNoBasicJargon, skipTour, test, token } from "./fixtures";
 
 // The first visit is part of the journeys (#96): the guided tour is offered, then remembered.
 test.use({ tourSeen: false });
@@ -79,9 +79,27 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await page.getByRole("heading", { level: 1 }).click(); // a click outside closes Filters
     await expect(page.locator('[data-slot="popover-content"]')).toHaveCount(0);
   };
-  const expertSwitch = () => page.getByRole("switch", { name: "Use Expert key composer", exact: true });
+  const expertSwitch = () => page.getByRole("switch", { name: "Expert mode", exact: true });
   const setExpert = async (on: boolean) => {
     if ((await expertSwitch().getAttribute("aria-checked")) !== String(on)) await expertSwitch().click();
+  };
+  // Basic, an opened card: no tab shows a technical term; in the editor a tab holds the one "Edit details"
+  // (the Access tab also "Edit accesses", the way to its step), not a button per part, access and value.
+  const sweepCardTabs = async (where: string, editing = false) => {
+    for (const tab of ["Overview", "Properties", "Sources", "Access"]) {
+      await sheet().getByRole("tab", { name: tab, exact: true }).click();
+      await expectNoBasicJargon(page, `${where}, ${tab} tab`);
+      const expected = editing
+        ? tab === "Access"
+          ? ["Edit details", "Edit accesses"]
+          : ["Edit details"]
+        : tab === "Access"
+          ? ["Edit accesses", "Edit"]
+          : ["Edit"];
+      await expect(sheet().getByRole("button", { name: /^Edit/ }), `${where}, ${tab} tab: its edit buttons`).toHaveText(
+        expected,
+      );
+    }
   };
   const withinViewport = async (locator: Locator) => {
     await page.waitForFunction(
@@ -105,6 +123,16 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
       box && box.x >= 0 && box.y >= 0 && box.x + box.width <= view.width + 1 && box.y + box.height <= view.height + 1,
       JSON.stringify(box),
     ).toBeTruthy();
+  };
+
+  // A target is at least `min` px wide and high (WCAG 2.5.8: 24 px; the named phone controls 36 px).
+  const expectMinTarget = async (target: Locator, min: number, label = "") => {
+    const box = (await target.boundingBox())!;
+    expect(box, `${label} is on the page`).not.toBeNull();
+    expect([box.width >= min, box.height >= min], `${label} is at least ${min} px: ${JSON.stringify(box)}`).toEqual([
+      true,
+      true,
+    ]);
   };
 
   const workspace = await api("workspace");
@@ -152,9 +180,26 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
       await helpPanel.getByRole("button", { name: "Start the tour", exact: true }).click();
     };
     const remembered = () => page.evaluate(() => localStorage.getItem("bifrost-registry.tour.v1"));
-    // A first visit is offered the tour inline (it covers nothing); Escape dismisses it and the browser remembers.
+    // A first visit is offered the tour inline (it covers nothing), on My models only: the other pages stay
+    // as they are, and a phone shows no banner at all (it would push the first card down).
     await expect(offer).toContainText("New here?");
     expect(await remembered()).toBeNull();
+    for (const [link, heading] of [
+      ["Groups", "Groups"],
+      ["Virtual keys", "Virtual keys"],
+      ["Settings", "Settings"],
+    ])
+      await test.step(`no tour offer above ${heading}`, async () => {
+        await nav(link).click();
+        await expect(page.getByRole("heading", { name: heading, level: 1 })).toBeVisible();
+        await expect(offer, `the offer is not repeated above ${heading}`).toHaveCount(0);
+      });
+    await nav("My models").click();
+    await expect(offer).toBeVisible();
+    await page.setViewportSize({ width: 375, height: 812 });
+    await expect(offer, "a phone shows no tour banner").toBeHidden();
+    await page.setViewportSize({ width: 1440, height: 950 });
+    await expect(offer).toBeVisible();
     await offer.getByRole("button", { name: "Not now", exact: true }).focus();
     await page.keyboard.press("Escape");
     await expect(offer).toHaveCount(0);
@@ -176,7 +221,7 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     for (const phrase of [
       "Adopting a key",
       "Ready to adopt",
-      "Keep Mistral in Bifrost",
+      "Keep [provider] in Bifrost",
       "Remove these models from the key in Bifrost",
       "Replace “all providers” by the explicit list",
       "Replace “all models” by the models saved in Registry",
@@ -191,8 +236,32 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(helpPanel, "The help speaks of the key, not of an endpoint").not.toContainText("/v1/models");
     // As many numbered steps as the tour, then the words the panel uses.
     await expect(helpPanel.getByRole("listitem").filter({ has: page.locator('[data-slot="badge"]') })).toHaveCount(4);
-    for (const term of ["Reference", "Inferred creator", "Kept in Bifrost", "Readback", "Adopt"])
+    // #101: the glossary says "Checked with Bifrost" (never "Readback"), explains access and subscription/provider, and
+    // leaves the common model ID to Expert; its example is no real provider.
+    for (const term of [
+      "Access",
+      "Subscription, provider",
+      "Reference",
+      "Inferred creator",
+      "Kept in Bifrost",
+      "Checked with Bifrost",
+      "Adopt",
+    ])
       await expect(helpPanel.getByRole("term").filter({ hasText: term })).toHaveCount(1);
+    await expect(helpPanel.getByRole("term").filter({ hasText: "Common model ID" })).toHaveCount(0);
+    await expect(helpPanel).not.toContainText("Readback");
+    await expect(helpPanel).not.toContainText("Mistral");
+    // Expert's glossary adds the one word only Expert meets. (The switch sits behind the panel: close it, toggle, reopen.)
+    await page.keyboard.press("Escape");
+    await expect(helpPanel).toHaveCount(0);
+    await setExpert(true);
+    await button("Help for My models").click();
+    await expect(helpPanel.getByRole("term").filter({ hasText: "Common model ID" })).toHaveCount(1);
+    await page.keyboard.press("Escape");
+    await expect(helpPanel).toHaveCount(0);
+    await setExpert(false);
+    await button("Help for My models").click();
+    await expect(helpPanel).toBeVisible();
     // Starting the tour closes the panel and puts the focus on the tour card; the page stays usable under it.
     await helpPanel.getByRole("button", { name: "Start the tour", exact: true }).click();
     await expect(helpPanel).toHaveCount(0);
@@ -245,6 +314,14 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(stepCard("Virtual keys")).toHaveCount(0);
     await expect(page).toHaveURL(/#\/models$/);
     await expect(page.getByRole("heading", { name: "My models", level: 1 })).toBeVisible();
+    // Step 1 speaks of registered cards: started from To add, the tour brings In Registry back, so its ring sits on a
+    // saved card and not on a tile to register.
+    await scope(/^To add/).click();
+    await startFromHelp();
+    await expect(scope(/^In Registry/)).toBeChecked();
+    await expect(page.locator('[data-tour="first-model"]').getByRole("button", { name: /^Register/ })).toHaveCount(0);
+    await expect(page.locator('[data-tour="first-model"]')).toHaveCount(1);
+    await button("Skip the tour").click();
     // A step whose anchor is not on the page is skipped, never waited on forever.
     await page.evaluate(() => {
       const set = Element.prototype.setAttribute;
@@ -333,6 +410,12 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     for (const name of ["qa-sonnet", "qa-codex-mini", "qa-flash"])
       await expect(badges(name)).toHaveText(["no reference", "inferred creator"]);
     await expect(page.locator("[data-attention]")).toHaveCount(8);
+    // Said once per tile: "+1 available" is the badge, not also a count in the Accesses button.
+    await expect(
+      card("QA Opus").getByRole("button", { name: /^Accesses/ }),
+      "the Accesses button does not repeat +1 available",
+    ).toHaveAccessibleName("Accesses · 1 · QA Opus");
+    await expectNoBasicJargon(page, "My models");
     await scope(/^To add/).click();
     // To add is organised by subscription: the aggregator waits on a collapsed shelf, so the
     // subscriptions come first (sections are sorted, a count is the whole list, not the page).
@@ -368,8 +451,8 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(opens).toHaveText(["QA Codex (batch)"]);
     await expect(card("QA Codex (batch)")).toContainText("openai/qa-codex:batch");
     await expect(
-      card("QA Codex (batch)").getByRole("button", { name: "Add · QA Codex (batch)", exact: true }),
-      "a tile to add says it can be added",
+      card("QA Codex (batch)").getByRole("button", { name: "Register · QA Codex (batch)", exact: true }),
+      "#101: a tile to register says it can be registered",
     ).toBeVisible();
     await expect(card("QA Codex (batch)").locator("[data-attention]")).toHaveCount(0);
     await expect(page.locator('[data-slot="card"]').filter({ hasText: /\b(Saved|Not saved|Partial)\b/ })).toHaveCount(
@@ -379,6 +462,7 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     // Settings counts the same scopes.
     await nav("Settings").click();
     await expect(page.getByText("In Registry (12) · To add (69)", { exact: true })).toBeVisible();
+    await expectNoBasicJargon(page, "Settings");
     await nav("My models").click();
     await scope(/^In Registry/).click();
     await groupModels("No grouping");
@@ -765,7 +849,7 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await scope(/^To add/).click();
     expect(duplicates(await cardActions(page)), "To add").toEqual([]);
     await scope(/^In Registry/).click();
-    // Key cards too: each Review/Open names its key.
+    // Key cards too: each Adopt/See what blocks it/Open names its key.
     await nav("Virtual keys").click();
     // The first grid is the managed shelf (spec #85 round 2); the To adopt shelf follows.
     const keyActions = await cardActions(page);
@@ -935,7 +1019,9 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     // qa-codex-mini, qa-sonnet and qa-flash have no reference and one subscription each (Codex →
     // openai, Claude → anthropic, Google → gemini); QA Shared spans two, so nothing is guessed.
     const card = (name: string) => page.locator('[data-slot="card"]').filter({ has: button(`Open ${name} details`) });
-    const unknownFacts = "Facts unknown — associate a reference";
+    // The tile says the facts are unknown and offers the action once, in its footer; the opened card, which has no such button, adds what to do.
+    const unknownFacts = "Facts unknown";
+    const sheetUnknownFacts = "Facts unknown — associate a reference";
     const modelOf = async (id: string) => (await api("workspace")).data.models.find((m: { id: string }) => m.id === id);
     const writes = () => page.waitForRequest(r => r.method() === "PUT" && r.url().endsWith("/api/workspace"));
     for (const [name, creator] of [
@@ -947,9 +1033,16 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
       await expect(card(name).locator("[data-attention]")).toHaveText(["no reference", "inferred creator"]);
       await expect(card(name).getByText(unknownFacts, { exact: true })).toBeVisible();
       await expect(card(name).getByText("? → ?")).toHaveCount(0);
-      await expect(
-        card(name).getByRole("button", { name: `Associate a reference · ${name}`, exact: true }),
-      ).toBeVisible();
+      const associate = card(name).getByRole("button", { name: `Associate a reference · ${name}`, exact: true });
+      await expect(associate).toBeVisible();
+      // The action is as light as the other card buttons, not a second title: no heavier than 500.
+      expect(await associate.evaluate(el => getComputedStyle(el).fontWeight), "Associate is not at title weight").toBe(
+        "500",
+      );
+      expect(
+        await associate.evaluate(el => getComputedStyle(el).borderTopWidth),
+        "Associate is an outline button",
+      ).toBe("1px");
     }
     await expect(card("QA Shared").locator("[data-attention]")).toHaveText(["no reference"]);
     await expect(card("QA Opus").locator("[data-attention]")).toHaveText(["+1 available"]);
@@ -962,14 +1055,20 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(sheet().getByText("inferred", { exact: true }).first()).toBeVisible(); // read-first: the guess is shown as such
     // The sheet says what the tile says about unknown facts, not a bare "? → ?".
     await sheet().getByRole("tab", { name: "Properties", exact: true }).click();
-    await expect(sheet().getByText(unknownFacts, { exact: true })).toBeVisible();
+    await expect(sheet().getByText(sheetUnknownFacts, { exact: true })).toBeVisible();
     await expect(sheet().getByText("? → ?")).toHaveCount(0);
     await sheet().getByRole("tab", { name: "Overview", exact: true }).click();
     await button("Edit").click();
-    await sheet().getByRole("button", { name: "Edit Registry details", exact: true }).click();
+    // Basic edits the card through one "Edit details" button, not one per part and per value.
+    await sweepCardTabs("the edit view of a card", true);
+    await sheet().getByRole("button", { name: "Edit details", exact: true }).click();
     const creatorField = page
-      .getByRole("dialog", { name: "Edit Registry details" })
+      .getByRole("dialog", { name: "Edit details" })
       .getByRole("combobox", { name: "Creator", exact: true });
+    await expect(
+      page.getByRole("dialog", { name: "Edit details" }).getByRole("combobox", { name: "Family", exact: true }),
+      "Basic does not edit the family",
+    ).toHaveCount(0);
     await expect(creatorField).toHaveValue("OpenAI");
     await creatorField.fill("QA Labs");
     await button("Keep changes").click();
@@ -990,7 +1089,7 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     // Clear: an emptied creator stays empty, the guess does not come back.
     await button("Open qa-codex-mini details").click();
     await button("Edit").click();
-    await sheet().getByRole("button", { name: "Edit Registry details", exact: true }).click();
+    await sheet().getByRole("button", { name: "Edit details", exact: true }).click();
     await creatorField.fill("");
     await button("Keep changes").click();
     await button("Review").click();
@@ -1096,14 +1195,43 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
       .locator("..");
     // Basic reads the preselected request types in one line; Change opens the full list.
     await expect(inCard).toContainText("Requests: Image generation · Change");
+    await expect(inCard, "#100: Basic names the access by its provider alone").toContainText("Google");
+    await expect(inCard).not.toContainText("qa-image");
     await expect(inCard.getByRole("checkbox")).toHaveCount(0);
     await inCard.getByRole("button", { name: "Change requests for Google", exact: true }).click();
     await expect(inCard.getByRole("checkbox", { name: /^Image generation/ })).toBeChecked();
     await expect(inCard.getByRole("checkbox", { name: /^Chat Completions/ })).not.toBeChecked();
+    await expect(sheet().locator('[data-slot="sheet-title"]'), "#101: one verb for registering").toHaveText(
+      "Register a model",
+    );
     await button("Next: model details").click();
+    // #101: creating a card says "registering"; the edit flow above keeps "saving".
+    await expect(sheet()).toContainText("Preview before registering");
     await button("Review").click();
+    await expect(sheet().locator("#editor-journey-step-2")).toContainText("Review before registering");
+    // #100: Review opens on one plain sentence of consequence; Basic shows no Registry ID or endpoint before the fold.
+    const review = sheet().locator("#editor-journey-step-2");
+    await expect(review).toContainText(
+      "You’re registering QA Image from your Google subscription. It appears in My models; no key can use it until you add it to one.",
+    );
+    const technical = review.locator("details").filter({ has: page.getByText("Technical details", { exact: true }) });
+    await expect(technical).not.toHaveAttribute("open");
+    for (const jargon of [
+      "Google/qa-image",
+      "images/generations",
+      "Registry ID",
+      "Registry exposed ID",
+      "Registry endpoints",
+      "Documentary record",
+      "Selected operations define",
+    ])
+      await expect(review.getByText(jargon).first(), `${jargon} waits behind the fold`).toBeHidden();
+    await expectNoBasicJargon(page, "the Register review, fold closed");
+    await technical.getByText("Technical details", { exact: true }).click();
+    await expect(technical).toContainText("Registry exposed ID: Google/qa-image");
+    await expect(technical).toContainText("Registry endpoints: images/generations");
     const write = page.waitForRequest(r => r.method() === "PUT" && r.url().endsWith("/api/workspace"));
-    await button("Save model").click();
+    await button("Register").click();
     const saved = (await write).postDataJSON().data.models.find((m: { id: string }) => m.id === "qa-image");
     expect(saved.accesses.map((a: { id: string; endpoints: string[] }) => [a.id, a.endpoints])).toEqual([
       ["Google/qa-image", ["images/generations"]],
@@ -1121,19 +1249,106 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     ).toHaveCount(0);
   });
 
+  await test.step("Basic registers under a Call name of its own, and its errors speak plainly", async () => {
+    // Owner decision: Basic keeps the name applications use to call the model when registering; the family and the
+    // "Common model ID" fold stay Expert's. The errors below are the ones a person meets before the card is valid.
+    await scope(/^To add/).click();
+    await searchModels().fill("qa-unregistered");
+    await button("Open QA Unregistered details").click();
+    const callName = sheet().getByRole("textbox", { name: "Call name", exact: true });
+    await expect(callName, "prefilled with the proposed value").toHaveValue("qa-unregistered");
+    await expect(sheet().getByText("The name applications use to call this model", { exact: true })).toBeVisible();
+    await expect(sheet().getByText("Common model ID"), "Expert's field keeps its own name").toHaveCount(0);
+    await expect(sheet().getByRole("combobox", { name: /ID/ }), "no catalogue search for the ID in Basic").toHaveCount(
+      0,
+    );
+    await expectNoBasicJargon(page, "the Call name field");
+    // No request type chosen: Review sends the person back to the access, in words that name no endpoint.
+    const inCard = sheet()
+      .getByRole("heading", { name: /^In this card/ })
+      .locator("..");
+    await inCard.getByRole("button", { name: /^Change requests for / }).click();
+    for (const type of [/^Chat Completions/, /^Responses/])
+      await inCard.getByRole("checkbox", { name: type }).uncheck();
+    await button("Next: model details").click();
+    await button("Review").click();
+    const noRequestType = "Choose at least one request type for every access.";
+    await expect(
+      page.getByText(noRequestType, { exact: true }),
+      "the banner says request type, not endpoint",
+    ).toBeVisible();
+    await expectNoBasicJargon(page, "the registration error, no request type");
+    const accessDialog = page.getByRole("dialog", { name: "Edit provider access" });
+    await accessDialog.getByRole("checkbox", { name: /^Responses/ }).check();
+    await expect(accessDialog.getByRole("alert")).toHaveCount(0);
+    await accessDialog.getByRole("button", { name: "Keep changes", exact: true }).click();
+    // The call name is checked as Expert's common ID is: a bad one keeps Next off and says what is allowed.
+    await callName.fill("QA Unregistered");
+    await expect(callName).toHaveAttribute("aria-invalid", "true");
+    await expect(sheet().getByText(/^Use lowercase letters, digits, dots, hyphens or underscores/)).toBeVisible();
+    await expect(
+      sheet().getByText("Choose a valid call name and at least one complete access to prepare the card."),
+    ).toBeVisible();
+    await expect(button("Next: model details")).toBeDisabled();
+    await sheet().getByRole("button", { name: "3. Review", exact: true }).click();
+    await expect(sheet().getByRole("alert").filter({ hasText: "Enter a valid call name." })).toBeVisible();
+    await expectNoBasicJargon(page, "the registration error, bad call name");
+    await callName.fill("qa-call-name");
+    await expect(sheet().getByText("Enter a valid call name."), "fixing the name clears its banner").toHaveCount(0);
+    await button("Next: model details").click();
+    // An emptied display name is a prompt until the field is left; it reads as an error only then.
+    const displayName = sheet().getByRole("textbox", { name: "Display name *", exact: true });
+    await displayName.fill("");
+    await expect(displayName).not.toHaveAttribute("aria-invalid", "true");
+    await displayName.blur();
+    await expect(displayName).toHaveAttribute("aria-invalid", "true");
+    await displayName.fill("QA Unregistered");
+    await button("Review").click();
+    const review = sheet().locator("#editor-journey-step-2");
+    await expect(review).toContainText(
+      "You’re registering QA Unregistered from your Synthetic Provider subscription. It appears in My models; no key can use it until you add it to one.",
+    );
+    await expectNoBasicJargon(page, "the Review of a chosen call name, fold closed");
+    const write = page.waitForRequest(r => r.method() === "PUT" && r.url().endsWith("/api/workspace"));
+    await button("Register").click();
+    const saved = (await write).postDataJSON().data.models.find((m: { id: string }) => m.id === "qa-call-name");
+    expect(
+      saved.accesses.map((a: { id: string; nativeModel: string }) => [a.id, a.nativeModel]),
+      "the chosen call name is the common ID; the access still calls the native model",
+    ).toEqual([["synthetic-provider/qa-call-name", "qa-unregistered"]]);
+    await sheet().waitFor({ state: "hidden" });
+    // Put the fixture back for the steps that follow: delete the card, and QA Unregistered returns to To add.
+    await scope(/^In Registry/).click();
+    await searchModels().fill("qa-call-name");
+    await button("Open QA Unregistered details").click();
+    await button("More actions").click();
+    await page.getByRole("menuitem", { name: "Delete", exact: true }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "Delete", exact: true }).click();
+    await sheet().waitFor({ state: "hidden" });
+    await searchModels().fill("");
+    await expect(scope(/^In Registry/)).toHaveAccessibleName("In Registry (13)");
+  });
+
   await test.step("a saved card opens read-first: Edit and Cancel, one step order, No changes, Delete in a menu", async () => {
     await searchModels().fill("qa-image");
     await button("Open QA Image details").click();
     // Read view: the name once as the title, the common ID under it, details to read, nothing to change.
     await expect(sheet().locator('[data-slot="sheet-title"]')).toHaveText("QA Image");
-    await expect(sheet().locator('[data-slot="sheet-description"]')).toContainText("qa-image");
+    await expect(
+      sheet().locator('[data-slot="sheet-description"]'),
+      "Basic names the card by its title: the common ID is Expert's",
+    ).toHaveCount(0);
+    await expect(sheet().getByText("qa-image", { exact: true }), "no ID in Basic's header").toHaveCount(0);
     await expect(sheet().getByRole("heading", { name: "QA Image", exact: true })).toHaveCount(1);
     await expect(sheet().getByRole("textbox", { name: "Display name *", exact: true })).toHaveCount(0);
     await expect(sheet().getByRole("navigation", { name: "Steps" })).toHaveCount(0);
     await expect(button("Save model")).toHaveCount(0);
     await expect(button("Delete"), "Delete is not an always-visible button").toHaveCount(0);
     await sheet().getByRole("tab", { name: "Access", exact: true }).click();
-    await expect(sheet().getByText("qa-image").first()).toBeVisible();
+    await expect(
+      sheet().getByRole("tabpanel").getByText("qa-image"),
+      "#100: Basic names the access by its provider alone, the native ID is not before the fold",
+    ).toHaveCount(0);
     await expect(sheet().getByRole("checkbox"), "Looking never risks changing: no editable control").toHaveCount(0);
     await expect(
       sheet().getByText("Native model ID", { exact: true }),
@@ -1164,7 +1379,9 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     // The Accesses step and Review do not repeat the title or the common ID under the sheet header.
     await sheet().getByRole("button", { name: "1. Accesses", exact: true }).click();
     await expect(sheet().getByText("QA Image", { exact: true })).toHaveCount(1);
-    await expect(sheet().getByText(/^Common model ID/)).toHaveCount(1);
+    await expect(sheet().getByText(/^Common model ID/), "Basic shows no common ID, in the header or here").toHaveCount(
+      0,
+    );
     await sheet().getByRole("button", { name: "2. Model details", exact: true }).click();
     // Nothing changed: Save is off and says why.
     await button("Review").click();
@@ -1202,7 +1419,11 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
   });
 
   await test.step("Expert mode: the read view first, then every step at once in the same order", async () => {
-    const expert = page.getByRole("switch", { name: "Use Expert key composer", exact: true });
+    const expert = page.getByRole("switch", { name: "Expert mode", exact: true });
+    // The accessible name contains the visible label (WCAG 2.5.3): "Expert" is on screen, "Expert mode" is announced.
+    const visibleLabel = (await page.locator("label").filter({ has: expert }).innerText()).trim();
+    expect(visibleLabel).toBe("Expert");
+    expect(await expert.getAttribute("aria-label")).toContain(visibleLabel);
     // Targets are at least 24 × 24 CSS px (WCAG 2.5.8): the Expert switch and the "?" button.
     for (const target of [expert, button("Help for My models")]) {
       const box = (await target.boundingBox())!;
@@ -1222,16 +1443,88 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
         .evaluateAll(parts => parts.map(part => part.id)),
     ).resolves.toEqual(["editor-journey-step-0", "editor-journey-step-1", "editor-journey-step-2"]);
     await expect(sheet().locator("#editor-journey-step-0")).toContainText("In this card");
+    await expect(sheet().locator("#editor-journey-step-0"), "#100: Expert still shows the native ID").toContainText(
+      "qa-chat",
+    );
     await expect(sheet().locator("#editor-journey-step-2")).toContainText("Review before saving");
+    // Expert opens the technical fold of Review; the edit flow says what saving changes, in plain words.
+    await expect(sheet().locator("#editor-journey-step-2").locator("details")).toHaveAttribute("open");
+    // #101: with nothing changed the sentence says so, instead of "You’re saving changes" above "No changes".
+    await expect(sheet().locator("#editor-journey-step-2")).toContainText("No changes to save for QA Chat yet.");
+    await expect(sheet().locator("#editor-journey-step-2")).not.toContainText("You’re saving changes");
     await expect(sheet().locator("#editor-journey-summary")).toBeVisible();
     await expect(sheet().getByRole("textbox", { name: "Display name *", exact: true })).toBeVisible();
+    // #101: Review sits far below the top of the one scroll, so the footer button has to bring it into view.
+    const reviewHeading = sheet().getByRole("heading", { name: "Review before saving", exact: true });
+    await expect(reviewHeading, "the review starts below the first screen").not.toBeInViewport();
+    // Final fixes: only the editor's own container scrolls to a step. The sheet shell (overflow hidden) never does, or
+    // its Close button and stepper would leave the screen while the footer already shows the next step.
+    const journeyScroller = sheet().locator("[data-journey-scroll]");
+    const expectShellStill = async (where: string) => {
+      // Smooth scrolling is asynchronous: wait until neither the shell nor the editor's container moves any more.
+      await page.evaluate(
+        () =>
+          new Promise<void>(resolve => {
+            const tops = () =>
+              [...document.querySelectorAll('[data-slot="sheet-content"], [data-journey-scroll]')]
+                .map(el => el.scrollTop)
+                .join();
+            let last = tops();
+            let still = 0;
+            const frame = () => {
+              const now = tops();
+              still = now === last ? still + 1 : 0;
+              last = now;
+              if (still >= 15) resolve();
+              else requestAnimationFrame(frame);
+            };
+            requestAnimationFrame(frame);
+          }),
+      );
+      expect(await sheet().evaluate(el => el.scrollTop), `${where}: the sheet shell never scrolls`).toBe(0);
+      await expect(
+        sheet().getByRole("button", { name: "Close", exact: true }),
+        `${where}: Close stays on screen`,
+      ).toBeInViewport({ ratio: 1 });
+      await expect(
+        sheet().getByRole("navigation", { name: "Steps" }),
+        `${where}: the stepper stays on screen`,
+      ).toBeInViewport({ ratio: 1 });
+    };
     await button("Review").click();
+    await expect(reviewHeading, "the footer Review button scrolls to the review").toBeInViewport();
+    await expect(reviewHeading, "and moves focus to its heading").toBeFocused();
+    await expectShellStill("Edit, Review");
+    expect(
+      await journeyScroller.evaluate(el => el.scrollTop),
+      "the editor's own container did the scrolling",
+    ).toBeGreaterThan(0);
     await expect(button("Save model")).toBeDisabled();
     await expect(sheet().getByText("No changes", { exact: true })).toBeVisible();
+    await button("Back").click();
+    await expectShellStill("Edit, Back");
     await button("Cancel").click();
     await expect(button("Edit")).toBeVisible();
     await closeSheet();
     await sheet().waitFor({ state: "hidden" });
+    // Register, Expert: "Next: model details", then Review. The heading reads "Review before registering".
+    await scope(/^To add/).click();
+    await button("Open QA Unregistered details").click();
+    // Playwright scrolls a target it clicks into view, the shell included, so let the sheet finish sliding in first.
+    await page.waitForFunction(() => document.getAnimations().length === 0);
+    await button("Next: model details").click();
+    await button("Review").click();
+    const registerReview = sheet().locator("#model-review-heading");
+    await expect(registerReview).toContainText("Review before registering");
+    await expect(registerReview, "Register: Review brings its heading into view").toBeInViewport();
+    await expect(registerReview, "and focuses it").toBeFocused();
+    await expectShellStill("Register, Review");
+    await expect(button("Register")).toBeVisible();
+    await button("Back").click();
+    await expectShellStill("Register, Back");
+    await button("Cancel").click();
+    await sheet().waitFor({ state: "hidden" });
+    await scope(/^In Registry/).click();
     await expert.click();
   });
 
@@ -1257,11 +1550,25 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     // The aggregator's deepseek/qa-reasoner proposes the model's own name, like the direct providers' IDs.
     await searchModels().fill("qa-reasoner");
     await button("Open QA Reasoner details").click();
-    const commonId = sheet().locator("summary", { hasText: "Common model ID" });
-    await expect(commonId).toContainText("qa-reasoner");
-    await expect(commonId).not.toContainText("deepseek");
+    await expect(
+      sheet().locator("summary", { hasText: "Common model ID" }),
+      "Basic does not offer the common ID fold: it has the Call name field instead",
+    ).toHaveCount(0);
+    await expect(sheet().getByRole("textbox", { name: "Call name", exact: true })).toHaveValue("qa-reasoner");
     await button("Cancel").click();
     await sheet().waitFor({ state: "hidden" });
+    await setExpert(true);
+    await button("Open QA Reasoner details").click();
+    const commonId = sheet().locator("summary", { hasText: "Common model ID" });
+    await expect(commonId, "Expert changes the common ID here").toContainText("qa-reasoner");
+    await expect(commonId).not.toContainText("deepseek");
+    await expect(
+      sheet().getByRole("textbox", { name: "Call name", exact: true }),
+      "Expert has no Call name",
+    ).toHaveCount(0);
+    await button("Cancel").click();
+    await sheet().waitFor({ state: "hidden" });
+    await setExpert(false);
     await searchModels().fill("");
     await scope(/^In Registry/).click();
   });
@@ -1295,7 +1602,10 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await page.getByRole("radio", { name: "Table", exact: true }).click();
     await page.keyboard.press("Escape");
     const row = page.getByRole("row").filter({ has: page.getByRole("button", { name: /^Open qa[- ]opus details$/i }) });
-    await expect(row).toContainText("1 available, not in this card");
+    await expect(row.locator("[data-attention]"), "the table says +1 available once, as a badge").toHaveText([
+      "+1 available",
+    ]);
+    await expect(row).not.toContainText("not in this card");
     await expect(row.getByText(/openrouter/i)).toHaveCount(0);
     await button("View options").click(); // Basic keeps the view choice in View options
     await page.getByRole("radio", { name: "Grid", exact: true }).click();
@@ -1326,7 +1636,11 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await sheet().getByRole("tab", { name: "Access", exact: true }).click();
     await expect(part(sheet(), /^Also available/)).toContainText(/openrouter/i);
     await button("Edit accesses").click();
-    await expect(part(sheet(), /^In this card/)).toContainText("qa-opus");
+    await expect(part(sheet(), /^In this card/)).toContainText("Claude");
+    await expect(
+      part(sheet(), /^In this card/),
+      "#100: one access per provider, no native ID in Basic",
+    ).not.toContainText("qa-opus");
     await expect(part(sheet(), /^In this card/)).not.toContainText(/openrouter/i);
     await expect(part(sheet(), /^Also available/)).toContainText(/Input price \$4\/M.*Output price \$20\/M/);
     await expect(part(sheet(), /^Also available/), "An access saved in another card is not offered").not.toContainText(
@@ -1347,12 +1661,16 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(part(sheet(), /^Also available/)).not.toContainText(/openrouter/i);
     // Preselected from the native chat mode declared by Bifrost: a chat model answers both text request types.
     await expect(part(sheet(), /^In this card/)).toContainText(/Requests: Chat Completions, Responses · Change/i);
+    await expect(part(sheet(), /^In this card/), "#100: still one access per provider after the add").not.toContainText(
+      "qa-opus",
+    );
     await button("Review").click();
+    // #100: Basic words an added or removed access by its provider alone; the native ID waits in the fold.
     await sheet()
-      .getByText(/^Access added: openrouter · anthropic\/qa-opus$/i)
+      .getByText(/^Access added: openrouter$/i)
       .waitFor();
     await sheet()
-      .getByText(/^Access removed: Claude · qa-opus$/)
+      .getByText(/^Access removed: Claude$/)
       .waitFor();
     await button("Cancel").click();
     await button("Discard draft").click();
@@ -1376,12 +1694,307 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await sheet().waitFor({ state: "hidden" });
   });
 
+  await test.step("the edit Review words changes plainly; request types and IDs wait in the technical fold", async () => {
+    // #100, edit flow. Basic reads "Requests changed for Claude" and "Access added: OpenRouter"; the exact
+    // request types and native IDs sit in the "Technical details" fold, which Expert opens.
+    for (const expertOn of [false, true]) {
+      await setExpert(expertOn);
+      await page.getByRole("button", { name: "Open QA Opus saved details", exact: true }).click();
+      if (!expertOn) {
+        // Basic: ~5 facts and no technical term on any tab, read or edited; the technical facts are Expert's below.
+        await sweepCardTabs("QA Opus saved, reading");
+        await sheet().getByRole("tab", { name: "Properties", exact: true }).click();
+        await expect(
+          sheet().getByText("Inherited from model"),
+          "provenance is said once, not on every value",
+        ).toHaveCount(0);
+        await expect(
+          sheet().getByRole("columnheader"),
+          "Basic lists the card's own values, no column per provider",
+        ).toHaveCount(0);
+        await expect(sheet().getByText("Values come from Models.dev unless you corrected them.")).toHaveCount(1);
+        await expect(sheet().getByText("Context length", { exact: true })).toBeVisible();
+        await sheet().getByRole("tab", { name: "Sources", exact: true }).click();
+        await expect(sheet().getByText("Reference", { exact: true }).first(), "Basic says reference").toBeVisible();
+        await sheet().getByRole("tab", { name: "Overview", exact: true }).click();
+        await button("Edit").click();
+        await sweepCardTabs("QA Opus saved, editing", true);
+        await button("Cancel").click();
+      } else {
+        // Expert keeps every technical fact and every edit button.
+        await sheet().getByRole("tab", { name: "Properties", exact: true }).click();
+        await expect(sheet().getByRole("columnheader", { name: "Claude" })).toHaveCount(1);
+        await expect(
+          sheet()
+            .getByText(/^Inherited from model/)
+            .locator("visible=true")
+            .first(),
+        ).toBeVisible();
+        await sheet().getByRole("tab", { name: "Sources", exact: true }).click();
+        await expect(sheet().getByText("Documentary record", { exact: true }).first()).toBeVisible();
+        await expect(sheet().getByText("Document ID", { exact: true }).first()).toBeVisible();
+      }
+      // #100: the Access and Sources tabs name the access by its provider in Basic; Expert shows the native ID.
+      for (const tab of ["Sources", "Access"]) {
+        await sheet().getByRole("tab", { name: tab, exact: true }).click();
+        await expect(
+          sheet().getByRole("tabpanel").getByText("qa-opus", { exact: true }),
+          `${tab} tab, ${expertOn ? "Expert" : "Basic"}`,
+        ).toHaveCount(expertOn ? 1 : 0);
+      }
+      if (expertOn) await sheet().getByRole("tab", { name: "Overview", exact: true }).click();
+      await button(expertOn ? "Edit" : "Edit accesses").click();
+      const inCard = sheet()
+        .getByRole("heading", { name: /^In this card/ })
+        .locator("..");
+      if (!expertOn) await inCard.getByRole("button", { name: "Change requests for Claude", exact: true }).click();
+      await inCard.getByRole("checkbox", { name: /^Responses/ }).uncheck();
+      await sheet()
+        .getByRole("button", { name: /^Add openrouter/i })
+        .click();
+      if (expertOn) {
+        await expect(inCard.getByText("qa-opus", { exact: true }), "Expert: Claude's native ID").toHaveCount(1);
+        await expect(inCard.getByText("anthropic/qa-opus", { exact: true }), "Expert: OpenRouter's").toHaveCount(1);
+      } else await expect(inCard, "Basic: one access per provider, no native ID").not.toContainText("qa-opus");
+      await button("Review").click();
+      const review = sheet().locator("#editor-journey-step-2");
+      const changes = review.getByRole("heading", { name: "Proposed changes" }).locator("..");
+      const technical = review.locator("details").filter({ has: page.getByText("Technical details", { exact: true }) });
+      await expect(changes).toContainText("Access added: OpenRouter");
+      await expect(changes).toContainText("Requests changed for Claude");
+      if (!expertOn) await expectNoBasicJargon(page, "the edit Review, fold closed");
+      for (const jargon of ["works with", "Chat", "Responses", "chat/completions", "qa-opus", "Registry ID"])
+        await expect(
+          changes,
+          `${jargon} is not in Proposed changes (${expertOn ? "Expert" : "Basic"})`,
+        ).not.toContainText(jargon);
+      if (expertOn) await expect(technical).toHaveAttribute("open");
+      else {
+        await expect(technical).not.toHaveAttribute("open");
+        await technical.getByText("Technical details", { exact: true }).click();
+      }
+      await expect(technical.getByText("Technical changes", { exact: true })).toBeVisible();
+      await expect(technical).toContainText("Access added: OpenRouter · anthropic/qa-opus");
+      await expect(technical).toContainText(
+        "Endpoints for Claude · qa-opus: chat/completions, responses → chat/completions",
+      );
+      await button("Cancel").click();
+      await button("Discard draft").click();
+      await closeSheet();
+      await sheet().waitFor({ state: "hidden" });
+    }
+    await setExpert(false);
+  });
+
+  await test.step("Basic corrects a numeric value in Edit details and an access's settings in Edit accesses", async () => {
+    // Expert is hidden under 1280 px, so Basic keeps every correction: the card's values in the one "Edit details"
+    // dialog, an access's own in its settings, in plain words and without a button per value.
+    const writes = () => page.waitForRequest(r => r.method() === "PUT" && r.url().endsWith("/api/workspace"));
+    const editDetails = async () => {
+      await page.getByRole("button", { name: "Open QA Opus saved details", exact: true }).click();
+      await button("Edit").click();
+      await sheet().getByRole("button", { name: "Edit details", exact: true }).click();
+      return page.getByRole("dialog", { name: "Edit details" });
+    };
+    const correct = async (value: string) => {
+      const dialog = await editDetails();
+      const context = dialog.getByRole("spinbutton", { name: /^Context length/ });
+      await context.fill(value);
+      await dialog.getByRole("button", { name: "Keep changes", exact: true }).click();
+      await button("Review").click();
+      const write = writes();
+      await button("Save model").click();
+      return (await write).postDataJSON();
+    };
+    let dialog = await editDetails();
+    const context = dialog.getByRole("spinbutton", { name: /^Context length/ });
+    await expect(context, "the shown value is the card's").toHaveValue("131072");
+    // Expert's safeguards, in plain words: nothing to revert or preview before a value is changed.
+    const preview = dialog.getByRole("heading", { name: "Correction preview", exact: true });
+    const revert = dialog.getByRole("button", { name: "Revert to inherited · Context length", exact: true });
+    await expect(preview).toHaveCount(0);
+    await expect(revert).toHaveCount(0);
+    for (const name of [/^Maximum output/, /^Input price/, /^Output price/])
+      await expect(dialog.getByRole("spinbutton", { name }), `${name} is corrected here too`).toBeVisible();
+    for (const name of [/^Tool calling(?! evidence)/, /^Structured output(?! evidence)/])
+      await expect(dialog.getByRole("combobox", { name }), `${name} is corrected here too`).toBeVisible();
+    await expect(dialog.getByRole("combobox", { name: "Family", exact: true }), "Basic has no family").toHaveCount(0);
+    await expectNoBasicJargon(page, "the Edit details dialog");
+    // A value that is not a whole number is refused beside the field and keeps the dialog open.
+    await context.fill("12.5");
+    await expect(dialog.getByRole("alert")).toContainText("Enter a nonnegative whole number.");
+    await expect(dialog.getByRole("button", { name: "Keep changes", exact: true })).toBeDisabled();
+    await expect(preview, "no preview of a value that cannot be read").toHaveCount(0);
+    await context.fill("131072"); // back to what is shown: nothing to keep, no error
+    await expect(dialog.getByRole("alert")).toHaveCount(0);
+    await expect(preview.locator("..")).toContainText("No change");
+    // Change Context length: the preview names the accesses it reaches before anything is kept.
+    await context.fill("200000");
+    const reach = preview.locator("..");
+    await expect(reach).toContainText(/Applies to \d+ accesse?s?: /);
+    await expect(reach).toContainText(/131,?072 → 200,?000/);
+    await expect(reach).not.toContainText("No change");
+    await expectNoBasicJargon(page, "the Correction preview");
+    // Revert puts the original value back and the preview says nothing moves.
+    await revert.click();
+    await expect(context).toHaveValue("131072");
+    await expect(revert).toHaveCount(0);
+    await expect(preview.locator("..")).toContainText("No change");
+    await expect(preview.locator("..")).not.toContainText("Applies to");
+    await context.fill("200000");
+    await dialog.getByRole("button", { name: "Keep changes", exact: true }).click();
+    await expect(sheet().getByText(/Correction added to the draft/)).toBeVisible();
+    // Reverting the correction kept in this draft restores the original: nothing is added, and the notice says so.
+    await sheet().getByRole("button", { name: "Edit details", exact: true }).click();
+    await expect(context).toHaveValue("200000");
+    await revert.click();
+    await expect(context).toHaveValue("131072");
+    await dialog.getByRole("button", { name: "Keep changes", exact: true }).click();
+    await expect(sheet().getByText("No change: back to the original value.", { exact: true })).toBeVisible();
+    await expect(sheet().getByText(/Correction added to the draft/)).toHaveCount(0);
+    await sheet().getByRole("button", { name: "Edit details", exact: true }).click();
+    await context.fill("200000");
+    await dialog.getByRole("button", { name: "Keep changes", exact: true }).click();
+    await expect(sheet().getByText(/Correction added to the draft/)).toBeVisible();
+    await button("Review").click();
+    const review = sheet().locator("#editor-journey-step-2");
+    await expect(review).toContainText("Catalog corrections saved with this model");
+    await expect(review.getByRole("listitem").filter({ hasText: "Context length" })).toContainText(/200,?000/);
+    await expectNoBasicJargon(page, "the Review of a corrected value");
+    const write = writes();
+    await button("Save model").click();
+    expect((await write).postDataJSON().catalogOverrides).toEqual([
+      expect.objectContaining({ target: "reference", id: "anthropic/qa-opus", field: "context_length", value: 200000 }),
+    ]);
+    await sheet().waitFor({ state: "hidden" });
+    // The corrected value is read back as corrected, in Properties: one word for it.
+    await page.getByRole("button", { name: "Open QA Opus saved details", exact: true }).click();
+    await sheet().getByRole("tab", { name: "Properties", exact: true }).click();
+    await expect(sheet().getByText("corrected", { exact: true })).toHaveCount(1);
+    await expect(sheet().getByText(/customi[sz]ed/i)).toHaveCount(0);
+    await closeSheet();
+    await sheet().waitFor({ state: "hidden" });
+    // Put the fixture back for the steps that follow.
+    expect((await correct("131072")).catalogOverrides).toEqual([
+      expect.objectContaining({ target: "reference", field: "context_length", value: 131072 }),
+    ]);
+    await sheet().waitFor({ state: "hidden" });
+
+    // An access's settings: reached from "Edit accesses", with its own values, without its IDs or route.
+    await page.getByRole("button", { name: "Open QA Opus saved details", exact: true }).click();
+    await sheet().getByRole("tab", { name: "Access", exact: true }).click();
+    await button("Edit accesses").click();
+    await sheet().getByRole("button", { name: "Access settings for Claude", exact: true }).click();
+    dialog = page.getByRole("dialog", { name: "Edit provider access" });
+    await expect(dialog.getByRole("combobox", { name: "Reference for this access", exact: true })).toBeVisible();
+    await expect(dialog.getByText("Values for this access", { exact: true })).toBeVisible();
+    for (const name of ["Model at this provider *", "Registry exposed ID"])
+      await expect(
+        dialog.getByRole("textbox", { name, exact: true }),
+        `${name} is Expert's for a found access`,
+      ).toHaveCount(0);
+    await expectNoBasicJargon(page, "an access's settings");
+    await dialog.getByRole("spinbutton", { name: /^Context length/ }).fill("65536");
+    await expect(dialog.getByRole("heading", { name: "Correction preview", exact: true }).locator("..")).toContainText(
+      /Applies to 1 access: Claude/,
+    );
+    await expect(
+      dialog.getByRole("button", { name: "Revert to inherited · Context length", exact: true }),
+    ).toBeVisible();
+    await expectNoBasicJargon(page, "an access's Correction preview");
+    await dialog.getByRole("button", { name: "Keep changes", exact: true }).click();
+    await button("Review").click();
+    await expect(
+      sheet().locator("#editor-journey-step-2").getByRole("listitem").filter({ hasText: "provider access" }),
+      "the access's own correction is listed apart from the card's",
+    ).toContainText(/Context length/);
+    await button("Cancel").click();
+    await button("Discard draft").click();
+    await closeSheet();
+    await sheet().waitFor({ state: "hidden" });
+  });
+
+  await test.step("Basic keeps the native IDs of a provider the card holds twice, and only those", async () => {
+    // #100. The fixture saves no card with two accesses of one provider, so a mocked workspace gives QA Shared
+    // (Claude and Codex, one each) a second Claude access. Claude's two rows need their native IDs to be told
+    // apart; Codex's single row stays a provider name.
+    const live = await api("workspace");
+    const catalog = await api("catalog");
+    const twin = { ...live.data.models.find((m: { id: string }) => m.id === "qa-shared").accesses[0] };
+    expect(twin.provider).toBe("Claude");
+    twin.id = "Claude/qa-shared-fast";
+    twin.nativeModel = "qa-shared-fast";
+    const twice = await browser.newPage({ baseURL, viewport: { width: 1440, height: 950 } });
+    await skipTour(twice);
+    twice.on("pageerror", e => errors.push(e.message));
+    await twice.route("**/api/workspace", r =>
+      r.fulfill({
+        json: {
+          ...live,
+          data: {
+            ...live.data,
+            models: live.data.models.map((m: { id: string; accesses: unknown[] }) =>
+              m.id === "qa-shared" ? { ...m, accesses: [...m.accesses, twin] } : m,
+            ),
+          },
+        },
+      }),
+    );
+    await twice.route("**/api/catalog", r => r.fulfill({ json: catalog }));
+    await twice.goto("/");
+    await twice.getByRole("button", { name: "Open QA Shared details", exact: true }).first().click();
+    const twiceSheet = twice.locator('[data-slot="sheet-content"]');
+    await twiceSheet.getByRole("tab", { name: "Access", exact: true }).click();
+    const accessCards = twiceSheet
+      .getByRole("tabpanel")
+      .locator("div.rounded-sm.border")
+      .filter({ has: twice.getByText("Provider access", { exact: true }) });
+    await expect(accessCards).toHaveCount(3);
+    const claudeCards = accessCards.filter({ hasText: "Claude" });
+    await expect(claudeCards).toHaveCount(2);
+    await expect(
+      claudeCards.getByText("qa-shared", { exact: true }),
+      "Claude's first row keeps its native ID",
+    ).toHaveCount(1);
+    await expect(claudeCards.getByText("qa-shared-fast", { exact: true }), "and so does its twin").toHaveCount(1);
+    await expect(accessCards.filter({ hasText: "Codex" }), "Codex is held once: the provider alone").not.toContainText(
+      "qa-shared",
+    );
+    await twiceSheet.getByRole("button", { name: "Edit accesses", exact: true }).click();
+    // Two accesses of one provider get two accessible names: the native model tells them apart, as on screen.
+    for (const [prefix, names] of [
+      ["Access settings for", ["Claude · qa-shared", "Claude · qa-shared-fast", "Codex"]],
+      ["Change requests for", ["Claude · qa-shared", "Claude · qa-shared-fast", "Codex"]],
+    ] as const) {
+      const labels = await twiceSheet
+        .getByRole("button", { name: new RegExp(`^${prefix}`) })
+        .evaluateAll(buttons => buttons.map(button => button.getAttribute("aria-label")));
+      expect(labels.sort(), `${prefix}: one name per access`).toEqual(names.map(name => `${prefix} ${name}`).sort());
+    }
+    const inCard = twiceSheet.getByRole("heading", { name: /^In this card/ }).locator("..");
+    await expect(inCard.getByText("qa-shared", { exact: true })).toHaveCount(1);
+    await expect(inCard.getByText("qa-shared-fast", { exact: true })).toHaveCount(1);
+    await expect(inCard.locator("p").filter({ has: twice.locator("strong", { hasText: "Codex" }) })).not.toContainText(
+      "qa-shared",
+    );
+    await twice.close();
+  });
+
   await test.step("custom provider derives exposed ID and validation stays beside Save", async () => {
     // "Add model > Advanced: custom model" is now "Register a model > Advanced: enter an access
     // manually"; the access form keeps its Save action (Keep changes) disabled beside the error.
     await button("Register a model").click();
     await button("Advanced: enter an access manually").click();
+    // Nothing is typed yet: what is missing is a prompt, not an error; once something is typed, it is one.
+    const missing = sheet().getByText(
+      "Choose a valid call name and at least one complete access to prepare the card.",
+      {
+        exact: true,
+      },
+    );
+    await expect(missing).not.toHaveClass(/destructive/);
     await page.getByRole("combobox", { name: "Search a model or enter its ID *", exact: true }).fill("qa-custom");
+    await expect(missing).toHaveClass(/destructive/);
     await button("Enter access manually").click();
     const dialog = page.getByRole("dialog", { name: "Edit provider access" });
     await dialog.getByRole("combobox", { name: "Provider in Bifrost *", exact: true }).fill("synthetic-provider");
@@ -1409,7 +2022,17 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     // Creating a group is now a three-step sheet: Details, Models, Review.
     await nav("Groups").click();
     await button("Create group").click();
-    await page.getByRole("textbox", { name: "Group name *", exact: true }).fill("QA Browser Group");
+    // Critique round 5: the sheet says "publishing", as its last button does, and "Required" is a neutral hint, not
+    // an error, until the name is left empty.
+    await expect(sheet()).toContainText("Review the key impact before publishing.");
+    const groupName = page.getByRole("textbox", { name: "Group name *", exact: true });
+    await expect(groupName).not.toHaveAttribute("aria-invalid", "true");
+    await expect(sheet().getByText("Required", { exact: true })).not.toHaveClass(/destructive/);
+    await page.getByRole("textbox", { name: "Description", exact: true }).click(); // leaves the empty name
+    await expect(groupName).toHaveAttribute("aria-invalid", "true");
+    await expect(sheet().getByText("Enter a group name.", { exact: true })).toBeVisible();
+    await groupName.fill("QA Browser Group");
+    await expect(groupName).not.toHaveAttribute("aria-invalid", "true");
     await button("Continue").click();
     await page.getByRole("checkbox", { name: "Select QA Code", exact: true }).check();
     // qa-haiku was saved with its common ID as name: the list reads its reference name, the ID below.
@@ -1444,18 +2067,29 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(page.getByRole("button", { name: /^(All virtual keys|Virtual keys|Back)$/ })).toHaveCount(1);
     // Spec #85: a managed key opens read-first on what it can call today, grouped by subscription; the
     // 59-card editor waits behind Edit selection, and the rare actions wait in More actions.
-    // Round 2: one ledger, "This key can call N models", one row per model tagged with its route; what Bifrost
-    // allows (story 36) and the IDs it lists wait in one "Technical check" fold.
-    const ledger = page.getByRole("region", { name: "This key can call 2 models", exact: true });
-    await expect(ledger).toContainText("Synthetic Provider · 2 models");
+    // Round 2 and #99: one ledger, "This key can call N models", one row per model with the subscriptions that serve
+    // it; what Bifrost allows (story 36) and the IDs it lists wait in one "Technical check" fold.
+    // Critique round 5: Bifrost was not asked yet, so the headline is provisional and the first check sits beside it.
+    const ledger = page.getByRole("region", { name: "This key can call 2 models · not checked yet", exact: true });
+    await expect(ledger.getByRole("listitem")).toHaveCount(2);
     await expect(ledger).toContainText("via Synthetic Provider");
     await expect(ledger.getByText(/^Bifrost allows today · /)).toBeHidden();
-    await ledger.getByText(/^Technical check · /).click();
+    await expect(
+      ledger.getByRole("button", { name: "Check with Bifrost", exact: true }),
+      "the first check is visible with the technical fold closed",
+    ).toBeVisible();
+    await expect(
+      ledger.getByText(/^Technical check · /),
+      'the fold does not repeat the headline\'s "not checked yet"',
+    ).toHaveCount(0);
+    await ledger.getByText(/^Technical check/).click();
     await expect(ledger.getByText(/^Bifrost allows today · /)).toBeVisible();
-    await expect(ledger.getByRole("button", { name: "Read again", exact: true })).toBeVisible();
+    // One check button, named for the first check: not duplicated in the fold, never "Read again".
+    await expect(ledger.getByRole("button", { name: /^Check/ })).toHaveText(["Check with Bifrost"]);
+    await expect(ledger.getByRole("button", { name: "Read again", exact: true })).toHaveCount(0);
     await expect(page.getByRole("list", { name: "Key composition steps" })).toHaveCount(0);
     await button("More actions").click();
-    await expect(page.getByRole("menuitem")).toHaveText(["Rename", "Disable", "Review binding"]);
+    await expect(page.getByRole("menuitem")).toHaveText(["Rename", "Disable", "Re-link the Bifrost key"]);
     await page.keyboard.press("Escape");
     await editSelection();
     // Basic (critique round 2): the folded Models toolbar, grouped by subscription, one sticky selection line.
@@ -1548,7 +2182,7 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
   await test.step("publication failure retains key draft and recovery action", async () => {
     await button("Restore QA Code").click();
     // #69: once read back, the verified readback is the baseline.
-    await expect(keyChanges().getByText("Compared with the last verified readback", { exact: true })).toBeVisible();
+    await expect(keyChanges().getByText("Compared with what Bifrost last confirmed", { exact: true })).toBeVisible();
     await expect(keyChanges().getByRole("list", { name: "Will gain" })).toContainText("synthetic-provider/qa-code");
     await page.route("**/api/workspace", route =>
       route.request().method() === "PUT"
@@ -1582,6 +2216,7 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
       ["QA All Providers Key", "Blocked", "Every provider allowed"],
       ["QA Claude Key", "Blocked", "Claude · all models allowed"],
       ["QA Wildcard Key", "Blocked", "Claude · all models allowed"],
+      ["QA Kept Key", "Blocked", "Google: Bifrost doesn’t show 1 model"],
       ["QA Unmanaged Key", "Empty", ""],
     ];
     await emptyShelf();
@@ -1593,21 +2228,22 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(keyCard("QA Development Key")).toContainText("Active");
     // The default order opens on managed keys, then the worklist: ready, then blocked; by name inside each.
     // Empty keys wait in their own shelf (opened above; collapsed by default).
-    await expect(page.getByRole("button", { name: /^(Review|Open) · / })).toHaveText([
+    await expect(page.getByRole("button", { name: /^(Adopt|See what blocks it|Open) · / })).toHaveText([
       "Open · QA Development Key",
       "Open · QA Visual Key",
-      "Review · QA Codex Key",
-      "Review · QA Google Key",
-      "Review · QA All Providers Key",
-      "Review · QA Claude Key",
-      "Review · QA Hermes Key",
-      "Review · QA Mistral Key",
-      "Review · QA To Add Key",
-      "Review · QA Wildcard Key",
-      "Review · QA Unmanaged Key",
+      "Adopt · QA Codex Key",
+      "Adopt · QA Google Key",
+      "See what blocks it · QA All Providers Key",
+      "See what blocks it · QA Claude Key",
+      "See what blocks it · QA Hermes Key",
+      "See what blocks it · QA Kept Key",
+      "See what blocks it · QA Mistral Key",
+      "See what blocks it · QA To Add Key",
+      "See what blocks it · QA Wildcard Key",
+      "Open · QA Unmanaged Key",
     ]);
     await page.getByRole("button", { name: "Empty 1", exact: true }).click();
-    await expect(page.getByText("11 of 11 keys shown, 1 in a collapsed shelf", { exact: true })).toBeVisible();
+    await expect(page.getByText("12 of 12 keys shown, 1 in a collapsed shelf", { exact: true })).toBeVisible();
     await emptyShelf();
     // The Keys page triages by readiness; managed keys are their own bucket. Basic keeps the filters in "Filters".
     const readiness = page.getByRole("combobox", { name: "Filter by readiness", exact: true });
@@ -1616,34 +2252,36 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(page.getByRole("option")).toHaveText([
       "All adoption states",
       "Ready to adopt (2)",
-      "Blocked (6)",
+      "Blocked (7)",
       "Empty (1)",
       "Managed (2)",
     ]);
-    await page.getByRole("option", { name: "Blocked (6)", exact: true }).click();
-    await expect(page.getByText("6 of 11 keys shown", { exact: true })).toBeVisible();
+    await page.getByRole("option", { name: "Blocked (7)", exact: true }).click();
+    await expect(page.getByText("7 of 12 keys shown", { exact: true })).toBeVisible();
     await expect(keyCard("QA Mistral Key")).toHaveCount(1);
     await expect(keyCard("QA Codex Key")).toHaveCount(0);
     await keyFilters();
     await readiness.click();
     await page.getByRole("option", { name: "Ready to adopt (2)", exact: true }).click();
-    await expect(page.getByText("2 of 11 keys shown", { exact: true })).toBeVisible();
+    await expect(page.getByText("2 of 12 keys shown", { exact: true })).toBeVisible();
     await expect(keyCard("QA Google Key")).toHaveCount(1);
     await keyFilters();
     await readiness.click();
     await page.getByRole("option", { name: "Empty (1)", exact: true }).click();
     await expect(keyCard("QA Unmanaged Key")).toHaveCount(1);
-    await expect(page.getByText("1 of 11 keys shown", { exact: true })).toBeVisible();
+    await expect(page.getByText("1 of 12 keys shown", { exact: true })).toBeVisible();
     await keyFilters();
     await readiness.click();
     await page.getByRole("option", { name: "All adoption states", exact: true }).click();
-    await expect(page.getByText("11 of 11 keys shown", { exact: true })).toBeVisible();
+    await expect(page.getByText("12 of 12 keys shown", { exact: true })).toBeVisible();
     await page.keyboard.press("Escape"); // closes Filters
     await shot("after-keys-readiness");
 
     // Blocked by models Bifrost does not list (a disabled provider): counts per provider, names behind a
     // disclosure, and no way to "add" what nothing can add. The key page shows counts, not an ID wall.
-    await keyCard("QA Mistral Key").getByRole("button", { name: "Review · QA Mistral Key", exact: true }).click();
+    await keyCard("QA Mistral Key")
+      .getByRole("button", { name: "See what blocks it · QA Mistral Key", exact: true })
+      .click();
     const allowed = page.getByRole("list", { name: "Bifrost allows today" });
     await expect(allowed).toContainText("Mistral · 3 models");
     await expect(allowed).toContainText("Claude · 3 models");
@@ -1656,10 +2294,13 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     const dialog = page.getByRole("dialog");
     // Spec #85: the dialog opens on the decisions, one numbered row per provider, each with its choices.
     // Critique round 2: Bifrost reports Mistral disabled, so the dialog keeps it in Bifrost from the start (undoable);
-    // it counts as decided, and the progress sits next to Adopt.
-    const decisions = dialog.getByRole("region", { name: "1 decision before adopting" });
-    await expect(decisions.getByRole("heading", { name: "1 decision before adopting" })).toBeInViewport();
-    await expect(decisions).toContainText("It is required to adopt the key.");
+    // it counts as decided, and the progress sits next to Adopt. #101: the heading counts that row too ("2 decisions
+    // · 1 already made"), so it agrees with the footer ("1 of 2 decided").
+    const decisions = dialog.getByRole("region", { name: "2 decisions before adopting · 1 already made", exact: true });
+    await expect(
+      decisions.getByRole("heading", { name: "2 decisions before adopting · 1 already made", exact: true }),
+    ).toBeInViewport();
+    await expect(decisions).toContainText("Each one is required to adopt the key.");
     await expect(decisions.locator("ol > li")).toHaveCount(1);
     const keptMistral = dialog.getByRole("region", { name: "Kept in Bifrost" });
     await expect(keptMistral).toContainText("Mistral is disabled in Bifrost, so Registry leaves it as is.");
@@ -1669,23 +2310,51 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(dialog.getByText("1 of 2 decided", { exact: true })).toBeVisible();
     await expect(dialog).not.toContainText("read back");
     await expect(dialog).not.toContainText("Needs attention");
-    await dialog.getByText("Show model names", { exact: true }).first().click();
+    // Critique round 5: the intro is accurate about what changes Bifrost, and a decision names its models in its line,
+    // with no "Show model names" to open.
+    await expect(dialog).toContainText(
+      "Adopting itself changes nothing in Bifrost; the options marked “Changes Bifrost” do.",
+    );
+    await expect(dialog).not.toContainText("Show model names");
+    await expect(decisions).toContainText("Model: qa-shared");
     await expect(dialog.getByText("qa-shared", { exact: true })).toBeVisible();
     await expect(dialog.getByRole("button", { name: /^Show in To add/ })).toHaveCount(0);
     // One model allowed through Claude and Codex: either provider can stay in Bifrost.
-    await expect(decisions).toContainText("Codex · 1 model also allowed through Claude");
-    await expect(decisions).toContainText("Registry adopts one access per model");
-    for (const name of ["Keep Codex in Bifrost", "Keep Claude in Bifrost"])
-      await expect(dialog.getByRole("button", { name, exact: true })).toBeVisible();
+    // #100, #101: in plain words, with the two choices labelled by outcome.
+    await expect(decisions).toContainText("1 model is allowed through Codex and Claude.");
+    await expect(decisions).toContainText(
+      "Registry uses one subscription per model: choose the one to use, and Bifrost keeps handling the other for this key.",
+    );
+    // Each choice is a button with a selected state (aria-pressed); none is chosen yet.
+    for (const name of ["Use Claude for this model", "Use Codex for this model"])
+      await expect(dialog.getByRole("button", { name, exact: true, pressed: false })).toBeVisible();
+    for (const jargon of ["native", "readback", "cannot hold"]) await expect(dialog).not.toContainText(jargon);
     // What Registry would manage waits behind a disclosure.
     await expect(dialog.getByText("Accesses Registry will manage (3)", { exact: true })).toBeVisible();
     await expect(dialog.getByText("Claude/qa-haiku", { exact: true })).toBeHidden();
     await expect(dialog.getByRole("button", { name: "Adopt", exact: true })).toBeDisabled();
     await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
 
+    // Critique round 5: Cancel stays available while the preview loads (seconds on a real gateway); the dialog closes.
+    let release!: () => void;
+    const slow = new Promise<void>(resolve => (release = resolve));
+    await page.route("**/api/keys/adopt", async route => {
+      await slow;
+      await route.continue().catch(() => {});
+    });
+    await button("Adopt this key").click();
+    await expect(dialog.getByText("Loading preview… this can take a few seconds.", { exact: true })).toBeVisible();
+    await expect(dialog.getByRole("button", { name: "Cancel", exact: true })).toBeEnabled();
+    await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+    await expect(dialog).toHaveCount(0);
+    release();
+    await page.unroute("**/api/keys/adopt");
+
     // A phone (375 px): the longest dialog does not scroll sideways, and its footer buttons stack at full width.
     await button("All virtual keys").click();
-    await keyCard("QA Hermes Key").getByRole("button", { name: "Review · QA Hermes Key", exact: true }).click();
+    await keyCard("QA Hermes Key")
+      .getByRole("button", { name: "See what blocks it · QA Hermes Key", exact: true })
+      .click();
     await page.setViewportSize({ width: 375, height: 812 });
     await button("Adopt this key").click();
     // Its only decision is made from the start (Mistral is disabled, so kept in Bifrost); the dialog is the only
@@ -1729,7 +2398,9 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
 
     // Discovered by Bifrost but without a Registry card: the dialog leads to To add, filtered on that model.
     await button("All virtual keys").click();
-    await keyCard("QA To Add Key").getByRole("button", { name: "Review · QA To Add Key", exact: true }).click();
+    await keyCard("QA To Add Key")
+      .getByRole("button", { name: "See what blocks it · QA To Add Key", exact: true })
+      .click();
     await button("Adopt this key").click();
     // Models to add are no decision: they are listed apart, before adopting.
     await expect(dialog.getByRole("region", { name: "Before adopting" })).toContainText(
@@ -1737,6 +2408,10 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     );
     await expect(dialog).not.toContainText("decision");
     await expect(dialog).toContainText("Registry has no card for them yet");
+    await expect(dialog).toContainText("Model: qa-unregistered");
+    // Adopt is off until that model is registered: the footer says why and what is next, beside no decision count.
+    await expect(dialog.getByRole("button", { name: "Adopt", exact: true })).toBeDisabled();
+    await expect(dialog.getByText("Register 1 Synthetic Provider model first", { exact: true })).toBeVisible();
     await dialog.getByRole("button", { name: /^Show in To add/ }).click();
     await expect(dialog).toHaveCount(0);
     await expect(scope(/^To add/)).toBeChecked();
@@ -1757,7 +2432,7 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     // A key that allows nothing says so instead of listing blockers.
     await nav("Virtual keys").click();
     await emptyShelf();
-    await keyCard("QA Unmanaged Key").getByRole("button", { name: "Review · QA Unmanaged Key", exact: true }).click();
+    await keyCard("QA Unmanaged Key").getByRole("button", { name: "Open · QA Unmanaged Key", exact: true }).click();
     await expect(page.getByText("Empty", { exact: true })).toBeVisible();
     await expect(
       page.getByText("Add models to this key in Bifrost first", { exact: true }),
@@ -1766,12 +2441,13 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(button("Adopt this key")).toHaveCount(0);
     // A key whose selection cannot be made yet shows the blockers, not two empty lists.
     await button("All virtual keys").click();
-    await keyCard("QA Claude Key").getByRole("button", { name: "Review · QA Claude Key", exact: true }).click();
+    await keyCard("QA Claude Key")
+      .getByRole("button", { name: "See what blocks it · QA Claude Key", exact: true })
+      .click();
     await button("Adopt this key").click();
     await expect(dialog).toContainText(
-      "Claude: this key allows every model, including future ones, so it cannot be adopted as is.",
+      "This key allows every Claude model, including future ones, so Registry can’t copy it as is.",
     );
-    await expect(dialog).toContainText("Claude · all models allowed");
     await expect(dialog.getByRole("button", { name: "Keep Claude in Bifrost", exact: true })).toBeVisible();
     await expect(
       dialog.getByRole("button", { name: /^Replace “all models” by the models saved in Registry/ }),
@@ -1780,6 +2456,42 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(dialog).not.toContainText("dynamic model list");
     await expect(dialog.getByText(/^Accesses Registry will manage/)).toHaveCount(0);
     await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+
+    // Final critique, P1: a key disabled or expired in Bifrost has no choice to make, so it is no decision. The fixture has
+    // no such key; the preview of this one is answered with that single key-level blocker, as the server sends it.
+    await page.route("**/api/keys/adopt", async route => {
+      const response = await route.fetch();
+      const preview = await response.json();
+      await route.fulfill({
+        response,
+        json: {
+          ...preview,
+          readiness: {
+            state: "blocked",
+            blockers: [
+              { provider: "", kind: "other", count: 1, models: [], reasons: ["Native key is inactive or expired"] },
+            ],
+          },
+          blocked: ["Native key is inactive or expired"],
+          canApply: false,
+          previewToken: undefined,
+        },
+      });
+    });
+    await button("Adopt this key").click();
+    const before = dialog.getByRole("region", { name: "Before adopting", exact: true });
+    await expect(before.getByRole("heading", { name: "Nothing to decide yet", exact: true })).toBeVisible();
+    await expect(before).toContainText("This key is disabled or expired in Bifrost.");
+    await expect(before).toContainText("Enable or renew this key in Bifrost, then press Refresh preview.");
+    // No count of decisions anywhere, no numbered list, no button that would settle it; the footer says why Adopt is off.
+    await expect(dialog).not.toContainText("decision");
+    await expect(dialog).not.toContainText("decided");
+    await expect(dialog.locator("ol")).toHaveCount(0);
+    await expect(before.getByRole("button")).toHaveCount(0);
+    await expect(dialog.getByText("Enable or renew the key in Bifrost first", { exact: true })).toBeVisible();
+    await expect(dialog.getByRole("button", { name: "Adopt", exact: true })).toBeDisabled();
+    await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+    await page.unroute("**/api/keys/adopt");
   });
 
   await test.step("unmanaged key opens on adoption; the composer follows adoption", async () => {
@@ -1791,17 +2503,15 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(keyCard("QA Claude Key")).toContainText("1 provider · all models of Claude");
     await expect(keyCard("QA Unmanaged Key")).toContainText("No provider");
     await expect(keyCard("QA Codex Key")).toContainText("1 provider · 2 models");
-    await keyCard("QA Unmanaged Key").getByRole("button", { name: "Review · QA Unmanaged Key", exact: true }).click();
-    await expect(
-      page.getByText("Synthetic unmanaged client · Bifrost key · Registry policy not adopted"),
-    ).toBeVisible();
+    await keyCard("QA Unmanaged Key").getByRole("button", { name: "Open · QA Unmanaged Key", exact: true }).click();
+    await expect(page.getByText("Synthetic unmanaged client · Bifrost key · not adopted yet")).toBeVisible();
     await expect(button("Adopt this key")).toHaveCount(0);
     await expect(page.getByRole("list", { name: "Key composition steps" })).toHaveCount(0);
     await expect(button("Publish changes")).toHaveCount(0);
     await expect(page.getByText("Unpublished draft", { exact: true })).toHaveCount(0);
     await shot("after-unmanaged-key");
     await button("All virtual keys").click();
-    await keyCard("QA Codex Key").getByRole("button", { name: "Review · QA Codex Key", exact: true }).click();
+    await keyCard("QA Codex Key").getByRole("button", { name: "Adopt · QA Codex Key", exact: true }).click();
     await expect(page.getByRole("list", { name: "Bifrost allows today" })).toContainText("Codex · 2 models");
     await page
       .getByRole("list", { name: "Bifrost allows today" })
@@ -1816,6 +2526,56 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     expect((await api("workspace")).data.keys.find((k: { id: string }) => k.id === "vk-qa-codex").managed).toBe(true);
   });
 
+  await test.step("focus returns to what opened a sheet or a dialog, on Escape and on Cancel (final fixes)", async () => {
+    // PRODUCT.md: focus is returned after sheets and dialogs. They open from state, not from a Radix Trigger, so Radix
+    // has nothing to refocus: the shared Sheet and Dialog hand the focus back to the element that had it on opening.
+    // The Help sheet, opened by the "?" button, and a model sheet, opened by its card's "Open <model> details".
+    await nav("My models").click();
+    const help = button("Help for My models");
+    const helpSheet = page.getByRole("dialog", { name: "Help", exact: true });
+    await help.click();
+    await helpSheet.waitFor();
+    await page.keyboard.press("Escape");
+    await expect(helpSheet).toBeHidden();
+    await expect(help, "Escape returns the focus to the Help button").toBeFocused();
+    await help.click();
+    await helpSheet.getByRole("button", { name: "Close", exact: true }).click();
+    await expect(help, "Close returns the focus to the Help button").toBeFocused();
+    const openChat = button("Open QA Chat details");
+    await openChat.click();
+    await sheet().getByRole("button", { name: "Edit", exact: true }).waitFor();
+    await page.keyboard.press("Escape");
+    await expect(sheet()).toBeHidden();
+    await expect(openChat, "Escape returns the focus to the card's Open button").toBeFocused();
+    // A card to register leaves the sheet with Cancel (the saved card's X is Close, tried above).
+    await scope(/^To add/).click();
+    const openUnregistered = button("Open QA Unregistered details");
+    await openUnregistered.click();
+    await button("Cancel").click();
+    await expect(sheet()).toBeHidden();
+    await expect(openUnregistered, "Cancel returns the focus to the tile that opened the sheet").toBeFocused();
+    await scope(/^In Registry/).click();
+    // The adoption dialog, opened from "Adopt this key" on an unadopted key's page (a read-only preview, nothing is adopted);
+    // the page stays on that key, where the next step starts from.
+    await page.evaluate(() => {
+      location.hash = "#/keys";
+    });
+    await keyCard("QA Google Key").getByRole("button", { name: "Adopt · QA Google Key", exact: true }).click();
+    const adopt = button("Adopt this key");
+    const adoption = page.getByRole("dialog", { name: "Adopt this key", exact: true });
+    const leaveAdoption = [
+      ["Escape", () => page.keyboard.press("Escape")],
+      ["Cancel", () => adoption.getByRole("button", { name: "Cancel", exact: true }).click()],
+    ] as const;
+    for (const [how, leave] of leaveAdoption) {
+      await adopt.click();
+      await expect(adoption.getByRole("button", { name: "Adopt", exact: true })).toBeVisible();
+      await leave();
+      await expect(adoption).toBeHidden();
+      await expect(adopt, `${how} returns the focus to "Adopt this key"`).toBeFocused();
+    }
+  });
+
   await test.step("search recovery clears filter instead of starting creation", async () => {
     // The empty result no longer has a recovery button: it is a message, and clearing the field recovers.
     await button("All virtual keys").click();
@@ -1828,7 +2588,14 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
 
   await test.step("key creation secret has a clipboard denial fallback", async () => {
     await button("Create key").click();
-    await page.getByLabel("Key name", { exact: true }).fill("QA Browser Key");
+    // "Required" is a neutral hint until the name is left empty, as in the group sheet.
+    const keyName = page.getByLabel("Key name", { exact: true });
+    await expect(keyName).not.toHaveAttribute("aria-invalid", "true");
+    await expect(page.getByRole("dialog").getByText("Required", { exact: true })).not.toHaveClass(/destructive/);
+    await page.getByLabel("Client name", { exact: true }).click(); // leaves the empty name
+    await expect(keyName).toHaveAttribute("aria-invalid", "true");
+    await expect(page.getByRole("dialog").getByText("Enter a key name.", { exact: true })).toBeVisible();
+    await keyName.fill("QA Browser Key");
     await page.getByRole("dialog").getByRole("button", { name: "Create key", exact: true }).click();
     await page.getByLabel("Virtual key secret", { exact: true }).waitFor();
     await page.evaluate(() =>
@@ -1850,12 +2617,18 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await button("Done").click();
     await input.waitFor({ state: "hidden" });
     await expect(input).toHaveCount(0);
+    // Critique round 5: a key with no client shows no raw ID under its name in Basic.
+    await expect(page.getByRole("heading", { name: "QA Browser Key", level: 1 })).toBeVisible();
+    await expect(page.getByText(/vk-qa-created-/)).toHaveCount(0);
   });
 
   await test.step("metadata correction uses visible dialog and persists", async () => {
     // "Sources & References" is now Settings > Open catalog data.
     await nav("Settings").click();
     await button("Open catalog data").click();
+    // A refresh button names its source as the card above does, not by its raw id ("bifrost", "models.dev").
+    await expect(button("Refresh Bifrost")).toBeVisible();
+    await expect(button("Refresh Models.dev")).toBeVisible();
     await page.getByRole("button").filter({ hasText: "synthetic-provider/qa-chat" }).first().click();
     await button("Edit field").click();
     const dialog = page.getByRole("dialog");
@@ -1910,10 +2683,12 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
       };
       await nav(t("My models", "Mes modèles")).click();
       await sweep(language, "My models");
+      // The switch is announced as "Expert mode" / "Mode Expert", which contains the "Expert" it shows (WCAG 2.5.3).
+      await expect(page.getByRole("switch", { name: t("Expert mode", "Mode Expert"), exact: true })).toBeVisible();
       // #96: the help panel and the tour read in one language too, and the help covers adoption.
       await button(t("Help for My models", "Aide pour Mes modèles")).click();
       const help = page.getByRole("dialog", { name: t("Help", "Aide"), exact: true });
-      await expect(help).toContainText(t("Keep Mistral in Bifrost", "Garder Mistral dans Bifrost"));
+      await expect(help).toContainText(t("Keep [provider] in Bifrost", "Garder [fournisseur] dans Bifrost"));
       await sweep(language, "Help panel");
       await help.getByRole("button", { name: t("Start the tour", "Commencer la visite"), exact: true }).click();
       for (const [i, name] of [
@@ -1927,10 +2702,13 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
         if (i < 3) await button(t("Next", "Suivant")).click();
       }
       await button(t("Done", "Terminé")).click();
-      // "+1 available" agrees with its count ("+1 disponible", never "+1 disponibles").
+      // "+1 available" agrees with its count ("+1 disponible", never "+1 disponibles") and is said once, by the badge.
+      await expect(card("QA Opus saved").locator("[data-attention]")).toHaveText(
+        language === "fr" ? "+1 disponible" : "+1 available",
+      );
       await expect(
         card("QA Opus saved").getByRole("button", { name: new RegExp(`^${t("Accesses", "Accès")}`) }),
-      ).toHaveAccessibleName(language === "fr" ? /\+1 disponible · QA Opus saved$/ : /\+1 available · QA Opus saved$/);
+      ).toHaveAccessibleName(`${t("Accesses", "Accès")} · 1 · QA Opus saved`);
       await accesses("QA Opus saved");
       await sweep(language, "Accesses popover of a saved card");
       await page.keyboard.press("Escape");
@@ -1962,6 +2740,36 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
       await expect(popover).not.toContainText("0.19999");
       await sweep(language, "Accesses popover of a model to add");
       await page.keyboard.press("Escape");
+      // #100: registering ends on one plain sentence of consequence, IDs folded away, in both languages.
+      await open("QA Reasoner").click();
+      // The Call name field and its hint read in one language too.
+      await expect(sheet().getByRole("textbox", { name: t("Call name", "Nom d’appel"), exact: true })).toHaveValue(
+        "qa-reasoner",
+      );
+      await expect(
+        sheet().getByText(
+          t(
+            "The name applications use to call this model",
+            "Le nom que les applications utilisent pour appeler ce modèle",
+          ),
+          { exact: true },
+        ),
+      ).toBeVisible();
+      await sweep(language, "Register accesses step");
+      await button(t("Next: model details", "Suivant : fiche modèle")).click();
+      await button(t("Review", "Vérifier")).click();
+      await expect(sheet().locator("#editor-journey-step-2")).toContainText(
+        language === "fr"
+          ? /Vous enregistrez QA Reasoner depuis (votre abonnement|vos abonnements) .+\. Il apparaîtra dans Mes modèles ; aucune clé ne pourra l’utiliser tant que vous ne l’aurez pas ajouté à une clé\./
+          : /You’re registering QA Reasoner from your .+ subscriptions?\. It appears in My models; no key can use it until you add it to one\./,
+      );
+      await expect(sheet().getByText(t("Technical details", "Détails techniques"), { exact: true })).toBeVisible();
+      await expect(
+        sheet().getByText(t("Registry exposed ID", "ID exposé Registry"), { exact: false }).first(),
+      ).toBeHidden();
+      await sweep(language, "Register review");
+      await button(t("Cancel", "Annuler")).click();
+      await sheet().waitFor({ state: "hidden" });
       await page.getByRole("textbox", { name: t("Search models", "Rechercher des modèles"), exact: true }).fill("");
       await scope(new RegExp(`^${t("In Registry", "Dans Registry")}`)).click();
       // The card sheet: every tab, the access chooser and Review.
@@ -1981,12 +2789,18 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
       await button(t("Edit accesses", "Modifier les accès")).click();
       await sweep(language, "Access chooser");
       await button(t("Review", "Vérifier")).click();
+      await expect(sheet().locator("#editor-journey-step-2")).toContainText(
+        t("No changes to save for QA Opus saved yet.", "Rien à enregistrer pour QA Opus saved pour le moment."),
+      );
       await sweep(language, "Card review (nothing to save)");
       await page.keyboard.press("Escape");
       await sheet().waitFor({ state: "hidden" });
       await nav(t("Groups", "Groupes")).click();
       await sweep(language, "Groups");
       await button(t("Edit group", "Modifier le groupe")).first().click();
+      await expect(sheet()).toContainText(
+        t("Review the key impact before publishing.", "Vérifiez l’impact sur les clés avant la publication."),
+      );
       await sweep(language, "Group sheet");
       await page.keyboard.press("Escape");
       await sheet().waitFor({ state: "hidden" });
@@ -1995,7 +2809,7 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
       // The adoption dialog reads the reasons Bifrost sends in plain words (a key allowed every provider blocks this one).
       await keyCard("QA All Providers Key")
         .getByRole("button", {
-          name: t("Review · QA All Providers Key", "Examiner · QA All Providers Key"),
+          name: t("See what blocks it · QA All Providers Key", "Voir ce qui bloque · QA All Providers Key"),
           exact: true,
         })
         .click();
@@ -2042,7 +2856,7 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
       await emptyShelf();
       // An empty key asks for models in Bifrost; a key allowing every model of a provider says why it cannot be adopted.
       await keyCard("QA Unmanaged Key")
-        .getByRole("button", { name: t("Review · QA Unmanaged Key", "Examiner · QA Unmanaged Key"), exact: true })
+        .getByRole("button", { name: t("Open · QA Unmanaged Key", "Ouvrir · QA Unmanaged Key"), exact: true })
         .click();
       await expect(
         page.getByText(
@@ -2053,7 +2867,10 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
       await sweep(language, "Key page of the empty key");
       await button(t("All virtual keys", "Toutes les clés virtuelles")).click();
       await keyCard("QA Claude Key")
-        .getByRole("button", { name: t("Review · QA Claude Key", "Examiner · QA Claude Key"), exact: true })
+        .getByRole("button", {
+          name: t("See what blocks it · QA Claude Key", "Voir ce qui bloque · QA Claude Key"),
+          exact: true,
+        })
         .click();
       await button(t("Adopt this key", "Adopter cette clé")).click();
       await sweep(language, "Adoption dialog of the all-models key");
@@ -2064,7 +2881,7 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
       await button(t("All virtual keys", "Toutes les clés virtuelles")).click();
       for (const name of ["QA Mistral Key", "QA Hermes Key", "QA To Add Key"]) {
         await keyCard(name)
-          .getByRole("button", { name: t(`Review · ${name}`, `Examiner · ${name}`), exact: true })
+          .getByRole("button", { name: t(`See what blocks it · ${name}`, `Voir ce qui bloque · ${name}`), exact: true })
           .click();
         await page
           .getByRole("list", { name: t("Bifrost allows today", "Bifrost autorise aujourd’hui") })
@@ -2073,11 +2890,16 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
           .click();
         await sweep(language, `Key page of ${name}`);
         await button(t("Adopt this key", "Adopter cette clé")).click();
-        for (const names of await page
-          .getByRole("dialog")
-          .getByText(t("Show model names", "Afficher les noms des modèles"), { exact: true })
-          .all())
-          await names.click();
+        // The intro and the models are said in the dialog's own language, with nothing to open.
+        await expect(page.getByRole("dialog")).toContainText(
+          t(
+            "Adopting itself changes nothing in Bifrost; the options marked “Changes Bifrost” do.",
+            "Adopter ne change rien dans Bifrost en soi ; les options marquées « Modifie Bifrost » le font.",
+          ),
+        );
+        await expect(page.getByRole("dialog")).not.toContainText(
+          t("Show model names", "Afficher les noms des modèles"),
+        );
         await sweep(language, `Adoption dialog of ${name}`);
         // Mistral is disabled in Bifrost, so it starts kept (swept above); undoing it shows the offers.
         if (name !== "QA To Add Key") {
@@ -2092,6 +2914,27 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
             .getByRole("dialog")
             .getByRole("button", { name: t("Keep Mistral in Bifrost", "Garder Mistral dans Bifrost"), exact: true })
             .waitFor();
+          // #100: the blockers read as plain sentences in both languages.
+          if (name === "QA Mistral Key")
+            await expect(page.getByRole("dialog")).toContainText(
+              t(
+                "So Bifrost shows none of its models, and Registry can’t manage the 3 models this key allows.",
+                "Bifrost ne montre donc aucun de ses modèles : Registry ne peut pas gérer les 3 modèles que cette clé autorise.",
+              ),
+            );
+          if (name === "QA Mistral Key")
+            await expect(page.getByRole("dialog")).toContainText(
+              t("1 model is allowed through Codex and Claude.", "1 modèle est autorisé via Codex et Claude."),
+            );
+          if (name === "QA Mistral Key")
+            await expect(page.getByRole("dialog")).toContainText(t("Model: qa-shared", "Modèle : qa-shared"));
+          if (name === "QA Mistral Key")
+            await expect(
+              page.getByRole("dialog").getByRole("button", {
+                name: t("Use Codex for this model", "Utiliser Codex pour ce modèle"),
+                exact: true,
+              }),
+            ).toBeVisible();
           await sweep(language, `Adoption dialog of ${name}, provider not kept`);
         }
         if (name === "QA Hermes Key")
@@ -2106,11 +2949,30 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
           .click();
         await button(t("All virtual keys", "Toutes les clés virtuelles")).click();
       }
+      // A key Bifrost was never asked about: the headline says so, in both languages, and the first check is beside it.
+      await keyCard("QA Visual Key")
+        .getByRole("button", { name: t("Open · QA Visual Key", "Ouvrir · QA Visual Key"), exact: true })
+        .click();
+      await expect(
+        page.getByRole("heading", {
+          name: t(/^This key can call .* · not checked yet$/, /^Cette clé peut appeler .* · pas encore vérifiée$/),
+          level: 2,
+        }),
+      ).toBeVisible();
+      await expect(button(t("Check with Bifrost", "Vérifier avec Bifrost"))).toBeVisible();
+      await sweep(language, "Key page, not checked yet");
+      await button(t("All virtual keys", "Toutes les clés virtuelles")).click();
       await keyCard("QA Development Key")
         .getByRole("button", { name: t("Open · QA Development Key", "Ouvrir · QA Development Key"), exact: true })
         .click();
       await sweep(language, "Key page");
       await button(t("More actions", "Plus d’actions")).click();
+      await expect(
+        page.getByRole("menuitem", {
+          name: t("Re-link the Bifrost key", "Relier à nouveau la clé Bifrost"),
+          exact: true,
+        }),
+      ).toBeVisible();
       await sweep(language, "Key actions menu");
       await page.keyboard.press("Escape");
       await button(t("Edit selection", "Modifier la sélection")).click();
@@ -2154,18 +3016,22 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     // #92, the Hermes case: Mistral is disabled in Bifrost, so its models can never become cards. Keeping the
     // provider native adopts the rest; Registry leaves Mistral's permissions alone and the readback expects them.
     await nav("Virtual keys").click();
-    await keyCard("QA Mistral Key").getByRole("button", { name: "Review · QA Mistral Key", exact: true }).click();
+    await keyCard("QA Mistral Key")
+      .getByRole("button", { name: "See what blocks it · QA Mistral Key", exact: true })
+      .click();
     await button("Adopt this key").click();
     const dialog = page.getByRole("dialog");
     // Disabled in Bifrost, Mistral starts kept there; what is kept is stated, and the collision is still to decide.
     const kept = dialog.getByRole("region", { name: "Kept in Bifrost" });
     await expect(kept).toContainText("Mistral · 3 models kept in Bifrost");
     await expect(kept).toContainText("Registry will not manage or change Mistral’s permissions");
-    await expect(dialog.getByRole("heading", { name: "1 decision before adopting" })).toBeVisible();
+    await expect(
+      dialog.getByRole("heading", { name: "2 decisions before adopting · 1 already made", exact: true }),
+    ).toBeVisible();
     await expect(dialog.getByText("1 of 2 decided", { exact: true })).toBeVisible();
     await expect(dialog.getByRole("button", { name: "Adopt", exact: true })).toBeDisabled();
-    // The collision is resolved inline: keeping Codex in Bifrost lets Registry adopt qa-shared through Claude.
-    await dialog.getByRole("button", { name: "Keep Codex in Bifrost", exact: true }).click();
+    // The collision is resolved inline: using Claude for qa-shared keeps Codex in Bifrost.
+    await dialog.getByRole("button", { name: "Use Claude for this model", exact: true }).click();
     await expect(kept).toContainText("Codex kept in Bifrost");
     await expect(dialog).toContainText("Ready to adopt");
     await expect(dialog.getByText("2 of 2 decided", { exact: true })).toBeVisible();
@@ -2175,9 +3041,9 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(dialog.getByText("mistral/qa-mistral-large", { exact: true })).toBeVisible();
     // The choice can be undone, and made again.
     await dialog.getByRole("button", { name: "Stop keeping Mistral in Bifrost", exact: true }).click();
-    await expect(dialog.getByRole("region", { name: "1 decision before adopting" })).toContainText(
-      "Mistral is disabled in Bifrost",
-    );
+    await expect(
+      dialog.getByRole("region", { name: "2 decisions before adopting · 1 already made", exact: true }),
+    ).toContainText("Mistral is disabled in Bifrost");
     await expect(dialog.getByText("1 of 2 decided", { exact: true })).toBeVisible();
     await expect(dialog.getByRole("button", { name: "Adopt", exact: true })).toBeDisabled();
     await dialog.getByRole("button", { name: "Keep Mistral in Bifrost", exact: true }).click();
@@ -2193,19 +3059,18 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
       phase: "apply",
       keepNative: ["Codex", "mistral"],
     });
-    // The managed key counts every route it can call once, kept providers included, on its page and on its card:
-    // three Claude routes through Registry, Codex's qa-shared and Mistral's three models kept in Bifrost.
+    // The managed key counts every model it can call once, kept providers included, on its page and on its card
+    // (#99): three Claude models through Registry, QA Shared also through Codex, and Mistral's three kept models.
     const ledger = page.getByRole("region", { name: /^This key can call/ });
-    await expect(ledger).toHaveAccessibleName("This key can call 7 models");
-    await expect(ledger.getByRole("region", { name: "Mistral", exact: true })).toContainText("Mistral · 3 models");
-    await expect(ledger.getByRole("region", { name: "Mistral", exact: true })).toContainText("kept in Bifrost");
-    await expect(ledger.getByRole("region", { name: "Codex", exact: true })).toContainText("kept in Bifrost");
-    await expect(ledger.getByRole("region", { name: "Claude", exact: true })).toContainText("via Claude");
+    await expect(ledger).toHaveAccessibleName("This key can call 6 models · not checked yet");
+    await expect(ledger.getByRole("listitem").filter({ hasText: "QA Shared" })).toContainText("via Claude, Codex");
+    await expect(ledger.getByRole("listitem").filter({ hasText: "qa-mistral-large" })).toContainText("via Mistral");
+    await expect(ledger).toContainText("Kept in Bifrost: Codex, Mistral.");
     await editSelection();
     await composerStep("Review").click();
-    await button("Read again").click();
+    await button("Check with Bifrost").click();
     await page.getByText("Verified", { exact: true }).first().waitFor();
-    // The readback lists Mistral's routes, but they are Bifrost's: Review must not announce their removal.
+    // The check lists Mistral's routes, but they are Bifrost's: Review must not announce their removal.
     await expect(page.getByRole("region", { name: "Changes before publishing" })).toContainText("No change.");
     await expect(page.getByRole("list", { name: "Will lose" })).toHaveCount(0);
     const key = (await api("workspace")).data.keys.find((k: { id: string }) => k.id === "vk-qa-mistral");
@@ -2228,17 +3093,21 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
       "qa-mistral-code",
     ]);
     await button("All virtual keys").click();
-    await expect(keyCard("QA Mistral Key")).toContainText("7 models · Verified");
+    await expect(keyCard("QA Mistral Key")).toContainText("6 models · Verified");
     await shot("after-keep-native-key-card");
   });
 
   await test.step("a provider allowing every model is kept in Bifrost: the rest of the key is adopted and reads Verified", async () => {
     const writes = (await (await page.request.get("/__fixture/native-writes")).json()).length;
     await nav("Virtual keys").click();
-    await keyCard("QA Wildcard Key").getByRole("button", { name: "Review · QA Wildcard Key", exact: true }).click();
+    await keyCard("QA Wildcard Key")
+      .getByRole("button", { name: "See what blocks it · QA Wildcard Key", exact: true })
+      .click();
     await button("Adopt this key").click();
     const dialog = page.getByRole("dialog");
-    await expect(dialog).toContainText("Claude · all models allowed");
+    await expect(dialog).toContainText(
+      "This key allows every Claude model, including future ones, so Registry can’t copy it as is.",
+    );
     await expect(dialog.getByRole("button", { name: "Adopt", exact: true })).toBeDisabled();
     await dialog.getByRole("button", { name: "Keep Claude in Bifrost", exact: true }).click();
     await expect(dialog.getByRole("region", { name: "Kept in Bifrost" })).toContainText(
@@ -2258,14 +3127,13 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     });
     // Claude allows every model in Bifrost: the total is open ("at least").
     const ledger = page.getByRole("region", { name: /^This key can call/ });
-    await expect(ledger).toHaveAccessibleName("This key can call at least 1 model");
-    await expect(ledger.getByRole("region", { name: "Claude", exact: true })).toContainText(
-      "All models Bifrost allows",
+    await expect(ledger).toHaveAccessibleName("This key can call at least 1 model · not checked yet");
+    await expect(ledger.getByRole("listitem").filter({ hasText: "All models Bifrost allows" })).toContainText(
+      "via Claude",
     );
-    await expect(ledger).toContainText("Codex · 1 model");
-    // The read-first page reads the key back without opening the editor, from the technical check.
-    await ledger.getByText(/^Technical check · /).click();
-    await button("Read again").click();
+    await expect(ledger.getByRole("listitem").filter({ hasText: "via Codex" })).toHaveCount(1);
+    // The read-first page checks the key with Bifrost without opening the editor or the technical fold.
+    await button("Check with Bifrost").click();
     await expect(ledger.getByText(/^Technical check · Verified /)).toBeVisible();
     const key = (await api("workspace")).data.keys.find((k: { id: string }) => k.id === "vk-qa-wildcard");
     expect(key.managed).toBe(true);
@@ -2283,12 +3151,12 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await composerStep("Review").click();
     await button("Publish changes").click();
     await expect(button("Publish changes")).toBeDisabled();
-    await button("Read again").click();
+    await button("Check again").click();
     await page.getByText("Verified", { exact: true }).first().waitFor();
     expect(
       (await api("workspace")).data.keys.find((k: { id: string }) => k.id === "vk-qa-wildcard").publication.actual,
     ).toContain("Claude/qa-haiku");
-    await expect(keyChanges()).toContainText("Compared with the last verified readback");
+    await expect(keyChanges()).toContainText("Compared with what Bifrost last confirmed");
     await expect(keyChanges()).toContainText("No change.");
     await composerStep("Models").click();
     await page.getByRole("checkbox", { name: "Add to this key: qa-sonnet", exact: true }).click();
@@ -2296,6 +3164,83 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(keyChanges().getByRole("list", { name: "Will gain" })).toContainText("Claude/qa-sonnet");
     await expect(keyChanges().getByRole("list", { name: "Will gain" })).not.toContainText("Claude/qa-haiku");
     await button("Discard draft").click();
+    await button("All virtual keys").click();
+  });
+
+  await test.step("a kept model Bifrost does not list is flagged, not counted, and reads as a difference (#99)", async () => {
+    // The live Hermes shape: Google allows qa-gemini and qa-ghost on this key but does not serve qa-ghost, so it
+    // blocks adoption until Google is kept in Bifrost; Bifrost's /v1/models then leaves Google/qa-ghost out.
+    await nav("Virtual keys").click();
+    await keyCard("QA Kept Key").getByRole("button", { name: "See what blocks it · QA Kept Key", exact: true }).click();
+    await button("Adopt this key").click();
+    const dialog = page.getByRole("dialog");
+    await dialog.getByRole("button", { name: "Keep Google in Bifrost", exact: true }).click();
+    await expect(dialog).toContainText("Ready to adopt");
+    await dialog.getByRole("button", { name: "Adopt", exact: true }).click();
+    const ledger = page.getByRole("region", { name: /^This key can call/ });
+    await ledger.getByText(/^Technical check/).click();
+    // Adopted but never checked: the first check is named, beside the headline; once done it checks again (#99).
+    await expect(ledger.getByRole("button", { name: "Check again", exact: true })).toHaveCount(0);
+    await button("Check with Bifrost").click();
+    // The confirmation counts the difference too: never a plain "Verified with Bifrost" (ADR 0001).
+    await expect(page.getByText("Verified with Bifrost · 1 difference.", { exact: true })).toBeVisible();
+    await expect(ledger.getByText(/^Technical check · Verified .* · 1 difference$/)).toBeVisible();
+    await expect(ledger.getByRole("button", { name: "Check again", exact: true })).toBeVisible();
+    await expect(ledger.getByRole("button", { name: "Check with Bifrost", exact: true })).toHaveCount(0);
+    await expect(ledger).toHaveAccessibleName("This key can call 2 models");
+    await expect(
+      ledger.getByRole("listitem").filter({ hasText: "Google: Bifrost does not list this one" }),
+    ).toContainText("qa-ghost");
+    await expect(ledger.getByRole("listitem").filter({ hasText: "via Google" })).toHaveCount(1);
+    await expect(ledger).toContainText("Kept in Bifrost: Google.");
+    // Final critique: the difference explains itself, as a tooltip on the summary and as a hidden sentence it is described by.
+    const explanation = "Bifrost confirmed this key. 1 permission kept in Bifrost is not listed by Bifrost.";
+    const verdict = ledger.getByText(/^Technical check · Verified .* · 1 difference$/);
+    await expect(verdict).toHaveAttribute("title", explanation);
+    await expect(verdict).toHaveAccessibleDescription(explanation);
+    // A kept route is Bifrost's: Registry's own check still reads verified, with no missing route.
+    const key = (await api("workspace")).data.keys.find((k: { id: string }) => k.id === "vk-qa-kept");
+    expect(key.publication.state).toBe("verified");
+    expect(key.publication.missing).toEqual([]);
+    expect(key.publication.actual).not.toContain("Google/qa-ghost");
+    // The editor reads the same check as the page, and says why "selected" sits below the page total (ADR 0001).
+    await editSelection();
+    await composerStep("Review").click();
+    await expect(page.getByText("Verified · 1 difference", { exact: true })).toBeVisible();
+    await expect(page.getByText("Verified · 1 difference", { exact: true })).toHaveAccessibleDescription(explanation);
+    await expect(page.getByText("1 model selected · 0 groups", { exact: true })).toBeVisible();
+    await expect(
+      page.getByText(
+        "Kept in Bifrost: Google. Registry does not change these permissions; Edit selection counts only the models you choose there.",
+        { exact: true },
+      ),
+    ).toBeVisible();
+    await button("All virtual keys").click();
+    await expect(keyCard("QA Kept Key")).toContainText("2 models · Verified · 1 difference");
+    const chip = keyCard("QA Kept Key").getByText("Verified · 1 difference", { exact: true });
+    await expect(chip).toHaveAttribute("title", explanation);
+    await expect(chip).toHaveAccessibleDescription(explanation);
+  });
+
+  await test.step("a check that fails after publishing names the key, not its id", async () => {
+    // Bifrost cannot be reached for the check that follows a publish: the warning says which key, by its name.
+    const unreachable = (route: Route) => route.fulfill({ status: 502, json: { error: "Bifrost unreachable" } });
+    await page.route("**/api/keys/vk-qa-kept/readback", unreachable);
+    await nav("Virtual keys").click();
+    await keyCard("QA Kept Key").getByRole("button", { name: "Open · QA Kept Key", exact: true }).click();
+    await editSelection();
+    await page.getByRole("checkbox", { name: "Add to this key: QA Haiku", exact: true }).click();
+    await composerStep("Review").click();
+    await button("Publish changes").click();
+    await expect(page.getByText("QA Kept Key: Bifrost unreachable", { exact: true })).toBeVisible();
+    await expect(page.getByText(/vk-qa-kept:/)).toHaveCount(0);
+    // Put the key back as it was, then check once Bifrost answers again.
+    await page.getByRole("button", { name: "Remove QA Haiku from this key", exact: true }).click();
+    await button("Publish changes").click();
+    await expect(button("Publish changes")).toBeDisabled();
+    await page.unroute("**/api/keys/vk-qa-kept/readback", unreachable);
+    await button("Check again").click();
+    await expect(page.getByText("Verified · 1 difference", { exact: true })).toBeVisible();
     await button("All virtual keys").click();
   });
 
@@ -2310,7 +3255,9 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await nav("Virtual keys").click();
 
     // Models Bifrost does not list (Mistral is disabled): the dialog offers to remove them, with the consequence stated.
-    await keyCard("QA Hermes Key").getByRole("button", { name: "Review · QA Hermes Key", exact: true }).click();
+    await keyCard("QA Hermes Key")
+      .getByRole("button", { name: "See what blocks it · QA Hermes Key", exact: true })
+      .click();
     await button("Adopt this key").click();
     // Mistral starts kept in Bifrost (it is disabled there); stopping that offers the native edit instead.
     await dialog.getByRole("button", { name: "Stop keeping Mistral in Bifrost", exact: true }).click();
@@ -2388,7 +3335,7 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     // "All providers": the dialog offers the explicit list; the preview names what stops being allowed.
     await button("All virtual keys").click();
     await keyCard("QA All Providers Key")
-      .getByRole("button", { name: "Review · QA All Providers Key", exact: true })
+      .getByRole("button", { name: "See what blocks it · QA All Providers Key", exact: true })
       .click();
     await button("Adopt this key").click();
     await expect(dialog).toContainText("This key allows every provider, including ones added later");
@@ -2476,7 +3423,9 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     // Every model of Claude ("*"): the dialog offers the models saved in Registry instead; Bifrost is written
     // only after the confirmation, and the key is then adopted.
     await button("All virtual keys").click();
-    await keyCard("QA Claude Key").getByRole("button", { name: "Review · QA Claude Key", exact: true }).click();
+    await keyCard("QA Claude Key")
+      .getByRole("button", { name: "See what blocks it · QA Claude Key", exact: true })
+      .click();
     await button("Adopt this key").click();
     await dialog.getByRole("button", { name: /^Replace “all models” by the models saved in Registry/ }).click();
     const narrow = page.getByRole("dialog", { name: "Replace “all models” of Claude on the key", exact: true });
@@ -2600,7 +3549,7 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(button("View gateway")).toHaveCount(0);
     await button("Help").click();
     await expect(page.getByText("Need the gateway details?")).toBeVisible();
-    await expect(page.getByText("Keep Mistral in Bifrost"), "Settings shows the same help").toBeVisible();
+    await expect(page.getByText("Keep [provider] in Bifrost"), "Settings shows the same help").toBeVisible();
     await expect(button("Start the tour")).toBeVisible();
     await expect(button("View gateway")).toHaveCount(0);
     // Connection speaks plainly; the variable names wait behind "For the administrator".
@@ -2619,15 +3568,26 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
       .first()
       .boundingBox())!;
     expect(titleBox.height, `a card title is a 24 px target: ${JSON.stringify(titleBox)}`).toBeGreaterThanOrEqual(24);
-    // The first-visit offer is one short line and two buttons, not a block of text.
+    // A first visit on a phone gets no tour banner (it would push the first card down); "?" still starts the tour.
     const first = await browser.newPage({ baseURL, viewport: { width: 375, height: 812 } });
     first.on("pageerror", e => errors.push(e.message));
     await first.goto("/?lang=en");
     await first.getByLabel("Admin token", { exact: true }).fill(token);
     await first.getByRole("button", { name: "Sign in", exact: true }).click();
-    const offered = first.getByRole("region", { name: "Guided tour", exact: true });
-    await expect(offered).toBeVisible();
-    expect((await offered.boundingBox())!.height, "The tour offer is compact on a phone").toBeLessThan(110);
+    await first
+      .getByRole("button", { name: /^Open .* details$/ })
+      .first()
+      .waitFor();
+    await expect(first.getByRole("region", { name: "Guided tour", exact: true }), "no banner on a phone").toBeHidden();
+    await expect(
+      first.getByRole("button", { name: /^Open .* details$/ }).first(),
+      "the first card is in the first screen",
+    ).toBeInViewport();
+    await first.getByRole("button", { name: "Help for My models", exact: true }).click();
+    await expect(
+      first.getByRole("dialog", { name: "Help", exact: true }).getByRole("button", { name: "Start the tour" }),
+      "the help sheet starts the tour",
+    ).toBeVisible();
     await first.close();
     await expect(page.getByRole("radio", { name: "Table", exact: true })).toHaveCount(0);
     await withinViewport(page.getByRole("button", { name: /^Open .* details$/ }).first());
@@ -2659,6 +3619,24 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
       contentType: "image/png",
     });
     await empty.close();
+    // #101: with nothing discovered or registered, the first-run card offers the same verb as the toolbar.
+    const none = await browser.newPage({ baseURL, viewport: { width: 375, height: 812 } });
+    await skipTour(none);
+    none.on("pageerror", e => errors.push(e.message));
+    await none.route("**/api/workspace", r =>
+      r.fulfill({ json: { ...workspace, discovery: [], data: { ...workspace.data, models: [] } } }),
+    );
+    await none.route("**/api/catalog", r => r.fulfill({ json: catalog }));
+    await none.goto("/");
+    await none.getByText("Build your model catalog", { exact: true }).waitFor();
+    await expect(
+      none
+        .locator('[data-slot="card"]')
+        .filter({ hasText: "Build your model catalog" })
+        .getByRole("button", { name: "Register a model", exact: true }),
+    ).toBeVisible();
+    await expect(none.getByRole("button", { name: /^Add model/ })).toHaveCount(0);
+    await none.close();
     await page.setViewportSize({ width: 390, height: 844 });
   });
 
@@ -2795,6 +3773,16 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await withinViewport(page.getByRole("button", { name: /^Open .* details$/ }).first());
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await shot("after-mobile-filters-375");
+    // The width slider and the full-screen toggle only exist from sm up: a phone's sheet already fills the screen.
+    await page
+      .getByRole("button", { name: /^Open .* details$/ })
+      .first()
+      .click();
+    await expect(sheet()).toBeVisible();
+    await expect(sheet().getByRole("button", { name: "Expand panel to full screen", exact: true })).toBeHidden();
+    await expect(sheet().getByRole("slider", { name: "Panel width", exact: true })).toBeHidden();
+    await page.keyboard.press("Escape");
+    await sheet().waitFor({ state: "hidden" });
     // The keyboard opens it, every control is inside, a choice shows in the count, Escape closes it and gives the focus back.
     await filters.focus();
     await page.keyboard.press("Enter");
@@ -2833,6 +3821,126 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await page.getByRole("combobox", { name: "Sort models by", exact: true }).click();
     await page.getByRole("option", { name: "Sort by name", exact: true }).click(); // the Models page default again
     await page.keyboard.press("Escape");
+    await page.setViewportSize({ width: 1440, height: 950 });
+  });
+
+  await test.step("View options never clips a control; on a phone the header and card controls are touch targets (adapt)", async () => {
+    // WCAG 2.5.8: every interactive element is at least 24 px wide and high; under the project's sm (40rem) the named
+    // controls reach the standard control height of 2.25rem (36 px), by padding and min-height only.
+    // Basic folds the density segment into View options at every width: each radio, drawn or not, lies inside the popover.
+    const expectNothingClipped = async (on: Page, where: string) => {
+      await on.getByRole("button", { name: /^(View options|Options d’affichage)$/ }).click();
+      const popover = on.locator('[data-slot="popover-content"]');
+      await popover.getByRole("radio").first().waitFor();
+      await on.waitForFunction(() => document.getAnimations().length === 0); // the popover zooms in for a moment
+      const frame = (await popover.boundingBox())!;
+      const radios = await popover.getByRole("radio").all();
+      expect(radios.length, `${where}: View, Shape, Density and Logo segments`).toBe(9);
+      for (const radio of radios) {
+        const box = (await radio.boundingBox())!;
+        const name = await radio.evaluate(el => el.textContent?.trim().replace(/\s+/g, " "));
+        expect(
+          // The popover pads its content by 16 px: a segment must stay clear of the frame by at least half of it,
+          // so a font that renders a pixel wider (Linux in CI) cannot push one out.
+          [box.x >= frame.x + 8, box.x + box.width <= frame.x + frame.width - 8],
+          `${where}: ${name} lies inside the popover with room to spare ${JSON.stringify({ box, frame })}`,
+        ).toEqual([true, true]);
+        expect(
+          await radio.evaluate(el => el.scrollWidth <= el.clientWidth),
+          `${where}: ${name} shows all its text`,
+        ).toBe(true);
+      }
+      expect(
+        await popover.evaluate(el => el.scrollWidth <= el.clientWidth),
+        `${where}: the popover does not scroll`,
+      ).toBe(true);
+      await on.keyboard.press("Escape");
+      await expect(popover).toHaveCount(0);
+    };
+    await page.setViewportSize({ width: 1440, height: 950 });
+    await nav("My models").click();
+    await setExpert(false);
+    await expectNothingClipped(page, "English at 1440 px");
+    // The count stays in the name and the tooltip of each density segment, not in its drawn label.
+    await button("View options").click();
+    for (const [size, columns] of [
+      ["Small", 4],
+      ["Medium", 3],
+      ["Large", 2],
+    ] as const) {
+      const segment = page.getByRole("radio", { name: `${size} · ${columns} columns`, exact: true });
+      await expect(segment).toHaveAttribute("title", `${size} · ${columns} columns on a wide screen`);
+      expect((await segment.boundingBox())!.width, `${size} is a short segment`).toBeLessThan(100);
+    }
+    await page.keyboard.press("Escape");
+    const french = await browser.newPage({ baseURL, viewport: { width: 1440, height: 950 } });
+    await skipTour(french);
+    french.on("pageerror", e => errors.push(e.message));
+    await french.goto("/?lang=fr");
+    await french.getByLabel("Jeton administrateur", { exact: true }).fill(token);
+    await french.getByRole("button", { name: "Se connecter", exact: true }).click();
+    await french
+      .getByRole("button", { name: /^Ouvrir la fiche / })
+      .first()
+      .waitFor();
+    await expectNothingClipped(french, "French at 1440 px");
+    await french.close();
+
+    // Desktop keeps its size: the Help button stays 24 px and the Filters button stays compact (32 px).
+    const desktopHelp = (await button("Help for My models").boundingBox())!;
+    expect([desktopHelp.width, desktopHelp.height], "Help keeps its desktop size").toEqual([24, 24]);
+    expect((await page.getByRole("button", { name: /^Filters/ }).boundingBox())!.height, "Filters stays compact").toBe(
+      32,
+    );
+
+    // 375 px: the named controls are 36 px, and every interactive element of the header is at least 24 px.
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.locator(".content-container").evaluate(el => el.scrollTo(0, 0));
+    await expectMinTarget(button("Help for My models"), 36, "Help");
+    await expectMinTarget(
+      page.locator("header").getByRole("button", { name: "Toggle sidebar", exact: true }),
+      36,
+      "Sidebar toggle",
+    );
+    await expectMinTarget(page.getByRole("button", { name: /^Filters/ }), 36, "Filters");
+    await expectMinTarget(button("View options"), 36, "View options");
+    await expectMinTarget(page.getByRole("button", { name: /^Open .* details$/ }).first(), 36, "Open details");
+    for (const control of await page
+      .locator("header")
+      .locator("a, button, [role=combobox], [role=switch], input")
+      .all())
+      if (await control.isVisible()) await expectMinTarget(control, 24, "A header control");
+    // Links set in running text are targets too (final fixes): "Advanced: enter an access manually" on To add and each
+    // "Change" of a request line in a card's sheet (QA Shared holds a Claude and a Codex access).
+    await scope(/^To add/).click();
+    await expectMinTarget(button("Advanced: enter an access manually"), 24, "Advanced: enter an access manually");
+    await scope(/^In Registry/).click();
+    await searchModels().fill("qa-shared");
+    await button("Open QA Shared details").first().click();
+    await sheet().getByRole("tab", { name: "Access", exact: true }).click();
+    await button("Edit accesses").click();
+    const changeRequests = sheet().getByRole("button", { name: /^Change requests for / });
+    await expect(changeRequests).toHaveCount(2);
+    for (const change of await changeRequests.all())
+      await expectMinTarget(change, 24, (await change.getAttribute("aria-label")) ?? "Change requests");
+    await button("Cancel").click();
+    await closeSheet();
+    await sheet().waitFor({ state: "hidden" });
+    await searchModels().fill("");
+    await expectNothingClipped(page, "English at 375 px");
+    // A key's Technical check disclosure is a touch target too: all disclosures share one rule.
+    await page.evaluate(() => {
+      location.hash = "#/keys";
+    });
+    await openDevelopmentKey();
+    await expectMinTarget(
+      page.locator("summary").filter({ hasText: /^Technical check/ }),
+      36,
+      "The Technical check disclosure",
+    );
+    await page.evaluate(() => {
+      location.hash = "#/models";
+    });
     await page.setViewportSize({ width: 1440, height: 950 });
   });
 

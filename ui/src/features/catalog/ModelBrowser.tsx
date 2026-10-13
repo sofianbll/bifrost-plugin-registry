@@ -392,7 +392,11 @@ export default function ModelBrowser({
           </div>
           <Popover>
             <PopoverTrigger asChild>
-              <Button size="sm" variant="outline" className={folded ? "" : "hidden @max-2xl:inline-flex"}>
+              <Button
+                size="sm"
+                variant="outline"
+                className={folded ? "max-sm:h-9" : "hidden @max-2xl:inline-flex max-sm:h-9"}
+              >
                 <ListFilter className="size-4" />
                 {copy("Filters", "Filtres")}
                 {foldedFilters ? ` (${foldedFilters})` : ""}

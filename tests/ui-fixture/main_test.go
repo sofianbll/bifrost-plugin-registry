@@ -76,7 +76,7 @@ func TestFixtureWorkspaceAndNativeReadback(t *testing.T) {
 		Discovery []any          `json:"discovery"`
 	}
 	get := call("GET", "/api/workspace", nil, "")
-	if get.Code != 200 || json.Unmarshal(get.Body.Bytes(), &ws) != nil || len(ws.Data["models"].([]any)) != 12 || len(ws.Data["groups"].([]any)) != 2 || len(ws.Data["keys"].([]any)) != 11 || len(ws.Discovery) != 81 {
+	if get.Code != 200 || json.Unmarshal(get.Body.Bytes(), &ws) != nil || len(ws.Data["models"].([]any)) != 12 || len(ws.Data["groups"].([]any)) != 2 || len(ws.Data["keys"].([]any)) != 12 || len(ws.Discovery) != 81 {
 		t.Fatalf("workspace: %d %s", get.Code, get.Body.String())
 	}
 	group := ws.Data["groups"].([]any)[0].(map[string]any)
@@ -336,6 +336,7 @@ func TestFixtureKeysCoverAdoptionCases(t *testing.T) {
 		"vk-qa-mistral": "undiscovered 3, saved 4, unsaved 0", // the Hermes case: a disabled provider plus discovered models
 		"vk-qa-hermes":  "undiscovered 2, saved 2, unsaved 0",
 		"vk-qa-unsaved": "unsaved 1, saved 1",
+		"vk-qa-kept":    "undiscovered 1, saved 2, unsaved 0", // an enabled provider allowing a name it does not serve (#99)
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("unmanaged key cases = %v, want %v", got, want)
@@ -344,13 +345,13 @@ func TestFixtureKeysCoverAdoptionCases(t *testing.T) {
 	wantReadiness := map[string]string{
 		"vk-qa-unmanaged": "empty", "vk-qa-all-providers": "blocked /all-providers 1", "vk-qa-claude": "blocked Claude/dynamic 1", "vk-qa-wildcard": "blocked Claude/dynamic 1",
 		"vk-qa-codex": "ready", "vk-qa-google": "ready",
-		"vk-qa-mistral": "blocked mistral/undiscovered 3 Codex/collision 1", "vk-qa-hermes": "blocked mistral/undiscovered 2", "vk-qa-unsaved": "blocked synthetic-provider/unsaved 1",
+		"vk-qa-mistral": "blocked mistral/undiscovered 3 Codex/collision 1", "vk-qa-hermes": "blocked mistral/undiscovered 2", "vk-qa-unsaved": "blocked synthetic-provider/unsaved 1", "vk-qa-kept": "blocked Google/undiscovered 1",
 	}
 	if !reflect.DeepEqual(readiness, wantReadiness) {
 		t.Fatalf("unmanaged key readiness = %v, want %v", readiness, wantReadiness)
 	}
 	// Adoption agrees: only the ready keys can be adopted as they are.
-	for id, apply := range map[string]bool{"vk-qa-codex": true, "vk-qa-google": true, "vk-qa-mistral": false, "vk-qa-hermes": false, "vk-qa-unsaved": false, "vk-qa-unmanaged": false} {
+	for id, apply := range map[string]bool{"vk-qa-codex": true, "vk-qa-google": true, "vk-qa-mistral": false, "vk-qa-hermes": false, "vk-qa-unsaved": false, "vk-qa-kept": false, "vk-qa-unmanaged": false} {
 		var p struct {
 			CanApply bool `json:"canApply"`
 		}
@@ -636,4 +637,49 @@ func TestFixtureProvidersCarryCustomBaseTypes(t *testing.T) {
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("providers = %v, want %v", got, want)
 	}
+}
+
+// The live Hermes shape (#99): the key adopted keeping Google in Bifrost, which allows qa-gemini and qa-ghost,
+// but Google does not serve qa-ghost, so Bifrost 2.2.6's /v1/models leaves it out. The readback is still
+// Verified (a kept route is not drift); the UI flags the unlisted kept model as a difference.
+func TestFixtureKeptKeyReadbackLacksAnUnlistedKeptModel(t *testing.T) {
+	_, call := fixture(t)
+	var p struct{ Revision, PreviewToken string }
+	adopt := map[string]any{"keyId": "vk-qa-kept", "operation": "adopt", "phase": "preview", "keepNative": []string{"Google"}}
+	if w := call("POST", "/api/keys/adopt", adopt, ""); w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &p) != nil {
+		t.Fatalf("preview failed: %d %s", w.Code, w.Body.String())
+	}
+	adopt["phase"], adopt["previewToken"] = "apply", p.PreviewToken
+	if w := call("POST", "/api/keys/adopt", adopt, p.Revision); w.Code != 200 {
+		t.Fatalf("adoption failed: %d %s", w.Code, w.Body.String())
+	}
+	var ws struct {
+		Data struct {
+			Keys []struct {
+				ID          string
+				Managed     bool
+				Policy      struct{ KeptNative []string }
+				Publication struct {
+					State                     string
+					Expected, Actual, Missing []string
+				}
+			}
+		}
+	}
+	if w := call("POST", "/api/keys/vk-qa-kept/readback", nil, ""); w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &ws) != nil {
+		t.Fatalf("readback failed: %d %s", w.Code, w.Body.String())
+	}
+	for _, k := range ws.Data.Keys {
+		if k.ID != "vk-qa-kept" {
+			continue
+		}
+		p := k.Publication
+		if !k.Managed || !reflect.DeepEqual(k.Policy.KeptNative, []string{"Google"}) || p.State != "verified" || len(p.Missing) != 0 ||
+			!reflect.DeepEqual(p.Expected, []string{"Codex/qa-codex-mini", "Google/qa-gemini", "Google/qa-ghost"}) ||
+			!reflect.DeepEqual(p.Actual, []string{"Codex/qa-codex-mini", "Google/qa-gemini"}) {
+			t.Fatalf("kept key = %+v, want verified, Google/qa-ghost expected but not listed", k)
+		}
+		return
+	}
+	t.Fatal("vk-qa-kept missing from the workspace")
 }

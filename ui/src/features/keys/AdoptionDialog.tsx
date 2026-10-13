@@ -21,7 +21,7 @@ import { useCopy, useFormat } from "../../lib/locale";
 import { AdoptionBlockers } from "./AdoptionBlockers";
 import { NativeEditDialog, type NativeEditRequest } from "./NativePermissionEdit";
 import { KeptProviders } from "./KeptNative";
-import { adoptionProgress, disabledProviders } from "./key-readiness";
+import { adoptionProgress, decidedLabel, disabledProviders, prerequisiteLine } from "./key-readiness";
 
 // onShowToAdd: called with the provider/native routes of the unsaved models blocking the key.
 // onNativeEdited: called once the key was edited in Bifrost (#93), so the caller reloads its workspace.
@@ -49,7 +49,10 @@ export default function AdoptionDialog({
   const [preview, setPreview] = useState<AdoptionPreview | null>(null);
   const [error, setError] = useState("");
   const [stale, setStale] = useState(false);
+  // busy: a preview is loading or the apply is running. applying: the write is running; only then can the dialog
+  // not be left (Cancel stays available while a preview loads, which can take seconds).
   const [busy, setBusy] = useState(false);
+  const [applying, setApplying] = useState(false);
   const [nativeEdit, setNativeEdit] = useState<NativeEditRequest | null>(null);
   // Providers kept in Bifrost (#92): the preview and the apply are made for the same choice, so the list
   // only changes together with the preview it belongs to.
@@ -58,12 +61,20 @@ export default function AdoptionDialog({
   const [edited, setEdited] = useState<string[]>([]);
   // A provider Bifrost reports as disabled is kept in Bifrost on the first preview only, so "Stop keeping" sticks.
   const preselected = useRef(false);
+  // A preview still loading when the dialog closes is dropped: it neither sets state nor asks for a second one.
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
   const snapshot = preview?.evidence === "snapshot";
   const title = snapshot
     ? copyText("Prepare local selection", "Préparer la sélection locale")
     : operation === "adopt"
       ? copyText("Adopt this key", "Adopter cette clé")
-      : copyText("Reassociate Bifrost key", "Réassocier la clé Bifrost");
+      : copyText("Re-link the Bifrost key", "Relier à nouveau la clé Bifrost");
   const confirm = snapshot ? title : operation === "adopt" ? copyText("Adopt", "Adopter") : title;
 
   const report = (cause: unknown) => {
@@ -93,18 +104,20 @@ export default function AdoptionDialog({
     setBusy(true);
     try {
       let next = await previewKeyAdoption(keyId, operation, keep);
+      if (!mounted.current) return;
       const disabled = operation === "adopt" && !preselected.current ? disabledProviders(next.readiness) : [];
       preselected.current = true;
       if (disabled.length) {
         keep = [...keep, ...disabled];
         next = await previewKeyAdoption(keyId, operation, keep);
+        if (!mounted.current) return;
       }
       setPreview(next);
       setKept(keep);
       setStale(false);
       setError("");
     } catch (cause) {
-      report(cause);
+      if (mounted.current) report(cause);
     } finally {
       setBusy(false);
     }
@@ -117,6 +130,7 @@ export default function AdoptionDialog({
   const apply = async () => {
     if (!preview?.canApply || !preview.previewToken || busy || stale) return;
     setBusy(true);
+    setApplying(true);
     try {
       onApplied(await applyKeyAdoption(preview, kept));
       onClose();
@@ -124,9 +138,12 @@ export default function AdoptionDialog({
       report(cause);
     } finally {
       setBusy(false);
+      setApplying(false);
     }
   };
   const progress = adoptionProgress(preview?.readiness, kept, edited);
+  // Why Adopt is off beyond the decisions: models to register first, or the key to fix in Bifrost (no numbered decision).
+  const prerequisite = preview?.canApply ? "" : prerequisiteLine(preview?.readiness, copyText);
   const routes = (ids: string[]) => (
     <ul className="mt-2 space-y-1">
       {ids.map(id => (
@@ -141,7 +158,7 @@ export default function AdoptionDialog({
     <Dialog
       open
       onOpenChange={open => {
-        if (!open && !busy) onClose();
+        if (!open && !applying) onClose();
       }}
     >
       <DialogContent className="max-h-[90dvh] w-[calc(100vw-2rem)] max-w-xl scroll-pb-32 overflow-auto pb-0">
@@ -150,8 +167,8 @@ export default function AdoptionDialog({
           <DialogDescription>
             {operation === "adopt"
               ? copyText(
-                  "Registry takes over the choice of models for this key. Adopting changes nothing in Bifrost: the key keeps its permissions there.",
-                  "Registry prend en charge le choix des modèles de cette clé. Adopter ne change rien dans Bifrost : la clé y garde ses permissions.",
+                  "Registry takes over the choice of models for this key. Adopting itself changes nothing in Bifrost; the options marked “Changes Bifrost” do.",
+                  "Registry prend en charge le choix des modèles de cette clé. Adopter ne change rien dans Bifrost en soi ; les options marquées « Modifie Bifrost » le font.",
                 )
               : copyText(
                   "Review the selected models and Bifrost permissions before confirming.",
@@ -185,6 +202,8 @@ export default function AdoptionDialog({
               <AdoptionBlockers
                 readiness={preview.readiness}
                 reasons={preview.blocked}
+                kept={kept}
+                progress={progress}
                 onShowToAdd={onShowToAdd}
                 onKeep={operation === "adopt" ? keep : undefined}
                 onEditNative={operation === "adopt" && !snapshot ? setNativeEdit : undefined}
@@ -238,7 +257,7 @@ export default function AdoptionDialog({
                   {copyText("This preview is out of date.", "Cet aperçu n’est plus à jour.")}
                 </p>
               )}
-              <Button variant="outline" size="sm" disabled={busy} onClick={() => void refresh()}>
+              <Button variant="outline" size="sm" className="max-sm:h-9" disabled={busy} onClick={() => void refresh()}>
                 {copyText("Refresh preview", "Actualiser l’aperçu")}
               </Button>
             </div>
@@ -259,21 +278,23 @@ export default function AdoptionDialog({
         ) : (
           <p className="text-sm text-muted-foreground">
             {busy
-              ? copyText("Loading preview…", "Chargement de l’aperçu…")
+              ? copyText(
+                  "Loading preview… this can take a few seconds.",
+                  "Chargement de l’aperçu… cela peut prendre quelques secondes.",
+                )
               : copyText("Preview unavailable.", "Aperçu indisponible.")}
           </p>
         )}
         {/* Sticky, so Cancel and Adopt stay in reach on a phone while the decisions scroll (the dialog is the one scroll container). */}
         <DialogFooter className="sticky bottom-0 -mx-6 flex-row flex-wrap items-center justify-end gap-2 border-t bg-white px-6 py-3 dark:bg-card">
-          {progress.total > 0 && (
+          {(progress.total > 0 || prerequisite) && (
             <p className="w-full text-xs text-muted-foreground sm:mr-auto sm:w-auto">
-              {copyText(
-                `${progress.decided} of ${progress.total} decided`,
-                `${progress.decided} sur ${progress.total} ${progress.total > 1 ? "décidées" : "décidée"}`,
-              )}
+              {progress.total > 0 && <span>{decidedLabel(progress, copyText)}</span>}
+              {progress.total > 0 && prerequisite && " · "}
+              {prerequisite && <span>{prerequisite}</span>}
             </p>
           )}
-          <Button variant="outline" className="flex-1 sm:flex-none" disabled={busy} onClick={onClose}>
+          <Button variant="outline" className="flex-1 sm:flex-none" disabled={applying} onClick={onClose}>
             {copyText("Cancel", "Annuler")}
           </Button>
           <Button

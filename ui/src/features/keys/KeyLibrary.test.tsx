@@ -119,7 +119,7 @@ const keptKey: Key = {
     revision: "r",
     checkedAt: "2026-10-12T09:30:00Z",
     expected: [],
-    actual: [],
+    actual: ["gpt-5-mini", "mistral/a", "mistral/b", "mistral/c"],
     missing: [],
     unexpected: [],
   },
@@ -133,6 +133,39 @@ for (const [language, line] of [
   for (const jargon of ["chosen in Registry", "choisis dans Registry", "IDs", "Bifrost allows ·", "kept in Bifrost ·"])
     if (text.includes(jargon)) throw new Error(`${language}: one total, no "${jargon}" on the card`);
 }
+// #99: a kept model Bifrost does not list is not counted, and the check says there is a difference.
+const unlisted: Key = {
+  ...keptKey,
+  publication: { ...keptKey.publication!, actual: ["gpt-5-mini", "mistral/a", "mistral/b"] },
+};
+for (const [language, line] of [
+  ["en", "3 models · Verified · 1 difference"],
+  ["fr", "3 modèles · Vérifiée · 1 écart"],
+] as const) {
+  const text = plain(render(language, [unlisted]));
+  if (!text.includes(line)) throw new Error(`${language}: the key card must read "${line}", got ${text}`);
+}
+// Final critique: that check explains itself, on the card and in the table: a tooltip on the chip and a hidden sentence
+// it is described by; a plain "Verified" carries neither.
+const explained = {
+  en: "Bifrost confirmed this key. 1 permission kept in Bifrost is not listed by Bifrost.",
+  fr: "Bifrost a confirmé cette clé. 1 permission conservée dans Bifrost n’est pas listée par Bifrost.",
+};
+for (const layout of ["grid", "table"] as const)
+  for (const language of ["en", "fr"] as const) {
+    const html = render(language, [unlisted], { layout });
+    const note = html.match(/<span id="([^"]+)" class="sr-only">([^<]*)<\/span>/);
+    if (
+      !note ||
+      note[2] !== explained[language] ||
+      !html.includes(`title="${explained[language]}"`) ||
+      !html.includes(`aria-describedby="${note[1]}"`)
+    )
+      throw new Error(`${language} ${layout}: the chip must carry its explanation, got ${html}`);
+    for (const none of [keptKey, { ...unlisted, publication: { ...unlisted.publication!, state: "drift" as const } }])
+      if (render(language, [none], { layout }).includes(explained[language].slice(0, 25)))
+        throw new Error(`${language} ${layout}: no explanation without a counted difference`);
+  }
 const tableText = (language: "en" | "fr") => plain(render(language, [keptKey], { layout: "table" }));
 if (
   !tableText("en").includes("4 models") ||
@@ -210,7 +243,7 @@ const verdicts: [string, Key, string, string, string][] = [
     },
     "Blocked",
     "Bloquée",
-    "Mistral · 3 models not discovered",
+    "Mistral: Bifrost doesn’t show 3 models",
   ],
   ["empty", { ...native, name: "Empty Key", readiness: { state: "empty", blockers: [] } }, "Empty", "Vide", ""],
   ["not read", { ...native, name: "Unread Key" }, "Adoption needed", "À adopter", ""],
@@ -361,10 +394,18 @@ for (const [language, label] of [
   }
 }
 
-// Story 39: every key action is named after its key, in grid and table, in both languages.
+// Story 39: every key action is named after its key, in grid and table, in both languages. Critique round 5: the
+// action also names where it leads: "Adopt" for a key that can be adopted (or not read yet), "See what blocks it" for
+// one that cannot, "Open" for a managed key.
 const named = [
   { ...native, id: "a", name: "Key A" },
-  { ...native, id: "b", name: "Key B" },
+  {
+    ...native,
+    id: "b",
+    name: "Key B",
+    readiness: { state: "blocked" as const, blockers: [] },
+  },
+  { ...native, id: "e", name: "Key E", readiness: { state: "ready" as const, blockers: [] } },
   { ...fixture.keys[0], id: "c", name: "Key C", managed: true },
   { ...fixture.keys[0], id: "d", name: "Key D", managed: true },
 ];
@@ -388,11 +429,11 @@ for (const language of ["en", "fr"] as const) {
     );
     const actions = [...html.matchAll(/<button[^>]*>(.*?)<\/button>/g)]
       .map(match => match[1].split(/<[^>]*>/).join(""))
-      .filter(name => /^(Review|Open|Examiner|Ouvrir)\b/.test(name));
+      .filter(name => /^(Review|Open|Adopt|See what|Examiner|Ouvrir|Adopter|Voir ce qui)\b/.test(name));
     const expected =
       language === "en"
-        ? ["Open · Key C", "Open · Key D", "Review · Key A", "Review · Key B"]
-        : ["Ouvrir · Key C", "Ouvrir · Key D", "Examiner · Key A", "Examiner · Key B"];
+        ? ["Open · Key C", "Open · Key D", "Adopt · Key E", "See what blocks it · Key B", "Adopt · Key A"]
+        : ["Ouvrir · Key C", "Ouvrir · Key D", "Adopter · Key E", "Voir ce qui bloque · Key B", "Adopter · Key A"];
     if (JSON.stringify(actions) !== JSON.stringify(expected))
       throw new Error(`${language} ${layout}: key actions must name their key, got ${JSON.stringify(actions)}`);
   }

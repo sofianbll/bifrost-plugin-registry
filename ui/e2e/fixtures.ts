@@ -33,4 +33,33 @@ export const test = base.extend<Options & { pageErrors: string[] }>({
   },
 });
 
+// Words Basic must never show (PRODUCT.md: identifiers and endpoint names belong to Expert and folded technical
+// details). One list, so a term another view leaks is added here once and every Basic step then checks it.
+export const BASIC_FORBIDDEN_TERMS = [
+  "Common model ID",
+  "Family:",
+  "Documentary record",
+  "Mapping chosen in Registry",
+  "Document ID",
+  "Registry ID",
+  "Registry endpoint",
+  "native model ID",
+  "chat/completions",
+  "/v1/",
+  "Review binding",
+  "Readback",
+] as const;
+
+// Fails when the visible text of the page (a closed fold shows none) holds a forbidden term. Call it in Basic
+// steps only: it refuses to run with the Expert switch on.
+export const expectNoBasicJargon = async (page: Page, where = "") => {
+  const expert = page.locator("#expert-mode");
+  if (await expert.count()) expect(await expert.getAttribute("aria-checked"), "Basic is on").not.toBe("true");
+  const text = await page.evaluate(() => document.body.innerText);
+  expect(
+    BASIC_FORBIDDEN_TERMS.filter(term => text.includes(term)),
+    `Basic shows no technical term${where ? ` (${where})` : ""}`,
+  ).toEqual([]);
+};
+
 export { expect };

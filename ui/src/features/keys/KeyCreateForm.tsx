@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { useCopy } from "../../lib/locale";
@@ -7,22 +8,26 @@ type Props = { draft: KeyFormDraft; error: string; onChange: (draft: KeyFormDraf
 
 export function KeyCreateForm({ draft, error, onChange }: Props) {
   const copy = useCopy();
+  // "Required" is a neutral hint until the name was left empty; a duplicate name (it takes typing) says so at once.
+  const [touched, setTouched] = useState(false);
+  const shown = draft.name.trim() || touched ? error : "";
   return (
     <div className="space-y-4">
-      <Field data-invalid={!!error}>
+      <Field data-invalid={!!shown}>
         <FieldLabel htmlFor="key-name">{copy("Name", "Nom")} *</FieldLabel>
         <Input
           id="key-name"
           aria-label={copy("Key name", "Nom de la clé")}
           aria-required="true"
-          aria-invalid={!!error}
+          aria-invalid={!!shown}
           autoFocus
           value={draft.name}
           onChange={event => onChange({ ...draft, name: event.target.value })}
+          onBlur={() => setTouched(true)}
           placeholder={copy("e.g. Hermes staging", "ex. Hermes staging")}
         />
-        <FieldDescription className={error ? "text-destructive" : undefined}>
-          {error || copy("Required", "Obligatoire")}
+        <FieldDescription className={shown ? "text-destructive" : undefined}>
+          {shown || copy("Required", "Obligatoire")}
         </FieldDescription>
       </Field>
       <Field>

@@ -319,14 +319,17 @@ func (b *syntheticBifrost) roundTrip(r *http.Request) (*http.Response, error) {
 			if _, managed := snapshot.View(key.ID); managed {
 				// Bifrost lists the names the key's provider permissions allow, then the plugin's own Project
 				// narrows them to the policy (and keeps a kept-native provider's), exactly as native/main.go does.
+				// Like Bifrost 2.2.6, an explicit name its provider does not serve is left out (vk-qa-kept's
+				// Google/qa-ghost); a provider without discoverable models (disabled) lists every explicit name.
 				for _, pc := range key.ProviderConfigs {
+					p := findProvider(pc.Provider)
 					for _, name := range pc.AllowedModels {
-						if name != "*" {
+						if name != "*" && (p == nil || len(p.models) == 0 || slices.ContainsFunc(p.models, func(m nativeModel) bool { return m.name == name })) {
 							visible = append(visible, map[string]string{"id": pc.Provider + "/" + name})
 						}
 					}
 					// "*" lists every model the provider serves (a kept-native Claude row of vk-qa-wildcard).
-					if p := findProvider(pc.Provider); p != nil && slices.Contains(pc.AllowedModels, "*") {
+					if p != nil && slices.Contains(pc.AllowedModels, "*") {
 						for _, m := range p.models {
 							visible = append(visible, map[string]string{"id": pc.Provider + "/" + m.name})
 						}
@@ -463,7 +466,8 @@ func seed() registry.Config {
 
 // seedKeys are the native virtual keys. The first two are managed; every other one is an unmanaged
 // adoption case: empty, all providers, all models of Claude (claude, wildcard), ready (codex, google), blocked
-// by models of a disabled provider (mistral, hermes) or by a discovered model without a card (unsaved).
+// by models of a disabled provider (mistral, hermes), by a name an enabled provider does not serve (kept) or by a
+// discovered model without a card (unsaved).
 func seedKeys() map[string]*virtualKey {
 	keys := map[string]*virtualKey{
 		"vk-qa-dev":           {ID: "vk-qa-dev", Name: "QA Development Key", Description: "Synthetic development client", Value: "sk-bf-qa-fixture-dev", Active: true, ProviderConfigs: []providerConfig{{Provider: provider, AllowedModels: []string{"qa-code", "qa-chat"}}}},
@@ -488,6 +492,11 @@ func seedKeys() map[string]*virtualKey {
 		"vk-qa-wildcard": {ID: "vk-qa-wildcard", Name: "QA Wildcard Key", Description: "Synthetic client allowed every Claude model", Value: "sk-bf-qa-fixture-wildcard", Active: true, ProviderConfigs: []providerConfig{
 			{Provider: "Claude", AllowedModels: []string{"*"}, AllowAllKeys: true},
 			{Provider: "Codex", AllowedModels: []string{"qa-codex"}, AllowAllKeys: true}}},
+		// The live Hermes shape (#99): Google, an enabled provider, does not serve qa-ghost, so it blocks adoption
+		// until Google is kept in Bifrost; once managed, /v1/models leaves Google/qa-ghost out.
+		"vk-qa-kept": {ID: "vk-qa-kept", Name: "QA Kept Key", Description: "Synthetic kept-native client", Value: "sk-bf-qa-fixture-kept", Active: true, ProviderConfigs: []providerConfig{
+			{Provider: "Codex", AllowedModels: []string{"qa-codex-mini"}, AllowAllKeys: true},
+			{Provider: "Google", AllowedModels: []string{"qa-gemini", "qa-ghost"}, AllowAllKeys: true}}},
 		// qa-unregistered is discovered but has no card, and no journey saves it.
 		"vk-qa-unsaved": {ID: "vk-qa-unsaved", Name: "QA To Add Key", Description: "Synthetic unsaved client", Value: "sk-bf-qa-fixture-unsaved", Active: true, ProviderConfigs: []providerConfig{{Provider: provider, AllowedModels: []string{"qa-vision", "qa-unregistered"}, AllowAllKeys: true}}},
 	}

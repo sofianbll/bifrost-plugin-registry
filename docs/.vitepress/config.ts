@@ -6,7 +6,7 @@ export default defineConfig({
   title: 'Bifrost Registry',
   base: '/bifrost-plugin-registry/',
   // Internal records stay on GitHub; only the user and operator guides are published.
-  srcExclude: ['design/**', 'reviews/**', 'archive/**', 'agents/**', 'research/**', 'images/README.md', 'SOURCES.md'],
+  srcExclude: ['adr/**', 'design/**', 'reviews/**', 'archive/**', 'agents/**', 'research/**', 'images/README.md', 'SOURCES.md'],
   // README.md is the docs index on GitHub and the home page here.
   rewrites: { 'README.md': 'index.md', 'fr/README.md': 'fr/index.md' },
   themeConfig: {

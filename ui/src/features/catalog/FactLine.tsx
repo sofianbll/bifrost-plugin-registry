@@ -15,7 +15,7 @@ export function FactLine({ field, fact }: { field: string; fact: CatalogField })
       <span className="text-muted-foreground">
         · {sourceLabel(fact.source, copy)} ·{" "}
         {fact.kind === "observed" ? copy("observed", "observé") : copy("declared", "déclaré")} ·{" "}
-        {fact.updatedAt ? format.date(fact.updatedAt) : copy("date unknown", "date inconnue")}
+        {fact.updatedAt ? format.moment(fact.updatedAt) : copy("date unknown", "date inconnue")}
       </span>
     </p>
   );

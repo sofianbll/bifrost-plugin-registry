@@ -15,6 +15,22 @@ type Props = {
   hideSteps?: boolean;
 };
 
+// Expert shows every step in one scroll: whatever moves to a step brings its section into view. Only the editor's
+// own scroll container moves: scrollIntoView also scrolls the overflow-hidden sheet shell once the container
+// reaches its end, which takes the header and the stepper off screen.
+export function revealJourneyStep(index: number, last: boolean) {
+  const section =
+    document.getElementById(`editor-journey-step-${index}`) ??
+    (last ? document.getElementById("editor-journey-summary") : null);
+  const scroller = section?.closest<HTMLElement>("[data-journey-scroll]");
+  if (!section || !scroller) return;
+  const margin = parseFloat(getComputedStyle(section).scrollMarginTop) || 0;
+  scroller.scrollTo({
+    top: scroller.scrollTop + section.getBoundingClientRect().top - scroller.getBoundingClientRect().top - margin,
+    behavior: "smooth",
+  });
+}
+
 // Basic or Expert is the header switch's choice: the editor has no switch of its own.
 export function EditorJourney({
   labels,
@@ -44,11 +60,7 @@ export function EditorJourney({
                       aria-current={step === index ? "step" : undefined}
                       onClick={() => {
                         const accepted = onStepChange(index);
-                        if (expert && accepted !== false)
-                          (
-                            document.getElementById(`editor-journey-step-${index}`) ??
-                            (index === labels.length - 1 ? document.getElementById("editor-journey-summary") : null)
-                          )?.scrollIntoView({ block: "start", behavior: "smooth" });
+                        if (expert && accepted !== false) revealJourneyStep(index, index === labels.length - 1);
                       }}
                     >
                       {index + 1}. {label}
@@ -60,7 +72,10 @@ export function EditorJourney({
           </div>
         </header>
       )}
-      <div className="@container/journey custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain py-4 pr-1">
+      <div
+        data-journey-scroll
+        className="@container/journey custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain py-4 pr-1"
+      >
         {expert ? (
           <div className="grid min-w-0 items-start gap-4 @min-[52rem]/journey:grid-cols-[minmax(0,1fr)_minmax(15rem,19rem)]">
             <div className="min-w-0 space-y-5">{expertContent ?? children}</div>

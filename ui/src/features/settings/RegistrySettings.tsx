@@ -59,7 +59,8 @@ export default function RegistrySettings({
   const copy = useCopy();
   const format = useFormat();
   const { colon } = format;
-  const dated = (value?: string) => (value ? format.date(value) : copy("Not recorded", "Non renseigné"));
+  // Dates and times without seconds, in the one format of the UI ("Sep 25, 2026, 2:38 PM", "25/09/2026 14:38").
+  const dated = (value?: string) => (value ? format.moment(value) : copy("Not recorded", "Non renseigné"));
   const [section, setSection] = useState<SettingsSection>(initialSection);
   const [gatewayProviders, setGatewayProviders] = useState<string[]>([]);
   const [providersError, setProvidersError] = useState("");
@@ -414,7 +415,7 @@ export default function RegistrySettings({
             <CardTitle>{copy("A short path through Registry", "Parcours rapide dans Registry")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <HelpContent />
+            <HelpContent expert={expert} />
             {onStartTour && (
               <Button type="button" variant="outline" onClick={onStartTour}>
                 {copy("Start the tour", "Commencer la visite")}
@@ -429,8 +430,8 @@ export default function RegistrySettings({
           <CardContent className="space-y-3 text-sm text-muted-foreground">
             <p>
               {copy(
-                "A snapshot is a dated local copy that can be partial. Its edits stay in the copy. A connected workspace reads and writes through the Registry service; a saved key change still needs publication and readback verification.",
-                "Une copie locale est un instantané daté qui peut être partiel. Ses changements restent dans cette copie. Un espace connecté lit et écrit via le service Registry ; une modification de clé enregistrée doit encore être publiée et vérifiée par relecture.",
+                "A snapshot is a dated local copy that can be partial. Its edits stay in the copy. A connected workspace reads and writes through the Registry service; a key change still needs to be published and checked with Bifrost.",
+                "Une copie locale est un instantané daté qui peut être partiel. Ses changements restent dans cette copie. Un espace connecté lit et écrit via le service Registry ; une modification de clé doit encore être publiée et vérifiée avec Bifrost.",
               )}
             </p>
             {navigate(snapshotMode ? "gateway" : "catalog")}
