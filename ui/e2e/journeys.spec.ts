@@ -1096,6 +1096,8 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
       .locator("..");
     // Basic reads the preselected request types in one line; Change opens the full list.
     await expect(inCard).toContainText("Requests: Image generation · Change");
+    await expect(inCard, "#100: Basic names the access by its provider alone").toContainText("Google");
+    await expect(inCard).not.toContainText("qa-image");
     await expect(inCard.getByRole("checkbox")).toHaveCount(0);
     await inCard.getByRole("button", { name: "Change requests for Google", exact: true }).click();
     await expect(inCard.getByRole("checkbox", { name: /^Image generation/ })).toBeChecked();
@@ -1159,7 +1161,10 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(button("Save model")).toHaveCount(0);
     await expect(button("Delete"), "Delete is not an always-visible button").toHaveCount(0);
     await sheet().getByRole("tab", { name: "Access", exact: true }).click();
-    await expect(sheet().getByText("qa-image").first()).toBeVisible();
+    await expect(
+      sheet().getByRole("tabpanel").getByText("qa-image"),
+      "#100: Basic names the access by its provider alone, the native ID is not before the fold",
+    ).toHaveCount(0);
     await expect(sheet().getByRole("checkbox"), "Looking never risks changing: no editable control").toHaveCount(0);
     await expect(
       sheet().getByText("Native model ID", { exact: true }),
@@ -1248,6 +1253,9 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
         .evaluateAll(parts => parts.map(part => part.id)),
     ).resolves.toEqual(["editor-journey-step-0", "editor-journey-step-1", "editor-journey-step-2"]);
     await expect(sheet().locator("#editor-journey-step-0")).toContainText("In this card");
+    await expect(sheet().locator("#editor-journey-step-0"), "#100: Expert still shows the native ID").toContainText(
+      "qa-chat",
+    );
     await expect(sheet().locator("#editor-journey-step-2")).toContainText("Review before saving");
     // Expert opens the technical fold of Review; the edit flow says what saving changes, in plain words.
     await expect(sheet().locator("#editor-journey-step-2").locator("details")).toHaveAttribute("open");
@@ -1357,7 +1365,11 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await sheet().getByRole("tab", { name: "Access", exact: true }).click();
     await expect(part(sheet(), /^Also available/)).toContainText(/openrouter/i);
     await button("Edit accesses").click();
-    await expect(part(sheet(), /^In this card/)).toContainText("qa-opus");
+    await expect(part(sheet(), /^In this card/)).toContainText("Claude");
+    await expect(
+      part(sheet(), /^In this card/),
+      "#100: one access per provider, no native ID in Basic",
+    ).not.toContainText("qa-opus");
     await expect(part(sheet(), /^In this card/)).not.toContainText(/openrouter/i);
     await expect(part(sheet(), /^Also available/)).toContainText(/Input price \$4\/M.*Output price \$20\/M/);
     await expect(part(sheet(), /^Also available/), "An access saved in another card is not offered").not.toContainText(
@@ -1378,6 +1390,9 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(part(sheet(), /^Also available/)).not.toContainText(/openrouter/i);
     // Preselected from the native chat mode declared by Bifrost: a chat model answers both text request types.
     await expect(part(sheet(), /^In this card/)).toContainText(/Requests: Chat Completions, Responses · Change/i);
+    await expect(part(sheet(), /^In this card/), "#100: still one access per provider after the add").not.toContainText(
+      "qa-opus",
+    );
     await button("Review").click();
     // #100: Basic words an added or removed access by its provider alone; the native ID waits in the fold.
     await sheet()
@@ -1414,7 +1429,15 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     for (const expertOn of [false, true]) {
       await setExpert(expertOn);
       await page.getByRole("button", { name: "Open QA Opus saved details", exact: true }).click();
-      if (!expertOn) await sheet().getByRole("tab", { name: "Access", exact: true }).click();
+      // #100: the Access and Sources tabs name the access by its provider in Basic; Expert shows the native ID.
+      for (const tab of ["Sources", "Access"]) {
+        await sheet().getByRole("tab", { name: tab, exact: true }).click();
+        await expect(
+          sheet().getByRole("tabpanel").getByText("qa-opus", { exact: true }),
+          `${tab} tab, ${expertOn ? "Expert" : "Basic"}`,
+        ).toHaveCount(expertOn ? 1 : 0);
+      }
+      if (expertOn) await sheet().getByRole("tab", { name: "Overview", exact: true }).click();
       await button(expertOn ? "Edit" : "Edit accesses").click();
       const inCard = sheet()
         .getByRole("heading", { name: /^In this card/ })
@@ -1424,6 +1447,10 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
       await sheet()
         .getByRole("button", { name: /^Add openrouter/i })
         .click();
+      if (expertOn) {
+        await expect(inCard.getByText("qa-opus", { exact: true }), "Expert: Claude's native ID").toHaveCount(1);
+        await expect(inCard.getByText("anthropic/qa-opus", { exact: true }), "Expert: OpenRouter's").toHaveCount(1);
+      } else await expect(inCard, "Basic: one access per provider, no native ID").not.toContainText("qa-opus");
       await button("Review").click();
       const review = sheet().locator("#editor-journey-step-2");
       const changes = review.getByRole("heading", { name: "Proposed changes" }).locator("..");
@@ -1451,6 +1478,62 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
       await sheet().waitFor({ state: "hidden" });
     }
     await setExpert(false);
+  });
+
+  await test.step("Basic keeps the native IDs of a provider the card holds twice, and only those", async () => {
+    // #100. The fixture saves no card with two accesses of one provider, so a mocked workspace gives QA Shared
+    // (Claude and Codex, one each) a second Claude access. Claude's two rows need their native IDs to be told
+    // apart; Codex's single row stays a provider name.
+    const live = await api("workspace");
+    const catalog = await api("catalog");
+    const twin = { ...live.data.models.find((m: { id: string }) => m.id === "qa-shared").accesses[0] };
+    expect(twin.provider).toBe("Claude");
+    twin.id = "Claude/qa-shared-fast";
+    twin.nativeModel = "qa-shared-fast";
+    const twice = await browser.newPage({ baseURL, viewport: { width: 1440, height: 950 } });
+    await skipTour(twice);
+    twice.on("pageerror", e => errors.push(e.message));
+    await twice.route("**/api/workspace", r =>
+      r.fulfill({
+        json: {
+          ...live,
+          data: {
+            ...live.data,
+            models: live.data.models.map((m: { id: string; accesses: unknown[] }) =>
+              m.id === "qa-shared" ? { ...m, accesses: [...m.accesses, twin] } : m,
+            ),
+          },
+        },
+      }),
+    );
+    await twice.route("**/api/catalog", r => r.fulfill({ json: catalog }));
+    await twice.goto("/");
+    await twice.getByRole("button", { name: "Open QA Shared details", exact: true }).first().click();
+    const twiceSheet = twice.locator('[data-slot="sheet-content"]');
+    await twiceSheet.getByRole("tab", { name: "Access", exact: true }).click();
+    const accessCards = twiceSheet
+      .getByRole("tabpanel")
+      .locator("div.rounded-sm.border")
+      .filter({ has: twice.getByText("Provider access", { exact: true }) });
+    await expect(accessCards).toHaveCount(3);
+    const claudeCards = accessCards.filter({ hasText: "Claude" });
+    await expect(claudeCards).toHaveCount(2);
+    await expect(
+      claudeCards.getByText("qa-shared", { exact: true }),
+      "Claude's first row keeps its native ID",
+    ).toHaveCount(1);
+    await expect(claudeCards.getByText("qa-shared-fast", { exact: true }), "and so does its twin").toHaveCount(1);
+    await expect(accessCards.filter({ hasText: "Codex" }), "Codex is held once: the provider alone").not.toContainText(
+      "qa-shared",
+    );
+    await twiceSheet.getByRole("button", { name: "Edit accesses", exact: true }).click();
+    const inCard = twiceSheet.getByRole("heading", { name: /^In this card/ }).locator("..");
+    await expect(inCard.getByText("qa-shared", { exact: true })).toHaveCount(1);
+    await expect(inCard.getByText("qa-shared-fast", { exact: true })).toHaveCount(1);
+    await expect(inCard.locator("p").filter({ has: twice.locator("strong", { hasText: "Codex" }) })).not.toContainText(
+      "qa-shared",
+    );
+    await twice.close();
   });
 
   await test.step("custom provider derives exposed ID and validation stays beside Save", async () => {

@@ -10,6 +10,7 @@ import {
   omitUnchangedReferenceIds,
   prefillFromReference,
   reviewSentence,
+  showsNativeModel,
 } from "./model-editor-data";
 import type { Catalog } from "./catalog-api";
 import type { Model } from "../../domain/registry";
@@ -338,4 +339,16 @@ equal(
   reviewSentence({ name: "glm-5.1", providers: ["OpenCode Go"], creating: false }, fr),
   "Vous enregistrez des modifications de glm-5.1. Les clés qui l’utilisent déjà reçoivent ces modifications.",
 );
+// #100: Basic names an access by its provider; a provider held twice keeps its native models, Expert always shows them.
+const held = [
+  { provider: "Claude", id: "Claude/a", nativeModel: "a" },
+  { provider: "Claude", id: "Claude/b", nativeModel: "b" },
+  { provider: "Codex", id: "Codex/a", nativeModel: "a" },
+].map(access => ({ ...access, route: "Direct provider", status: "Configured" as const }));
+equal(
+  held.map(access => showsNativeModel(held, access, false)),
+  [true, true, false],
+);
+equal(showsNativeModel(held, held[2], true), true);
+equal(showsNativeModel(held.slice(1), held[1], false), false);
 console.log("model editor data checks passed");

@@ -161,6 +161,12 @@ export function alsoAvailable(accesses: CatalogAccess[], card: Model, saved: Mod
   return [...new Map(offered.map(access => [`${access.provider}/${access.model}`, access])).values()];
 }
 
+// Basic names an access by its provider alone (#100). Expert, and the rows of a provider the card holds twice,
+// also show the native model: it is all that tells those rows apart.
+export function showsNativeModel(accesses: Access[], access: Access, expert: boolean) {
+  return expert || accesses.filter(row => row.provider === access.provider).length > 1;
+}
+
 export type AccessCandidate = Pick<Access, "provider" | "nativeModel" | "status"> & { source: string };
 
 export function canonicalCapabilities(values: Model["capabilities"]): Model["capabilities"] {

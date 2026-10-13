@@ -57,6 +57,7 @@ import {
   modelEditorOptions,
   prefillFromReference,
   reviewSentence,
+  showsNativeModel,
 } from "./model-editor-data";
 import { SearchableSelect, type SearchOption } from "../../components/registry/SearchableSelect";
 import { cardName } from "./reference-groups";
@@ -482,6 +483,7 @@ export default function ModelEditor({
     setEditDraft(null);
   };
   const validAccesses = draft.accesses.filter(access => access.provider && access.nativeModel);
+  const showNative = (access: Access) => showsNativeModel(validAccesses, access, expert);
   const baseline = saved.find(model => model.id === draft.id);
   // Saved accesses removed from the draft stay matches, so they can be added back; an access another
   // saved card holds is never offered (Bifrost routes one access to one card).
@@ -1075,8 +1077,13 @@ export default function ModelEditor({
           >
             <div className="flex items-start justify-between gap-2">
               <p>
-                <strong>{displayProvider(access.provider)}</strong> ·{" "}
-                <code className="break-all">{access.nativeModel}</code>
+                <strong>{displayProvider(access.provider)}</strong>
+                {showNative(access) && (
+                  <>
+                    {" "}
+                    · <code className="break-all">{access.nativeModel}</code>
+                  </>
+                )}
               </p>
               <Button
                 variant="ghost"
@@ -1542,10 +1549,14 @@ export default function ModelEditor({
                                 <strong className="block break-words text-sm">
                                   {displayProvider(access.provider)}
                                 </strong>
-                                <p className="text-xs text-muted-foreground">
-                                  {copy("Model at this provider", "Modèle chez ce fournisseur")}
-                                </p>
-                                <code className="block break-all text-xs">{access.nativeModel}</code>
+                                {showNative(access) && (
+                                  <>
+                                    <p className="text-xs text-muted-foreground">
+                                      {copy("Model at this provider", "Modèle chez ce fournisseur")}
+                                    </p>
+                                    <code className="block break-all text-xs">{access.nativeModel}</code>
+                                  </>
+                                )}
                                 {expert && (
                                   <code
                                     className="block break-all text-xs text-muted-foreground"
@@ -1616,7 +1627,9 @@ export default function ModelEditor({
                         className="min-w-0 rounded-sm border bg-card p-4"
                       >
                         <h4 className="font-semibold">{displayProvider(access.provider)}</h4>
-                        <p className="mt-1 break-all font-mono text-xs text-muted-foreground">{access.nativeModel}</p>
+                        {showNative(access) && (
+                          <p className="mt-1 break-all font-mono text-xs text-muted-foreground">{access.nativeModel}</p>
+                        )}
                         <div className="mt-3 border-t pt-3">
                           <p className="text-xs text-muted-foreground">
                             {copy("Documentary record", "Fiche documentaire")}
