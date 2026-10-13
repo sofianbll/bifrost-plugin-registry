@@ -44,6 +44,8 @@ export const BASIC_FORBIDDEN_TERMS = [
   "Registry ID",
   "chat/completions",
   "/v1/",
+  "Review binding",
+  "Readback",
 ] as const;
 
 // Fails when the visible text of the page (a closed fold shows none) holds a forbidden term. Call it in Basic

@@ -65,8 +65,8 @@ export function TourOffer({
           {canStart
             ? copy("Models, Groups, Keys, then adopting a key.", "Modèles, groupes, clés, puis l’adoption d’une clé.")
             : copy(
-                "Save or discard your key draft first.",
-                "Enregistrez ou abandonnez d’abord votre brouillon de clé.",
+                "Publish or discard your key draft first.",
+                "Publiez ou abandonnez d’abord votre brouillon de clé.",
               )}
         </p>
       </div>
