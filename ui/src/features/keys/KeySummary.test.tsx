@@ -444,6 +444,19 @@ must(
     headingOf(page(neverRead, "fr")) === "Cette clé peut appeler 3 modèles · pas encore vérifiée",
   `an unchecked headline is provisional, got ${headingOf(unchecked)}`,
 );
+// Polish: the headline already says "not checked yet", so the closed fold only names itself; a checked key's fold
+// keeps its verdict, and so does a key that can call nothing (no headline claim to repeat).
+const foldOf = (html: string) => text(html.match(/<summary[^>]*>[\s\S]*?<\/summary>/)?.[0] ?? "");
+must(
+  foldOf(unchecked) === "Technical check" && foldOf(page(neverRead, "fr")) === "Vérification technique",
+  `an unchecked key's fold does not repeat the verdict, got ${foldOf(unchecked)}`,
+);
+must(
+  foldOf(page(hermes)).startsWith("Technical check · Verified") &&
+    foldOf(page({ ...neverRead, policy: { ...neverRead.policy, added: [], groups: [], keptNative: [] } }, "en")) ===
+      "Technical check · Not checked yet",
+  "a checked key and a key with no model keep the verdict in the fold",
+);
 must(
   unchecked.indexOf("Check with Bifrost") < unchecked.indexOf("<details") && buttons(unchecked) === 1,
   "the first check is beside the headline, not only inside the fold, and only once",

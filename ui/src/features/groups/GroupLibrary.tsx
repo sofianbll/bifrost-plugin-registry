@@ -20,9 +20,21 @@ type Props = {
   onResetView: () => void;
   onCreate: () => void;
   onEdit: (group: Group) => void;
+  // Basic folds the view controls into "View options", as My models and Keys do.
+  expert?: boolean;
 };
 
-export function GroupLibrary({ groups, models, keys, view, onViewChange, onResetView, onCreate, onEdit }: Props) {
+export function GroupLibrary({
+  groups,
+  models,
+  keys,
+  view,
+  onViewChange,
+  onResetView,
+  onCreate,
+  onEdit,
+  expert = false,
+}: Props) {
   const copy = useCopy();
   // The search survives leaving the page for the session.
   const [search, onSearch] = useSessionState("groups.search", "");
@@ -161,6 +173,7 @@ export function GroupLibrary({ groups, models, keys, view, onViewChange, onReset
               scope={copy("Groups", "Groupes")}
               fields={["description", "metadata", "providers"]}
               catalogFormats
+              folded={!expert}
             />
           </div>
           <p className="text-xs text-muted-foreground" aria-live="polite">

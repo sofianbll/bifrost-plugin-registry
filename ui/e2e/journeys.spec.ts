@@ -304,6 +304,14 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(stepCard("Virtual keys")).toHaveCount(0);
     await expect(page).toHaveURL(/#\/models$/);
     await expect(page.getByRole("heading", { name: "My models", level: 1 })).toBeVisible();
+    // Step 1 speaks of registered cards: started from To add, the tour brings In Registry back, so its ring sits on a
+    // saved card and not on a tile to register.
+    await scope(/^To add/).click();
+    await startFromHelp();
+    await expect(scope(/^In Registry/)).toBeChecked();
+    await expect(page.locator('[data-tour="first-model"]').getByRole("button", { name: /^Register/ })).toHaveCount(0);
+    await expect(page.locator('[data-tour="first-model"]')).toHaveCount(1);
+    await button("Skip the tour").click();
     // A step whose anchor is not on the page is skipped, never waited on forever.
     await page.evaluate(() => {
       const set = Element.prototype.setAttribute;
@@ -1278,6 +1286,13 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await callName.fill("qa-call-name");
     await expect(sheet().getByText("Enter a valid call name."), "fixing the name clears its banner").toHaveCount(0);
     await button("Next: model details").click();
+    // An emptied display name is a prompt until the field is left; it reads as an error only then.
+    const displayName = sheet().getByRole("textbox", { name: "Display name *", exact: true });
+    await displayName.fill("");
+    await expect(displayName).not.toHaveAttribute("aria-invalid", "true");
+    await displayName.blur();
+    await expect(displayName).toHaveAttribute("aria-invalid", "true");
+    await displayName.fill("QA Unregistered");
     await button("Review").click();
     const review = sheet().locator("#editor-journey-step-2");
     await expect(review).toContainText(
@@ -1901,7 +1916,16 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     // manually"; the access form keeps its Save action (Keep changes) disabled beside the error.
     await button("Register a model").click();
     await button("Advanced: enter an access manually").click();
+    // Nothing is typed yet: what is missing is a prompt, not an error; once something is typed, it is one.
+    const missing = sheet().getByText(
+      "Choose a valid call name and at least one complete access to prepare the card.",
+      {
+        exact: true,
+      },
+    );
+    await expect(missing).not.toHaveClass(/destructive/);
     await page.getByRole("combobox", { name: "Search a model or enter its ID *", exact: true }).fill("qa-custom");
+    await expect(missing).toHaveClass(/destructive/);
     await button("Enter access manually").click();
     const dialog = page.getByRole("dialog", { name: "Edit provider access" });
     await dialog.getByRole("combobox", { name: "Provider in Bifrost *", exact: true }).fill("synthetic-provider");
@@ -1985,7 +2009,11 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
       ledger.getByRole("button", { name: "Check with Bifrost", exact: true }),
       "the first check is visible with the technical fold closed",
     ).toBeVisible();
-    await ledger.getByText(/^Technical check · /).click();
+    await expect(
+      ledger.getByText(/^Technical check · /),
+      'the fold does not repeat the headline\'s "not checked yet"',
+    ).toHaveCount(0);
+    await ledger.getByText(/^Technical check/).click();
     await expect(ledger.getByText(/^Bifrost allows today · /)).toBeVisible();
     // One check button, named for the first check: not duplicated in the fold, never "Read again".
     await expect(ledger.getByRole("button", { name: /^Check/ })).toHaveText(["Check with Bifrost"]);
@@ -2405,7 +2433,14 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
 
   await test.step("key creation secret has a clipboard denial fallback", async () => {
     await button("Create key").click();
-    await page.getByLabel("Key name", { exact: true }).fill("QA Browser Key");
+    // "Required" is a neutral hint until the name is left empty, as in the group sheet.
+    const keyName = page.getByLabel("Key name", { exact: true });
+    await expect(keyName).not.toHaveAttribute("aria-invalid", "true");
+    await expect(page.getByRole("dialog").getByText("Required", { exact: true })).not.toHaveClass(/destructive/);
+    await page.getByLabel("Client name", { exact: true }).click(); // leaves the empty name
+    await expect(keyName).toHaveAttribute("aria-invalid", "true");
+    await expect(page.getByRole("dialog").getByText("Enter a key name.", { exact: true })).toBeVisible();
+    await keyName.fill("QA Browser Key");
     await page.getByRole("dialog").getByRole("button", { name: "Create key", exact: true }).click();
     await page.getByLabel("Virtual key secret", { exact: true }).waitFor();
     await page.evaluate(() =>
@@ -2436,6 +2471,9 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     // "Sources & References" is now Settings > Open catalog data.
     await nav("Settings").click();
     await button("Open catalog data").click();
+    // A refresh button names its source as the card above does, not by its raw id ("bifrost", "models.dev").
+    await expect(button("Refresh Bifrost")).toBeVisible();
+    await expect(button("Refresh Models.dev")).toBeVisible();
     await page.getByRole("button").filter({ hasText: "synthetic-provider/qa-chat" }).first().click();
     await button("Edit field").click();
     const dialog = page.getByRole("dialog");
@@ -2985,7 +3023,7 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(dialog).toContainText("Ready to adopt");
     await dialog.getByRole("button", { name: "Adopt", exact: true }).click();
     const ledger = page.getByRole("region", { name: /^This key can call/ });
-    await ledger.getByText(/^Technical check · /).click();
+    await ledger.getByText(/^Technical check/).click();
     // Adopted but never checked: the first check is named, beside the headline; once done it checks again (#99).
     await expect(ledger.getByRole("button", { name: "Check again", exact: true })).toHaveCount(0);
     await button("Check with Bifrost").click();
@@ -3571,6 +3609,16 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await withinViewport(page.getByRole("button", { name: /^Open .* details$/ }).first());
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await shot("after-mobile-filters-375");
+    // The width slider and the full-screen toggle only exist from sm up: a phone's sheet already fills the screen.
+    await page
+      .getByRole("button", { name: /^Open .* details$/ })
+      .first()
+      .click();
+    await expect(sheet()).toBeVisible();
+    await expect(sheet().getByRole("button", { name: "Expand panel to full screen", exact: true })).toBeHidden();
+    await expect(sheet().getByRole("slider", { name: "Panel width", exact: true })).toBeHidden();
+    await page.keyboard.press("Escape");
+    await sheet().waitFor({ state: "hidden" });
     // The keyboard opens it, every control is inside, a choice shows in the count, Escape closes it and gives the focus back.
     await filters.focus();
     await page.keyboard.press("Enter");

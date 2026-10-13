@@ -49,10 +49,11 @@ for (const shape of ["rectangle", "square"] as const) {
     throw new Error(`shape ${shape}: expected ${gridColumns(view.size)} columns`);
 }
 
-const render = (view = defaultViewOptions, language: "en" | "fr" = "en", keys = fixture.keys) =>
+const render = (view = defaultViewOptions, language: "en" | "fr" = "en", keys = fixture.keys, expert = true) =>
   renderToStaticMarkup(
     <LanguageContext.Provider value={language}>
       <GroupLibrary
+        expert={expert}
         groups={fixture.groups}
         models={fixture.models}
         keys={keys}
@@ -78,6 +79,15 @@ for (const layout of ["grid", "table"] as const) {
   if (layout === "table" && group("Forme des cartes"))
     throw new Error("table layout must keep hiding the shape control");
 }
+
+// Basic folds the view, shape and density controls into "View options" at every width, as My models and Keys do;
+// Expert keeps them in the bar.
+const basic = render(defaultViewOptions, "en", fixture.keys, false);
+if (basic.includes('aria-label="Grid density"') || basic.includes('aria-label="Card shape"'))
+  throw new Error("Basic must not print the view controls inline");
+if (!basic.includes('aria-label="View options"')) throw new Error("Basic keeps the View options button");
+if (!render(defaultViewOptions, "en", fixture.keys, true).includes('aria-label="Card shape"'))
+  throw new Error("Expert keeps the view controls in the bar");
 
 // One key or several keys must read as "1 clé" and "3 clés", in cards and in the table.
 const singleKey = [{ ...fixture.keys[0], policy: { ...fixture.keys[0].policy, groups: [fixture.groups[0].id] } }];

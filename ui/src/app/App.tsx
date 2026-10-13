@@ -621,6 +621,8 @@ function RegistryApp({
     markTourSeen();
     setTourOffer(false);
     setHelpOpen(false);
+    // Step 1 speaks of registered cards: its ring must not land on a tile of To add.
+    setModelScope("registry");
     setTourRun(run => run + 1);
   };
   const dismissTour = () => {
@@ -1382,54 +1384,56 @@ function RegistryApp({
                 ))}
               {page === "models" && (
                 <>
-                  <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-                    <div className="min-w-60 flex-1">
+                  <div className="mb-4">
+                    {/* The scope switch sits on the title row: the description under it changes length with the scope
+                        and must not move the control the person just clicked. */}
+                    <div className="flex flex-wrap items-center justify-between gap-3">
                       <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
                         {copyText("My models", "Mes modèles")}
                       </h1>
-                      <p className="mt-1 max-w-prose text-sm text-foreground/70">
-                        {modelScope === "registry" ? (
-                          copyText(
-                            "Model cards saved in Registry, with their provider accesses.",
-                            "Fiches modèles enregistrées dans Registry, avec leurs accès fournisseurs.",
-                          )
-                        ) : (
-                          <>
-                            {copyText(
-                              "Models discovered in Bifrost and not saved yet. Open one to register it.",
-                              "Modèles découverts dans Bifrost et pas encore enregistrés. Ouvrez-en un pour l’enregistrer.",
-                            )}{" "}
-                            <Button
-                              variant="link"
-                              size="sm"
-                              className="h-auto p-0 align-baseline"
-                              onClick={() => openModel(newModel(), true)}
-                            >
-                              {copyText("Advanced: enter an access manually", "Avancé : saisir un accès manuellement")}
-                            </Button>
-                          </>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <ToggleGroup
+                          type="single"
+                          variant="outline"
+                          className="bg-card"
+                          value={modelScope}
+                          onValueChange={value => value && setModelScope(value as typeof modelScope)}
+                          aria-label={copyText("Model scope", "Portée des modèles")}
+                        >
+                          <ToggleGroupItem value="registry">{scopeLabels.registry}</ToggleGroupItem>
+                          <ToggleGroupItem value="to-add">{scopeLabels.toAdd}</ToggleGroupItem>
+                        </ToggleGroup>
+                        {modelScope === "registry" && (
+                          <Button onClick={() => setModelScope("to-add")}>
+                            <Plus className="size-4" />
+                            {copyText("Register a model", "Enregistrer un modèle")}
+                          </Button>
                         )}
-                      </p>
+                      </div>
                     </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <ToggleGroup
-                        type="single"
-                        variant="outline"
-                        className="bg-card"
-                        value={modelScope}
-                        onValueChange={value => value && setModelScope(value as typeof modelScope)}
-                        aria-label={copyText("Model scope", "Portée des modèles")}
-                      >
-                        <ToggleGroupItem value="registry">{scopeLabels.registry}</ToggleGroupItem>
-                        <ToggleGroupItem value="to-add">{scopeLabels.toAdd}</ToggleGroupItem>
-                      </ToggleGroup>
-                      {modelScope === "registry" && (
-                        <Button onClick={() => setModelScope("to-add")}>
-                          <Plus className="size-4" />
-                          {copyText("Register a model", "Enregistrer un modèle")}
-                        </Button>
+                    <p className="mt-1 max-w-prose text-sm text-foreground/70">
+                      {modelScope === "registry" ? (
+                        copyText(
+                          "Model cards saved in Registry, with their provider accesses.",
+                          "Fiches modèles enregistrées dans Registry, avec leurs accès fournisseurs.",
+                        )
+                      ) : (
+                        <>
+                          {copyText(
+                            "Models discovered in Bifrost and not saved yet. Open one to register it.",
+                            "Modèles découverts dans Bifrost et pas encore enregistrés. Ouvrez-en un pour l’enregistrer.",
+                          )}{" "}
+                          <Button
+                            variant="link"
+                            size="sm"
+                            className="h-auto p-0 align-baseline"
+                            onClick={() => openModel(newModel(), true)}
+                          >
+                            {copyText("Advanced: enter an access manually", "Avancé : saisir un accès manuellement")}
+                          </Button>
+                        </>
                       )}
-                    </div>
+                    </p>
                   </div>
                   {catalog.length ? (
                     <ReferenceCatalogBrowser
@@ -1477,6 +1481,7 @@ function RegistryApp({
               {page === "snapshot" && <SnapshotTransfer onUnauthorized={requireLogin} onApplied={() => void load()} />}
               {page === "groups" && (
                 <GroupLibrary
+                  expert={effectiveExpert}
                   groups={data.groups}
                   models={namedModels}
                   keys={data.keys}
