@@ -50,6 +50,19 @@ func fixture(t *testing.T) (*syntheticBifrost, caller) {
 	}
 }
 
+func TestFixtureAddr(t *testing.T) {
+	for port, want := range map[string]string{"": "127.0.0.1:4174", "4191": "127.0.0.1:4191"} {
+		if got, err := fixtureAddr(port); err != nil || got != want {
+			t.Fatalf("fixtureAddr(%q) = %q, %v; want %q", port, got, err, want)
+		}
+	}
+	for _, port := range []string{"abc", "80", "65536", "-1"} {
+		if _, err := fixtureAddr(port); err == nil {
+			t.Fatalf("fixtureAddr(%q) accepted an invalid port", port)
+		}
+	}
+}
+
 func TestFixtureWorkspaceAndNativeReadback(t *testing.T) {
 	b, call := fixture(t)
 	for _, key := range b.keys {

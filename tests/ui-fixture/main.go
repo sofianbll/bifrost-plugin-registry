@@ -517,7 +517,23 @@ func main() {
 	}
 }
 
+// fixtureAddr is the loopback listen address for FIXTURE_PORT (4174 when unset), so parallel runs can each take a port.
+func fixtureAddr(port string) (string, error) {
+	if port == "" {
+		port = "4174"
+	}
+	n, err := strconv.Atoi(port)
+	if err != nil || n < 1024 || n > 65535 {
+		return "", fmt.Errorf("FIXTURE_PORT must be a number between 1024 and 65535, got %q", port)
+	}
+	return "127.0.0.1:" + strconv.Itoa(n), nil
+}
+
 func run() error {
+	addr, err := fixtureAddr(os.Getenv("FIXTURE_PORT"))
+	if err != nil {
+		return err
+	}
 	base := filepath.Join("dist", "checks", "ux-audit")
 	if err := os.MkdirAll(base, 0700); err != nil {
 		return err
@@ -552,13 +568,13 @@ func run() error {
 	}
 	b := &syntheticBifrost{store: store, keys: seedKeys()}
 	server.ConnectNative(roundTrip(b.roundTrip))
-	httpServer := server.HTTPServer("127.0.0.1:4174")
+	httpServer := server.HTTPServer(addr)
 	httpServer.Handler = b.recordedWrites(httpServer.Handler)
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
 	defer signal.Stop(stop)
 	go func() { <-stop; _ = httpServer.Close() }()
-	log.Printf("synthetic UI fixture ready at http://127.0.0.1:4174/ (registry: %s)", path)
+	log.Printf("synthetic UI fixture ready at http://%s/ (registry: %s)", addr, path)
 	if err := httpServer.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
 		return err
 	}

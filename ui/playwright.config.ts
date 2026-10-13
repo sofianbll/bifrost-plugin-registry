@@ -1,9 +1,10 @@
 import { defineConfig, type PlaywrightTestConfig } from '@playwright/test';
 import type { Options } from './e2e/fixtures';
 
-const url = 'http://127.0.0.1:4174';
+// The fixture reads the same FIXTURE_PORT, so parallel runs can each use their own port.
+const url = `http://127.0.0.1:${process.env.FIXTURE_PORT || 4174}`;
 
-// The synthetic fixture is destructive and listens on a fixed port, so the journeys and the
+// The synthetic fixture is destructive and owns its port, so the journeys and the
 // screenshots are two configs run as two invocations: each one starts a fresh fixture.
 export const e2e = (suite: string): PlaywrightTestConfig<Options> => ({
   testDir: './e2e',
@@ -40,7 +41,7 @@ const base = e2e('journeys');
 export default defineConfig<Options>({
   ...base,
   testMatch: 'journeys.spec.ts',
-  timeout: 180_000, // one test, many steps
+  timeout: 300_000, // one test, many steps: about 150 s on a CI runner, so keep a wide margin
   // The journeys mutate the fixture: a retry would start from the state the failed run left.
   retries: 0,
   use: { ...base.use, trace: 'retain-on-failure' },

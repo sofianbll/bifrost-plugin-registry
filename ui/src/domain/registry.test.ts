@@ -1,24 +1,63 @@
 import { fixture } from "../dev/fixtures/registry";
-import { copy, unsavedModels, creatorKey, delta, distinctLabels, exposed, filterModels, keyImpact, members, modelImpact, toggleModel, emptyModelFilters } from "./registry";
+import {
+  copy,
+  unsavedModels,
+  creatorKey,
+  delta,
+  distinctLabels,
+  exposed,
+  filterModels,
+  keyImpact,
+  members,
+  modelImpact,
+  toggleModel,
+  emptyModelFilters,
+} from "./registry";
 
-const assert = (condition: boolean) => { if (!condition) throw Error("Demo state check failed"); };
+const assert = (condition: boolean) => {
+  if (!condition) throw Error("Demo state check failed");
+};
 const deepEqual = (a: unknown, b: unknown) => assert(JSON.stringify(a) === JSON.stringify(b));
 
 const state = copy(fixture);
 const discovered = { ...state.models[0], name: "Discovery label", summary: "Unreviewed metadata" };
 // The "To add" shelf: discovered models minus the accesses saved cards hold, each discovered ID once.
-deepEqual(unsavedModels([state.models[0]], [discovered, state.models[1], state.models[1]]).map(m => m.id), [state.models[1].id]);
-const additionalAccess = { provider: "second-provider", id: "second-provider/gpt-5", nativeModel: "native-gpt-5", route: "Direct provider", status: "Configured" as const };
+deepEqual(
+  unsavedModels([state.models[0]], [discovered, state.models[1], state.models[1]]).map(m => m.id),
+  [state.models[1].id],
+);
+const additionalAccess = {
+  provider: "second-provider",
+  id: "second-provider/gpt-5",
+  nativeModel: "native-gpt-5",
+  route: "Direct provider",
+  status: "Configured" as const,
+};
 const expandedDiscovery = { ...discovered, accesses: [...discovered.accesses, additionalAccess] };
 // A discovered access the saved card does not hold is offered beside it under its discovered ID, never merged into it.
-deepEqual(unsavedModels([state.models[0]], [expandedDiscovery]).map(m => [m.id, m.accesses]), [[state.models[0].id, [additionalAccess]]]);
+deepEqual(
+  unsavedModels([state.models[0]], [expandedDiscovery]).map(m => [m.id, m.accesses]),
+  [[state.models[0].id, [additionalAccess]]],
+);
 // An access already saved under another card ID is not offered again.
 deepEqual(unsavedModels([state.models[1]], [{ ...state.models[1], id: "other-id" }]), []);
 // A display name shared by several cards gains the card's ID, so actions named after it stay distinct.
-const label = distinctLabels([{ name: "QA", id: "a" }, { name: "QA", id: "b" }, { name: "Other", id: "c" }], m => m.name, m => m.id);
+const label = distinctLabels(
+  [
+    { name: "QA", id: "a" },
+    { name: "QA", id: "b" },
+    { name: "Other", id: "c" },
+  ],
+  m => m.name,
+  m => m.id,
+);
 deepEqual([label({ name: "QA", id: "b" }), label({ name: "Other", id: "c" })], ["QA (b)", "Other"]);
 assert(state.models[0].accesses.length === 2);
-assert(state.campaigns.every(c => state.models.find(m => m.id === c.model)?.accesses.some(a => a.provider === c.provider && a.id === c.accessId)));
+assert(
+  state.campaigns.every(c =>
+    state.models.find(m => m.id === c.model)?.accesses.some(a => a.provider === c.provider && a.id === c.accessId),
+  ),
+);
 const hermes = state.keys[0];
 const witness = state.keys[1];
 hermes.policy = toggleModel(hermes.policy, "claude-sonnet-4", state.groups);
@@ -27,20 +66,67 @@ deepEqual(members(hermes.policy, state.groups), ["gpt-5", "gpt-5-mini", "gemini-
 deepEqual(members(witness.policy, state.groups), ["gpt-5", "claude-sonnet-4", "gpt-5-mini"]);
 const nextGroups = copy(state.groups);
 nextGroups[0].members.push("kimi-k2");
-deepEqual(keyImpact(state.keys, state.groups, nextGroups, state.models).map(x => x.key.id), ["hermes", "witness"]);
+deepEqual(
+  keyImpact(state.keys, state.groups, nextGroups, state.models).map(x => x.key.id),
+  ["hermes", "witness"],
+);
 assert(!exposed(hermes.policy, nextGroups, state.models).includes("claude-sonnet-4"));
 deepEqual(delta(["a", "b"], ["b", "c"]), { added: ["c"], removed: ["a"] });
-deepEqual(filterModels(state.models, { ...emptyModelFilters, search: "azure/gpt-5" }).map(m => m.id), ["gpt-5"]);
-deepEqual(filterModels(state.models, { ...emptyModelFilters, creator: "OpenAI", provider: "azure" }).map(m => m.id), ["gpt-5"]);
+deepEqual(
+  filterModels(state.models, { ...emptyModelFilters, search: "azure/gpt-5" }).map(m => m.id),
+  ["gpt-5"],
+);
+deepEqual(
+  filterModels(state.models, { ...emptyModelFilters, creator: "OpenAI", provider: "azure" }).map(m => m.id),
+  ["gpt-5"],
+);
 // An empty creator and "Unknown" are the same absence under one filter value.
-deepEqual(filterModels([{ ...state.models[0], creator: "" }, { ...state.models[1], creator: "Unknown" }, state.models[2]], { ...emptyModelFilters, creator: creatorKey("") }).map(m => m.id), [state.models[0].id, state.models[1].id]);
-deepEqual(filterModels(state.models, { ...emptyModelFilters, input: "Image", task: "Reasoning" }).map(m => m.id), ["gpt-5", "claude-sonnet-4", "gemini-2.5-pro", "claude-opus-4"]);
-deepEqual(modelImpact(hermes, state.groups, nextGroups), { added: ["kimi-k2"], removed: [], unchanged: ["gpt-5", "gpt-5-mini", "gemini-2.5-pro"], exclusions: ["claude-sonnet-4"] });
+deepEqual(
+  filterModels([{ ...state.models[0], creator: "" }, { ...state.models[1], creator: "Unknown" }, state.models[2]], {
+    ...emptyModelFilters,
+    creator: creatorKey(""),
+  }).map(m => m.id),
+  [state.models[0].id, state.models[1].id],
+);
+deepEqual(
+  filterModels(state.models, { ...emptyModelFilters, input: "Image", task: "Reasoning" }).map(m => m.id),
+  ["gpt-5", "claude-sonnet-4", "gemini-2.5-pro", "claude-opus-4"],
+);
+deepEqual(modelImpact(hermes, state.groups, nextGroups), {
+  added: ["kimi-k2"],
+  removed: [],
+  unchanged: ["gpt-5", "gpt-5-mini", "gemini-2.5-pro"],
+  exclusions: ["claude-sonnet-4"],
+});
 // #87: a key's unsaved models are found by exact provider/native route (one per line), not by text.
-const onRoute = (id: string, provider: string, nativeModel: string) => ({ ...state.models[0], id, accesses: [{ provider, id: `${provider}/${id}`, nativeModel, route: "Direct provider", status: "Configured" as const }] });
+const onRoute = (id: string, provider: string, nativeModel: string) => ({
+  ...state.models[0],
+  id,
+  accesses: [
+    { provider, id: `${provider}/${id}`, nativeModel, route: "Direct provider", status: "Configured" as const },
+  ],
+});
 const routable = [onRoute("a", "synth", "qa-a"), onRoute("b", "synth", "qa-b"), onRoute("c", "other", "qa-a")];
-deepEqual(filterModels(routable, { ...emptyModelFilters, routes: "synth/qa-a\nsynth/qa-b" }).map(m => m.id), ["a", "b"]);
-deepEqual(filterModels(routable, { ...emptyModelFilters, routes: "synth/qa", search: "" }).map(m => m.id), []);
-deepEqual(filterModels(routable, { ...emptyModelFilters, routes: "other/qa-a", provider: "synth" }).map(m => m.id), []);
-assert(state.models.every(model => model.creator && model.family && model.inputModalities.length && model.outputModalities.length && model.tasks.length));
+deepEqual(
+  filterModels(routable, { ...emptyModelFilters, routes: "synth/qa-a\nsynth/qa-b" }).map(m => m.id),
+  ["a", "b"],
+);
+deepEqual(
+  filterModels(routable, { ...emptyModelFilters, routes: "synth/qa", search: "" }).map(m => m.id),
+  [],
+);
+deepEqual(
+  filterModels(routable, { ...emptyModelFilters, routes: "other/qa-a", provider: "synth" }).map(m => m.id),
+  [],
+);
+assert(
+  state.models.every(
+    model =>
+      model.creator &&
+      model.family &&
+      model.inputModalities.length &&
+      model.outputModalities.length &&
+      model.tasks.length,
+  ),
+);
 console.log("Demo state checks passed");

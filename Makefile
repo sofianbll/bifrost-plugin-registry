@@ -1,4 +1,4 @@
-.PHONY: check test ui-check script-check lint build serve native
+.PHONY: check test ui-check script-check lint build serve native hooks
 
 check: test ui-check script-check
 
@@ -6,12 +6,13 @@ test:
 	./scripts/test.sh
 
 ui-check:
-	cd ui && npm ci && npm run check && npm run build
+	cd ui && npm ci && npm run check && npm run format:check && npm run build
 
 script-check:
 	python3 scripts/test_import_bifrost_datasheets.py
 	for f in scripts/*.sh packaging/*.sh; do bash -n "$$f" || exit 1; done
 	bash scripts/test-github-setup.sh
+	bash scripts/check-case-collisions.sh
 	@if command -v bun >/dev/null 2>&1 && [ -d dist/models-dev-upstream ]; then \
 		bun scripts/build-modelsdev-snapshot.test.ts; \
 	else \
@@ -35,3 +36,7 @@ serve:
 native:
 	@test -n "$(BIFROST_CHECKOUT)" || (echo 'Set BIFROST_CHECKOUT=/path/to/checkout'; exit 1)
 	./scripts/build-with-bifrost.sh "$(BIFROST_CHECKOUT)" ./dist/native
+
+hooks:
+	git config core.hooksPath .githooks
+	git config blame.ignoreRevsFile .git-blame-ignore-revs

@@ -15,13 +15,27 @@ export const tourSteps: TourStep[] = [
 export const pickAnchor = (step: TourStep, present: (anchor: string) => boolean) => step.anchors.find(present);
 
 type Memory = Pick<Storage, "getItem" | "setItem">;
-const browserStorage = (): Memory | null => { try { return localStorage; } catch { return null; } };
+const browserStorage = (): Memory | null => {
+  try {
+    return localStorage;
+  } catch {
+    return null;
+  }
+};
 
 // A browser that keeps nothing (private window, blocked site data) reads as "seen": it is not offered
 // the tour on every load, and "?" still starts it.
 export const tourSeen = (storage: Memory | null = browserStorage()) => {
-  try { return storage ? storage.getItem(tourKey) !== null : true; } catch { return true; }
+  try {
+    return storage ? storage.getItem(tourKey) !== null : true;
+  } catch {
+    return true;
+  }
 };
 export const markTourSeen = (storage: Memory | null = browserStorage()) => {
-  try { storage?.setItem(tourKey, "1"); } catch { /* the page keeps its own flag for this load */ }
+  try {
+    storage?.setItem(tourKey, "1");
+  } catch {
+    /* the page keeps its own flag for this load */
+  }
 };

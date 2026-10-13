@@ -8,7 +8,8 @@ go run ./tests/ui-fixture
 
 Open <http://127.0.0.1:4174/> and sign in with the synthetic admin token
 `qa-fixture-admin-token-only-1234567890`. Set `QA_FIXTURE_ADMIN_TOKEN` to override it.
-The fixture listens only on `127.0.0.1`, serves `ui/dist` through the real admin
+The fixture listens only on `127.0.0.1`, on port 4174 unless `FIXTURE_PORT`
+(1024-65535) says otherwise. It serves `ui/dist` through the real admin
 server, and stores its temporary registry under ignored `dist/checks/ux-audit/`.
 Stopping the process removes that temporary registry.
 
@@ -121,7 +122,9 @@ card, the decisions model, model modes, and reference namespaces.
 ## Browser journeys
 
 The Playwright suite in `ui/e2e` starts its own fixture, so stop any fixture you
-started by hand (the port is fixed). From `ui/`, with the UI built and Go installed:
+started by hand on the same port. Parallel runs: give each its own `FIXTURE_PORT`
+(for example `FIXTURE_PORT=4191 npx playwright test`); the Playwright config and the
+fixture both read it. From `ui/`, with the UI built and Go installed:
 
 ```sh
 npm ci && npm run build

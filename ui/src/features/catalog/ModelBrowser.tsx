@@ -4,7 +4,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CardTitle } from "@/components/ui/card";
 import { ActionLabel, CatalogCard, CatalogGrid } from "@/components/registry/CatalogCard";
-import { ModelCapabilityLegend, ModelCapabilitiesSummary, ModelModalitiesSummary } from "@/components/registry/model-capabilities";
+import {
+  ModelCapabilityLegend,
+  ModelCapabilitiesSummary,
+  ModelModalitiesSummary,
+} from "@/components/registry/model-capabilities";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -14,25 +18,100 @@ import { BrandIcon, displayProvider } from "../../components/registry/BrandIcon"
 import { ProviderSummary } from "../../components/registry/CompactCollection";
 import { ModelAccessMenu } from "../../components/registry/ModelAccessMenu";
 import { useCopy, useCreatorName, useFormat, useTerm } from "../../lib/locale";
-import { creatorKey, distinctLabels, knownValue, emptyModelFilters, filterModels, type Model, type ModelFilters } from "../../domain/registry";
-import { cardFormat, defaultViewOptions, gridColumns, updateViewOverride, ViewControls, type ViewOptions } from "../../components/registry/ViewOptions";
+import {
+  creatorKey,
+  distinctLabels,
+  knownValue,
+  emptyModelFilters,
+  filterModels,
+  type Model,
+  type ModelFilters,
+} from "../../domain/registry";
+import {
+  cardFormat,
+  defaultViewOptions,
+  gridColumns,
+  updateViewOverride,
+  ViewControls,
+  type ViewOptions,
+} from "../../components/registry/ViewOptions";
 import { sortItems, type SortKey } from "./reference-groups";
 import { selectionCounts, setVisibleSelection } from "./selection";
 import { useSessionState } from "../../lib/session-state";
 import { FactsUnknown, factsUnknown } from "./card-identity";
 
-const filterLabels = (field: keyof ModelFilters, copy: ReturnType<typeof useCopy>) => ({ search: copy("Search", "Rechercher"), creator: copy("Creator", "Créateur"), provider: copy("Serving provider", "Fournisseur de service"), task: copy("Usage / task", "Usage / tâche"), input: copy("Input", "Entrée"), output: copy("Output", "Sortie"), capability: copy("Capability", "Capacité"), routes: copy("Key models", "Modèles de la clé") })[field];
+const filterLabels = (field: keyof ModelFilters, copy: ReturnType<typeof useCopy>) =>
+  ({
+    search: copy("Search", "Rechercher"),
+    creator: copy("Creator", "Créateur"),
+    provider: copy("Serving provider", "Fournisseur de service"),
+    task: copy("Usage / task", "Usage / tâche"),
+    input: copy("Input", "Entrée"),
+    output: copy("Output", "Sortie"),
+    capability: copy("Capability", "Capacité"),
+    routes: copy("Key models", "Modèles de la clé"),
+  })[field];
 const unique = (items: string[]) => [...new Set(items)].sort((a, b) => a.localeCompare(b));
-const familySuffix = (family: string) => knownValue(family) ? ` · ${family}` : "";
+const familySuffix = (family: string) => (knownValue(family) ? ` · ${family}` : "");
 // Session key of a browser's search and filters, so another page can preset them (see setSessionState).
 export const modelFiltersKey = (filterKey: string) => `${filterKey}.filters`;
-export type ModelBrowserProps = { models: Model[]; registeredIds?: ReadonlySet<string>; selected?: string[]; selectionDetails?: (id: string) => { source: string; action: string }; onToggle?: (id: string) => void; onSetSelected?: (ids: string[]) => void; onOpen?: (model: Model) => void; preferences?: ViewOptions; compact?: boolean; label?: string; tourFirst?: boolean; filter?: (models: Model[], filters: ModelFilters) => Model[]; renderResults?: (models: Model[], view: ViewOptions, groupBy: string, filters: ModelFilters, sort: SortKey) => ReactNode; providerFilterLabel?: string; selectionNote?: string; stateKey?: string; filterKey?: string;
+export type ModelBrowserProps = {
+  models: Model[];
+  registeredIds?: ReadonlySet<string>;
+  selected?: string[];
+  selectionDetails?: (id: string) => { source: string; action: string };
+  onToggle?: (id: string) => void;
+  onSetSelected?: (ids: string[]) => void;
+  onOpen?: (model: Model) => void;
+  preferences?: ViewOptions;
+  compact?: boolean;
+  label?: string;
+  tourFirst?: boolean;
+  filter?: (models: Model[], filters: ModelFilters) => Model[];
+  renderResults?: (
+    models: Model[],
+    view: ViewOptions,
+    groupBy: string,
+    filters: ModelFilters,
+    sort: SortKey,
+  ) => ReactNode;
+  providerFilterLabel?: string;
+  selectionNote?: string;
+  stateKey?: string;
+  filterKey?: string;
   // The Models page sets the primary logo (a panel preference), opens on a sorted list, and To add opens grouped by provider; other lists keep their order. recentSort: the list is in the order cards were saved.
-  onLogoChange?: (logo: ViewOptions["logo"]) => void; defaultGroupBy?: string; defaultSort?: SortKey; recentSort?: boolean;
+  onLogoChange?: (logo: ViewOptions["logo"]) => void;
+  defaultGroupBy?: string;
+  defaultSort?: SortKey;
+  recentSort?: boolean;
   // Basic mode (Models page, key editor): search, one Filters (n) and one View options, whatever the width; a
   // selectable list moves "Select all visible" into Filters and leaves its counts to the caller's selection line.
-  folded?: boolean };
-export default function ModelBrowser({ models, registeredIds, selected, selectionDetails, onToggle, onSetSelected, onOpen, preferences = defaultViewOptions, compact = false, label, tourFirst = false, filter, renderResults, providerFilterLabel: providerFilterLabelProp, selectionNote, stateKey, filterKey = stateKey, onLogoChange, defaultGroupBy = "none", defaultSort = "default", recentSort = false, folded = false }: ModelBrowserProps) {
+  folded?: boolean;
+};
+export default function ModelBrowser({
+  models,
+  registeredIds,
+  selected,
+  selectionDetails,
+  onToggle,
+  onSetSelected,
+  onOpen,
+  preferences = defaultViewOptions,
+  compact = false,
+  label,
+  tourFirst = false,
+  filter,
+  renderResults,
+  providerFilterLabel: providerFilterLabelProp,
+  selectionNote,
+  stateKey,
+  filterKey = stateKey,
+  onLogoChange,
+  defaultGroupBy = "none",
+  defaultSort = "default",
+  recentSort = false,
+  folded = false,
+}: ModelBrowserProps) {
   const copy = useCopy();
   const { colon } = useFormat();
   const creatorName = useCreatorName();
@@ -40,7 +119,10 @@ export default function ModelBrowser({ models, registeredIds, selected, selectio
   const selectVisibleId = useId();
   // With a stateKey, search, filters, grouping and view survive leaving the page (session memory);
   // a filterKey keeps search and filters apart from lists sharing the grouping and view.
-  const [filters, setFilters] = useSessionState<ModelFilters>(filterKey && modelFiltersKey(filterKey), emptyModelFilters);
+  const [filters, setFilters] = useSessionState<ModelFilters>(
+    filterKey && modelFiltersKey(filterKey),
+    emptyModelFilters,
+  );
   const [groupBy, setGroupBy] = useSessionState(stateKey && `${stateKey}.groupBy`, defaultGroupBy);
   const [chosenSort, setSort] = useSessionState<SortKey>(stateKey && `${stateKey}.sort`, defaultSort);
   const sort = chosenSort === "recent" && !recentSort ? defaultSort : chosenSort; // To add keeps no add order: a "recent" chosen elsewhere does not follow
@@ -48,23 +130,54 @@ export default function ModelBrowser({ models, registeredIds, selected, selectio
   const view = { ...preferences, ...override };
   const setFilter = (field: keyof ModelFilters, value: string) => setFilters({ ...filters, [field]: value });
   const choices: { field: keyof ModelFilters; items: string[] }[] = [
-    { field: "creator", items: unique(models.map(m => creatorKey(m.creator))).sort((a, b) => Number(a === "Unknown") - Number(b === "Unknown")) }, // not identified last
+    {
+      field: "creator",
+      items: unique(models.map(m => creatorKey(m.creator))).sort(
+        (a, b) => Number(a === "Unknown") - Number(b === "Unknown"),
+      ),
+    }, // not identified last
     { field: "provider", items: unique(models.flatMap(m => m.accesses.map(a => a.provider))) },
     { field: "task", items: unique(models.flatMap(m => m.tasks)) },
     { field: "input", items: unique(models.flatMap(m => m.inputModalities)) },
     { field: "output", items: unique(models.flatMap(m => m.outputModalities)) },
-    { field: "capability", items: unique(models.flatMap(m => Object.entries(m.capabilities).filter(([, status]) => status !== "Unknown").map(([name]) => name))) },
+    {
+      field: "capability",
+      items: unique(
+        models.flatMap(m =>
+          Object.entries(m.capabilities)
+            .filter(([, status]) => status !== "Unknown")
+            .map(([name]) => name),
+        ),
+      ),
+    },
   ];
   const filtered = filter ? filter(models, filters) : filterModels(models, filters);
   // Card actions are named after their card; a display name shared by two cards gains the ID.
-  const labelOf = distinctLabels(filtered, model => model.name, model => model.id);
-  const sorted = sortItems(filtered, sort, { name: model => model.name, creator: model => knownValue(model.creator) && creatorName(model.creator), provider: model => model.accesses[0] ? displayProvider(model.accesses[0].provider) : "" });
+  const labelOf = distinctLabels(
+    filtered,
+    model => model.name,
+    model => model.id,
+  );
+  const sorted = sortItems(filtered, sort, {
+    name: model => model.name,
+    creator: model => knownValue(model.creator) && creatorName(model.creator),
+    provider: model => (model.accesses[0] ? displayProvider(model.accesses[0].provider) : ""),
+  });
   const grouped = new Map<string, Model[]>();
-  if (groupBy !== "none") for (const model of sorted) {
-    const names = groupBy === "provider" ? unique(model.accesses.map(a => displayProvider(a.provider))) : groupBy === "creator" ? [creatorName(model.creator)] : model.tasks.length ? model.tasks.map(term) : [copy("Other", "Autre")];
-    for (const name of names) grouped.set(name, [...(grouped.get(name) || []), model]);
-  }
-  const sections: [string, Model[]][] = groupBy === "none" ? [["", sorted]] : [...grouped.entries()].sort(([a], [b]) => a.localeCompare(b));
+  if (groupBy !== "none")
+    for (const model of sorted) {
+      const names =
+        groupBy === "provider"
+          ? unique(model.accesses.map(a => displayProvider(a.provider)))
+          : groupBy === "creator"
+            ? [creatorName(model.creator)]
+            : model.tasks.length
+              ? model.tasks.map(term)
+              : [copy("Other", "Autre")];
+      for (const name of names) grouped.set(name, [...(grouped.get(name) || []), model]);
+    }
+  const sections: [string, Model[]][] =
+    groupBy === "none" ? [["", sorted]] : [...grouped.entries()].sort(([a], [b]) => a.localeCompare(b));
   const visibleIds = filtered.map(model => model.id);
   const counts = selectionCounts(selected || [], visibleIds);
   const hiddenSelectedIds = [...new Set(selected || [])].filter(id => !visibleIds.includes(id));
@@ -73,35 +186,525 @@ export default function ModelBrowser({ models, registeredIds, selected, selectio
   const renderCard = (model: Model, index: number) => {
     const details = selectionDetails?.(model.id);
     const isSelected = selected?.includes(model.id) || false;
-    const status = registeredIds ? registeredIds.has(model.id) ? copy("Registry record", "Fiche Registry enregistrée") : copy("Registry record to create", "Fiche Registry à créer") : "";
-    const header = <><BrandIcon model={model} mode={view.logo} /><div className="min-w-0 flex-1"><CardTitle className="truncate text-sm font-semibold leading-snug" title={model.name}>{model.name}</CardTitle><p className="mt-1 truncate text-xs text-muted-foreground">{creatorName(model.creator)}{familySuffix(model.family)}</p></div>{onToggle && <Checkbox aria-label={details ? `${details.action}${colon} ${labelOf(model)}` : copy(`Select ${labelOf(model)}`, `Sélectionner ${labelOf(model)}`)} checked={isSelected} onCheckedChange={() => onToggle(model.id)} />}</>;
-    const actions = <div className="ml-auto flex items-center gap-1">{onOpen && <Button variant="outline" size="sm" onClick={() => onOpen(model)}>{copy(registeredIds && !registeredIds.has(model.id) ? "Review & add" : "View details", registeredIds && !registeredIds.has(model.id) ? "Examiner et ajouter" : "Voir la fiche")}<ActionLabel label={labelOf(model)} /></Button>}</div>;
+    const status = registeredIds
+      ? registeredIds.has(model.id)
+        ? copy("Registry record", "Fiche Registry enregistrée")
+        : copy("Registry record to create", "Fiche Registry à créer")
+      : "";
+    const header = (
+      <>
+        <BrandIcon model={model} mode={view.logo} />
+        <div className="min-w-0 flex-1">
+          <CardTitle className="truncate text-sm font-semibold leading-snug" title={model.name}>
+            {model.name}
+          </CardTitle>
+          <p className="mt-1 truncate text-xs text-muted-foreground">
+            {creatorName(model.creator)}
+            {familySuffix(model.family)}
+          </p>
+        </div>
+        {onToggle && (
+          <Checkbox
+            aria-label={
+              details
+                ? `${details.action}${colon} ${labelOf(model)}`
+                : copy(`Select ${labelOf(model)}`, `Sélectionner ${labelOf(model)}`)
+            }
+            checked={isSelected}
+            onCheckedChange={() => onToggle(model.id)}
+          />
+        )}
+      </>
+    );
+    const actions = (
+      <div className="ml-auto flex items-center gap-1">
+        {onOpen && (
+          <Button variant="outline" size="sm" onClick={() => onOpen(model)}>
+            {copy(
+              registeredIds && !registeredIds.has(model.id) ? "Review & add" : "View details",
+              registeredIds && !registeredIds.has(model.id) ? "Examiner et ajouter" : "Voir la fiche",
+            )}
+            <ActionLabel label={labelOf(model)} />
+          </Button>
+        )}
+      </div>
+    );
     const format = cardFormat(view);
-    return <CatalogCard key={model.id} format={format} selected={isSelected} dataTour={tourFirst && index === 0 ? "first-model" : undefined} header={header} footer={<>{view.providers && <><ProviderSummary ids={model.accesses.map(access => access.provider)} /><ModelAccessMenu model={model} label={labelOf(model)} note={details?.source} status={status || undefined} /></>}{actions}</>}>
-      {view.description && model.summary && <p className="line-clamp-2 text-xs leading-relaxed text-foreground/80" title={model.summary}>{model.summary}</p>}
-      {view.metadata && <p className="truncate font-mono text-xs text-muted-foreground" title={model.id}>{model.id}</p>}
-      {factsUnknown(model) ? (view.modalities || view.evidence) && <FactsUnknown associate={false} /> : <>
-      {view.modalities && <ModelModalitiesSummary model={model} label={labelOf(model)} stacked={view.size !== "small"} />}
-      {view.evidence && <ModelCapabilitiesSummary model={model} label={labelOf(model)} stacked={view.size !== "small"} />}
-      </>}
-    </CatalogCard>;
+    return (
+      <CatalogCard
+        key={model.id}
+        format={format}
+        selected={isSelected}
+        dataTour={tourFirst && index === 0 ? "first-model" : undefined}
+        header={header}
+        footer={
+          <>
+            {view.providers && (
+              <>
+                <ProviderSummary ids={model.accesses.map(access => access.provider)} />
+                <ModelAccessMenu
+                  model={model}
+                  label={labelOf(model)}
+                  note={details?.source}
+                  status={status || undefined}
+                />
+              </>
+            )}
+            {actions}
+          </>
+        }
+      >
+        {view.description && model.summary && (
+          <p className="line-clamp-2 text-xs leading-relaxed text-foreground/80" title={model.summary}>
+            {model.summary}
+          </p>
+        )}
+        {view.metadata && (
+          <p className="truncate font-mono text-xs text-muted-foreground" title={model.id}>
+            {model.id}
+          </p>
+        )}
+        {factsUnknown(model) ? (
+          (view.modalities || view.evidence) && <FactsUnknown associate={false} />
+        ) : (
+          <>
+            {view.modalities && (
+              <ModelModalitiesSummary model={model} label={labelOf(model)} stacked={view.size !== "small"} />
+            )}
+            {view.evidence && (
+              <ModelCapabilitiesSummary model={model} label={labelOf(model)} stacked={view.size !== "small"} />
+            )}
+          </>
+        )}
+      </CatalogCard>
+    );
   };
   // Every filter control is built once and placed twice: inline from a 42rem container, inside one Filters popover below it (the View controls fold at the same width).
   // Menus are at least 12rem wide so their labels never wrap, even under a narrow trigger.
   const menuWidth = "w-auto min-w-[max(var(--radix-select-trigger-width),12rem)]";
-  const selectBase = "w-full min-w-0 text-xs [&>span[data-slot=select-value]]:block [&>span[data-slot=select-value]]:min-w-0 [&>span[data-slot=select-value]]:truncate";
-  const filterSelect = ({ field, items }: (typeof choices)[number], extra: string) => <Select key={field} value={filters[field] || "all"} onValueChange={value => setFilter(field, value === "all" ? "" : value)}><SelectTrigger aria-label={field === "provider" ? providerFilterLabel : filterLabels(field, copy)} className={`${selectBase} ${extra}`} title={field === "provider" ? providerFilterLabel : filterLabels(field, copy)}><SelectValue placeholder={field === "provider" ? providerFilterLabel : filterLabels(field, copy)} /></SelectTrigger><SelectContent className={menuWidth}><SelectItem value="all">{field === "provider" ? providerFilterLabel : filterLabels(field, copy)}{colon} {copy("all", "tous")}</SelectItem>{items.map(item => <SelectItem key={item} value={item}>{field === "provider" ? displayProvider(item) : field === "creator" ? `${creatorName(item)} (${models.filter(model => creatorKey(model.creator) === item).length})` : term(item)}</SelectItem>)}</SelectContent></Select>;
-  const groupSelect = (extra: string) => <Select value={groupBy} onValueChange={setGroupBy}><SelectTrigger aria-label={copy("Group models by", "Regrouper les modèles")} className={`${selectBase} ${extra}`}><SelectValue /></SelectTrigger><SelectContent className={menuWidth}><SelectItem value="none">{copy("No grouping", "Aucun regroupement")}</SelectItem><SelectItem value="creator">{copy("Group by creator", "Par créateur")}</SelectItem><SelectItem value="provider">{copy("Group by provider", "Par fournisseur")}</SelectItem><SelectItem value="task">{copy("Group by usage", "Par usage")}</SelectItem></SelectContent></Select>;
-  const sortSelect = (extra: string) => <Select value={sort} onValueChange={value => setSort(value as SortKey)}><SelectTrigger aria-label={copy("Sort models by", "Trier les modèles")} className={`${selectBase} ${extra}`}><SelectValue /></SelectTrigger><SelectContent className={menuWidth}><SelectItem value="default">{copy("Default order", "Ordre d’origine")}</SelectItem><SelectItem value="name">{copy("Sort by name", "Trier par nom")}</SelectItem><SelectItem value="creator">{copy("Sort by creator", "Trier par créateur")}</SelectItem><SelectItem value="provider">{copy("Sort by provider", "Trier par fournisseur")}</SelectItem>{recentSort && <SelectItem value="recent">{copy("Recently added", "Ajoutées récemment")}</SelectItem>}</SelectContent></Select>;
+  const selectBase =
+    "w-full min-w-0 text-xs [&>span[data-slot=select-value]]:block [&>span[data-slot=select-value]]:min-w-0 [&>span[data-slot=select-value]]:truncate";
+  const filterSelect = ({ field, items }: (typeof choices)[number], extra: string) => (
+    <Select
+      key={field}
+      value={filters[field] || "all"}
+      onValueChange={value => setFilter(field, value === "all" ? "" : value)}
+    >
+      <SelectTrigger
+        aria-label={field === "provider" ? providerFilterLabel : filterLabels(field, copy)}
+        className={`${selectBase} ${extra}`}
+        title={field === "provider" ? providerFilterLabel : filterLabels(field, copy)}
+      >
+        <SelectValue placeholder={field === "provider" ? providerFilterLabel : filterLabels(field, copy)} />
+      </SelectTrigger>
+      <SelectContent className={menuWidth}>
+        <SelectItem value="all">
+          {field === "provider" ? providerFilterLabel : filterLabels(field, copy)}
+          {colon} {copy("all", "tous")}
+        </SelectItem>
+        {items.map(item => (
+          <SelectItem key={item} value={item}>
+            {field === "provider"
+              ? displayProvider(item)
+              : field === "creator"
+                ? `${creatorName(item)} (${models.filter(model => creatorKey(model.creator) === item).length})`
+                : term(item)}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+  const groupSelect = (extra: string) => (
+    <Select value={groupBy} onValueChange={setGroupBy}>
+      <SelectTrigger aria-label={copy("Group models by", "Regrouper les modèles")} className={`${selectBase} ${extra}`}>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent className={menuWidth}>
+        <SelectItem value="none">{copy("No grouping", "Aucun regroupement")}</SelectItem>
+        <SelectItem value="creator">{copy("Group by creator", "Par créateur")}</SelectItem>
+        <SelectItem value="provider">{copy("Group by provider", "Par fournisseur")}</SelectItem>
+        <SelectItem value="task">{copy("Group by usage", "Par usage")}</SelectItem>
+      </SelectContent>
+    </Select>
+  );
+  const sortSelect = (extra: string) => (
+    <Select value={sort} onValueChange={value => setSort(value as SortKey)}>
+      <SelectTrigger aria-label={copy("Sort models by", "Trier les modèles")} className={`${selectBase} ${extra}`}>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent className={menuWidth}>
+        <SelectItem value="default">{copy("Default order", "Ordre d’origine")}</SelectItem>
+        <SelectItem value="name">{copy("Sort by name", "Trier par nom")}</SelectItem>
+        <SelectItem value="creator">{copy("Sort by creator", "Trier par créateur")}</SelectItem>
+        <SelectItem value="provider">{copy("Sort by provider", "Trier par fournisseur")}</SelectItem>
+        {recentSort && <SelectItem value="recent">{copy("Recently added", "Ajoutées récemment")}</SelectItem>}
+      </SelectContent>
+    </Select>
+  );
   const foldedFilters = active.filter(field => field !== "search").length;
-  const selectVisible = onSetSelected && selected && <><Checkbox id={selectVisibleId} disabled={!counts.visibleTotal} checked={counts.visibleSelected === 0 ? false : counts.visibleSelected === counts.visibleTotal ? true : "indeterminate"} onCheckedChange={() => onSetSelected(setVisibleSelection(selected, visibleIds, counts.visibleSelected !== counts.visibleTotal))} /><label htmlFor={selectVisibleId} className={counts.visibleTotal ? "cursor-pointer font-medium" : "text-muted-foreground"}>{counts.visibleSelected === counts.visibleTotal && counts.visibleTotal ? copy(`Deselect all ${counts.visibleTotal} visible models`, `Désélectionner les ${counts.visibleTotal} modèles visibles`) : copy(`Select all ${counts.visibleTotal} visible models`, `Sélectionner les ${counts.visibleTotal} modèles visibles`)}</label></>;
-  return <div className="space-y-4"><div data-tour={tourFirst ? "filters" : undefined} className="flex flex-col gap-3 rounded-sm border bg-card p-4 shadow-sm"><div className="flex flex-wrap items-center gap-2"><div className="relative min-w-48 flex-1 @max-2xl:min-w-36"><Search className="absolute top-2.5 left-3 size-4 text-muted-foreground" /><Input aria-label={copy("Search models", "Rechercher des modèles")} placeholder={copy("Name, ID, creator, provider or access ID…", "Nom, ID, créateur, fournisseur ou ID d’accès…")} value={filters.search} onChange={e => setFilter("search", e.target.value)} className="pl-9" /></div><Popover><PopoverTrigger asChild><Button size="sm" variant="outline" className={folded ? "" : "hidden @max-2xl:inline-flex"}><ListFilter className="size-4" />{copy("Filters", "Filtres")}{foldedFilters ? ` (${foldedFilters})` : ""}</Button></PopoverTrigger><PopoverContent align="end" collisionPadding={16} aria-label={copy("Filters", "Filtres")} className="flex max-h-(--radix-popover-content-available-height) w-[min(20rem,calc(100vw-2rem))] flex-col gap-2 overflow-y-auto p-2">{choices.map(choice => filterSelect(choice, ""))}{groupSelect("")}{sortSelect("")}{folded && selectVisible && <div className="flex items-center gap-2 border-t px-1 pt-2 text-xs">{selectVisible}</div>}</PopoverContent></Popover><ViewControls value={view} onChange={next => { if (next.logo !== view.logo) onLogoChange?.(next.logo); setOverride(updateViewOverride(preferences, override, { ...next, logo: view.logo })); }} onReset={() => setOverride({})} scope={label ?? copy("Models", "Modèles")} catalogFormats logoChoice={!!onLogoChange} folded={folded} /></div><div className={folded ? "hidden" : "@max-2xl:hidden"}><div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap">{choices.slice(0, 3).map(choice => filterSelect(choice, "sm:w-auto sm:min-w-30 sm:max-w-56"))}{groupSelect("sm:w-auto sm:min-w-36")}{sortSelect("sm:w-auto sm:min-w-36")}<Popover><PopoverTrigger asChild><Button variant="outline" className="text-xs font-normal">{copy("More filters", "Plus de filtres")}{choices.slice(3).filter(choice => filters[choice.field]).length ? ` (${choices.slice(3).filter(choice => filters[choice.field]).length})` : ""}</Button></PopoverTrigger><PopoverContent align="end" className="flex w-52 flex-col gap-2 p-2">{choices.slice(3).map(choice => filterSelect(choice, ""))}</PopoverContent></Popover></div></div>
-    {active.length > 0 && <div className="flex flex-wrap items-center gap-1 text-xs"><span className="text-muted-foreground">{copy("Active filters:", "Filtres actifs :")}</span>{active.map(field => <Button key={field} size="sm" variant="secondary" className="h-7" onClick={() => setFilter(field, "")}>{field === "provider" ? providerFilterLabel : filterLabels(field, copy)}{colon} {field === "provider" ? displayProvider(filters[field]) : field === "creator" ? creatorName(filters[field]) : field === "routes" ? String(filters.routes.split("\n").length) : term(filters[field])}<X className="size-3" /></Button>)}<Button variant="ghost" size="sm" onClick={() => setFilters(emptyModelFilters)}>{copy("Clear all", "Tout effacer")}</Button></div>}
-  </div>
-  {onToggle && !folded && <p className="text-xs text-muted-foreground">{selectionNote ?? copy("The provider filter limits what is shown. Selecting a model includes all its linked accesses, shown on each card.", "Le filtre fournisseur limite l’affichage. Sélectionner un modèle inclut tous ses accès liés, indiqués sur chaque carte.")}</p>}
-    {!folded && selectVisible && <div className="flex flex-wrap items-center gap-3 rounded-sm border bg-card px-4 py-3 text-xs shadow-sm">{selectVisible}<span className="text-muted-foreground">{copy(`${counts.visibleSelected}/${counts.visibleTotal} visible selected · ${counts.totalSelected} total selected${counts.hiddenSelected ? ` · ${counts.hiddenSelected} outside results` : ""}`, `${counts.visibleSelected}/${counts.visibleTotal} visibles · ${counts.totalSelected} au total${counts.hiddenSelected ? ` · ${counts.hiddenSelected} hors résultats` : ""}`)}</span></div>}
-  {hiddenSelectedIds.length > 0 && onToggle && <div className="flex flex-wrap items-center gap-1 text-xs"><span className="text-muted-foreground">{copy("Selected outside current results:", "Sélection hors résultats :")}</span>{hiddenSelectedIds.map(id => <Button key={id} variant="secondary" size="sm" className="h-7" onClick={() => onToggle(id)}>{models.find(model => model.id === id)?.name || id}<X className="size-3" /></Button>)}</div>}
-  {!renderResults && (!folded || filtered.length < models.length) && <p className="text-xs text-foreground/70">{copy(`${filtered.length} of ${models.length} models shown`, `${filtered.length} modèle${filtered.length > 1 ? "s" : ""} affiché${filtered.length > 1 ? "s" : ""} sur ${models.length}`)}{selected && !onSetSelected && copy(` · ${counts.visibleSelected}/${counts.visibleTotal} visible selected · ${counts.totalSelected} total selected${counts.hiddenSelected ? ` (${counts.hiddenSelected} outside results)` : ""}`, ` · ${counts.visibleSelected}/${counts.visibleTotal} visibles · ${counts.totalSelected} au total${counts.hiddenSelected ? ` (${counts.hiddenSelected} hors résultats)` : ""}`)}{copy(" · Grouping only changes the display.", " · le regroupement modifie seulement l’affichage.")}</p>}
-  {view.evidence && <ModelCapabilityLegend simulated={filtered.some(model => Object.values(model.capabilities).includes("Observed in simulated campaign"))} />}
-  {filtered.length ? renderResults ? renderResults(filtered, view, groupBy, filters, sort) : sections.map(([group, items]) => <section key={group || "all"} className="space-y-3">{group && <h2 className="text-base font-semibold">{group} <span className="ml-1 text-sm font-normal text-muted-foreground">{items.length}</span></h2>}{view.layout === "grid" ? <CatalogGrid format={cardFormat(view)} columns={gridColumns(view.size)}>{items.map(renderCard)}</CatalogGrid> : <div className="overflow-x-auto rounded-sm border bg-card shadow-sm"><Table><TableHeader className="bg-muted/50"><TableRow><TableHead>{copy("Model", "Modèle")}</TableHead>{view.metadata && <><TableHead>{copy("Creator / family", "Créateur / famille")}</TableHead><TableHead>{copy("Usage", "Usage")}</TableHead></>}{view.modalities && <TableHead>{copy("Input / output modalities", "Modalités entrée / sortie")}</TableHead>}{view.providers && <TableHead>{copy("Provider accesses", "Accès fournisseurs")}</TableHead>}{view.evidence && <TableHead>{copy("Capabilities", "Capacités")}</TableHead>}<TableHead className="text-right">{copy("Action", "Action")}</TableHead></TableRow></TableHeader><TableBody>{items.map(model => { const details = selectionDetails?.(model.id); return <TableRow key={model.id} data-tour={tourFirst && model.id === filtered[0]?.id ? "first-model" : undefined} className={selected?.includes(model.id) ? "bg-chart-success/10" : ""}><TableCell><div className="flex items-center gap-2"><BrandIcon model={model} mode={view.logo} /><span className="text-base font-semibold">{model.name}</span></div>{details && <p className="mt-1 text-xs text-muted-foreground">{details.source}</p>}{view.metadata && <p className="mt-1 truncate font-mono text-xs text-muted-foreground">{model.id}</p>}{view.description && <p className="mt-1 max-w-60 truncate text-xs text-muted-foreground">{model.summary}</p>}<details className="mt-1 text-xs text-muted-foreground"><summary className="cursor-pointer">{copy("Access and registry details", "Détails des accès et de Registry")}</summary><div className="mt-1 space-y-1 break-all">{registeredIds && <p>{registeredIds.has(model.id) ? copy("Registry record", "Fiche Registry enregistrée") : copy("Registry record to create", "Fiche Registry à créer")}</p>}{model.accesses.map(access => <p key={access.id}>{displayProvider(access.provider)} · {copy("Native ID", "ID natif")}{colon} <code>{access.nativeModel || copy("Unknown", "Inconnu")}</code> · {copy(access.status === "Configured" ? "Configured" : "Configuration unknown", access.status === "Configured" ? "Configuré" : "Configuration inconnue")} · {copy("Endpoints", "Endpoints")}{colon} {access.endpoints?.join(", ") || copy("Unknown", "Inconnu")}</p>)}{details && <p>{details.source}</p>}</div></details></TableCell>{view.metadata && <><TableCell className="text-sm text-muted-foreground">{creatorName(model.creator)}{familySuffix(model.family)}</TableCell><TableCell>{copy("Tasks", "Usages")}{colon} {model.tasks.map(term).join(", ") || copy("Unknown", "Inconnu")}</TableCell></>}{view.modalities && <TableCell>{factsUnknown(model) ? <FactsUnknown associate={false} /> : <ModelModalitiesSummary model={model} label={labelOf(model)} />}</TableCell>}{view.providers && <TableCell><ProviderSummary ids={model.accesses.map(access => access.provider)} /></TableCell>}{view.evidence && <TableCell>{!factsUnknown(model) ? <ModelCapabilitiesSummary model={model} label={labelOf(model)} /> : !view.modalities && <FactsUnknown associate={false} />}</TableCell>}<TableCell className="text-right">{onToggle ? <Button size="sm" variant={selected?.includes(model.id) ? "secondary" : "outline"} aria-label={details ? `${details.action}${colon} ${labelOf(model)}` : copy(`Select ${labelOf(model)}`, `Sélectionner ${labelOf(model)}`)} aria-pressed={selected?.includes(model.id) || false} onClick={() => onToggle(model.id)}>{details?.action || (selected?.includes(model.id) ? copy("Selected", "Sélectionné") : copy("Select", "Sélectionner"))}</Button> : onOpen && <Button size="sm" variant="ghost" onClick={() => onOpen(model)}>{copy(registeredIds && !registeredIds.has(model.id) ? "Review & add" : "Details", registeredIds && !registeredIds.has(model.id) ? "Examiner et ajouter" : "Détails")}<ActionLabel label={labelOf(model)} /> <ArrowRight className="size-3.5" /></Button>}</TableCell></TableRow>; })}</TableBody></Table></div>}</section>) : <div className="rounded-sm border border-dashed p-8 text-center"><Search className="mx-auto mb-3 size-8 text-muted-foreground" /><p className="font-medium">{models.length ? copy("No matching models", "Aucun modèle ne correspond") : copy("No models available", "Aucun modèle disponible")}</p><p className="mt-1 text-xs text-muted-foreground">{models.length ? copy("No models match the current filters.", "Aucun modèle ne correspond aux filtres actuels.") : copy("Models will appear here when they become available.", "Les modèles apparaîtront ici lorsqu’ils seront disponibles.")}</p>{models.length > 0 && active.length > 0 && <Button className="mt-3" variant="outline" onClick={() => setFilters(emptyModelFilters)}>{copy("Clear filters", "Effacer les filtres")}</Button>}</div>}</div>;
+  const selectVisible = onSetSelected && selected && (
+    <>
+      <Checkbox
+        id={selectVisibleId}
+        disabled={!counts.visibleTotal}
+        checked={
+          counts.visibleSelected === 0 ? false : counts.visibleSelected === counts.visibleTotal ? true : "indeterminate"
+        }
+        onCheckedChange={() =>
+          onSetSelected(setVisibleSelection(selected, visibleIds, counts.visibleSelected !== counts.visibleTotal))
+        }
+      />
+      <label
+        htmlFor={selectVisibleId}
+        className={counts.visibleTotal ? "cursor-pointer font-medium" : "text-muted-foreground"}
+      >
+        {counts.visibleSelected === counts.visibleTotal && counts.visibleTotal
+          ? copy(
+              `Deselect all ${counts.visibleTotal} visible models`,
+              `Désélectionner les ${counts.visibleTotal} modèles visibles`,
+            )
+          : copy(
+              `Select all ${counts.visibleTotal} visible models`,
+              `Sélectionner les ${counts.visibleTotal} modèles visibles`,
+            )}
+      </label>
+    </>
+  );
+  return (
+    <div className="space-y-4">
+      <div
+        data-tour={tourFirst ? "filters" : undefined}
+        className="flex flex-col gap-3 rounded-sm border bg-card p-4 shadow-sm"
+      >
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative min-w-48 flex-1 @max-2xl:min-w-36">
+            <Search className="absolute top-2.5 left-3 size-4 text-muted-foreground" />
+            <Input
+              aria-label={copy("Search models", "Rechercher des modèles")}
+              placeholder={copy(
+                "Name, ID, creator, provider or access ID…",
+                "Nom, ID, créateur, fournisseur ou ID d’accès…",
+              )}
+              value={filters.search}
+              onChange={e => setFilter("search", e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button size="sm" variant="outline" className={folded ? "" : "hidden @max-2xl:inline-flex"}>
+                <ListFilter className="size-4" />
+                {copy("Filters", "Filtres")}
+                {foldedFilters ? ` (${foldedFilters})` : ""}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent
+              align="end"
+              collisionPadding={16}
+              aria-label={copy("Filters", "Filtres")}
+              className="flex max-h-(--radix-popover-content-available-height) w-[min(20rem,calc(100vw-2rem))] flex-col gap-2 overflow-y-auto p-2"
+            >
+              {choices.map(choice => filterSelect(choice, ""))}
+              {groupSelect("")}
+              {sortSelect("")}
+              {folded && selectVisible && (
+                <div className="flex items-center gap-2 border-t px-1 pt-2 text-xs">{selectVisible}</div>
+              )}
+            </PopoverContent>
+          </Popover>
+          <ViewControls
+            value={view}
+            onChange={next => {
+              if (next.logo !== view.logo) onLogoChange?.(next.logo);
+              setOverride(updateViewOverride(preferences, override, { ...next, logo: view.logo }));
+            }}
+            onReset={() => setOverride({})}
+            scope={label ?? copy("Models", "Modèles")}
+            catalogFormats
+            logoChoice={!!onLogoChange}
+            folded={folded}
+          />
+        </div>
+        <div className={folded ? "hidden" : "@max-2xl:hidden"}>
+          <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap">
+            {choices.slice(0, 3).map(choice => filterSelect(choice, "sm:w-auto sm:min-w-30 sm:max-w-56"))}
+            {groupSelect("sm:w-auto sm:min-w-36")}
+            {sortSelect("sm:w-auto sm:min-w-36")}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="text-xs font-normal">
+                  {copy("More filters", "Plus de filtres")}
+                  {choices.slice(3).filter(choice => filters[choice.field]).length
+                    ? ` (${choices.slice(3).filter(choice => filters[choice.field]).length})`
+                    : ""}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="flex w-52 flex-col gap-2 p-2">
+                {choices.slice(3).map(choice => filterSelect(choice, ""))}
+              </PopoverContent>
+            </Popover>
+          </div>
+        </div>
+        {active.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1 text-xs">
+            <span className="text-muted-foreground">{copy("Active filters:", "Filtres actifs :")}</span>
+            {active.map(field => (
+              <Button key={field} size="sm" variant="secondary" className="h-7" onClick={() => setFilter(field, "")}>
+                {field === "provider" ? providerFilterLabel : filterLabels(field, copy)}
+                {colon}{" "}
+                {field === "provider"
+                  ? displayProvider(filters[field])
+                  : field === "creator"
+                    ? creatorName(filters[field])
+                    : field === "routes"
+                      ? String(filters.routes.split("\n").length)
+                      : term(filters[field])}
+                <X className="size-3" />
+              </Button>
+            ))}
+            <Button variant="ghost" size="sm" onClick={() => setFilters(emptyModelFilters)}>
+              {copy("Clear all", "Tout effacer")}
+            </Button>
+          </div>
+        )}
+      </div>
+      {onToggle && !folded && (
+        <p className="text-xs text-muted-foreground">
+          {selectionNote ??
+            copy(
+              "The provider filter limits what is shown. Selecting a model includes all its linked accesses, shown on each card.",
+              "Le filtre fournisseur limite l’affichage. Sélectionner un modèle inclut tous ses accès liés, indiqués sur chaque carte.",
+            )}
+        </p>
+      )}
+      {!folded && selectVisible && (
+        <div className="flex flex-wrap items-center gap-3 rounded-sm border bg-card px-4 py-3 text-xs shadow-sm">
+          {selectVisible}
+          <span className="text-muted-foreground">
+            {copy(
+              `${counts.visibleSelected}/${counts.visibleTotal} visible selected · ${counts.totalSelected} total selected${counts.hiddenSelected ? ` · ${counts.hiddenSelected} outside results` : ""}`,
+              `${counts.visibleSelected}/${counts.visibleTotal} visibles · ${counts.totalSelected} au total${counts.hiddenSelected ? ` · ${counts.hiddenSelected} hors résultats` : ""}`,
+            )}
+          </span>
+        </div>
+      )}
+      {hiddenSelectedIds.length > 0 && onToggle && (
+        <div className="flex flex-wrap items-center gap-1 text-xs">
+          <span className="text-muted-foreground">
+            {copy("Selected outside current results:", "Sélection hors résultats :")}
+          </span>
+          {hiddenSelectedIds.map(id => (
+            <Button key={id} variant="secondary" size="sm" className="h-7" onClick={() => onToggle(id)}>
+              {models.find(model => model.id === id)?.name || id}
+              <X className="size-3" />
+            </Button>
+          ))}
+        </div>
+      )}
+      {!renderResults && (!folded || filtered.length < models.length) && (
+        <p className="text-xs text-foreground/70">
+          {copy(
+            `${filtered.length} of ${models.length} models shown`,
+            `${filtered.length} modèle${filtered.length > 1 ? "s" : ""} affiché${filtered.length > 1 ? "s" : ""} sur ${models.length}`,
+          )}
+          {selected &&
+            !onSetSelected &&
+            copy(
+              ` · ${counts.visibleSelected}/${counts.visibleTotal} visible selected · ${counts.totalSelected} total selected${counts.hiddenSelected ? ` (${counts.hiddenSelected} outside results)` : ""}`,
+              ` · ${counts.visibleSelected}/${counts.visibleTotal} visibles · ${counts.totalSelected} au total${counts.hiddenSelected ? ` (${counts.hiddenSelected} hors résultats)` : ""}`,
+            )}
+          {copy(" · Grouping only changes the display.", " · le regroupement modifie seulement l’affichage.")}
+        </p>
+      )}
+      {view.evidence && (
+        <ModelCapabilityLegend
+          simulated={filtered.some(model =>
+            Object.values(model.capabilities).includes("Observed in simulated campaign"),
+          )}
+        />
+      )}
+      {filtered.length ? (
+        renderResults ? (
+          renderResults(filtered, view, groupBy, filters, sort)
+        ) : (
+          sections.map(([group, items]) => (
+            <section key={group || "all"} className="space-y-3">
+              {group && (
+                <h2 className="text-base font-semibold">
+                  {group} <span className="ml-1 text-sm font-normal text-muted-foreground">{items.length}</span>
+                </h2>
+              )}
+              {view.layout === "grid" ? (
+                <CatalogGrid format={cardFormat(view)} columns={gridColumns(view.size)}>
+                  {items.map(renderCard)}
+                </CatalogGrid>
+              ) : (
+                <div className="overflow-x-auto rounded-sm border bg-card shadow-sm">
+                  <Table>
+                    <TableHeader className="bg-muted/50">
+                      <TableRow>
+                        <TableHead>{copy("Model", "Modèle")}</TableHead>
+                        {view.metadata && (
+                          <>
+                            <TableHead>{copy("Creator / family", "Créateur / famille")}</TableHead>
+                            <TableHead>{copy("Usage", "Usage")}</TableHead>
+                          </>
+                        )}
+                        {view.modalities && (
+                          <TableHead>{copy("Input / output modalities", "Modalités entrée / sortie")}</TableHead>
+                        )}
+                        {view.providers && <TableHead>{copy("Provider accesses", "Accès fournisseurs")}</TableHead>}
+                        {view.evidence && <TableHead>{copy("Capabilities", "Capacités")}</TableHead>}
+                        <TableHead className="text-right">{copy("Action", "Action")}</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {items.map(model => {
+                        const details = selectionDetails?.(model.id);
+                        return (
+                          <TableRow
+                            key={model.id}
+                            data-tour={tourFirst && model.id === filtered[0]?.id ? "first-model" : undefined}
+                            className={selected?.includes(model.id) ? "bg-chart-success/10" : ""}
+                          >
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <BrandIcon model={model} mode={view.logo} />
+                                <span className="text-base font-semibold">{model.name}</span>
+                              </div>
+                              {details && <p className="mt-1 text-xs text-muted-foreground">{details.source}</p>}
+                              {view.metadata && (
+                                <p className="mt-1 truncate font-mono text-xs text-muted-foreground">{model.id}</p>
+                              )}
+                              {view.description && (
+                                <p className="mt-1 max-w-60 truncate text-xs text-muted-foreground">{model.summary}</p>
+                              )}
+                              <details className="mt-1 text-xs text-muted-foreground">
+                                <summary className="cursor-pointer">
+                                  {copy("Access and registry details", "Détails des accès et de Registry")}
+                                </summary>
+                                <div className="mt-1 space-y-1 break-all">
+                                  {registeredIds && (
+                                    <p>
+                                      {registeredIds.has(model.id)
+                                        ? copy("Registry record", "Fiche Registry enregistrée")
+                                        : copy("Registry record to create", "Fiche Registry à créer")}
+                                    </p>
+                                  )}
+                                  {model.accesses.map(access => (
+                                    <p key={access.id}>
+                                      {displayProvider(access.provider)} · {copy("Native ID", "ID natif")}
+                                      {colon} <code>{access.nativeModel || copy("Unknown", "Inconnu")}</code> ·{" "}
+                                      {copy(
+                                        access.status === "Configured" ? "Configured" : "Configuration unknown",
+                                        access.status === "Configured" ? "Configuré" : "Configuration inconnue",
+                                      )}{" "}
+                                      · {copy("Endpoints", "Endpoints")}
+                                      {colon} {access.endpoints?.join(", ") || copy("Unknown", "Inconnu")}
+                                    </p>
+                                  ))}
+                                  {details && <p>{details.source}</p>}
+                                </div>
+                              </details>
+                            </TableCell>
+                            {view.metadata && (
+                              <>
+                                <TableCell className="text-sm text-muted-foreground">
+                                  {creatorName(model.creator)}
+                                  {familySuffix(model.family)}
+                                </TableCell>
+                                <TableCell>
+                                  {copy("Tasks", "Usages")}
+                                  {colon} {model.tasks.map(term).join(", ") || copy("Unknown", "Inconnu")}
+                                </TableCell>
+                              </>
+                            )}
+                            {view.modalities && (
+                              <TableCell>
+                                {factsUnknown(model) ? (
+                                  <FactsUnknown associate={false} />
+                                ) : (
+                                  <ModelModalitiesSummary model={model} label={labelOf(model)} />
+                                )}
+                              </TableCell>
+                            )}
+                            {view.providers && (
+                              <TableCell>
+                                <ProviderSummary ids={model.accesses.map(access => access.provider)} />
+                              </TableCell>
+                            )}
+                            {view.evidence && (
+                              <TableCell>
+                                {!factsUnknown(model) ? (
+                                  <ModelCapabilitiesSummary model={model} label={labelOf(model)} />
+                                ) : (
+                                  !view.modalities && <FactsUnknown associate={false} />
+                                )}
+                              </TableCell>
+                            )}
+                            <TableCell className="text-right">
+                              {onToggle ? (
+                                <Button
+                                  size="sm"
+                                  variant={selected?.includes(model.id) ? "secondary" : "outline"}
+                                  aria-label={
+                                    details
+                                      ? `${details.action}${colon} ${labelOf(model)}`
+                                      : copy(`Select ${labelOf(model)}`, `Sélectionner ${labelOf(model)}`)
+                                  }
+                                  aria-pressed={selected?.includes(model.id) || false}
+                                  onClick={() => onToggle(model.id)}
+                                >
+                                  {details?.action ||
+                                    (selected?.includes(model.id)
+                                      ? copy("Selected", "Sélectionné")
+                                      : copy("Select", "Sélectionner"))}
+                                </Button>
+                              ) : (
+                                onOpen && (
+                                  <Button size="sm" variant="ghost" onClick={() => onOpen(model)}>
+                                    {copy(
+                                      registeredIds && !registeredIds.has(model.id) ? "Review & add" : "Details",
+                                      registeredIds && !registeredIds.has(model.id) ? "Examiner et ajouter" : "Détails",
+                                    )}
+                                    <ActionLabel label={labelOf(model)} /> <ArrowRight className="size-3.5" />
+                                  </Button>
+                                )
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </section>
+          ))
+        )
+      ) : (
+        <div className="rounded-sm border border-dashed p-8 text-center">
+          <Search className="mx-auto mb-3 size-8 text-muted-foreground" />
+          <p className="font-medium">
+            {models.length
+              ? copy("No matching models", "Aucun modèle ne correspond")
+              : copy("No models available", "Aucun modèle disponible")}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {models.length
+              ? copy("No models match the current filters.", "Aucun modèle ne correspond aux filtres actuels.")
+              : copy(
+                  "Models will appear here when they become available.",
+                  "Les modèles apparaîtront ici lorsqu’ils seront disponibles.",
+                )}
+          </p>
+          {models.length > 0 && active.length > 0 && (
+            <Button className="mt-3" variant="outline" onClick={() => setFilters(emptyModelFilters)}>
+              {copy("Clear filters", "Effacer les filtres")}
+            </Button>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }

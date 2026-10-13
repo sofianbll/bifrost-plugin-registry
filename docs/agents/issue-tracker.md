@@ -13,6 +13,30 @@ Issues and specs for this repo live as GitHub issues. Use the `gh` CLI for all o
 
 Infer the repo from `git remote -v`; `gh` does this automatically when run inside a clone.
 
+## Cloud sessions (GraphQL blocked)
+
+Cloud sessions block GraphQL, so `gh issue` and `gh pr` commands fail with 403. Use these REST calls through `gh api`; `{owner}` and `{repo}` resolve from the clone.
+
+- **Read an issue**: `gh api repos/{owner}/{repo}/issues/<number>`, then `.../issues/<number>/comments`.
+- **List blocking edges**: `gh api repos/{owner}/{repo}/issues/<number>/dependencies/blocked_by`.
+- **Comment**: `gh api -X POST repos/{owner}/{repo}/issues/<number>/comments -F body=@<file>`.
+- **Close**: `gh api -X PATCH repos/{owner}/{repo}/issues/<number> -f state=closed -f state_reason=completed`.
+- **Open a draft PR**: `gh api -X POST repos/{owner}/{repo}/pulls -f title=<title> -f head=<branch> -f base=main -F draft=true -F body=@<file>`.
+- **Read check runs**: `gh api repos/{owner}/{repo}/commits/<sha>/check-runs`.
+- **Mark a PR ready for review**: `gh api -X POST repos/{owner}/{repo}/pulls/<number>/ccr/ready_for_review`. The same family covers `.../ccr/convert_to_draft`, `PUT|DELETE .../ccr/auto_merge`, `GET .../ccr/review_threads` and `POST .../ccr/comments/<comment-id>/resolve`; the 403 error message lists them.
+- **Merge a PR** (locally: `gh pr merge <number> --merge`): `gh api -X PUT repos/{owner}/{repo}/pulls/<number>/merge -f merge_method=merge -f sha=<head-sha>`. Always a merge commit, never squash or rebase: they replace the PR's own commit shas, so a sha that `.git-blame-ignore-revs` lists from that branch would stop matching. `sha` makes GitHub refuse the merge if the branch moved since CI was read.
+- **Refresh the README screenshots**: `gh workflow run e2e.yml --ref <branch> -f update-screenshots=true`; find the run with `gh api "repos/{owner}/{repo}/actions/runs?branch=<branch>&event=workflow_dispatch"`; list its artifacts with `gh api repos/{owner}/{repo}/actions/runs/<run-id>/artifacts`; download `docs-images` with `gh api repos/{owner}/{repo}/actions/artifacts/<artifact-id>/zip > docs-images.zip`. Unzip into a new empty directory, copy its `en/` and `fr/` folders into `docs/images/`, and commit them in their own commit.
+- **Closing keywords**: GitHub applies a closing keyword to the first number only. Write one keyword per issue: `Closes #1, closes #2, closes #3`. A list behind one `Closes` leaves the others open.
+
+## Probe before trusting a handoff
+
+A handoff note that calls a capability blocked or available is a claim, not a fact: one note wrongly said artifact downloads and marking a PR ready were blocked. Run the probe, then act on its result.
+
+- **REST and repo settings**: `gh api repos/{owner}/{repo} --jq '{squash:.allow_squash_merge,rebase:.allow_rebase_merge,merge:.allow_merge_commit}'`.
+- **GraphQL**: `gh issue list --limit 1`. A 403 naming Claude Code sessions means the section above applies; a list means GraphQL is open here.
+- **Artifacts**: `gh api "repos/{owner}/{repo}/actions/artifacts?per_page=1" --jq '.artifacts[0].id // "none"'`; an id means `.../artifacts/<id>/zip` downloads it.
+- **Browsers**: `ls /opt/pw-browsers`; never run `playwright install`.
+
 ## Pull requests as a triage surface
 
 **PRs as a request surface: no.** _(Set to `yes` if this repo treats external PRs as feature requests; `/triage` reads this flag.)_

@@ -1,6 +1,15 @@
-import { cardFormat, defaultViewOptions, displayFormat, gridColumns, updateViewOverride, type ViewOptions } from "./ViewOptions";
+import {
+  cardFormat,
+  defaultViewOptions,
+  displayFormat,
+  gridColumns,
+  updateViewOverride,
+  type ViewOptions,
+} from "./ViewOptions";
 
-const assert = (condition: boolean, message: string) => { if (!condition) throw new Error(message); };
+const assert = (condition: boolean, message: string) => {
+  if (!condition) throw new Error(message);
+};
 
 // cardFormat maps shape/layout to the card format used by CatalogCard/CatalogGrid.
 assert(cardFormat({ layout: "grid", shape: "rectangle" }) === "compact", "rectangle grid should be compact");

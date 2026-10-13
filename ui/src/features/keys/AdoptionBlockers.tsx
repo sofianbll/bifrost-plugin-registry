@@ -10,27 +10,95 @@ import { NativeEditButton, nativeEditFor, type NativeEditRequest } from "./Nativ
 // [pattern, English, French], with $1 for a capture and $& for the reason as sent.
 // A reason missing from the table shows as sent.
 const reasons: [RegExp, string, string][] = [
-  [/^Dynamic native model allowlist is unsupported for (.+)$/, "$1: this key allows every model, including future ones, so Registry can’t copy it as is.", "$1 : cette clé autorise tous les modèles, y compris les futurs : Registry ne peut pas la reprendre telle quelle."],
-  [/^Native key has no representable configured model access$/, "None of this key’s models can be copied into Registry as they are.", "Aucun modèle de cette clé ne peut être repris tel quel dans Registry."],
+  [
+    /^Dynamic native model allowlist is unsupported for (.+)$/,
+    "$1: this key allows every model, including future ones, so Registry can’t copy it as is.",
+    "$1 : cette clé autorise tous les modèles, y compris les futurs : Registry ne peut pas la reprendre telle quelle.",
+  ],
+  [
+    /^Native key has no representable configured model access$/,
+    "None of this key’s models can be copied into Registry as they are.",
+    "Aucun modèle de cette clé ne peut être repris tel quel dans Registry.",
+  ],
   [/^Native key identity changed$/, "This key changed in Bifrost.", "Cette clé a changé dans Bifrost."],
-  [/^Native key is inactive or expired$/, "This key is disabled or expired in Bifrost.", "Cette clé est désactivée ou expirée dans Bifrost."],
-  [/^Native key is controlled by an external access profile$/, "This key’s permissions come from an external profile.", "Les permissions de cette clé viennent d’un profil externe."],
-  [/^Full native key credential is unavailable$/, "Registry can’t read this key’s full secret.", "Registry ne peut pas lire le secret complet de cette clé."],
+  [
+    /^Native key is inactive or expired$/,
+    "This key is disabled or expired in Bifrost.",
+    "Cette clé est désactivée ou expirée dans Bifrost.",
+  ],
+  [
+    /^Native key is controlled by an external access profile$/,
+    "This key’s permissions come from an external profile.",
+    "Les permissions de cette clé viennent d’un profil externe.",
+  ],
+  [
+    /^Full native key credential is unavailable$/,
+    "Registry can’t read this key’s full secret.",
+    "Registry ne peut pas lire le secret complet de cette clé.",
+  ],
   [/^Registry policy is disabled$/, "This key is turned off in Registry.", "Cette clé est désactivée dans Registry."],
-  [/^Registry binding already matches the native key$/, "This key is already linked to Registry.", "Cette clé est déjà liée à Registry."],
-  [/^Native model readback is unavailable$/, "Registry couldn’t read this key’s models from Bifrost.", "Registry n’a pas pu lire les modèles de cette clé dans Bifrost."],
-  [/^Native model list differs from configured access; import or reconcile the missing routes first$/, "The models this key allows don’t match what Bifrost shows; add or fix the missing models first.", "Les modèles autorisés par cette clé ne correspondent pas à ce que montre Bifrost ; ajoutez ou corrigez d’abord les modèles manquants."],
-  [/^allow_all_providers grants future providers and cannot be represented safely$/, "This key allows every provider, including ones added later, so Registry can’t copy it safely.", "Cette clé autorise tous les fournisseurs, y compris ceux ajoutés plus tard : Registry ne peut pas la reprendre fidèlement."],
+  [
+    /^Registry binding already matches the native key$/,
+    "This key is already linked to Registry.",
+    "Cette clé est déjà liée à Registry.",
+  ],
+  [
+    /^Native model readback is unavailable$/,
+    "Registry couldn’t read this key’s models from Bifrost.",
+    "Registry n’a pas pu lire les modèles de cette clé dans Bifrost.",
+  ],
+  [
+    /^Native model list differs from configured access; import or reconcile the missing routes first$/,
+    "The models this key allows don’t match what Bifrost shows; add or fix the missing models first.",
+    "Les modèles autorisés par cette clé ne correspondent pas à ce que montre Bifrost ; ajoutez ou corrigez d’abord les modèles manquants.",
+  ],
+  [
+    /^allow_all_providers grants future providers and cannot be represented safely$/,
+    "This key allows every provider, including ones added later, so Registry can’t copy it safely.",
+    "Cette clé autorise tous les fournisseurs, y compris ceux ajoutés plus tard : Registry ne peut pas la reprendre fidèlement.",
+  ],
   [/^Duplicate native model discovery for (.+)$/, "Bifrost shows $1 twice.", "Bifrost montre $1 deux fois."],
-  [/^Native provider configuration is missing or duplicated$/, "A provider of this key is missing or set up twice in Bifrost.", "Un fournisseur de cette clé est absent ou configuré deux fois dans Bifrost."],
-  [/^Empty native allowed_models has version-dependent meaning for (.+)$/, "$1: this key lists no model, and Bifrost versions read that differently.", "$1 : cette clé ne liste aucun modèle, ce que les versions de Bifrost lisent différemment."],
-  [/^Empty native provider key list has version-dependent meaning for (.+)$/, "$1: no provider key is listed, and Bifrost versions read that differently.", "$1 : aucune clé fournisseur n’est listée, ce que les versions de Bifrost lisent différemment."],
-  [/^Dynamic native blacklist is unsupported for (.+)$/, "$1: this key blocks models by a rule Registry can’t copy.", "$1 : cette clé exclut des modèles par une règle que Registry ne sait pas reprendre."],
+  [
+    /^Native provider configuration is missing or duplicated$/,
+    "A provider of this key is missing or set up twice in Bifrost.",
+    "Un fournisseur de cette clé est absent ou configuré deux fois dans Bifrost.",
+  ],
+  [
+    /^Empty native allowed_models has version-dependent meaning for (.+)$/,
+    "$1: this key lists no model, and Bifrost versions read that differently.",
+    "$1 : cette clé ne liste aucun modèle, ce que les versions de Bifrost lisent différemment.",
+  ],
+  [
+    /^Empty native provider key list has version-dependent meaning for (.+)$/,
+    "$1: no provider key is listed, and Bifrost versions read that differently.",
+    "$1 : aucune clé fournisseur n’est listée, ce que les versions de Bifrost lisent différemment.",
+  ],
+  [
+    /^Dynamic native blacklist is unsupported for (.+)$/,
+    "$1: this key blocks models by a rule Registry can’t copy.",
+    "$1 : cette clé exclut des modèles par une règle que Registry ne sait pas reprendre.",
+  ],
   [/^Duplicate native model route (.+)$/, "$1 appears twice in this key.", "$1 apparaît deux fois dans cette clé."],
-  [/^Native route (.+) is absent from provider discovery$/, "Bifrost doesn’t show $1, so Registry can’t manage it.", "Bifrost ne montre pas $1 : Registry ne peut donc pas le gérer."],
-  [/^No enabled native provider key for (.+)$/, "No provider key is turned on for $1 in Bifrost.", "Aucune clé fournisseur n’est active pour $1 dans Bifrost."],
-  [/^Model (\S+) is allowed through (.+?) and (.+): Registry adopts one access per model$/, "$1 is allowed through $2 and $3, and Registry uses one subscription per model.", "$1 est autorisé via $2 et $3 : Registry n’utilise qu’un abonnement par modèle."],
-  [/^Native route (.+) needs a configured direct Registry access with the same native name$/, "$1 has no Registry card with the same model name yet.", "$1 n’a pas encore de fiche Registry au même nom de modèle."],
+  [
+    /^Native route (.+) is absent from provider discovery$/,
+    "Bifrost doesn’t show $1, so Registry can’t manage it.",
+    "Bifrost ne montre pas $1 : Registry ne peut donc pas le gérer.",
+  ],
+  [
+    /^No enabled native provider key for (.+)$/,
+    "No provider key is turned on for $1 in Bifrost.",
+    "Aucune clé fournisseur n’est active pour $1 dans Bifrost.",
+  ],
+  [
+    /^Model (\S+) is allowed through (.+?) and (.+): Registry adopts one access per model$/,
+    "$1 is allowed through $2 and $3, and Registry uses one subscription per model.",
+    "$1 est autorisé via $2 et $3 : Registry n’utilise qu’un abonnement par modèle.",
+  ],
+  [
+    /^Native route (.+) needs a configured direct Registry access with the same native name$/,
+    "$1 has no Registry card with the same model name yet.",
+    "$1 n’a pas encore de fiche Registry au même nom de modèle.",
+  ],
 ];
 export function adoptionReason(reason: string, copyText: Copy) {
   const known = reasons.find(([pattern]) => pattern.test(reason));
@@ -45,97 +113,298 @@ export function adoptionReason(reason: string, copyText: Copy) {
 // that allows every model (dynamic) or a model allowed through two providers (collision, where either provider
 // can be kept), and #93's native edits (NativeEditButton: remove models, replace "all models"/"all providers").
 // A provider the preview keeps native comes back flagged `kept` and is shown by KeptProviders, not here.
-export function AdoptionBlockers({ readiness, reasons: plain, onShowToAdd, onKeep, onEditNative }: { readiness?: Readiness; reasons: string[]; onShowToAdd?: (routes: string[]) => void; onKeep?: (provider: string, keep: boolean) => void; onEditNative?: (request: NativeEditRequest) => void }) {
+export function AdoptionBlockers({
+  readiness,
+  reasons: plain,
+  onShowToAdd,
+  onKeep,
+  onEditNative,
+}: {
+  readiness?: Readiness;
+  reasons: string[];
+  onShowToAdd?: (routes: string[]) => void;
+  onKeep?: (provider: string, keep: boolean) => void;
+  onEditNative?: (request: NativeEditRequest) => void;
+}) {
   const copyText = useCopy();
-  if (readiness?.state === "empty") return <section className="rounded-sm border border-chart-warning/50 bg-chart-warning/10 p-3"><p>{copyText("This key allows no model in Bifrost yet, so there is nothing to adopt. Add models to the key in Bifrost first.", "Cette clé n’autorise encore aucun modèle dans Bifrost : rien à adopter. Ajoutez d’abord des modèles à la clé dans Bifrost.")}</p></section>;
+  if (readiness?.state === "empty")
+    return (
+      <section className="rounded-sm border border-chart-warning/50 bg-chart-warning/10 p-3">
+        <p>
+          {copyText(
+            "This key allows no model in Bifrost yet, so there is nothing to adopt. Add models to the key in Bifrost first.",
+            "Cette clé n’autorise encore aucun modèle dans Bifrost : rien à adopter. Ajoutez d’abord des modèles à la clé dans Bifrost.",
+          )}
+        </p>
+      </section>
+    );
   const rows = new Map<string, ReadinessBlocker[]>();
-  for (const blocker of readiness?.blockers ?? []) if (!blocker.kept && blocker.kind !== "unsaved") rows.set(blocker.provider, [...rows.get(blocker.provider) ?? [], blocker]);
+  for (const blocker of readiness?.blockers ?? [])
+    if (!blocker.kept && blocker.kind !== "unsaved")
+      rows.set(blocker.provider, [...(rows.get(blocker.provider) ?? []), blocker]);
   // Models to add are settled on the models page, not here: listed apart, unnumbered (spec #85, critique round 2).
   const toAdd = (readiness?.blockers ?? []).filter(blocker => !blocker.kept && blocker.kind === "unsaved");
   const count = readiness ? rows.size : plain.length;
-  const title = copyText(`${count} ${count === 1 ? "decision" : "decisions"} before adopting`, `${count} ${count === 1 ? "décision" : "décisions"} avant d’adopter`);
+  const title = copyText(
+    `${count} ${count === 1 ? "decision" : "decisions"} before adopting`,
+    `${count} ${count === 1 ? "décision" : "décisions"} avant d’adopter`,
+  );
   const before = copyText("Before adopting", "Avant d’adopter");
-  return <>{count > 0 && <section aria-label={title} className="rounded-sm border border-chart-warning/50 bg-chart-warning/10 p-3"><h3 className="font-medium">{title}</h3>
-    <p className="text-xs text-muted-foreground">{count === 1 ? copyText("It is required to adopt the key.", "Elle est nécessaire pour adopter la clé.") : copyText("Each one is required to adopt the key.", "Chacune est nécessaire pour adopter la clé.")}</p>
-    <ol className="mt-2 list-decimal space-y-3 pl-5">{readiness ? [...rows].map(([provider, blockers]) => <DecisionRow key={provider || "key"} provider={provider} blockers={blockers} readiness={readiness} onKeep={onKeep} onEditNative={onEditNative} />)
-      : plain.map((reason, index) => <li key={`${index}/${reason}`} className="break-words pl-1">{adoptionReason(reason, copyText)}</li>)}</ol>
-    {!readiness && plain.some(reason => reason.startsWith("Dynamic native model allowlist")) && <p className="mt-3 text-xs">{copyText("Keep this key as it is in Bifrost, or review a key that lists its models one by one. Registry cannot safely copy an “every model” permission.", "Gardez cette clé telle quelle dans Bifrost, ou examinez une clé qui liste ses modèles un par un. Registry ne sait pas reprendre fidèlement une permission « tous les modèles ».")}</p>}
-  </section>}
-    {toAdd.length > 0 && <section aria-label={before} className="space-y-3 rounded-sm border p-3">{toAdd.map(blocker => {
-      const name = displayProvider(blocker.provider);
-      return <div key={blocker.provider}>
-        <p className="font-medium">{copyText(`Before adopting: register ${blocker.count} ${name} ${blocker.count === 1 ? "model" : "models"}`, `Avant d’adopter : enregistrer ${blocker.count} ${blocker.count === 1 ? "modèle" : "modèles"} ${name}`)}</p>
-        <p className="text-xs">{copyText("Bifrost lists these models, but Registry has no card for them yet.", "Bifrost liste ces modèles, mais Registry n’a pas encore de fiche pour eux.")}</p>
-        <ModelNames models={blocker.models} />
-        {onShowToAdd && <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => onShowToAdd(blocker.models.map(model => `${blocker.provider}/${model}`))}>{copyText("Show in To add", "Voir dans À ajouter")}<span className="sr-only"> · {name}</span></Button>}
-      </div>;
-    })}</section>}
-  </>;
+  return (
+    <>
+      {count > 0 && (
+        <section aria-label={title} className="rounded-sm border border-chart-warning/50 bg-chart-warning/10 p-3">
+          <h3 className="font-medium">{title}</h3>
+          <p className="text-xs text-muted-foreground">
+            {count === 1
+              ? copyText("It is required to adopt the key.", "Elle est nécessaire pour adopter la clé.")
+              : copyText("Each one is required to adopt the key.", "Chacune est nécessaire pour adopter la clé.")}
+          </p>
+          <ol className="mt-2 list-decimal space-y-3 pl-5">
+            {readiness
+              ? [...rows].map(([provider, blockers]) => (
+                  <DecisionRow
+                    key={provider || "key"}
+                    provider={provider}
+                    blockers={blockers}
+                    readiness={readiness}
+                    onKeep={onKeep}
+                    onEditNative={onEditNative}
+                  />
+                ))
+              : plain.map((reason, index) => (
+                  <li key={`${index}/${reason}`} className="break-words pl-1">
+                    {adoptionReason(reason, copyText)}
+                  </li>
+                ))}
+          </ol>
+          {!readiness && plain.some(reason => reason.startsWith("Dynamic native model allowlist")) && (
+            <p className="mt-3 text-xs">
+              {copyText(
+                "Keep this key as it is in Bifrost, or review a key that lists its models one by one. Registry cannot safely copy an “every model” permission.",
+                "Gardez cette clé telle quelle dans Bifrost, ou examinez une clé qui liste ses modèles un par un. Registry ne sait pas reprendre fidèlement une permission « tous les modèles ».",
+              )}
+            </p>
+          )}
+        </section>
+      )}
+      {toAdd.length > 0 && (
+        <section aria-label={before} className="space-y-3 rounded-sm border p-3">
+          {toAdd.map(blocker => {
+            const name = displayProvider(blocker.provider);
+            return (
+              <div key={blocker.provider}>
+                <p className="font-medium">
+                  {copyText(
+                    `Before adopting: register ${blocker.count} ${name} ${blocker.count === 1 ? "model" : "models"}`,
+                    `Avant d’adopter : enregistrer ${blocker.count} ${blocker.count === 1 ? "modèle" : "modèles"} ${name}`,
+                  )}
+                </p>
+                <p className="text-xs">
+                  {copyText(
+                    "Bifrost lists these models, but Registry has no card for them yet.",
+                    "Bifrost liste ces modèles, mais Registry n’a pas encore de fiche pour eux.",
+                  )}
+                </p>
+                <ModelNames models={blocker.models} />
+                {onShowToAdd && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="mt-2"
+                    onClick={() => onShowToAdd(blocker.models.map(model => `${blocker.provider}/${model}`))}
+                  >
+                    {copyText("Show in To add", "Voir dans À ajouter")}
+                    <span className="sr-only"> · {name}</span>
+                  </Button>
+                )}
+              </div>
+            );
+          })}
+        </section>
+      )}
+    </>
+  );
 }
 
 function ModelNames({ models }: { models: string[] }) {
   const copyText = useCopy();
-  return models.length > 0 && <details className="mt-1 text-xs"><summary className="cursor-pointer">{copyText("Show model names", "Afficher les noms des modèles")}</summary><p className="mt-1 break-words font-mono">{models.join(", ")}</p></details>;
+  return (
+    models.length > 0 && (
+      <details className="mt-1 text-xs">
+        <summary className="cursor-pointer">{copyText("Show model names", "Afficher les noms des modèles")}</summary>
+        <p className="mt-1 break-words font-mono">{models.join(", ")}</p>
+      </details>
+    )
+  );
 }
 
 // One provider's blockers, then its choices: keep a provider in Bifrost, a native edit, or the models page.
 // #100: each blocker reads as one plain sentence; a model allowed through two subscriptions offers its choices
 // by outcome ("Use Claude for this model" keeps Codex in Bifrost, and the reverse).
-function DecisionRow({ provider, blockers, readiness, onKeep, onEditNative }: { provider: string; blockers: ReadinessBlocker[]; readiness: Readiness; onKeep?: (provider: string, keep: boolean) => void; onEditNative?: (request: NativeEditRequest) => void }) {
+function DecisionRow({
+  provider,
+  blockers,
+  readiness,
+  onKeep,
+  onEditNative,
+}: {
+  provider: string;
+  blockers: ReadinessBlocker[];
+  readiness: Readiness;
+  onKeep?: (provider: string, keep: boolean) => void;
+  onEditNative?: (request: NativeEditRequest) => void;
+}) {
   const copyText = useCopy();
   const name = displayProvider(provider);
   const keepableKinds = blockers.filter(blocker => ["undiscovered", "dynamic", "collision"].includes(blocker.kind));
   const keepable = !!onKeep && !!provider && keepableKinds.length > 0;
   // A collision is resolved by keeping either provider: the other ones follow this row's own offer.
-  const sharers = [...new Set([provider, ...blockers.flatMap(blocker => blocker.kind === "collision" ? blocker.with ?? [] : [])])];
+  const sharers = [
+    ...new Set([provider, ...blockers.flatMap(blocker => (blocker.kind === "collision" ? (blocker.with ?? []) : []))]),
+  ];
   const others = onKeep ? sharers.filter(other => other !== provider) : [];
   const byOutcome = keepableKinds.length > 0 && keepableKinds.every(blocker => blocker.kind === "collision");
   const shared = blockers.find(blocker => blocker.kind === "collision")?.count ?? 1;
   const edits = onEditNative ? blockers.filter(blocker => nativeEditFor(blocker, readiness)) : [];
   const choices = Number(keepable) + others.length + edits.length;
-  const and = (names: string[]) => names.length > 1 ? `${names.slice(0, -1).join(", ")} ${copyText("and", "et")} ${names.at(-1)}` : names[0] ?? "";
+  const and = (names: string[]) =>
+    names.length > 1 ? `${names.slice(0, -1).join(", ")} ${copyText("and", "et")} ${names.at(-1)}` : (names[0] ?? "");
   const keepLabel = (who: string) => {
-    if (!byOutcome) return copyText(`Keep ${displayProvider(who)} in Bifrost`, `Garder ${displayProvider(who)} dans Bifrost`);
+    if (!byOutcome)
+      return copyText(`Keep ${displayProvider(who)} in Bifrost`, `Garder ${displayProvider(who)} dans Bifrost`);
     const used = and(sharers.filter(other => other !== who).map(displayProvider));
-    return copyText(`Use ${used} for ${shared === 1 ? "this model" : "these models"}`, `Utiliser ${used} pour ${shared === 1 ? "ce modèle" : "ces modèles"}`);
+    return copyText(
+      `Use ${used} for ${shared === 1 ? "this model" : "these models"}`,
+      `Utiliser ${used} pour ${shared === 1 ? "ce modèle" : "ces modèles"}`,
+    );
   };
-  const keepButton = (who: string) => <Button key={who} type="button" variant="outline" size="sm" className="h-auto min-h-8 whitespace-normal text-left" onClick={() => onKeep!(who, true)}>{keepLabel(who)}</Button>;
+  const keepButton = (who: string) => (
+    <Button
+      key={who}
+      type="button"
+      variant="outline"
+      size="sm"
+      className="h-auto min-h-8 whitespace-normal text-left"
+      onClick={() => onKeep!(who, true)}
+    >
+      {keepLabel(who)}
+    </Button>
+  );
   // What the person can do about models Bifrost does not show, from the choices this row actually offers.
   const undiscoveredChoices = (blocker: ReadinessBlocker) => {
     const one = blocker.count === 1;
     const parts = [
-      keepable && copyText(`let Bifrost keep handling ${name} for this key`, `laissez Bifrost continuer à gérer ${name} pour cette clé`),
-      edits.includes(blocker) && copyText(`remove ${one ? "that model" : "those models"} from the key`, `retirez ${one ? "ce modèle" : "ces modèles"} de la clé`),
+      keepable &&
+        copyText(
+          `let Bifrost keep handling ${name} for this key`,
+          `laissez Bifrost continuer à gérer ${name} pour cette clé`,
+        ),
+      edits.includes(blocker) &&
+        copyText(
+          `remove ${one ? "that model" : "those models"} from the key`,
+          `retirez ${one ? "ce modèle" : "ces modèles"} de la clé`,
+        ),
     ].filter((part): part is string => !!part);
     const sentence = parts.join(copyText(", or ", ", ou "));
     return sentence && <p className="text-xs">{sentence.charAt(0).toUpperCase() + sentence.slice(1)}.</p>;
   };
   const models = (count: number) => copyText(count === 1 ? "model" : "models", count === 1 ? "modèle" : "modèles");
-  return <li className="pl-1">
-    {blockers.map(blocker => <div key={blocker.kind} className="mb-2 last:mb-0">
-      {blocker.kind === "undiscovered" && blocker.providerDisabled ? <>
-        <p className="font-medium">{copyText(`${name} is disabled in Bifrost`, `${name} est désactivé dans Bifrost`)}</p>
-        <p className="text-xs">{copyText(`So Bifrost shows none of its models, and Registry can’t manage ${blocker.count === 1 ? "the model" : `the ${blocker.count} models`} this key allows.`, `Bifrost n’en montre donc aucun modèle : Registry ne peut pas gérer ${blocker.count === 1 ? "le modèle" : `les ${blocker.count} modèles`} que cette clé autorise.`)}</p>
-        {undiscoveredChoices(blocker)}
-      </> : blocker.kind === "undiscovered" ? <>
-        <p className="font-medium">{copyText(`Bifrost doesn’t show ${blocker.count} ${name} ${models(blocker.count)}, so Registry can’t manage ${blocker.count === 1 ? "it" : "them"}.`, `Bifrost ne montre pas ${blocker.count} ${models(blocker.count)} ${name} : Registry ne peut donc pas ${blocker.count === 1 ? "le" : "les"} gérer.`)}</p>
-        {undiscoveredChoices(blocker)}
-      </> : blocker.kind === "collision" ? <>
-        <p className="font-medium">{copyText(`${blocker.count} ${blocker.count === 1 ? "model is" : "models are"} allowed through ${and(sharers.map(displayProvider))}.`, `${blocker.count} ${blocker.count === 1 ? "modèle est autorisé" : "modèles sont autorisés"} via ${and(sharers.map(displayProvider))}.`)}</p>
-        <p className="text-xs">{keepable ? copyText("Registry uses one subscription per model: choose the one to use, and Bifrost keeps handling the other for this key.", "Registry n’utilise qu’un abonnement par modèle : choisissez celui à utiliser, Bifrost continue de gérer l’autre pour cette clé.") : copyText("Registry uses one subscription per model.", "Registry n’utilise qu’un abonnement par modèle.")}</p>
-      </> : blocker.kind === "dynamic" && provider ? <>
-        <p className="font-medium">{copyText(`This key allows every ${name} model, including future ones, so Registry can’t copy it as is.`, `Cette clé autorise tous les modèles ${name}, y compris les futurs : Registry ne peut pas la reprendre telle quelle.`)}</p>
-      </> : <>
-        {blocker.kind !== "other" && <p className="font-medium">{blockerLine(blocker, copyText)}</p>}
-        {(blocker.reasons ?? []).map((reason, index) => <p key={`${index}/${reason}`} className="break-words">{adoptionReason(reason, copyText)}</p>)}
-      </>}
-      <ModelNames models={blocker.models} />
-    </div>)}
-    {choices > 0 && <div className="mt-2 space-y-2">
-      {choices > 1 && <p className="text-xs font-medium">{copyText("Choose one:", "Choisissez une option :")}</p>}
-      {keepable && !byOutcome && <div>{keepButton(provider)}<p className="mt-1 text-xs">{copyText(`Bifrost keeps handling ${name} for this key; Registry takes over the rest.`, `Bifrost continue de gérer ${name} pour cette clé ; Registry prend en charge le reste.`)}</p></div>}
-      {(byOutcome && keepable || others.length > 0) && <div className="flex flex-wrap gap-2">{byOutcome && keepable && keepButton(provider)}{others.map(keepButton)}</div>}
-      {edits.map(blocker => <NativeEditButton key={blocker.kind} blocker={blocker} readiness={readiness} onEdit={onEditNative} />)}
-    </div>}
-  </li>;
+  return (
+    <li className="pl-1">
+      {blockers.map(blocker => (
+        <div key={blocker.kind} className="mb-2 last:mb-0">
+          {blocker.kind === "undiscovered" && blocker.providerDisabled ? (
+            <>
+              <p className="font-medium">
+                {copyText(`${name} is disabled in Bifrost`, `${name} est désactivé dans Bifrost`)}
+              </p>
+              <p className="text-xs">
+                {copyText(
+                  `So Bifrost shows none of its models, and Registry can’t manage ${blocker.count === 1 ? "the model" : `the ${blocker.count} models`} this key allows.`,
+                  `Bifrost n’en montre donc aucun modèle : Registry ne peut pas gérer ${blocker.count === 1 ? "le modèle" : `les ${blocker.count} modèles`} que cette clé autorise.`,
+                )}
+              </p>
+              {undiscoveredChoices(blocker)}
+            </>
+          ) : blocker.kind === "undiscovered" ? (
+            <>
+              <p className="font-medium">
+                {copyText(
+                  `Bifrost doesn’t show ${blocker.count} ${name} ${models(blocker.count)}, so Registry can’t manage ${blocker.count === 1 ? "it" : "them"}.`,
+                  `Bifrost ne montre pas ${blocker.count} ${models(blocker.count)} ${name} : Registry ne peut donc pas ${blocker.count === 1 ? "le" : "les"} gérer.`,
+                )}
+              </p>
+              {undiscoveredChoices(blocker)}
+            </>
+          ) : blocker.kind === "collision" ? (
+            <>
+              <p className="font-medium">
+                {copyText(
+                  `${blocker.count} ${blocker.count === 1 ? "model is" : "models are"} allowed through ${and(sharers.map(displayProvider))}.`,
+                  `${blocker.count} ${blocker.count === 1 ? "modèle est autorisé" : "modèles sont autorisés"} via ${and(sharers.map(displayProvider))}.`,
+                )}
+              </p>
+              <p className="text-xs">
+                {keepable
+                  ? copyText(
+                      "Registry uses one subscription per model: choose the one to use, and Bifrost keeps handling the other for this key.",
+                      "Registry n’utilise qu’un abonnement par modèle : choisissez celui à utiliser, Bifrost continue de gérer l’autre pour cette clé.",
+                    )
+                  : copyText(
+                      "Registry uses one subscription per model.",
+                      "Registry n’utilise qu’un abonnement par modèle.",
+                    )}
+              </p>
+            </>
+          ) : blocker.kind === "dynamic" && provider ? (
+            <>
+              <p className="font-medium">
+                {copyText(
+                  `This key allows every ${name} model, including future ones, so Registry can’t copy it as is.`,
+                  `Cette clé autorise tous les modèles ${name}, y compris les futurs : Registry ne peut pas la reprendre telle quelle.`,
+                )}
+              </p>
+            </>
+          ) : (
+            <>
+              {blocker.kind !== "other" && <p className="font-medium">{blockerLine(blocker, copyText)}</p>}
+              {(blocker.reasons ?? []).map((reason, index) => (
+                <p key={`${index}/${reason}`} className="break-words">
+                  {adoptionReason(reason, copyText)}
+                </p>
+              ))}
+            </>
+          )}
+          <ModelNames models={blocker.models} />
+        </div>
+      ))}
+      {choices > 0 && (
+        <div className="mt-2 space-y-2">
+          {choices > 1 && <p className="text-xs font-medium">{copyText("Choose one:", "Choisissez une option :")}</p>}
+          {keepable && !byOutcome && (
+            <div>
+              {keepButton(provider)}
+              <p className="mt-1 text-xs">
+                {copyText(
+                  `Bifrost keeps handling ${name} for this key; Registry takes over the rest.`,
+                  `Bifrost continue de gérer ${name} pour cette clé ; Registry prend en charge le reste.`,
+                )}
+              </p>
+            </div>
+          )}
+          {((byOutcome && keepable) || others.length > 0) && (
+            <div className="flex flex-wrap gap-2">
+              {byOutcome && keepable && keepButton(provider)}
+              {others.map(keepButton)}
+            </div>
+          )}
+          {edits.map(blocker => (
+            <NativeEditButton key={blocker.kind} blocker={blocker} readiness={readiness} onEdit={onEditNative} />
+          ))}
+        </div>
+      )}
+    </li>
+  );
 }
