@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
-import { EditorJourney } from "../../components/registry/EditorJourney";
+import { EditorJourney, revealJourneyStep } from "../../components/registry/EditorJourney";
 import {
   documentedPrice,
   fieldLabel,
@@ -903,6 +903,12 @@ export default function ModelEditor({
     setStep(stepNames[index] || stepNames[stepNames.length - 1]);
     return true;
   };
+  // The footer's way to Review: like the stepper pill it brings the section into view in Expert, then focuses its heading.
+  const showReview = () => {
+    if (!changeStep(stepNames.length - 1)) return;
+    if (all) revealJourneyStep(stepNames.length - 1, true);
+    requestAnimationFrame(() => document.getElementById("model-review-heading")?.focus({ preventScroll: all }));
+  };
   const modelSummary = (
     <div className="space-y-3">
       <div className="rounded-sm border bg-card p-3">
@@ -960,7 +966,7 @@ export default function ModelEditor({
           <Button
             disabled={step === "choose" && !canContinue}
             onClick={() =>
-              !creating || currentStep === stepNames.length - 2 ? continueToReview() : changeStep(currentStep + 1)
+              !creating || currentStep === stepNames.length - 2 ? showReview() : changeStep(currentStep + 1)
             }
           >
             {currentStep === 0
@@ -1682,7 +1688,11 @@ export default function ModelEditor({
         {(all || step === "review") && (
           <section id={stepId("review")} className="space-y-4">
             <div>
-              <h3 className="text-lg font-semibold">
+              <h3
+                id="model-review-heading"
+                tabIndex={-1}
+                className="text-lg font-semibold focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+              >
                 {copy(`Review before ${committing}`, "Vérifier avant enregistrement")}
               </h3>
               <p className="text-sm">
@@ -1691,6 +1701,7 @@ export default function ModelEditor({
                     name: draft.name.trim() ? cardTitle : draft.id,
                     providers: [...new Set(validAccesses.map(access => displayProvider(access.provider)))],
                     creating,
+                    changed: !nothingToSave,
                   },
                   copy,
                 )}

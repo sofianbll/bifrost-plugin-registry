@@ -242,10 +242,17 @@ export function omitUnchangedReferenceIds(draft: Model, workspace: Model[]): Mod
 
 // #100: the one plain sentence the Review step opens on: what saving does, from the draft's own name and subscriptions.
 export function reviewSentence(
-  { name, providers, creating }: { name: string; providers: string[]; creating: boolean },
+  {
+    name,
+    providers,
+    creating,
+    changed = true,
+  }: { name: string; providers: string[]; creating: boolean; changed?: boolean },
   copy: Copy,
 ) {
   const model = name || copy("this model", "ce modèle");
+  if (!creating && !changed)
+    return copy(`No changes to save for ${model} yet.`, `Rien à enregistrer pour ${model} pour le moment.`);
   if (!creating)
     return copy(
       `You’re saving changes to ${model}. Keys that already use it get these changes.`,
