@@ -40,7 +40,7 @@ The interface reuses Bifrost's shadcn/Radix components, Geist and the accepted v
 ## Evidence on Hand
 
 - A real test copy of the gateway (59 saved model cards, 11 virtual keys) on the owner's server.
-- Six dated critique snapshots in `.impeccable/critique/`, from 18/40 to 25/40.
+- Dated critique snapshots in `.impeccable/critique/` (18/40 at the first, 25/40 at the latest).
 - Issues #99 to #102 and the "Known, not fixed" list on pull request #98.
 - No testimonials, customers or benchmarks exist; none may be invented.
 

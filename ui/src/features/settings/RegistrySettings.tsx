@@ -59,9 +59,8 @@ export default function RegistrySettings({
   const copy = useCopy();
   const format = useFormat();
   const { colon } = format;
-  // Dates and times without seconds, in the language's own order ("Sep 25, 2026, 2:38 PM", "25 sept. 2026, 14:38").
-  const dated = (value?: string) =>
-    value ? format.date(value, { dateStyle: "medium", timeStyle: "short" }) : copy("Not recorded", "Non renseigné");
+  // Dates and times without seconds, in the one format of the UI ("Sep 25, 2026, 2:38 PM", "25/09/2026 14:38").
+  const dated = (value?: string) => (value ? format.moment(value) : copy("Not recorded", "Non renseigné"));
   const [section, setSection] = useState<SettingsSection>(initialSection);
   const [gatewayProviders, setGatewayProviders] = useState<string[]>([]);
   const [providersError, setProvidersError] = useState("");

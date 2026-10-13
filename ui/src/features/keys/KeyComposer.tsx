@@ -24,7 +24,7 @@ import {
 } from "../../domain/registry";
 import { useCopy, useFormat } from "../../lib/locale";
 import { KeptNative } from "./KeptNative";
-import { checkNote, checkState, useMoment } from "./KeySummary";
+import { checkLabel, checkNote, checkState, keyLedger, keptNote } from "./KeySummary";
 import {
   accessOrigin,
   keyBaseline,
@@ -72,6 +72,9 @@ export default function KeyComposer({
 }: Props) {
   const copy = useCopy();
   const { colon } = useFormat();
+  const kept = virtualKey.policy.keptNative ?? [];
+  // Counted as the key page counts it, so both read the same check (ADR 0001).
+  const { differences } = useMemo(() => keyLedger(virtualKey, models, groups), [virtualKey, models, groups]);
   const [step, setStep] = useState(0);
   const [tab, setTab] = useState<"models" | "groups">("models");
   const [showReadback, setShowReadback] = useState(false);
@@ -442,9 +445,12 @@ export default function KeyComposer({
     errorMessage: copy("Could not copy IDs", "Impossible de copier les ID"),
   });
 
+  // Why "N models selected" can sit below the key page total: the kept provider's models are Bifrost's.
+  const keptLine = (className: string) => kept.length > 0 && <p className={className}>{keptNote(kept, copy, colon)}</p>;
   const readback = (
     <PublicationCard
       virtualKey={virtualKey}
+      differences={differences}
       savedIds={savedIds}
       busy={busy}
       snapshotMode={snapshotMode}
@@ -651,6 +657,7 @@ export default function KeyComposer({
                 </>
               )}
             </span>
+            {keptLine("basis-full text-xs text-muted-foreground")}
           </div>
         </>
       ) : (
@@ -697,6 +704,7 @@ export default function KeyComposer({
                   draft.groups.length === 1 ? "groupe hérité" : "groupes hérités",
                 )}{" "}
                 · {excluded.length} {copy("excluded", "exclus")}
+                {keptLine("mt-1")}
               </div>
               {readback}
             </div>
@@ -718,20 +726,22 @@ export default function KeyComposer({
 // What was published and what Bifrost read back; shared by the read-first key page and the editor.
 export function PublicationCard({
   virtualKey,
+  differences,
   savedIds,
   busy,
   snapshotMode,
   onReread,
 }: {
   virtualKey: Key;
+  // Kept routes Bifrost does not list (keyLedger): "Verified" is never plain while there are some.
+  differences: number;
   savedIds: string[];
   busy: boolean;
   snapshotMode: boolean;
   onReread: () => void;
 }) {
   const copy = useCopy();
-  const moment = useMoment();
-  const { colon } = useFormat();
+  const { colon, moment } = useFormat();
   const publication = virtualKey.publication;
   const pending = Object.entries(virtualKey.pendingAccessSelection || {});
   const listed = virtualKey.observed || publication?.actual || [];
@@ -746,10 +756,14 @@ export function PublicationCard({
           {!snapshotMode && (
             <Badge
               variant={
-                publication?.state === "verified" ? "success" : publication?.state === "drift" ? "warning" : "secondary"
+                publication?.state === "verified" && !differences
+                  ? "success"
+                  : publication?.state === "verified" || publication?.state === "drift"
+                    ? "warning"
+                    : "secondary"
               }
             >
-              {checkState(virtualKey, copy)}
+              {checkState(virtualKey, copy, differences)}
             </Badge>
           )}
         </CardTitle>
@@ -787,9 +801,7 @@ export function PublicationCard({
             <div className="flex flex-wrap items-center gap-2">
               <Button type="button" variant="outline" size="sm" disabled={busy} onClick={onReread}>
                 <RotateCcw className="size-3.5" />
-                {listed.length
-                  ? copy("Check again", "Vérifier à nouveau")
-                  : copy("Check with Bifrost", "Vérifier avec Bifrost")}
+                {checkLabel(virtualKey, listed, copy)}
               </Button>
               {publication?.checkedAt && (
                 <span className="break-all text-xs text-muted-foreground">

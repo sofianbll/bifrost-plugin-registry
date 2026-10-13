@@ -1,4 +1,12 @@
-import { formatAge, initialLanguage, languageKey, rememberLanguage, syncIsStale } from "./locale";
+import {
+  formatAge,
+  formatDay,
+  formatMoment,
+  initialLanguage,
+  languageKey,
+  rememberLanguage,
+  syncIsStale,
+} from "./locale";
 
 // Settings shows how old the last sync is, and a sync older than a day is not shown as fresh.
 const must = (condition: boolean, message: string) => {
@@ -61,3 +69,22 @@ must(
 rememberLanguage(blocked, "fr"); // must not throw
 must(initialLanguage("", null) === "en", "no storage at all");
 console.log("Language memory checks passed");
+
+// Dates read in the UI language, never the ambiguous 10/12/2026 in English; a time is the day plus hours and minutes,
+// never seconds, in the one format every screen uses (key page, key editor, Settings, snapshot banner).
+const stamp = "2026-10-12T12:30:45Z";
+must(
+  formatDay("en", stamp) === "Oct 12, 2026" && formatDay("fr", stamp) === "12/10/2026",
+  `locale days, got ${formatDay("en", stamp)} / ${formatDay("fr", stamp)}`,
+);
+must(
+  /^Oct 12, 2026, \d{1,2}:\d{2}\s(AM|PM)$/.test(formatMoment("en", stamp)) &&
+    /^12\/10\/2026 \d{2}:\d{2}$/.test(formatMoment("fr", stamp)),
+  `moment, got ${formatMoment("en", stamp)} / ${formatMoment("fr", stamp)}`,
+);
+must(
+  formatMoment("en", stamp).startsWith(formatDay("en", stamp)) &&
+    formatMoment("fr", stamp).startsWith(formatDay("fr", stamp)),
+  "a time starts with the day as written beside it",
+);
+console.log("Date format checks passed");

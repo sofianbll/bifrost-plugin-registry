@@ -2,36 +2,9 @@ import { RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { displayProvider } from "../../components/registry/BrandIcon";
 import { exposed, members, retainedAccesses, type Group, type Key, type Model } from "../../domain/registry";
-import { useCopy, useFormat, useLanguage, type Copy, type Language } from "../../lib/locale";
+import { useCopy, useFormat, type Copy } from "../../lib/locale";
 import { permissionSummary } from "./KeyComposer.state";
 import { KeyPermissions } from "./KeyPermissions";
-
-// A day in the active language: "12/10/2026" in French, "Oct 12, 2026" in English (never the ambiguous 10/12/2026).
-export const formatDay = (language: Language, value: string) =>
-  new Date(value).toLocaleDateString(
-    language === "fr" ? "fr-FR" : "en-US",
-    language === "fr"
-      ? { day: "2-digit", month: "2-digit", year: "numeric" }
-      : { month: "short", day: "numeric", year: "numeric" },
-  );
-export function useDay() {
-  const language = useLanguage();
-  return (value: string) => formatDay(language, value);
-}
-// The same day with the time, no seconds: "Oct 12, 2026, 9:30 AM", "12/10/2026 09:30". Next to a day (the fold's
-// summary) it reads in the same format, instead of the browser's "10/12/2026, 9:30:00 AM".
-export const formatMoment = (language: Language, value: string) =>
-  new Date(value).toLocaleString(language === "fr" ? "fr-FR" : "en-US", {
-    ...(language === "fr"
-      ? { day: "2-digit", month: "2-digit", year: "numeric" }
-      : { month: "short", day: "numeric", year: "numeric" }),
-    hour: language === "fr" ? "2-digit" : "numeric",
-    minute: "2-digit",
-  });
-export function useMoment() {
-  const language = useLanguage();
-  return (value: string) => formatMoment(language, value);
-}
 
 // What a managed key can call (#99): one row per model, counted once whatever the subscriptions that serve it. A
 // model is its common ID (a card's alias or ID; a kept name without a card is its own). Registry routes come from
@@ -101,6 +74,9 @@ export function keyLedger(key: Key, models: Model[], groups: Group[]) {
     total: sorted.filter(row => row.via.length).length,
     open: open.length > 0,
     differences: sorted.reduce((sum, row) => sum + row.unlisted.length, 0),
+    // Provider counts beyond the first, over the models several providers serve: what "Bifrost allows today" counts
+    // more than the total.
+    shared: sorted.reduce((sum, row) => sum + Math.max(0, row.via.length - 1), 0),
     rows: [...sorted, ...open],
   };
 }
@@ -137,6 +113,35 @@ export const checkNote = (copy: Copy) =>
     "Vérifié avec Bifrost : Registry demande à Bifrost quels ID de modèles cette clé liste. Les modèles ne sont pas appelés.",
   );
 
+// The check button: "Check with Bifrost" until Bifrost was asked about the key, then "Check again". A verdict, an
+// attempt on record or listed IDs say it was asked; a verified key can list no ID, and an edit clears the time but
+// keeps the IDs last read, so the IDs alone are not the test.
+export const checkLabel = (key: Key, ids: string[], copy: Copy) => {
+  const publication = key.publication;
+  const asked = ids.length > 0 || (!!publication && (publication.state !== "not_verified" || !!publication.checkedAt));
+  return asked ? copy("Check again", "Vérifier à nouveau") : copy("Check with Bifrost", "Vérifier avec Bifrost");
+};
+
+// The one sentence for a check that gave no answer, wherever it is told (a stored error, a toast).
+export const checkFailed = (copy: Copy) =>
+  copy("Could not check with Bifrost.", "Vérification avec Bifrost impossible.");
+
+// The toast after a check that confirmed the key: never a plain "Verified" while Bifrost does not list a kept route.
+export const verifiedToast = (copy: Copy, differences: number, published = false) =>
+  `${
+    published
+      ? copy("Published and verified with Bifrost", "Publié et vérifié avec Bifrost")
+      : copy("Verified with Bifrost", "Vérifiée avec Bifrost")
+  }${differences ? ` · ${differenceCount(differences, copy)}` : ""}.`;
+
+// Why the editor's "N models selected" can be lower than the key page total (ADR 0001): a kept provider's models
+// are Bifrost's, so the editor does not count them.
+export const keptNote = (kept: string[], copy: Copy, colon: string) =>
+  `${copy("Kept in Bifrost", "Conservé dans Bifrost")}${colon} ${kept.map(displayProvider).join(", ")}. ${copy(
+    "Registry does not change these permissions; Edit selection counts only the models you choose there.",
+    "Registry ne modifie pas ces permissions ; Modifier la sélection ne compte que les modèles que vous y choisissez.",
+  )}`;
+
 type Props = {
   virtualKey: Key;
   models: Model[];
@@ -149,9 +154,7 @@ type Props = {
 // story 36, and the IDs Bifrost lists for the key) waits in one fold.
 export function KeySummary({ virtualKey, models, groups, busy, snapshotMode, onReread }: Props) {
   const copy = useCopy();
-  const day = useDay();
-  const moment = useMoment();
-  const { colon } = useFormat();
+  const { colon, day, moment } = useFormat();
   const ledger = keyLedger(virtualKey, models, groups);
   const publication = virtualKey.publication;
   const pending = Object.entries(virtualKey.pendingAccessSelection || {});
@@ -162,9 +165,6 @@ export function KeySummary({ virtualKey, models, groups, busy, snapshotMode, onR
   // Until Bifrost has been asked, the list is Registry's plan, not a confirmed fact: the headline says so and the
   // check sits beside it, not only in the fold (critique round 5).
   const unchecked = !snapshotMode && publication?.state !== "verified" && publication?.state !== "drift";
-  const checkLabel = ids.length
-    ? copy("Check again", "Vérifier à nouveau")
-    : copy("Check with Bifrost", "Vérifier avec Bifrost");
   const headline =
     ledger.total || ledger.open
       ? copy(`This key can call ${total}`, `Cette clé peut appeler ${total}`)
@@ -177,7 +177,7 @@ export function KeySummary({ virtualKey, models, groups, busy, snapshotMode, onR
   const checkButton = (
     <Button type="button" variant="outline" size="sm" disabled={busy} onClick={onReread}>
       <RotateCcw className="size-3.5" />
-      {checkLabel}
+      {checkLabel(virtualKey, ids, copy)}
     </Button>
   );
   const openRow = (row: LedgerRow) =>
@@ -195,7 +195,11 @@ export function KeySummary({ virtualKey, models, groups, busy, snapshotMode, onR
   // Two models can share a display name (different cards): their common ID, in Basic too, tells them apart.
   const names = ledger.rows.filter(row => !row.open).map(row => row.name);
   const sameName = new Set(names.filter((name, index) => names.indexOf(name) !== index));
+  // "Counted per provider" explains a count above the total only when a model several providers serve is the cause:
+  // a flagged kept row is in Bifrost's count and not in the total, and explains itself.
   const bifrostModels = bifrostModelCount(virtualKey.permissions);
+  const countedPerProvider =
+    bifrostModels !== null && ledger.shared > 0 && bifrostModels - ledger.total - ledger.differences > 0;
   const naming =
     virtualKey.policy.naming === "both"
       ? copy("both", "les deux")
@@ -242,16 +246,7 @@ export function KeySummary({ virtualKey, models, groups, busy, snapshotMode, onR
           )}
         </p>
       )}
-      {kept.length > 0 && (
-        <p className="text-xs text-muted-foreground">
-          {copy("Kept in Bifrost", "Conservé dans Bifrost")}
-          {colon} {kept.map(displayProvider).join(", ")}.{" "}
-          {copy(
-            "Registry does not change these permissions; Edit selection counts only the models you choose there.",
-            "Registry ne modifie pas ces permissions ; Modifier la sélection ne compte que les modèles que vous y choisissez.",
-          )}
-        </p>
-      )}
+      {kept.length > 0 && <p className="text-xs text-muted-foreground">{keptNote(kept, copy, colon)}</p>}
       {pending.length > 0 && (
         <div role="alert" className="space-y-1 text-xs text-chart-warning-ink">
           <p>
@@ -340,7 +335,7 @@ export function KeySummary({ virtualKey, models, groups, busy, snapshotMode, onR
               {copy("Bifrost allows today", "Bifrost autorise aujourd’hui")} ·{" "}
               {permissionSummary(virtualKey.permissions, copy)}
             </p>
-            {bifrostModels !== null && bifrostModels !== ledger.total && (
+            {countedPerProvider && (
               <p className="mt-1 text-xs text-muted-foreground">
                 {copy(
                   "Counted per provider; a model served by several providers counts once above.",

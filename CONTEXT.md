@@ -21,7 +21,7 @@ Identité d'un modèle et de sa variante, indépendante du service qui le propos
 Entrée permettant d'appeler un modèle par un fournisseur d'accès avec son identifiant exact. Ses limites, prix et capacités peuvent différer de ceux d'un autre accès au même modèle.
 
 **Identifiant commun du modèle (alias)** :
-Nom d'appel porté par la fiche modèle, commun à ses accès fournisseurs. Il correspond aux identifiants exacts des accès retenus pour le groupe ou la clé concernée ; il est distinct du nom affiché de la fiche.
+Nom d'appel porté par la fiche modèle, commun à ses accès fournisseurs. Il correspond aux identifiants exacts des accès retenus pour le groupe ou la clé concernée ; il est distinct du nom affiché de la fiche. Basic le dit « Nom d'appel » (EN : « Call name »), sans « alias » ni « identifiant ».
 
 **Sélection d'accès** :
 Choix des accès fournisseurs activés pour une fiche dans un groupe ou une clé virtuelle. La présence d'un accès dans la fiche ne signifie pas qu'il est activé dans toutes les sélections.
@@ -93,7 +93,7 @@ Se dit d'une clé dont le catalogue publié, relu avec cette clé, correspond à
 _Avoid_ : testée, qualifiée
 
 **Vérifier avec Bifrost** :
-Demander à Bifrost quels identifiants de modèles une clé liste et les comparer à ce que Registry a publié. Les modèles ne sont pas appelés. Trois résultats : Vérifiée, Écarts trouvés, Pas encore vérifiée.
+Demander à Bifrost quels identifiants de modèles une clé liste et les comparer à ce que Registry a publié. Les modèles ne sont pas appelés. Trois résultats : Vérifiée, Écarts trouvés, Pas encore vérifiée. Le bouton se lit « Vérifier avec Bifrost » tant que Bifrost n'a pas été interrogé pour la clé, puis « Vérifier à nouveau ».
 _Avoid_ : relecture, readback (dans un texte affiché en Basic)
 
 **Pas encore vérifiée** :
