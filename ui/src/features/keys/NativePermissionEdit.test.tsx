@@ -179,6 +179,30 @@ must(
   "a blocked edit shows its reason, not a consequence",
 );
 
+// The two reasons the server sends in English are worded plainly in both languages, with no "native" jargon.
+for (const [sent, en, fr] of [
+  [
+    "Native key identity changed",
+    "This key changed in Bifrost, so Registry can’t edit it from here.",
+    "Cette clé a changé dans Bifrost : Registry ne peut pas la modifier d’ici.",
+  ],
+  [
+    "Native key is controlled by an external access profile",
+    "This key’s permissions come from an external profile, so Registry can’t edit them.",
+    "Les permissions de cette clé viennent d’un profil externe : Registry ne peut pas les modifier.",
+  ],
+] as const)
+  for (const [language, expected] of [
+    ["en", en],
+    ["fr", fr],
+  ] as const) {
+    const shown = text(
+      render(language, { ...removal, canApply: false, previewToken: undefined, after: undefined, blocked: [sent] }),
+    );
+    must(shown.includes(expected), `${language} reads "${expected}" for "${sent}", got ${shown}`);
+    must(!/native|natif/i.test(shown), `${language} shows no "native" for "${sent}"`);
+  }
+
 // A provider row that goes away takes its budgets and rate limit with it (Bifrost), and the confirmation says so.
 const limited: NativeEditPreview = {
   ...removal,

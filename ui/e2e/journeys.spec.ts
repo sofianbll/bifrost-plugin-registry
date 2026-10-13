@@ -368,8 +368,8 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(opens).toHaveText(["QA Codex (batch)"]);
     await expect(card("QA Codex (batch)")).toContainText("openai/qa-codex:batch");
     await expect(
-      card("QA Codex (batch)").getByRole("button", { name: "Add · QA Codex (batch)", exact: true }),
-      "a tile to add says it can be added",
+      card("QA Codex (batch)").getByRole("button", { name: "Register · QA Codex (batch)", exact: true }),
+      "#101: a tile to register says it can be registered",
     ).toBeVisible();
     await expect(card("QA Codex (batch)").locator("[data-attention]")).toHaveCount(0);
     await expect(page.locator('[data-slot="card"]').filter({ hasText: /\b(Saved|Not saved|Partial)\b/ })).toHaveCount(
@@ -1104,7 +1104,10 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
       "Register a model",
     );
     await button("Next: model details").click();
+    // #101: creating a card says "registering"; the edit flow above keeps "saving".
+    await expect(sheet()).toContainText("Preview before registering");
     await button("Review").click();
+    await expect(sheet().locator("#editor-journey-step-2")).toContainText("Review before registering");
     // #100: Review opens on one plain sentence of consequence; Basic shows no Registry ID or endpoint before the fold.
     const review = sheet().locator("#editor-journey-step-2");
     await expect(review).toContainText(
@@ -1376,11 +1379,12 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     // Preselected from the native chat mode declared by Bifrost: a chat model answers both text request types.
     await expect(part(sheet(), /^In this card/)).toContainText(/Requests: Chat Completions, Responses · Change/i);
     await button("Review").click();
+    // #100: Basic words an added or removed access by its provider alone; the native ID waits in the fold.
     await sheet()
-      .getByText(/^Access added: openrouter · anthropic\/qa-opus$/i)
+      .getByText(/^Access added: openrouter$/i)
       .waitFor();
     await sheet()
-      .getByText(/^Access removed: Claude · qa-opus$/)
+      .getByText(/^Access removed: Claude$/)
       .waitFor();
     await button("Cancel").click();
     await button("Discard draft").click();
@@ -1402,6 +1406,51 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await button("Cancel").click();
     await closeSheet();
     await sheet().waitFor({ state: "hidden" });
+  });
+
+  await test.step("the edit Review words changes plainly; request types and IDs wait in the technical fold", async () => {
+    // #100, edit flow. Basic reads "Requests changed for Claude" and "Access added: OpenRouter"; the exact
+    // request types and native IDs sit in the "Technical details" fold, which Expert opens.
+    for (const expertOn of [false, true]) {
+      await setExpert(expertOn);
+      await page.getByRole("button", { name: "Open QA Opus saved details", exact: true }).click();
+      if (!expertOn) await sheet().getByRole("tab", { name: "Access", exact: true }).click();
+      await button(expertOn ? "Edit" : "Edit accesses").click();
+      const inCard = sheet()
+        .getByRole("heading", { name: /^In this card/ })
+        .locator("..");
+      if (!expertOn) await inCard.getByRole("button", { name: "Change requests for Claude", exact: true }).click();
+      await inCard.getByRole("checkbox", { name: /^Responses/ }).uncheck();
+      await sheet()
+        .getByRole("button", { name: /^Add openrouter/i })
+        .click();
+      await button("Review").click();
+      const review = sheet().locator("#editor-journey-step-2");
+      const changes = review.getByRole("heading", { name: "Proposed changes" }).locator("..");
+      const technical = review.locator("details").filter({ has: page.getByText("Technical details", { exact: true }) });
+      await expect(changes).toContainText("Access added: OpenRouter");
+      await expect(changes).toContainText("Requests changed for Claude");
+      for (const jargon of ["works with", "Chat", "Responses", "chat/completions", "qa-opus", "Registry ID"])
+        await expect(
+          changes,
+          `${jargon} is not in Proposed changes (${expertOn ? "Expert" : "Basic"})`,
+        ).not.toContainText(jargon);
+      if (expertOn) await expect(technical).toHaveAttribute("open");
+      else {
+        await expect(technical).not.toHaveAttribute("open");
+        await technical.getByText("Technical details", { exact: true }).click();
+      }
+      await expect(technical.getByText("Technical changes", { exact: true })).toBeVisible();
+      await expect(technical).toContainText("Access added: OpenRouter · anthropic/qa-opus");
+      await expect(technical).toContainText(
+        "Endpoints for Claude · qa-opus: chat/completions, responses → chat/completions",
+      );
+      await button("Cancel").click();
+      await button("Discard draft").click();
+      await closeSheet();
+      await sheet().waitFor({ state: "hidden" });
+    }
+    await setExpert(false);
   });
 
   await test.step("custom provider derives exposed ID and validation stays beside Save", async () => {
@@ -2152,7 +2201,7 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
             await expect(page.getByRole("dialog")).toContainText(
               t(
                 "So Bifrost shows none of its models, and Registry can’t manage the 3 models this key allows.",
-                "Bifrost n’en montre donc aucun modèle : Registry ne peut pas gérer les 3 modèles que cette clé autorise.",
+                "Bifrost ne montre donc aucun de ses modèles : Registry ne peut pas gérer les 3 modèles que cette clé autorise.",
               ),
             );
           if (name === "QA Mistral Key")
@@ -2763,6 +2812,24 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
       contentType: "image/png",
     });
     await empty.close();
+    // #101: with nothing discovered or registered, the first-run card offers the same verb as the toolbar.
+    const none = await browser.newPage({ baseURL, viewport: { width: 375, height: 812 } });
+    await skipTour(none);
+    none.on("pageerror", e => errors.push(e.message));
+    await none.route("**/api/workspace", r =>
+      r.fulfill({ json: { ...workspace, discovery: [], data: { ...workspace.data, models: [] } } }),
+    );
+    await none.route("**/api/catalog", r => r.fulfill({ json: catalog }));
+    await none.goto("/");
+    await none.getByText("Build your model catalog", { exact: true }).waitFor();
+    await expect(
+      none
+        .locator('[data-slot="card"]')
+        .filter({ hasText: "Build your model catalog" })
+        .getByRole("button", { name: "Register a model", exact: true }),
+    ).toBeVisible();
+    await expect(none.getByRole("button", { name: /^Add model/ })).toHaveCount(0);
+    await none.close();
     await page.setViewportSize({ width: 390, height: 844 });
   });
 

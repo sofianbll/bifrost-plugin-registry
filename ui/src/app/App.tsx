@@ -1448,7 +1448,7 @@ function RegistryApp({
                           )}
                         </p>
                         <Button variant="outline" onClick={() => openModel(newModel(), true)}>
-                          {copyText("Add model", "Ajouter un modèle")} <ArrowRight className="size-4" />
+                          {copyText("Register a model", "Enregistrer un modèle")} <ArrowRight className="size-4" />
                         </Button>
                       </CardContent>
                     </Card>

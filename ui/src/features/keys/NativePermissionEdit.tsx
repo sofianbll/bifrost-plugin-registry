@@ -118,11 +118,15 @@ const edits: [RegExp, string, string][] = [
   [/^This key does not allow all providers$/, "$&", "Cette clé n’autorise pas tous les fournisseurs."],
   [/^This provider does not allow every model$/, "$&", "Ce fournisseur n’autorise pas tous les modèles."],
   [/^Dynamic native blacklist is unsupported for (.+)$/, "$&", "$1 : liste d’exclusion dynamique non prise en charge."],
-  [/^Native key identity changed$/, "$&", "L’identité de la clé native a changé."],
+  [
+    /^Native key identity changed$/,
+    "This key changed in Bifrost, so Registry can’t edit it from here.",
+    "Cette clé a changé dans Bifrost : Registry ne peut pas la modifier d’ici.",
+  ],
   [
     /^Native key is controlled by an external access profile$/,
-    "$&",
-    "La clé native dépend d’un profil d’accès externe.",
+    "This key’s permissions come from an external profile, so Registry can’t edit them.",
+    "Les permissions de cette clé viennent d’un profil externe : Registry ne peut pas les modifier.",
   ],
 ];
 const editReason = (reason: string, copy: Copy) => {

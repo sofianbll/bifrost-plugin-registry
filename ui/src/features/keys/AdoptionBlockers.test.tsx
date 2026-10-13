@@ -345,6 +345,22 @@ must(
   ),
   "only the choices offered are named",
 );
+// A disabled provider: the French sentence agrees ("aucun de ses modèles", not "n’en montre aucun modèle").
+const disabledFrench = text(
+  render(
+    "fr",
+    disabled,
+    [],
+    undefined,
+    () => {},
+    () => {},
+  ),
+);
+must(
+  disabledFrench.includes("Bifrost ne montre donc aucun de ses modèles : Registry ne peut pas gérer les 3 modèles") &&
+    !disabledFrench.includes("n’en montre"),
+  `the disabled-provider sentence reads correctly in French, got ${disabledFrench}`,
+);
 // No jargon in any rendered blocker, in either language.
 const reasonsSent = [
   "Native key identity changed",

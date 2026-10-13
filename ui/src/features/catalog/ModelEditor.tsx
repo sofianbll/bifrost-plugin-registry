@@ -427,6 +427,8 @@ export default function ModelEditor({
   const [registrationIssue, setRegistrationIssue] = useState<ReturnType<typeof firstRegistrationIssue>>();
   const copy = useCopy();
   const { colon } = useFormat();
+  // #101: creating a card is "registering" in English (French already says "enregistrer" for both); editing keeps "saving".
+  const committing = creating ? "registering" : "saving";
   const language = useLanguage();
   const display = useDisplay();
   const creatorName = useCreatorName();
@@ -769,6 +771,48 @@ export default function ModelEditor({
       ]?.value
     );
   };
+  // #100: the Review lists plain changes; a changed access is one plain row here and its native ID, exact
+  // endpoints or documentary record in the "Technical details" fold (open in Expert).
+  const accessChanges: { plain: string; technical: string }[] = original
+    ? [
+        ...draft.accesses
+          .filter(access => !original.accesses.some(before => sameAccess(before, access)))
+          .map(access => ({
+            plain: `${copy("Access added", "Accès ajouté")}${colon} ${displayProvider(access.provider)}`,
+            technical: `${copy("Access added", "Accès ajouté")}${colon} ${displayProvider(access.provider)} · ${access.nativeModel}`,
+          })),
+        ...original.accesses
+          .filter(access => !draft.accesses.some(after => sameAccess(after, access)))
+          .map(access => ({
+            plain: `${copy("Access removed", "Accès retiré")}${colon} ${displayProvider(access.provider)}`,
+            technical: `${copy("Access removed", "Accès retiré")}${colon} ${displayProvider(access.provider)} · ${access.nativeModel}`,
+          })),
+        ...draft.accesses
+          .filter(access =>
+            original.accesses.some(before => sameAccess(before, access) && before.referenceId !== access.referenceId),
+          )
+          .map(access => ({
+            plain: `${copy("Documentary record changed for", "Fiche documentaire modifiée pour")} ${displayProvider(access.provider)}`,
+            technical: `${copy("Documentary record for", "Fiche documentaire de")} ${displayProvider(access.provider)}${colon} ${referenceName(original.accesses.find(before => sameAccess(before, access))?.referenceId)} → ${referenceName(access.referenceId)}`,
+          })),
+        ...draft.accesses
+          .filter(access =>
+            original.accesses.some(
+              before =>
+                sameAccess(before, access) &&
+                JSON.stringify(before.endpoints || []) !== JSON.stringify(access.endpoints || []),
+            ),
+          )
+          .map(access => {
+            const before = original.accesses.find(row => sameAccess(row, access))?.endpoints;
+            return {
+              plain: `${copy("Requests changed for", "Requêtes modifiées pour")} ${displayProvider(access.provider)}`,
+              technical: `${copy("Endpoints for", "Endpoints pour")} ${displayProvider(access.provider)} · ${access.nativeModel}${colon} ${(before || []).join(", ") || copy("Unknown", "Inconnu")} → ${(access.endpoints || []).join(", ") || copy("Unknown", "Inconnu")}`,
+            };
+          }),
+      ]
+    : [];
+  const technicalChanges = accessChanges.map(change => change.technical);
   const reviewChanges = original
     ? [
         ...(["name", "creator", "family", "summary", "context"] as const)
@@ -789,40 +833,7 @@ export default function ModelEditor({
             name =>
               `${copy("Capability", "Capacité")} ${term(name)}${colon} ${evidence(original.capabilities[name])} → ${evidence(draft.capabilities[name])}`,
           ),
-        ...draft.accesses
-          .filter(access => !original.accesses.some(before => sameAccess(before, access)))
-          .map(
-            access =>
-              `${copy("Access added", "Accès ajouté")}${colon} ${displayProvider(access.provider)} · ${access.nativeModel}`,
-          ),
-        ...original.accesses
-          .filter(access => !draft.accesses.some(after => sameAccess(after, access)))
-          .map(
-            access =>
-              `${copy("Access removed", "Accès retiré")}${colon} ${displayProvider(access.provider)} · ${access.nativeModel}`,
-          ),
-        ...draft.accesses
-          .filter(access =>
-            original.accesses.some(before => sameAccess(before, access) && before.referenceId !== access.referenceId),
-          )
-          .map(
-            access =>
-              `${copy("Documentary record for", "Fiche documentaire de")} ${displayProvider(access.provider)}${colon} ${referenceName(original.accesses.find(before => sameAccess(before, access))?.referenceId)} → ${referenceName(access.referenceId)}`,
-          ),
-        ...draft.accesses
-          .filter(access =>
-            original.accesses.some(
-              before =>
-                sameAccess(before, access) &&
-                JSON.stringify(before.endpoints || []) !== JSON.stringify(access.endpoints || []),
-            ),
-          )
-          .map(access => {
-            const before = original.accesses.find(row => sameAccess(row, access))?.endpoints;
-            return expert
-              ? `${copy("Endpoints for", "Endpoints pour")} ${displayProvider(access.provider)} · ${access.nativeModel}${colon} ${(before || []).join(", ") || copy("Unknown", "Inconnu")} → ${(access.endpoints || []).join(", ") || copy("Unknown", "Inconnu")}`
-              : `${displayProvider(access.provider)} · ${access.nativeModel} · ${copy("works with", "fonctionne avec")}${colon} ${plainEndpointNames(before, copy)} → ${plainEndpointNames(access.endpoints, copy)}`;
-          }),
+        ...accessChanges.map(change => change.plain),
       ]
     : [];
   const continueToReview = () => {
@@ -918,7 +929,7 @@ export default function ModelEditor({
       {!canSave && (
         <p className="text-xs text-destructive">
           {copy(
-            "Complete the required fields before saving.",
+            `Complete the required fields before ${committing}.`,
             "Complétez les champs obligatoires avant l’enregistrement.",
           )}
         </p>
@@ -1214,7 +1225,7 @@ export default function ModelEditor({
                 <div className="min-w-0 flex-1 basis-48">
                   <p className="text-xs uppercase tracking-wide text-muted-foreground">
                     {creating
-                      ? copy("Preview before saving", "Aperçu avant enregistrement")
+                      ? copy("Preview before registering", "Aperçu avant enregistrement")
                       : copy("Registry model", "Fiche modèle Registry")}
                   </p>
                   {creating && (
@@ -1658,7 +1669,9 @@ export default function ModelEditor({
         {(all || step === "review") && (
           <section id={stepId("review")} className="space-y-4">
             <div>
-              <h3 className="text-lg font-semibold">{copy("Review before saving", "Vérifier avant enregistrement")}</h3>
+              <h3 className="text-lg font-semibold">
+                {copy(`Review before ${committing}`, "Vérifier avant enregistrement")}
+              </h3>
               <p className="text-sm">
                 {reviewSentence(
                   {
@@ -1736,6 +1749,14 @@ export default function ModelEditor({
                     "Les opérations choisies déterminent les types de requêtes exposés par Registry ; elles ne prouvent pas que le modèle les prend en charge. La présence d’un accès ne l’active pas pour une clé et ne choisit pas le fournisseur.",
                   )}
                 </p>
+                {technicalChanges.length > 0 && (
+                  <div className="space-y-1 text-xs">
+                    <strong>{copy("Technical changes", "Changements techniques")}</strong>
+                    {technicalChanges.map((change, index) => (
+                      <p key={index}>{change}</p>
+                    ))}
+                  </div>
+                )}
                 <div className="space-y-1 text-xs">
                   <strong>{copy("Common model ID and accesses", "Identifiant commun et accès")}</strong>
                   <p>
@@ -1818,7 +1839,7 @@ export default function ModelEditor({
             {!canSave && (
               <p role="alert" className="text-sm text-destructive">
                 {copy(
-                  "Complete the name, choose endpoints for every access, and complete each provider access before saving.",
+                  `Complete the name, choose endpoints for every access, and complete each provider access before ${committing}.`,
                   "Complétez le nom et chaque accès, puis choisissez ses endpoints avant l’enregistrement.",
                 )}
               </p>
@@ -1852,7 +1873,7 @@ export default function ModelEditor({
             </DialogTitle>
             <DialogDescription>
               {copy(
-                "Changes are added to the draft after confirmation, then reviewed before saving.",
+                `Changes are added to the draft after confirmation, then reviewed before ${committing}.`,
                 "Les modifications seront ajoutées au brouillon après confirmation, puis relues avant l’enregistrement.",
               )}
             </DialogDescription>
@@ -2118,7 +2139,7 @@ export default function ModelEditor({
                 : copy("Provider access", "Accès fournisseur")}{" "}
               ·{" "}
               {copy(
-                "The correction is added to the draft. Review all linked accesses before saving the model.",
+                `The correction is added to the draft. Review all linked accesses before ${committing} the model.`,
                 "Correction ajoutée au brouillon. Vérifiez tous les accès liés avant l’enregistrement du modèle.",
               )}
             </DialogDescription>

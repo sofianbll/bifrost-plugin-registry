@@ -323,7 +323,7 @@ function DecisionRow({
               <p className="text-xs">
                 {copyText(
                   `So Bifrost shows none of its models, and Registry can’t manage ${blocker.count === 1 ? "the model" : `the ${blocker.count} models`} this key allows.`,
-                  `Bifrost n’en montre donc aucun modèle : Registry ne peut pas gérer ${blocker.count === 1 ? "le modèle" : `les ${blocker.count} modèles`} que cette clé autorise.`,
+                  `Bifrost ne montre donc aucun de ses modèles : Registry ne peut pas gérer ${blocker.count === 1 ? "le modèle" : `les ${blocker.count} modèles`} que cette clé autorise.`,
                 )}
               </p>
               {undiscoveredChoices(blocker)}

@@ -550,7 +550,9 @@ export default function ReferenceCatalogBrowser({
               {accessMenu(group)}
               {!byCard && (
                 <Button size="sm" variant="outline" className="h-8" onClick={() => open(group)}>
-                  {joinable(group).length > 0 ? copy("Add to card", "Ajouter à la fiche") : copy("Add", "Ajouter")}
+                  {joinable(group).length > 0
+                    ? copy("Add to card", "Ajouter à la fiche")
+                    : copy("Register", "Enregistrer")}
                   <ActionLabel label={labelOf(group)} />
                 </Button>
               )}
