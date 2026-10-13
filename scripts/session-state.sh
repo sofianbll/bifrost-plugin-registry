@@ -60,10 +60,11 @@ emit() {
     unpushed=$(git -C "$wt_path" rev-list --count HEAD --not --remotes 2>/dev/null || echo "?")
     [ "$unpushed" = 0 ] || flag=0
   fi
+  # shellcheck disable=SC2088  # the literal ~ below is display text, not a path
   case $shown in
     "$main_path") shown=. ;;
     "$main_path"/*) shown=${shown#"$main_path"/} ;;
-    "$HOME"/*) shown='~/'"${shown#"$HOME"/}" ;;
+    "$HOME"/*) shown="~/${shown#"$HOME"/}" ;;
   esac
   [ "${#shown}" -le 50 ] || shown="...${shown: -47}"
   rows="$rows$flag  $shown [$wt_branch] $state, $unpushed unpushed
