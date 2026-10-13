@@ -31,6 +31,7 @@ import {
 } from "./catalog-api";
 import { useCopy, useFormat, useLanguage } from "../../lib/locale";
 import { FactLine } from "./FactLine";
+import { moment } from "./moment";
 
 type Field = CatalogFieldName;
 type Target = "reference" | "access";
@@ -61,7 +62,7 @@ export default function CatalogMetadata({
   const copy = useCopy();
   const format = useFormat();
   const { colon } = format;
-  const dated = (value?: string | null) => (value ? format.date(value) : copy("Never", "Jamais"));
+  const dated = (value?: string | null) => (value ? moment(format, value) : copy("Never", "Jamais"));
   const language = useLanguage();
   const [mode, setMode] = useState<Target>(focus?.target || "access");
   const [query, setQuery] = useState("");

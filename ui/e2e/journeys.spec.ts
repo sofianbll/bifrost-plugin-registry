@@ -1231,6 +1231,79 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     ).toHaveCount(0);
   });
 
+  await test.step("Basic registers under a Call name of its own, and its errors speak plainly", async () => {
+    // Owner decision: Basic keeps the name applications use to call the model when registering; the family and the
+    // "Common model ID" fold stay Expert's. The errors below are the ones a person meets before the card is valid.
+    await scope(/^To add/).click();
+    await searchModels().fill("qa-unregistered");
+    await button("Open QA Unregistered details").click();
+    const callName = sheet().getByRole("textbox", { name: "Call name", exact: true });
+    await expect(callName, "prefilled with the proposed value").toHaveValue("qa-unregistered");
+    await expect(sheet().getByText("The name applications use to call this model", { exact: true })).toBeVisible();
+    await expect(sheet().getByText("Common model ID"), "Expert's field keeps its own name").toHaveCount(0);
+    await expect(sheet().getByRole("combobox", { name: /ID/ }), "no catalogue search for the ID in Basic").toHaveCount(
+      0,
+    );
+    await expectNoBasicJargon(page, "the Call name field");
+    // No request type chosen: Review sends the person back to the access, in words that name no endpoint.
+    const inCard = sheet()
+      .getByRole("heading", { name: /^In this card/ })
+      .locator("..");
+    await inCard.getByRole("button", { name: /^Change requests for / }).click();
+    for (const type of [/^Chat Completions/, /^Responses/])
+      await inCard.getByRole("checkbox", { name: type }).uncheck();
+    await button("Next: model details").click();
+    await button("Review").click();
+    const noRequestType = "Choose at least one request type for every access.";
+    await expect(
+      page.getByText(noRequestType, { exact: true }),
+      "the banner says request type, not endpoint",
+    ).toBeVisible();
+    await expectNoBasicJargon(page, "the registration error, no request type");
+    const accessDialog = page.getByRole("dialog", { name: "Edit provider access" });
+    await accessDialog.getByRole("checkbox", { name: /^Responses/ }).check();
+    await expect(accessDialog.getByRole("alert")).toHaveCount(0);
+    await accessDialog.getByRole("button", { name: "Keep changes", exact: true }).click();
+    // The call name is checked as Expert's common ID is: a bad one keeps Next off and says what is allowed.
+    await callName.fill("QA Unregistered");
+    await expect(callName).toHaveAttribute("aria-invalid", "true");
+    await expect(sheet().getByText(/^Use lowercase letters, digits, dots, hyphens or underscores/)).toBeVisible();
+    await expect(
+      sheet().getByText("Choose a valid call name and at least one complete access to prepare the card."),
+    ).toBeVisible();
+    await expect(button("Next: model details")).toBeDisabled();
+    await sheet().getByRole("button", { name: "3. Review", exact: true }).click();
+    await expect(sheet().getByRole("alert").filter({ hasText: "Enter a valid call name." })).toBeVisible();
+    await expectNoBasicJargon(page, "the registration error, bad call name");
+    await callName.fill("qa-call-name");
+    await expect(sheet().getByText("Enter a valid call name."), "fixing the name clears its banner").toHaveCount(0);
+    await button("Next: model details").click();
+    await button("Review").click();
+    const review = sheet().locator("#editor-journey-step-2");
+    await expect(review).toContainText(
+      "You’re registering QA Unregistered from your Synthetic Provider subscription. It appears in My models; no key can use it until you add it to one.",
+    );
+    await expectNoBasicJargon(page, "the Review of a chosen call name, fold closed");
+    const write = page.waitForRequest(r => r.method() === "PUT" && r.url().endsWith("/api/workspace"));
+    await button("Register").click();
+    const saved = (await write).postDataJSON().data.models.find((m: { id: string }) => m.id === "qa-call-name");
+    expect(
+      saved.accesses.map((a: { id: string; nativeModel: string }) => [a.id, a.nativeModel]),
+      "the chosen call name is the common ID; the access still calls the native model",
+    ).toEqual([["synthetic-provider/qa-call-name", "qa-unregistered"]]);
+    await sheet().waitFor({ state: "hidden" });
+    // Put the fixture back for the steps that follow: delete the card, and QA Unregistered returns to To add.
+    await scope(/^In Registry/).click();
+    await searchModels().fill("qa-call-name");
+    await button("Open QA Unregistered details").click();
+    await button("More actions").click();
+    await page.getByRole("menuitem", { name: "Delete", exact: true }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "Delete", exact: true }).click();
+    await sheet().waitFor({ state: "hidden" });
+    await searchModels().fill("");
+    await expect(scope(/^In Registry/)).toHaveAccessibleName("In Registry (13)");
+  });
+
   await test.step("a saved card opens read-first: Edit and Cancel, one step order, No changes, Delete in a menu", async () => {
     await searchModels().fill("qa-image");
     await button("Open QA Image details").click();
@@ -1395,8 +1468,9 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await button("Open QA Reasoner details").click();
     await expect(
       sheet().locator("summary", { hasText: "Common model ID" }),
-      "Basic does not offer to change the common ID",
+      "Basic does not offer the common ID fold: it has the Call name field instead",
     ).toHaveCount(0);
+    await expect(sheet().getByRole("textbox", { name: "Call name", exact: true })).toHaveValue("qa-reasoner");
     await button("Cancel").click();
     await sheet().waitFor({ state: "hidden" });
     await setExpert(true);
@@ -1404,6 +1478,10 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     const commonId = sheet().locator("summary", { hasText: "Common model ID" });
     await expect(commonId, "Expert changes the common ID here").toContainText("qa-reasoner");
     await expect(commonId).not.toContainText("deepseek");
+    await expect(
+      sheet().getByRole("textbox", { name: "Call name", exact: true }),
+      "Expert has no Call name",
+    ).toHaveCount(0);
     await button("Cancel").click();
     await sheet().waitFor({ state: "hidden" });
     await setExpert(false);
@@ -1647,6 +1725,11 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     let dialog = await editDetails();
     const context = dialog.getByRole("spinbutton", { name: /^Context length/ });
     await expect(context, "the shown value is the card's").toHaveValue("131072");
+    // Expert's safeguards, in plain words: nothing to revert or preview before a value is changed.
+    const preview = dialog.getByRole("heading", { name: "Correction preview", exact: true });
+    const revert = dialog.getByRole("button", { name: "Revert to inherited · Context length", exact: true });
+    await expect(preview).toHaveCount(0);
+    await expect(revert).toHaveCount(0);
     for (const name of [/^Maximum output/, /^Input price/, /^Output price/])
       await expect(dialog.getByRole("spinbutton", { name }), `${name} is corrected here too`).toBeVisible();
     for (const name of [/^Tool calling(?! evidence)/, /^Structured output(?! evidence)/])
@@ -1657,8 +1740,35 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await context.fill("12.5");
     await expect(dialog.getByRole("alert")).toContainText("Enter a nonnegative whole number.");
     await expect(dialog.getByRole("button", { name: "Keep changes", exact: true })).toBeDisabled();
+    await expect(preview, "no preview of a value that cannot be read").toHaveCount(0);
     await context.fill("131072"); // back to what is shown: nothing to keep, no error
     await expect(dialog.getByRole("alert")).toHaveCount(0);
+    await expect(preview.locator("..")).toContainText("No change");
+    // Change Context length: the preview names the accesses it reaches before anything is kept.
+    await context.fill("200000");
+    const reach = preview.locator("..");
+    await expect(reach).toContainText(/Applies to \d+ accesse?s?: /);
+    await expect(reach).toContainText(/131,?072 → 200,?000/);
+    await expect(reach).not.toContainText("No change");
+    await expectNoBasicJargon(page, "the Correction preview");
+    // Revert puts the original value back and the preview says nothing moves.
+    await revert.click();
+    await expect(context).toHaveValue("131072");
+    await expect(revert).toHaveCount(0);
+    await expect(preview.locator("..")).toContainText("No change");
+    await expect(preview.locator("..")).not.toContainText("Applies to");
+    await context.fill("200000");
+    await dialog.getByRole("button", { name: "Keep changes", exact: true }).click();
+    await expect(sheet().getByText(/Correction added to the draft/)).toBeVisible();
+    // Reverting the correction kept in this draft restores the original: nothing is added, and the notice says so.
+    await sheet().getByRole("button", { name: "Edit details", exact: true }).click();
+    await expect(context).toHaveValue("200000");
+    await revert.click();
+    await expect(context).toHaveValue("131072");
+    await dialog.getByRole("button", { name: "Keep changes", exact: true }).click();
+    await expect(sheet().getByText("No change: back to the original value.", { exact: true })).toBeVisible();
+    await expect(sheet().getByText(/Correction added to the draft/)).toHaveCount(0);
+    await sheet().getByRole("button", { name: "Edit details", exact: true }).click();
     await context.fill("200000");
     await dialog.getByRole("button", { name: "Keep changes", exact: true }).click();
     await expect(sheet().getByText(/Correction added to the draft/)).toBeVisible();
@@ -1673,10 +1783,11 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
       expect.objectContaining({ target: "reference", id: "anthropic/qa-opus", field: "context_length", value: 200000 }),
     ]);
     await sheet().waitFor({ state: "hidden" });
-    // The corrected value is read back as customized, in Properties.
+    // The corrected value is read back as corrected, in Properties: one word for it.
     await page.getByRole("button", { name: "Open QA Opus saved details", exact: true }).click();
     await sheet().getByRole("tab", { name: "Properties", exact: true }).click();
-    await expect(sheet().getByText("customized", { exact: true })).toHaveCount(1);
+    await expect(sheet().getByText("corrected", { exact: true })).toHaveCount(1);
+    await expect(sheet().getByText(/customi[sz]ed/i)).toHaveCount(0);
     await closeSheet();
     await sheet().waitFor({ state: "hidden" });
     // Put the fixture back for the steps that follow.
@@ -1700,6 +1811,13 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
       ).toHaveCount(0);
     await expectNoBasicJargon(page, "an access's settings");
     await dialog.getByRole("spinbutton", { name: /^Context length/ }).fill("65536");
+    await expect(dialog.getByRole("heading", { name: "Correction preview", exact: true }).locator("..")).toContainText(
+      /Applies to 1 access: Claude/,
+    );
+    await expect(
+      dialog.getByRole("button", { name: "Revert to inherited · Context length", exact: true }),
+    ).toBeVisible();
+    await expectNoBasicJargon(page, "an access's Correction preview");
     await dialog.getByRole("button", { name: "Keep changes", exact: true }).click();
     await button("Review").click();
     await expect(
@@ -1759,6 +1877,16 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
       "qa-shared",
     );
     await twiceSheet.getByRole("button", { name: "Edit accesses", exact: true }).click();
+    // Two accesses of one provider get two accessible names: the native model tells them apart, as on screen.
+    for (const [prefix, names] of [
+      ["Access settings for", ["Claude · qa-shared", "Claude · qa-shared-fast", "Codex"]],
+      ["Change requests for", ["Claude · qa-shared", "Claude · qa-shared-fast", "Codex"]],
+    ] as const) {
+      const labels = await twiceSheet
+        .getByRole("button", { name: new RegExp(`^${prefix}`) })
+        .evaluateAll(buttons => buttons.map(button => button.getAttribute("aria-label")));
+      expect(labels.sort(), `${prefix}: one name per access`).toEqual(names.map(name => `${prefix} ${name}`).sort());
+    }
     const inCard = twiceSheet.getByRole("heading", { name: /^In this card/ }).locator("..");
     await expect(inCard.getByText("qa-shared", { exact: true })).toHaveCount(1);
     await expect(inCard.getByText("qa-shared-fast", { exact: true })).toHaveCount(1);
@@ -2421,6 +2549,20 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
       await page.keyboard.press("Escape");
       // #100: registering ends on one plain sentence of consequence, IDs folded away, in both languages.
       await open("QA Reasoner").click();
+      // The Call name field and its hint read in one language too.
+      await expect(sheet().getByRole("textbox", { name: t("Call name", "Nom d’appel"), exact: true })).toHaveValue(
+        "qa-reasoner",
+      );
+      await expect(
+        sheet().getByText(
+          t(
+            "The name applications use to call this model",
+            "Le nom que les applications utilisent pour appeler ce modèle",
+          ),
+          { exact: true },
+        ),
+      ).toBeVisible();
+      await sweep(language, "Register accesses step");
       await button(t("Next: model details", "Suivant : fiche modèle")).click();
       await button(t("Review", "Vérifier")).click();
       await expect(sheet().locator("#editor-journey-step-2")).toContainText(

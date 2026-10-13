@@ -42,6 +42,8 @@ export const BASIC_FORBIDDEN_TERMS = [
   "Mapping chosen in Registry",
   "Document ID",
   "Registry ID",
+  "Registry endpoint",
+  "native model ID",
   "chat/completions",
   "/v1/",
   "Review binding",

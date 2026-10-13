@@ -74,6 +74,60 @@ export function modelEditorOptions(catalog: Catalog | null, workspace: Model[], 
 
 export type RegistrationIssue = "id" | "name" | "operations" | "access";
 
+// What the registration banner says. Expert names the exact fields; Basic says "call name", "request type" and
+// "access", with the labels of the dialog that fixes it ("Provider in Bifrost", "Model at this provider").
+export function registrationIssueText(issue: RegistrationIssue, expert: boolean, copy: Copy) {
+  if (issue === "name") return copy("A display name is required.", "Le nom affiché est obligatoire.");
+  if (issue === "id")
+    return expert
+      ? copy("Enter a valid common model ID.", "Saisissez un identifiant commun valide.")
+      : copy("Enter a valid call name.", "Saisissez un nom d’appel valide.");
+  if (issue === "operations")
+    return expert
+      ? copy(
+          "Choose at least one Registry endpoint for every provider access.",
+          "Choisissez au moins un endpoint Registry pour chaque accès fournisseur.",
+        )
+      : copy(
+          "Choose at least one request type for every access.",
+          "Choisissez au moins un type de requête pour chaque accès.",
+        );
+  return expert
+    ? copy(
+        "Complete each provider access: provider, native model ID, and matching Registry ID.",
+        "Complétez chaque accès fournisseur : fournisseur, ID natif et ID Registry correspondant.",
+      )
+    : copy(
+        "Complete each access: its provider and its model at that provider.",
+        "Complétez chaque accès : son fournisseur et son modèle chez ce fournisseur.",
+      );
+}
+
+// The line under the accesses while the card cannot go on, and the one in Review while it cannot be saved.
+export function cannotContinueText(expert: boolean, copy: Copy) {
+  return expert
+    ? copy(
+        "Choose a valid common model ID and at least one complete provider access to prepare the card.",
+        "Choisissez un identifiant commun valide et au moins un accès fournisseur complet pour préparer la fiche.",
+      )
+    : copy(
+        "Choose a valid call name and at least one complete access to prepare the card.",
+        "Choisissez un nom d’appel valide et au moins un accès complet pour préparer la fiche.",
+      );
+}
+
+export function cannotSaveText(expert: boolean, committing: string, copy: Copy) {
+  return expert
+    ? copy(
+        `Complete the name, choose endpoints for every access, and complete each provider access before ${committing}.`,
+        "Complétez le nom et chaque accès, puis choisissez ses endpoints avant l’enregistrement.",
+      )
+    : copy(
+        `Complete the name, choose request types for every access, and complete each access before ${committing}.`,
+        "Complétez le nom et chaque accès, puis choisissez ses types de requêtes avant l’enregistrement.",
+      );
+}
+
 export function firstRegistrationIssue(model: Model): RegistrationIssue | undefined {
   if (!/^[a-z0-9][a-z0-9._-]*$/.test(model.id)) return "id";
   if (!model.name.trim()) return "name";
@@ -163,7 +217,11 @@ export function alsoAvailable(accesses: CatalogAccess[], card: Model, saved: Mod
 
 // Basic names an access by its provider alone (#100). Expert, and the rows of a provider the card holds twice,
 // also show the native model: it is all that tells those rows apart.
-export function showsNativeModel(accesses: Access[], access: Access, expert: boolean) {
+export function showsNativeModel(
+  accesses: Pick<Access, "provider">[],
+  access: Pick<Access, "provider">,
+  expert: boolean,
+) {
   return expert || accesses.filter(row => row.provider === access.provider).length > 1;
 }
 
