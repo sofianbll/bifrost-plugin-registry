@@ -5,7 +5,7 @@
 // Scope: real Registry HTTP server + production React build; synthetic Bifrost, no native ABI
 // or provider inference qualification. The journeys share one page and are destructive, so this
 // is one test of sequential steps run against a fresh fixture (see playwright.config.ts).
-import type { Locator, Page } from "@playwright/test";
+import type { Locator, Page, Route } from "@playwright/test";
 import { expect, expectNoBasicJargon, skipTour, test, token } from "./fixtures";
 
 // The first visit is part of the journeys (#96): the guided tour is offered, then remembered.
@@ -2847,6 +2847,8 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     // Adopted but never checked: the first check is named, beside the headline; once done it checks again (#99).
     await expect(ledger.getByRole("button", { name: "Check again", exact: true })).toHaveCount(0);
     await button("Check with Bifrost").click();
+    // The confirmation counts the difference too: never a plain "Verified with Bifrost" (ADR 0001).
+    await expect(page.getByText("Verified with Bifrost · 1 difference.", { exact: true })).toBeVisible();
     await expect(ledger.getByText(/^Technical check · Verified .* · 1 difference$/)).toBeVisible();
     await expect(ledger.getByRole("button", { name: "Check again", exact: true })).toBeVisible();
     await expect(ledger.getByRole("button", { name: "Check with Bifrost", exact: true })).toHaveCount(0);
@@ -2861,8 +2863,41 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     expect(key.publication.state).toBe("verified");
     expect(key.publication.missing).toEqual([]);
     expect(key.publication.actual).not.toContain("Google/qa-ghost");
+    // The editor reads the same check as the page, and says why "selected" sits below the page total (ADR 0001).
+    await editSelection();
+    await composerStep("Review").click();
+    await expect(page.getByText("Verified · 1 difference", { exact: true })).toBeVisible();
+    await expect(page.getByText("1 model selected · 0 groups", { exact: true })).toBeVisible();
+    await expect(
+      page.getByText(
+        "Kept in Bifrost: Google. Registry does not change these permissions; Edit selection counts only the models you choose there.",
+        { exact: true },
+      ),
+    ).toBeVisible();
     await button("All virtual keys").click();
     await expect(keyCard("QA Kept Key")).toContainText("2 models · Verified · 1 difference");
+  });
+
+  await test.step("a check that fails after publishing names the key, not its id", async () => {
+    // Bifrost cannot be reached for the check that follows a publish: the warning says which key, by its name.
+    const unreachable = (route: Route) => route.fulfill({ status: 502, json: { error: "Bifrost unreachable" } });
+    await page.route("**/api/keys/vk-qa-kept/readback", unreachable);
+    await nav("Virtual keys").click();
+    await keyCard("QA Kept Key").getByRole("button", { name: "Open · QA Kept Key", exact: true }).click();
+    await editSelection();
+    await page.getByRole("checkbox", { name: "Add to this key: QA Haiku", exact: true }).click();
+    await composerStep("Review").click();
+    await button("Publish changes").click();
+    await expect(page.getByText("QA Kept Key: Bifrost unreachable", { exact: true })).toBeVisible();
+    await expect(page.getByText(/vk-qa-kept:/)).toHaveCount(0);
+    // Put the key back as it was, then check once Bifrost answers again.
+    await page.getByRole("button", { name: "Remove QA Haiku from this key", exact: true }).click();
+    await button("Publish changes").click();
+    await expect(button("Publish changes")).toBeDisabled();
+    await page.unroute("**/api/keys/vk-qa-kept/readback", unreachable);
+    await button("Check again").click();
+    await expect(page.getByText("Verified · 1 difference", { exact: true })).toBeVisible();
+    await button("All virtual keys").click();
   });
 
   await test.step("a blocked key loses what Registry cannot represent only after a preview and a confirmation, then it is adopted (#93)", async () => {

@@ -21,7 +21,7 @@ import {
   type ReadinessState,
 } from "./key-readiness";
 import { permissionSummary } from "./KeyComposer.state";
-import { checkState, keyLedger, ledgerTotal, useDay } from "./KeySummary";
+import { checkState, keyLedger, ledgerTotal } from "./KeySummary";
 import { useSessionState } from "../../lib/session-state";
 
 type Props = {
@@ -53,9 +53,7 @@ export function KeyLibrary({
   onOpen,
 }: Props) {
   const copy = useCopy();
-  const localized = useFormat();
-  const day = useDay();
-  const { colon } = localized;
+  const { colon, day } = useFormat();
   const filterId = useId();
   // Search and filters survive leaving the page for the session.
   const [search, onSearch] = useSessionState("keys.search", "");

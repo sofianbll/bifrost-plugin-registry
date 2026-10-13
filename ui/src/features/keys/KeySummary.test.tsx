@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { fixture } from "../../dev/fixtures/registry";
 import type { Key, Model } from "../../domain/registry";
 import { LanguageContext } from "../../lib/locale";
-import { checkState, formatDay, formatMoment, keyLedger, KeySummary } from "./KeySummary";
+import { checkFailed, checkLabel, checkState, keptNote, keyLedger, KeySummary, verifiedToast } from "./KeySummary";
 
 // Spec #85 round 2 and #99: a managed key opens on one ledger, "This key can call N models" (the h1 names the key, #69), one row
 // per model with the subscriptions that serve it; the technical check waits in one fold.
@@ -149,6 +149,34 @@ must(
     checkState(hermes, (_en: string, fr: string) => fr, 2) === "Vérifiée · 2 écarts",
   "a verified key with differences says so",
 );
+// The toasts say the same: "Verified with Bifrost" is never plain while Bifrost does not list a kept route.
+const en = (text: string) => text;
+const fr = (_text: string, french: string) => french;
+must(
+  verifiedToast(en, 0) === "Verified with Bifrost." &&
+    verifiedToast(en, 1) === "Verified with Bifrost · 1 difference." &&
+    verifiedToast(en, 2, true) === "Published and verified with Bifrost · 2 differences." &&
+    verifiedToast(fr, 0) === "Vérifiée avec Bifrost." &&
+    verifiedToast(fr, 1) === "Vérifiée avec Bifrost · 1 écart." &&
+    verifiedToast(fr, 2, true) === "Publié et vérifié avec Bifrost · 2 écarts.",
+  `the verified toasts count the differences, got ${verifiedToast(en, 1)} / ${verifiedToast(fr, 2, true)}`,
+);
+// One sentence for a check that gave no answer.
+must(
+  checkFailed(en) === "Could not check with Bifrost." && checkFailed(fr) === "Vérification avec Bifrost impossible.",
+  "one sentence for a check that could not be made",
+);
+// The kept-provider sentence the key page and the editor share.
+must(
+  keptNote(["deepseek"], en, ":") ===
+    "Kept in Bifrost: DeepSeek. Registry does not change these permissions; Edit selection counts only the models you choose there." &&
+    keptNote(["deepseek", "mistral"], fr, " :").startsWith(
+      "Conservé dans Bifrost : DeepSeek, Mistral. Registry ne modifie pas",
+    ),
+  "the kept note names the providers in both languages",
+);
+must(ledger.shared === 1, `one model is served by two providers, got ${ledger.shared}`);
+
 const english = summary(hermes, "en", hermesModels);
 for (const line of [
   "This key can call 3 models",
@@ -295,6 +323,51 @@ must(
     !summary({ ...hermes, permissions: undefined }).includes("Counted per provider"),
   "no explanation when Bifrost lists no per-provider count",
 );
+// The count differs from the total (3 against 2) only because Bifrost allows a kept model it does not list: the
+// flagged row explains itself, and no sentence about models served by several providers is added.
+const flaggedOnly = summary(
+  {
+    ...hermes,
+    permissions: {
+      allProviders: false,
+      providers: [
+        { provider: "opencode-go", allModels: false, models: ["deepseek-v4-pro", "deepseek-v4.1-flash"] },
+        { provider: "deepseek", allModels: false, models: ["deepseek-v4.1-flash"] },
+      ],
+    },
+  },
+  "en",
+  hermesModels,
+);
+must(
+  flaggedOnly.includes("This key can call 2 models") &&
+    flaggedOnly.includes("DeepSeek: Bifrost does not list this one") &&
+    flaggedOnly.includes("2 providers · 3 models") &&
+    !flaggedOnly.includes("Counted per provider"),
+  `a flagged row is not explained by the provider count, got ${flaggedOnly}`,
+);
+// Several providers serve one model and nothing is flagged: the sentence stays.
+const sharedOnly = summary(
+  {
+    ...hermes,
+    permissions: {
+      allProviders: false,
+      providers: [
+        { provider: "opencode-go", allModels: false, models: ["deepseek-v4-pro", "deepseek-v4.1-flash"] },
+        { provider: "deepseek", allModels: false, models: ["deepseek-flash", "deepseek-v4-pro"] },
+      ],
+    },
+    policy: { ...hermes.policy, accessSelection: undefined },
+  },
+  "en",
+  hermesModels,
+);
+must(
+  sharedOnly.includes("4 models") &&
+    !sharedOnly.includes("Bifrost does not list this one") &&
+    sharedOnly.includes("Counted per provider"),
+  `a shared model explains the provider count, got ${sharedOnly}`,
+);
 
 // The button names the first check until Bifrost has listed IDs for the key (the body then stops saying it was
 // not checked), then checks again; an edit that stales the check keeps the IDs last read.
@@ -319,13 +392,34 @@ const staleAfterEdit: Key = {
   observed: hermes.publication!.actual,
   publication: { ...hermes.publication!, state: "not_verified", checkedAt: "" },
 };
+// A verified key can list no ID (nothing published, or a Bifrost that lists none): it was still read.
+const verifiedNoIds: Key = { ...hermes, observed: null, publication: { ...hermes.publication!, actual: [] } };
 must(
   label(neverRead) === "Check with Bifrost" &&
     label(neverRead, "fr") === "Vérifier avec Bifrost" &&
     label(hermes) === "Check again" &&
     label(hermes, "fr") === "Vérifier à nouveau" &&
-    label(staleAfterEdit) === "Check again",
-  `the first check is named until the key was read once, got ${label(neverRead)} / ${label(hermes)} / ${label(staleAfterEdit)}`,
+    label(staleAfterEdit) === "Check again" &&
+    label(verifiedNoIds) === "Check again",
+  `the first check is named until the key was read once, got ${label(neverRead)} / ${label(hermes)} / ${label(staleAfterEdit)} / ${label(verifiedNoIds)}`,
+);
+// The one helper the key page and the editor share, on the four states of a key.
+const attempted: Key = {
+  ...neverRead,
+  publication: { ...hermes.publication!, state: "not_verified", actual: null, error: "Native key read failed" },
+};
+const noTime: Key = { ...neverRead, publication: { ...attempted.publication!, checkedAt: "" } };
+const listed = hermes.publication!.actual!;
+must(
+  checkLabel(neverRead, [], en) === "Check with Bifrost" &&
+    checkLabel(noTime, [], en) === "Check with Bifrost" &&
+    checkLabel(hermes, listed, en) === "Check again" &&
+    checkLabel(verifiedNoIds, [], en) === "Check again" &&
+    checkLabel(staleAfterEdit, listed, en) === "Check again" &&
+    checkLabel(attempted, [], en) === "Check again" &&
+    checkLabel(neverRead, [], fr) === "Vérifier avec Bifrost" &&
+    checkLabel(verifiedNoIds, [], fr) === "Vérifier à nouveau",
+  "never read, read with IDs, verified with no ID, edited after a read and a failed attempt",
 );
 
 // Critique round 5: a key Bifrost has not been asked about is provisional. The headline says so and the check sits
@@ -387,18 +481,5 @@ must(
 
 const empty = summary({ ...hermes, policy: { groups: [], added: [], excluded: [], naming: "model" } });
 must(empty.includes("No model selected yet"), `an empty key says so, got ${empty}`);
-
-// Dates read in the active language: never the ambiguous 10/12/2026 in English.
-must(
-  formatDay("en", "2026-10-12T09:30:00Z") === "Oct 12, 2026" &&
-    formatDay("fr", "2026-10-12T09:30:00Z") === "12/10/2026",
-  "locale dates",
-);
-// The time beside the check reads in the same format as the day in the fold's summary, without seconds (#101).
-must(
-  /^Oct 12, 2026, \d{1,2}:\d{2} (AM|PM)$/.test(formatMoment("en", "2026-10-12T09:30:45Z")) &&
-    /^12\/10\/2026 \d{2}:\d{2}$/.test(formatMoment("fr", "2026-10-12T09:30:45Z")),
-  `moment, got ${formatMoment("en", "2026-10-12T09:30:45Z")} / ${formatMoment("fr", "2026-10-12T09:30:45Z")}`,
-);
 
 console.log("Key summary checks passed");

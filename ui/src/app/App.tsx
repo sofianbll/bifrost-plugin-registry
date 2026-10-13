@@ -106,7 +106,7 @@ import { LanguageContext, initialLanguage, rememberLanguage, useCopy, useFormat,
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { Switch } from "../components/ui/switch";
 import KeyComposer from "../features/keys/KeyComposer";
-import { KeySummary } from "../features/keys/KeySummary";
+import { checkFailed, keyLedger, KeySummary, verifiedToast } from "../features/keys/KeySummary";
 import { permissionSummary, preserveAdoptionDraft } from "../features/keys/KeyComposer.state";
 import { keyFormState, type KeyFormDraft } from "../features/keys/key-form";
 import { KeyCreateForm } from "../features/keys/KeyCreateForm";
@@ -169,6 +169,23 @@ function CloseMobileSidebarOnRoute({ routeKey }: { routeKey: string }) {
   return null;
 }
 
+// "Snapshot copy · Pulsar · captured Oct 12, 2026, 9:30 AM": the capture time in the UI's one time format.
+export function SnapshotSource({ source, capturedAt }: { source?: string; capturedAt?: string }) {
+  const copyText = useCopy();
+  const { moment } = useFormat();
+  return (
+    <>
+      {copyText("Snapshot copy", "Copie d’instantané")} · <span className="font-medium">{source || "Registry"}</span>
+      {capturedAt && (
+        <>
+          {" "}
+          · {copyText("captured", "capturée")} {moment(capturedAt)}
+        </>
+      )}
+    </>
+  );
+}
+
 function RegistryApp({
   language,
   onLanguageChange,
@@ -177,7 +194,6 @@ function RegistryApp({
   onLanguageChange: (language: Language) => void;
 }) {
   const copyText = useCopy();
-  const localized = useFormat();
   const keyNameMessages = {
     required: copyText("Enter a key name.", "Saisissez un nom de clé."),
     duplicate: copyText("A key with this name already exists.", "Une clé portant ce nom existe déjà."),
@@ -441,10 +457,7 @@ function RegistryApp({
   };
   const markReadbackFailure = (id: string, error: unknown) => {
     const fromServer = error instanceof ApiError ? error.publication : undefined;
-    const message =
-      error instanceof Error
-        ? error.message
-        : copyText("Check with Bifrost unavailable", "Vérification avec Bifrost indisponible");
+    const message = error instanceof Error ? error.message : checkFailed(copyText);
     setData(old => ({
       ...old,
       keys: old.keys.map(k => {
@@ -469,24 +482,30 @@ function RegistryApp({
       }),
     }));
   };
+  // Differences are the kept routes Bifrost does not list on the keys it confirmed (ADR 0001): "Verified" is never plain.
   const verify = async (ids: string[]) => {
     let verified = true;
+    let differences = 0;
     for (const id of [...new Set(ids)]) {
       setBusy(copyText("Checking with Bifrost…", "Vérification avec Bifrost…"));
       try {
         const workspace = await readbackKey(id);
         applyWorkspace(workspace);
-        if (workspace.data.keys.find(k => k.id === id)?.publication?.state !== "verified") verified = false;
+        const checked = workspace.data.keys.find(k => k.id === id);
+        if (checked?.publication?.state === "verified")
+          differences += keyLedger(checked, workspace.data.models, workspace.data.groups).differences;
+        else verified = false;
       } catch (error) {
         if (error instanceof ApiError && error.status === 401) throw error;
         verified = false;
         markReadbackFailure(id, error);
+        // The key is named, not its id.
         toast.warning(
-          `${id}: ${error instanceof Error ? error.message : copyText("Check with Bifrost unavailable", "Vérification avec Bifrost indisponible")}`,
+          `${data.keys.find(k => k.id === id)?.name || id}: ${error instanceof Error ? error.message : checkFailed(copyText)}`,
         );
       }
     }
-    return verified;
+    return { verified, differences };
   };
   const commit = async (next: Demo, label: string, verifyIds: string[] = [], overrides?: CatalogOverride[]) =>
     operation(label, async () => {
@@ -531,7 +550,8 @@ function RegistryApp({
       applyWorkspace(saved);
       setNeedsReconcile(false);
       setReconcileBlocked(false);
-      const verified = verifyIds.length && !snapshotMode ? await verify(verifyIds) : true;
+      const { verified, differences } =
+        verifyIds.length && !snapshotMode ? await verify(verifyIds) : { verified: true, differences: 0 };
       toast[verified ? "success" : "warning"](
         snapshotMode
           ? copyText(
@@ -540,7 +560,7 @@ function RegistryApp({
             )
           : verifyIds.length
             ? verified
-              ? copyText("Published and verified with Bifrost.", "Publié et vérifié avec Bifrost.")
+              ? verifiedToast(copyText, differences, true)
               : copyText(
                   "Published; Bifrost differs or could not be checked.",
                   "Publié ; Bifrost diffère ou n’a pas pu être vérifié.",
@@ -936,13 +956,14 @@ function RegistryApp({
         throw error;
       }
       applyWorkspace(workspace);
-      const state = workspace.data.keys.find(k => k.id === key.id)?.publication?.state;
+      const checked = workspace.data.keys.find(k => k.id === key.id);
+      const state = checked?.publication?.state;
       toast[state === "verified" ? "success" : "warning"](
-        state === "verified"
-          ? copyText("Verified with Bifrost.", "Vérifiée avec Bifrost.")
+        checked && state === "verified"
+          ? verifiedToast(copyText, keyLedger(checked, workspace.data.models, workspace.data.groups).differences)
           : state === "drift"
             ? copyText("Bifrost differs from the published selection.", "Bifrost diffère de la sélection publiée.")
-            : copyText("Could not check with Bifrost.", "Vérification avec Bifrost impossible."),
+            : checkFailed(copyText),
       );
     });
   };
@@ -1296,15 +1317,7 @@ function RegistryApp({
               {snapshotMode && (
                 <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
                   <p className="min-w-0 flex-1 text-foreground/80">
-                    {copyText("Snapshot copy", "Copie d’instantané")} ·{" "}
-                    <span className="font-medium">{connection.source || "Registry"}</span>
-                    {connection.capturedAt && (
-                      <>
-                        {" "}
-                        · {copyText("captured", "capturée")}{" "}
-                        {localized.date(connection.capturedAt, { dateStyle: "medium", timeStyle: "short" })}
-                      </>
-                    )}
+                    <SnapshotSource source={connection.source} capturedAt={connection.capturedAt} />
                   </p>
                   {connection.partial && (
                     <details className="max-w-full">
