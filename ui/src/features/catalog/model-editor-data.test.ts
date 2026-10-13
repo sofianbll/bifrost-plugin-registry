@@ -3,6 +3,8 @@ import {
   applyModelId,
   associationStatus,
   canonicalCapabilities,
+  cannotContinueText,
+  cannotSaveText,
   changeAccessProvider,
   declaredEndpoints,
   firstRegistrationIssue,
@@ -10,8 +12,10 @@ import {
   modelEditorOptions,
   omitUnchangedReferenceIds,
   prefillFromReference,
+  registrationIssueText,
   reviewSentence,
   showsNativeModel,
+  type RegistrationIssue,
 } from "./model-editor-data";
 import type { Catalog } from "./catalog-api";
 import type { Model } from "../../domain/registry";
@@ -401,4 +405,67 @@ equal(
 );
 equal(associationStatus(held[0], found({ referenceId: "x" }), false, fr), "Suggérée automatiquement · à vérifier");
 equal(associationStatus(linked, found({}), false, fr), "Fiche documentaire proposée dans ce brouillon");
+// The error states in Basic use no word of the technical vocabulary, in either language; Expert keeps the exact terms.
+const issues: RegistrationIssue[] = ["id", "name", "operations", "access"];
+const technicalWords = /endpoint|native|natif|Registry|identifiant commun|common model ID|ID Registry/i;
+const basicTexts = (copy: (english: string, french: string) => string) => [
+  ...issues.map(issue => registrationIssueText(issue, false, copy)),
+  cannotContinueText(false, copy),
+  cannotSaveText(false, "registering", copy),
+];
+for (const [language, copy] of [
+  ["English", english],
+  ["French", fr],
+] as const)
+  for (const text of basicTexts(copy)) equal([language, text, technicalWords.test(text)], [language, text, false]);
+equal(
+  issues.map(issue => registrationIssueText(issue, false, english)),
+  [
+    "Enter a valid call name.",
+    "A display name is required.",
+    "Choose at least one request type for every access.",
+    "Complete each access: its provider and its model at that provider.",
+  ],
+);
+equal(
+  issues.map(issue => registrationIssueText(issue, false, fr)),
+  [
+    "Saisissez un nom d’appel valide.",
+    "Le nom affiché est obligatoire.",
+    "Choisissez au moins un type de requête pour chaque accès.",
+    "Complétez chaque accès : son fournisseur et son modèle chez ce fournisseur.",
+  ],
+);
+equal(
+  issues.map(issue => registrationIssueText(issue, true, english)),
+  [
+    "Enter a valid common model ID.",
+    "A display name is required.",
+    "Choose at least one Registry endpoint for every provider access.",
+    "Complete each provider access: provider, native model ID, and matching Registry ID.",
+  ],
+);
+equal(
+  registrationIssueText("access", true, fr),
+  "Complétez chaque accès fournisseur : fournisseur, ID natif et ID Registry correspondant.",
+);
+equal(
+  cannotContinueText(true, english),
+  "Choose a valid common model ID and at least one complete provider access to prepare the card.",
+);
+equal(
+  cannotSaveText(true, "registering", english),
+  "Complete the name, choose endpoints for every access, and complete each provider access before registering.",
+);
+equal(
+  cannotSaveText(false, "saving", english),
+  "Complete the name, choose request types for every access, and complete each access before saving.",
+);
+// The native-model rule also names the rows of a preview, which are discovered accesses (a provider and a model).
+equal(
+  [{ provider: "Claude" }, { provider: "Claude" }, { provider: "Codex" }].map((row, _, rows) =>
+    showsNativeModel(rows, row, false),
+  ),
+  [true, true, false],
+);
 console.log("model editor data checks passed");
