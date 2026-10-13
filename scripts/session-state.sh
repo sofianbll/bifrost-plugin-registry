@@ -63,7 +63,7 @@ emit() {
   case $shown in
     "$main_path") shown=. ;;
     "$main_path"/*) shown=${shown#"$main_path"/} ;;
-    "$HOME"/*) shown="~/${shown#"$HOME"/}" ;;
+    "$HOME"/*) shown='~/'"${shown#"$HOME"/}" ;;
   esac
   [ "${#shown}" -le 50 ] || shown="...${shown: -47}"
   rows="$rows$flag  $shown [$wt_branch] $state, $unpushed unpushed
