@@ -167,6 +167,25 @@ export function showsNativeModel(accesses: Access[], access: Access, expert: boo
   return expert || accesses.filter(row => row.provider === access.provider).length > 1;
 }
 
+// How an access came to its reference. Expert names every state; Basic says only what needs a look (a change
+// proposed in the draft, a guess to check) and nothing for a reference the user chose or for none.
+export function associationStatus(access: Access, found: CatalogAccess | undefined, expert: boolean, copy: Copy) {
+  if (access.referenceId !== undefined && access.referenceId !== found?.referenceId)
+    return access.referenceId
+      ? expert
+        ? copy("Mapping proposed in this draft", "Correspondance proposée dans ce brouillon")
+        : copy("Reference proposed in this draft", "Fiche documentaire proposée dans ce brouillon")
+      : copy("Unlink proposed in this draft", "Dissociation proposée dans ce brouillon");
+  if (found?.mappingManual === true)
+    return expert ? copy("Mapping chosen in Registry", "Correspondance choisie dans Registry") : "";
+  // The catalog API omits mappingManual when it is false.
+  if (found?.referenceId)
+    return expert
+      ? copy("Automatically suggested mapping · verify", "Association suggérée automatiquement · à vérifier")
+      : copy("Suggested automatically · check that it fits", "Suggérée automatiquement · à vérifier");
+  return expert ? copy("No mapping", "Aucune correspondance") : "";
+}
+
 export type AccessCandidate = Pick<Access, "provider" | "nativeModel" | "status"> & { source: string };
 
 export function canonicalCapabilities(values: Model["capabilities"]): Model["capabilities"] {

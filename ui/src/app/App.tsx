@@ -1272,7 +1272,9 @@ function RegistryApp({
                   </Button>
                 </div>
               )}
-              {tourOffer && <TourOffer canStart={!isDirty} onStart={startTour} onDismiss={dismissTour} />}
+              {tourOffer && page === "models" && (
+                <TourOffer canStart={!isDirty} onStart={startTour} onDismiss={dismissTour} />
+              )}
               {page === "models" && pendingKeyDraft.current && (
                 <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-sm border bg-muted/30 p-3 text-sm">
                   <span>

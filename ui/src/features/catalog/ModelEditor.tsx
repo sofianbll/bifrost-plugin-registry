@@ -50,6 +50,7 @@ import {
 import {
   alsoAvailable,
   applyModelId,
+  associationStatus,
   canonicalCapabilities,
   changeAccessProvider,
   declaredEndpoints,
@@ -261,11 +262,14 @@ function EndpointChoices({
   access,
   invalid,
   brief,
+  technical,
   onChange,
 }: {
   access: Access;
   invalid?: boolean;
   brief?: boolean;
+  // Expert also names each request type by its endpoint (chat/completions); Basic names it in words only.
+  technical?: boolean;
   onChange: (endpoints: string[]) => void;
 }) {
   const copy = useCopy();
@@ -300,7 +304,9 @@ function EndpointChoices({
   return (
     <fieldset aria-invalid={invalid || undefined} className="rounded-sm border p-3">
       <legend className="px-1 text-sm font-medium">
-        {copy("Registry endpoints for this access *", "Endpoints Registry pour cet accès *")}
+        {technical
+          ? copy("Registry endpoints for this access *", "Endpoints Registry pour cet accès *")
+          : copy("Request types for this access *", "Types de requêtes pour cet accès *")}
       </legend>
       <div className="grid gap-2 sm:grid-cols-2">
         {registryEndpoints.map(endpoint => (
@@ -316,14 +322,25 @@ function EndpointChoices({
               }
             />
             <span>
-              {copy(...endpointLabels[endpoint])} <code className="text-xs text-muted-foreground">{endpoint}</code>
+              {copy(...endpointLabels[endpoint])}
+              {technical && (
+                <>
+                  {" "}
+                  <code className="text-xs text-muted-foreground">{endpoint}</code>
+                </>
+              )}
             </span>
           </label>
         ))}
       </div>
       {invalid && (
         <p role="alert" className="mt-2 text-xs text-destructive">
-          {copy("Choose at least one endpoint for this access.", "Choisissez au moins un endpoint pour cet accès.")}
+          {technical
+            ? copy("Choose at least one endpoint for this access.", "Choisissez au moins un endpoint pour cet accès.")
+            : copy(
+                "Choose at least one request type for this access.",
+                "Choisissez au moins un type de requête pour cet accès.",
+              )}
         </p>
       )}
       <p className="mt-2 text-xs text-muted-foreground">
@@ -425,6 +442,8 @@ export default function ModelEditor({
     value: string;
   } | null>(null);
   const [propertyNotice, setPropertyNotice] = useState("");
+  // Basic: the numeric corrections typed in "Edit details" and in an access's settings, only those that differ from what is shown.
+  const [valueEdits, setValueEdits] = useState<Record<string, string>>({});
   const [registrationIssue, setRegistrationIssue] = useState<ReturnType<typeof firstRegistrationIssue>>();
   const copy = useCopy();
   const { colon } = useFormat();
@@ -481,7 +500,10 @@ export default function ModelEditor({
   const closeEdit = () => {
     setEditing(null);
     setEditDraft(null);
+    setValueEdits({});
   };
+  // Basic names a saved card by its title alone; creating or Expert, the sheet also says what it is for or its ID.
+  const describes = creating || expert;
   const validAccesses = draft.accesses.filter(access => access.provider && access.nativeModel);
   const showNative = (access: Access) => showsNativeModel(validAccesses, access, expert);
   const baseline = saved.find(model => model.id === draft.id);
@@ -497,18 +519,6 @@ export default function ModelEditor({
   }));
   const referenceName = (id?: string) =>
     id ? display(selectedReference(id)?.fields.name?.value) : copy("none", "aucune");
-  const associationStatus = (access: Access, found?: CatalogAccess) => {
-    if (access.referenceId !== undefined && access.referenceId !== found?.referenceId)
-      return access.referenceId
-        ? copy("Mapping proposed in this draft", "Correspondance proposée dans ce brouillon")
-        : copy("Unlink proposed in this draft", "Dissociation proposée dans ce brouillon");
-    if (found?.mappingManual === true)
-      return copy("Mapping chosen in Registry", "Correspondance choisie dans Registry");
-    // The catalog API omits mappingManual when it is false.
-    return found?.referenceId
-      ? copy("Automatically suggested mapping · verify", "Association suggérée automatiquement · à vérifier")
-      : copy("No mapping", "Aucune correspondance");
-  };
   const chooseModelId = (value: string, option?: SearchOption) => {
     const reference = option?.referenceId ? selectedReference(option.referenceId) : undefined;
     const fromWorkspace = workspace.find(model => model.id === value);
@@ -560,7 +570,8 @@ export default function ModelEditor({
         ? !viewCatalog.references.some(reference => reference.id === access.referenceId)
         : !original?.accesses.some(row => sameAccess(row, access) && row.referenceId === access.referenceId)),
   );
-  const canContinue = /^[a-z0-9][a-z0-9._-]*$/.test(draft.id) && validAccesses.length > 0;
+  const validId = /^[a-z0-9][a-z0-9._-]*$/.test(draft.id);
+  const canContinue = validId && validAccesses.length > 0;
   const canSave = firstRegistrationIssue(draft) === undefined && !invalidReference;
   const displayedCapabilities = canonicalCapabilities(draft.capabilities);
   const capabilityRows = [...new Set([...capabilityNames, ...Object.keys(displayedCapabilities)])];
@@ -685,18 +696,20 @@ export default function ModelEditor({
         );
       })()
     : undefined;
+  const isPriceKey = (key: string) => key === "input_cost_usd_per_million" || key === "output_cost_usd_per_million";
+  const valueProblem = (key: EditableProperty) =>
+    key === "tool_call" || key === "structured_output"
+      ? copy("Choose yes or no.", "Choisir Oui ou Non.")
+      : isPriceKey(key)
+        ? copy("Enter a nonnegative number.", "Saisir un nombre positif ou nul.")
+        : copy("Enter a nonnegative whole number.", "Saisir un entier positif ou nul.");
   let proposed: number | boolean | undefined;
   let propertyValidation = "";
   if (property) {
     try {
       proposed = parsePropertyValue(property.key, property.value);
     } catch {
-      propertyValidation =
-        property.key === "tool_call" || property.key === "structured_output"
-          ? copy("Choose yes or no.", "Choisir Oui ou Non.")
-          : property.key === "input_cost_usd_per_million" || property.key === "output_cost_usd_per_million"
-            ? copy("Enter a nonnegative number.", "Saisir un nombre positif ou nul.")
-            : copy("Enter a nonnegative whole number.", "Saisir un entier positif ou nul.");
+      propertyValidation = valueProblem(property.key);
     }
   }
   const propertyPreview =
@@ -751,6 +764,99 @@ export default function ModelEditor({
     );
     setProperty(null);
   };
+  // Basic corrects values inside the dialogs it already has: the card's in "Edit details", an access's in its settings.
+  // The same corrections as Expert's per-value dialog, staged the same way, one Keep for all of them.
+  type ValueTarget = CatalogOverride["target"];
+  const valueKey = (target: ValueTarget, id: string, key: string) => JSON.stringify([target, id, key]);
+  const unreadableEdit = ([k, raw]: [string, string]) => {
+    try {
+      parsePropertyValue((JSON.parse(k) as [ValueTarget, string, EditableProperty])[2], raw);
+      return false;
+    } catch {
+      return true;
+    }
+  };
+  const valueIssues = Object.entries(valueEdits).some(unreadableEdit);
+  const keepValueEdits = () => {
+    if (!catalog || !Object.keys(valueEdits).length) return;
+    let next = stagedOverrides;
+    for (const [k, raw] of Object.entries(valueEdits)) {
+      const [target, id, field] = JSON.parse(k) as [ValueTarget, string, EditableProperty];
+      const original = (target === "reference" ? catalog.references : catalog.accesses).find(record => record.id === id)
+        ?.fields[field]?.value;
+      next = stageCatalogOverride(next, { target, id, field, value: parsePropertyValue(field, raw) }, original);
+    }
+    setStagedOverrides(next);
+    onOverridesChange?.(next);
+    setPropertyNotice(
+      Object.keys(valueEdits).some(k => isPriceKey((JSON.parse(k) as string[])[2]))
+        ? copy(
+            "Correction added to the draft. Price corrections are saved with the model and applied as native Bifrost pricing overrides.",
+            "Correction ajoutée au brouillon. Les corrections de prix sont enregistrées avec le modèle et appliquées comme overrides de tarification natifs Bifrost.",
+          )
+        : copy(
+            "Correction added to the draft. It will be saved with the Registry model; no native Bifrost value is activated here.",
+            "Correction ajoutée au brouillon. Elle sera enregistrée avec le modèle dans Registry ; aucune valeur native Bifrost n’est activée ici.",
+          ),
+    );
+  };
+  const valueFields = (target: ValueTarget, id: string, fact: (key: string) => CatalogField | undefined) => (
+    <div className="grid gap-3 sm:grid-cols-2">
+      {facts
+        .filter(([key]) => editableProperties.has(key))
+        .map(([key, unit]) => {
+          const field = key as EditableProperty;
+          const k = valueKey(target, id, key);
+          const shown = fact(key)?.value === undefined ? "" : String(fact(key)?.value);
+          const typed = valueEdits[k] ?? shown;
+          const set = (next: string) =>
+            setValueEdits(({ [k]: _dropped, ...others }) => (next === shown ? others : { ...others, [k]: next }));
+          const problem = k in valueEdits && unreadableEdit([k, valueEdits[k]]) ? valueProblem(field) : "";
+          return (
+            <label key={key} className="block text-sm">
+              {fieldLabel(key, copy)}
+              {unit === "tokens" && (
+                <span className="text-xs text-muted-foreground"> · {copy("in tokens", "en tokens")}</span>
+              )}
+              {unit === "$/M" && (
+                <span className="text-xs text-muted-foreground">
+                  {" "}
+                  · {copy("$ per million tokens", "$ par million de tokens")}
+                </span>
+              )}
+              {unit === "" ? (
+                <select
+                  className="mt-1 h-9 w-full rounded-sm border bg-background px-3"
+                  aria-invalid={!!problem}
+                  value={typed}
+                  onChange={event => set(event.target.value)}
+                >
+                  <option value="">{copy("Choose yes or no", "Choisir Oui ou Non")}</option>
+                  <option value="true">{copy("Yes", "Oui")}</option>
+                  <option value="false">{copy("No", "Non")}</option>
+                </select>
+              ) : (
+                <Input
+                  className="mt-1"
+                  type="number"
+                  min="0"
+                  step={isPriceKey(key) ? "0.0001" : "1"}
+                  inputMode={isPriceKey(key) ? "decimal" : "numeric"}
+                  aria-invalid={!!problem}
+                  value={typed}
+                  onChange={event => set(event.target.value)}
+                />
+              )}
+              {problem && (
+                <span role="alert" className="mt-1 block text-xs text-destructive">
+                  {problem}
+                </span>
+              )}
+            </label>
+          );
+        })}
+    </div>
+  );
   const reviewLabels: Record<string, string> = {
     name: copy("Display name", "Nom affiché"),
     creator: copy("Creator", "Créateur"),
@@ -794,7 +900,7 @@ export default function ModelEditor({
             original.accesses.some(before => sameAccess(before, access) && before.referenceId !== access.referenceId),
           )
           .map(access => ({
-            plain: `${copy("Documentary record changed for", "Fiche documentaire modifiée pour")} ${displayProvider(access.provider)}`,
+            plain: `${copy("Reference changed for", "Fiche documentaire modifiée pour")} ${displayProvider(access.provider)}`,
             technical: `${copy("Documentary record for", "Fiche documentaire de")} ${displayProvider(access.provider)}${colon} ${referenceName(original.accesses.find(before => sameAccess(before, access))?.referenceId)} → ${referenceName(access.referenceId)}`,
           })),
         ...draft.accesses
@@ -1033,7 +1139,8 @@ export default function ModelEditor({
         )}
         <p className="text-sm text-muted-foreground">
           {creatorName(draft.creator)}
-          <InferredMark model={draft} /> · {display(draft.family)}
+          <InferredMark model={draft} />
+          {expert && <> · {display(draft.family)}</>}
         </p>
         <p className="mt-2 text-sm">
           {copy(
@@ -1042,27 +1149,29 @@ export default function ModelEditor({
           )}
         </p>
       </div>
-      {!creating ? null : draft.id ? (
-        <details className="rounded-sm border p-3">
-          <summary className="cursor-pointer text-sm">
-            {copy("Common model ID", "Identifiant commun")} · <code>{draft.id}</code>
-          </summary>
-          <div className="mt-3">
-            <SearchableSelect
-              label={copy("Change common model ID", "Changer l’identifiant commun")}
-              value={draft.id}
-              options={options.modelIds}
-              onChange={chooseModelId}
-              placeholder={copy("Search or enter an ID", "Chercher ou saisir un identifiant")}
-            />
-          </div>
-          <p className="text-xs text-muted-foreground">
-            {copy(
-              "Changing this ID recalculates Registry access IDs. Provider selection remains separate.",
-              "Changer cet identifiant recalcule les IDs exposés Registry. La sélection entre fournisseurs reste distincte.",
-            )}
-          </p>
-        </details>
+      {!creating ? null : draft.id && validId ? (
+        expert && (
+          <details className="rounded-sm border p-3">
+            <summary className="cursor-pointer text-sm">
+              {copy("Common model ID", "Identifiant commun")} · <code>{draft.id}</code>
+            </summary>
+            <div className="mt-3">
+              <SearchableSelect
+                label={copy("Change common model ID", "Changer l’identifiant commun")}
+                value={draft.id}
+                options={options.modelIds}
+                onChange={chooseModelId}
+                placeholder={copy("Search or enter an ID", "Chercher ou saisir un identifiant")}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {copy(
+                "Changing this ID recalculates Registry access IDs. Provider selection remains separate.",
+                "Changer cet identifiant recalcule les IDs exposés Registry. La sélection entre fournisseurs reste distincte.",
+              )}
+            </p>
+          </details>
+        )
       ) : (
         <SearchableSelect
           label={copy("Search a model or enter its ID *", "Chercher un modèle ou saisir son identifiant *")}
@@ -1091,22 +1200,38 @@ export default function ModelEditor({
                   </>
                 )}
               </p>
-              <Button
-                variant="ghost"
-                size="sm"
-                aria-label={copy(
-                  `Remove ${displayProvider(access.provider)} · ${access.nativeModel}`,
-                  `Retirer ${displayProvider(access.provider)} · ${access.nativeModel}`,
+              <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
+                {!expert && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    aria-label={copy(
+                      `Access settings for ${displayProvider(access.provider)}`,
+                      `Réglages de l’accès ${displayProvider(access.provider)}`,
+                    )}
+                    onClick={() => openEdit("access", draft.accesses.indexOf(access))}
+                  >
+                    {copy("Access settings", "Réglages de l’accès")}
+                  </Button>
                 )}
-                onClick={() => update({ accesses: draft.accesses.filter(row => row !== access) })}
-              >
-                <X className="size-4" />
-                {copy("Remove", "Retirer")}
-              </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  aria-label={copy(
+                    `Remove ${displayProvider(access.provider)} · ${access.nativeModel}`,
+                    `Retirer ${displayProvider(access.provider)} · ${access.nativeModel}`,
+                  )}
+                  onClick={() => update({ accesses: draft.accesses.filter(row => row !== access) })}
+                >
+                  <X className="size-4" />
+                  {copy("Remove", "Retirer")}
+                </Button>
+              </div>
             </div>
             <EndpointChoices
               access={access}
               brief={!expert}
+              technical={expert}
               invalid={registrationIssue === "operations" && !access.endpoints?.length}
               onChange={endpoints =>
                 update({ accesses: draft.accesses.map(row => (row === access ? { ...row, endpoints } : row)) })
@@ -1147,23 +1272,30 @@ export default function ModelEditor({
   );
 
   return (
-    <SheetContent inert={busy} expandable className="min-h-0 max-w-[calc(100vw-1rem)] p-4 sm:max-w-5xl sm:p-6">
+    <SheetContent
+      inert={busy}
+      expandable
+      {...(describes ? {} : { "aria-describedby": undefined })}
+      className="min-h-0 max-w-[calc(100vw-1rem)] p-4 sm:max-w-5xl sm:p-6"
+    >
       <SheetHeader className="shrink-0 pb-4">
         <SheetTitle className="text-xl">
           {creating ? copy("Register a model", "Enregistrer un modèle") : cardTitle}
         </SheetTitle>
-        <SheetDescription>
-          {creating ? (
-            copy(
-              "Choose accesses, review the model card, then check and register.",
-              "Choisir les accès, lire la fiche, puis vérifier l’enregistrement.",
-            )
-          ) : (
-            <>
-              {copy("Common model ID", "Identifiant commun")} · <code className="break-all">{draft.id}</code>
-            </>
-          )}
-        </SheetDescription>
+        {describes && (
+          <SheetDescription>
+            {creating ? (
+              copy(
+                "Choose accesses, review the model card, then check and register.",
+                "Choisir les accès, lire la fiche, puis vérifier l’enregistrement.",
+              )
+            ) : (
+              <>
+                {copy("Common model ID", "Identifiant commun")} · <code className="break-all">{draft.id}</code>
+              </>
+            )}
+          </SheetDescription>
+        )}
       </SheetHeader>
       <EditorJourney
         labels={stepLabels}
@@ -1246,19 +1378,26 @@ export default function ModelEditor({
                       <h3 className="mt-1 break-words text-2xl font-semibold">
                         {cardTitle || copy("Unnamed model", "Modèle sans nom")}
                       </h3>
-                      <code className="break-all text-xs text-muted-foreground">{draft.id}</code>
+                      {expert && <code className="break-all text-xs text-muted-foreground">{draft.id}</code>}
                     </>
                   )}
                   <p className="mt-2 text-sm text-muted-foreground">
                     {creatorName(draft.creator)}
-                    <InferredMark model={draft} /> · {display(draft.family)}
+                    <InferredMark model={draft} />
+                    {expert && <> · {display(draft.family)}</>}
                   </p>
                 </div>
-                {!readOnly && (
-                  <Button variant="outline" size="sm" onClick={() => openEdit("identity")}>
-                    {copy("Edit identity", "Modifier l’identité")}
-                  </Button>
-                )}
+                {/* Basic edits the card through this one button; Expert keeps one button per part. */}
+                {!readOnly &&
+                  (expert ? (
+                    <Button variant="outline" size="sm" onClick={() => openEdit("identity")}>
+                      {copy("Edit identity", "Modifier l’identité")}
+                    </Button>
+                  ) : (
+                    <Button variant="outline" size="sm" onClick={() => openEdit("details")}>
+                      {copy("Edit details", "Modifier les détails")}
+                    </Button>
+                  ))}
               </div>
             </section>
             <div
@@ -1297,23 +1436,25 @@ export default function ModelEditor({
                     <p className={`min-w-0 flex-1 text-sm ${draft.summary ? "" : "text-muted-foreground"}`}>
                       {draft.summary || copy("No description recorded.", "Aucune description enregistrée.")}
                     </p>
-                    {!readOnly && (
+                    {!readOnly && expert && (
                       <Button variant="outline" size="sm" onClick={() => openEdit("details")}>
                         {copy("Edit Registry details", "Modifier les détails Registry")}
                       </Button>
                     )}
                   </div>
                   <dl className="grid gap-3 sm:grid-cols-2">
-                    <div>
-                      <dt className="text-xs text-muted-foreground">{copy("Creator", "Créateur")}</dt>
-                      <dd className="text-sm font-medium">
-                        {creatorName(draft.creator)}
-                        <InferredMark model={draft} />
-                        {knownValue(draft.family) && (
-                          <span className="font-normal text-muted-foreground"> · {draft.family}</span>
-                        )}
-                      </dd>
-                    </div>
+                    {expert && (
+                      <div>
+                        <dt className="text-xs text-muted-foreground">{copy("Creator", "Créateur")}</dt>
+                        <dd className="text-sm font-medium">
+                          {creatorName(draft.creator)}
+                          <InferredMark model={draft} />
+                          {knownValue(draft.family) && (
+                            <span className="font-normal text-muted-foreground"> · {draft.family}</span>
+                          )}
+                        </dd>
+                      </div>
+                    )}
                     <div>
                       <dt className="text-xs text-muted-foreground">{copy("Served by", "Servi par")}</dt>
                       <dd className="text-sm font-medium">
@@ -1359,7 +1500,7 @@ export default function ModelEditor({
                 <section className="space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <h4 className="font-semibold">{copy("Documented properties", "Propriétés documentées")}</h4>
-                    {!readOnly && (
+                    {!readOnly && expert && (
                       <Button variant="outline" size="sm" onClick={() => openEdit("details")}>
                         {copy("Edit Registry details", "Modifier les détails Registry")}
                       </Button>
@@ -1371,24 +1512,26 @@ export default function ModelEditor({
                       "Les valeurs viennent de Models.dev, sauf si vous les avez corrigées.",
                     )}
                   </p>
-                  <details className="text-xs text-muted-foreground">
-                    <summary className="cursor-pointer">{copy("More", "En savoir plus")}</summary>
-                    <div className="mt-1 space-y-1">
-                      <p>
-                        {copy(
-                          "Each column shows its value and source. Access-specific facts stay separate; Registry corrections apply native Bifrost pricing overrides only for price fields.",
-                          "Chaque colonne montre sa valeur et sa source. Les données propres à un accès restent distinctes ; les corrections Registry appliquent des overrides de tarification natifs Bifrost uniquement pour les champs de prix.",
-                        )}
-                      </p>
-                      <p>
-                        {copy(
-                          "Documented (declared) means reported by the source, without an inference test. Bifrost catalog identifies where the value was imported from.",
-                          "Documenté (déclaré) signifie indiqué par la source, sans test d’inférence. Catalogue Bifrost indique l’origine de la valeur importée.",
-                        )}
-                      </p>
-                    </div>
-                  </details>
-                  {!displayedReference && (
+                  {expert && (
+                    <details className="text-xs text-muted-foreground">
+                      <summary className="cursor-pointer">{copy("More", "En savoir plus")}</summary>
+                      <div className="mt-1 space-y-1">
+                        <p>
+                          {copy(
+                            "Each column shows its value and source. Access-specific facts stay separate; Registry corrections apply native Bifrost pricing overrides only for price fields.",
+                            "Chaque colonne montre sa valeur et sa source. Les données propres à un accès restent distinctes ; les corrections Registry appliquent des overrides de tarification natifs Bifrost uniquement pour les champs de prix.",
+                          )}
+                        </p>
+                        <p>
+                          {copy(
+                            "Documented (declared) means reported by the source, without an inference test. Bifrost catalog identifies where the value was imported from.",
+                            "Documenté (déclaré) signifie indiqué par la source, sans test d’inférence. Catalogue Bifrost indique l’origine de la valeur importée.",
+                          )}
+                        </p>
+                      </div>
+                    </details>
+                  )}
+                  {!displayedReference && expert && (
                     <p className="text-xs text-muted-foreground">
                       {copy(
                         "No shared documentary record: selected accesses do not all use the same mapping.",
@@ -1396,73 +1539,57 @@ export default function ModelEditor({
                       )}
                     </p>
                   )}
-                  <div className="space-y-2 md:hidden">
-                    {facts.map(([key, unit]) => (
-                      <div key={key} className="rounded-sm border bg-card p-3">
-                        <h5 className="mb-2 text-sm font-medium">{fieldLabel(key, copy)}</h5>
-                        <div className="grid gap-2 sm:grid-cols-2">
-                          <div>
-                            <span className="text-xs text-muted-foreground">{copy("Model card", "Fiche commune")}</span>
-                            <FactValue fact={commonFact(key)} unit={unit} />
-                            {editButton(key, "reference")}
-                          </div>
-                          {validAccesses.map(access => {
-                            const fact = accessFact(access, key);
-                            return (
-                              <div key={`${access.provider}/${access.nativeModel}`}>
-                                <span className="text-xs text-muted-foreground">
-                                  {displayProvider(access.provider)}
-                                </span>
-                                <FactValue
-                                  fact={fact}
-                                  inherited={!catalogAccess(access)?.fields[key] && !!fact}
-                                  accessSpecific={!!catalogAccess(access)?.fields[key]}
-                                  unit={unit}
-                                />
-                                {editButton(key, "access", access)}
-                                <PricingApplication proofs={pricingProofs} access={access} field={key} fact={fact} />
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="hidden overflow-x-auto rounded-sm border md:block">
-                    <table className="w-full min-w-[620px] border-collapse text-left">
-                      <thead className="bg-muted/40">
-                        <tr>
-                          <th scope="col" className="p-3 text-xs font-medium">
-                            {copy("Property", "Propriété")}
-                          </th>
-                          <th scope="col" className="p-3 text-xs font-medium">
-                            {copy("Model card", "Fiche commune")}
-                          </th>
-                          {validAccesses.map(access => (
-                            <th
-                              key={`${access.provider}/${access.nativeModel}`}
-                              scope="col"
-                              className="min-w-40 p-3 text-xs font-medium"
-                            >
-                              {displayProvider(access.provider)}
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {facts.map(([key, unit]) => (
-                          <tr key={key} className="border-t align-top">
-                            <th scope="row" className="p-3 text-sm font-medium">
-                              {fieldLabel(key, copy)}
-                            </th>
-                            <td className="p-3">
+                  {!displayedReference && !expert && referenceIds.some(Boolean) && (
+                    <p className="text-xs text-muted-foreground">
+                      {copy(
+                        "No shared reference: the accesses of this card do not all use the same one.",
+                        "Fiche documentaire commune indisponible : les accès de cette fiche n’ont pas tous la même.",
+                      )}
+                    </p>
+                  )}
+                  {/* Basic: the card's own values, one list, the source said once above; a corrected value says so. Expert: a column per access. */}
+                  {!expert && facts.some(([key]) => commonFact(key)) && (
+                    <dl className="grid gap-3 rounded-sm border bg-card p-4 sm:grid-cols-2">
+                      {facts.map(([key, unit]) => {
+                        const fact = commonFact(key);
+                        return (
+                          fact && (
+                            <div key={key}>
+                              <dt className="text-xs text-muted-foreground">{fieldLabel(key, copy)}</dt>
+                              <dd className="text-sm font-medium">
+                                {display(fact.value, unit)}
+                                {/^manual$/i.test(fact.source) && (
+                                  <span className="ml-2 text-xs font-normal text-muted-foreground">
+                                    {copy("customized", "personnalisé")}
+                                  </span>
+                                )}
+                              </dd>
+                            </div>
+                          )
+                        );
+                      })}
+                    </dl>
+                  )}
+                  {expert && (
+                    <div className="space-y-2 md:hidden">
+                      {facts.map(([key, unit]) => (
+                        <div key={key} className="rounded-sm border bg-card p-3">
+                          <h5 className="mb-2 text-sm font-medium">{fieldLabel(key, copy)}</h5>
+                          <div className="grid gap-2 sm:grid-cols-2">
+                            <div>
+                              <span className="text-xs text-muted-foreground">
+                                {copy("Model card", "Fiche commune")}
+                              </span>
                               <FactValue fact={commonFact(key)} unit={unit} />
                               {editButton(key, "reference")}
-                            </td>
+                            </div>
                             {validAccesses.map(access => {
                               const fact = accessFact(access, key);
                               return (
-                                <td key={`${access.provider}/${access.nativeModel}`} className="p-3">
+                                <div key={`${access.provider}/${access.nativeModel}`}>
+                                  <span className="text-xs text-muted-foreground">
+                                    {displayProvider(access.provider)}
+                                  </span>
                                   <FactValue
                                     fact={fact}
                                     inherited={!catalogAccess(access)?.fields[key] && !!fact}
@@ -1471,18 +1598,76 @@ export default function ModelEditor({
                                   />
                                   {editButton(key, "access", access)}
                                   <PricingApplication proofs={pricingProofs} access={access} field={key} fact={fact} />
-                                </td>
+                                </div>
                               );
                             })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {expert && (
+                    <div className="hidden overflow-x-auto rounded-sm border md:block">
+                      <table className="w-full min-w-[620px] border-collapse text-left">
+                        <thead className="bg-muted/40">
+                          <tr>
+                            <th scope="col" className="p-3 text-xs font-medium">
+                              {copy("Property", "Propriété")}
+                            </th>
+                            <th scope="col" className="p-3 text-xs font-medium">
+                              {copy("Model card", "Fiche commune")}
+                            </th>
+                            {validAccesses.map(access => (
+                              <th
+                                key={`${access.provider}/${access.nativeModel}`}
+                                scope="col"
+                                className="min-w-40 p-3 text-xs font-medium"
+                              >
+                                {displayProvider(access.provider)}
+                              </th>
+                            ))}
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                        </thead>
+                        <tbody>
+                          {facts.map(([key, unit]) => (
+                            <tr key={key} className="border-t align-top">
+                              <th scope="row" className="p-3 text-sm font-medium">
+                                {fieldLabel(key, copy)}
+                              </th>
+                              <td className="p-3">
+                                <FactValue fact={commonFact(key)} unit={unit} />
+                                {editButton(key, "reference")}
+                              </td>
+                              {validAccesses.map(access => {
+                                const fact = accessFact(access, key);
+                                return (
+                                  <td key={`${access.provider}/${access.nativeModel}`} className="p-3">
+                                    <FactValue
+                                      fact={fact}
+                                      inherited={!catalogAccess(access)?.fields[key] && !!fact}
+                                      accessSpecific={!!catalogAccess(access)?.fields[key]}
+                                      unit={unit}
+                                    />
+                                    {editButton(key, "access", access)}
+                                    <PricingApplication
+                                      proofs={pricingProofs}
+                                      access={access}
+                                      field={key}
+                                      fact={fact}
+                                    />
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                   <div className="space-y-3 border-t pt-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <h4 className="font-semibold">{copy("Modalities and capabilities", "Modalités et capacités")}</h4>
-                      {!readOnly && (
+                      {!readOnly && expert && (
                         <Button variant="outline" size="sm" onClick={() => openEdit("capabilities")}>
                           {copy("Edit Registry values", "Modifier les valeurs Registry")}
                         </Button>
@@ -1580,7 +1765,7 @@ export default function ModelEditor({
                                 </span>
                               </div>
                             </div>
-                            {!readOnly && (
+                            {!readOnly && expert && (
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -1608,6 +1793,7 @@ export default function ModelEditor({
                             <EndpointChoices
                               access={access}
                               brief={!expert}
+                              technical={expert}
                               onChange={endpoints =>
                                 update({
                                   accesses: draft.accesses.map(row => (row === access ? { ...row, endpoints } : row)),
@@ -1623,54 +1809,74 @@ export default function ModelEditor({
                 </section>
               )}
               {cardTab === "sources" && (
-                <section className="grid gap-3 md:grid-cols-2">
-                  {validAccesses.map(access => {
-                    const found = catalogAccess(access);
-                    const reference = selectedReference(access.referenceId ?? found?.referenceId);
-                    return (
-                      <div
-                        key={`${access.provider}/${access.nativeModel}`}
-                        className="min-w-0 rounded-sm border bg-card p-4"
-                      >
-                        <h4 className="font-semibold">{displayProvider(access.provider)}</h4>
-                        {showNative(access) && (
-                          <p className="mt-1 break-all font-mono text-xs text-muted-foreground">{access.nativeModel}</p>
-                        )}
-                        <div className="mt-3 border-t pt-3">
-                          <p className="text-xs text-muted-foreground">
-                            {copy("Documentary record", "Fiche documentaire")}
-                          </p>
-                          <p className="text-sm font-medium">
-                            {reference
-                              ? display(reference.fields.name?.value)
-                              : copy("No linked record", "Aucune fiche liée")}
-                          </p>
-                          {reference && (
-                            <p className="mt-1 break-words text-xs text-muted-foreground">
-                              {copy("Sources", "Sources")}
-                              {colon} {referenceSources(reference, copy)}
+                <div className="space-y-3">
+                  <section className="grid gap-3 md:grid-cols-2">
+                    {validAccesses.map(access => {
+                      const found = catalogAccess(access);
+                      const reference = selectedReference(access.referenceId ?? found?.referenceId);
+                      const association = associationStatus(access, found, expert, copy);
+                      return (
+                        <div
+                          key={`${access.provider}/${access.nativeModel}`}
+                          className="min-w-0 rounded-sm border bg-card p-4"
+                        >
+                          <h4 className="font-semibold">{displayProvider(access.provider)}</h4>
+                          {showNative(access) && (
+                            <p className="mt-1 break-all font-mono text-xs text-muted-foreground">
+                              {access.nativeModel}
                             </p>
                           )}
-                          <p className="mt-2 text-xs text-muted-foreground">{associationStatus(access, found)}</p>
-                          {reference && (
-                            <details className="mt-2 text-xs text-muted-foreground">
-                              <summary className="cursor-pointer">
-                                {copy("Document ID", "Identifiant documentaire")}
-                              </summary>
-                              <code className="block break-all">{reference.id}</code>
-                            </details>
+                          <div className="mt-3 border-t pt-3">
+                            <p className="text-xs text-muted-foreground">
+                              {expert
+                                ? copy("Documentary record", "Fiche documentaire")
+                                : copy("Reference", "Fiche documentaire")}
+                            </p>
+                            <p className="text-sm font-medium">
+                              {reference
+                                ? display(reference.fields.name?.value)
+                                : expert
+                                  ? copy("No linked record", "Aucune fiche liée")
+                                  : copy("No linked reference", "Aucune fiche liée")}
+                            </p>
+                            {reference && (
+                              <p className="mt-1 break-words text-xs text-muted-foreground">
+                                {copy("Sources", "Sources")}
+                                {colon} {referenceSources(reference, copy)}
+                              </p>
+                            )}
+                            {association && <p className="mt-2 text-xs text-muted-foreground">{association}</p>}
+                            {expert && reference && (
+                              <details className="mt-2 text-xs text-muted-foreground">
+                                <summary className="cursor-pointer">
+                                  {copy("Document ID", "Identifiant documentaire")}
+                                </summary>
+                                <code className="block break-all">{reference.id}</code>
+                              </details>
+                            )}
+                          </div>
+                          {expert && (
+                            <p className="mt-3 text-xs text-muted-foreground">
+                              {copy(
+                                "Documentary data; provider behavior is not tested.",
+                                "Données documentaires ; le comportement fournisseur n’est pas testé.",
+                              )}
+                            </p>
                           )}
                         </div>
-                        <p className="mt-3 text-xs text-muted-foreground">
-                          {copy(
-                            "Documentary data; provider behavior is not tested.",
-                            "Données documentaires ; le comportement fournisseur n’est pas testé.",
-                          )}
-                        </p>
-                      </div>
-                    );
-                  })}
-                </section>
+                      );
+                    })}
+                  </section>
+                  {/* Basic says it once under the cards, Expert on each one. */}
+                  {!expert && (
+                    <p className="text-xs text-muted-foreground">
+                      {copy(
+                        "Reference data; provider behavior is not tested.",
+                        "Données documentaires ; le comportement fournisseur n’est pas testé.",
+                      )}
+                    </p>
+                  )}
+                </div>
               )}
             </div>
             {actionSlot && !readOnly && (
@@ -1715,8 +1921,14 @@ export default function ModelEditor({
               )}
               <p className="mt-1 text-sm">
                 {copy("Creator", "Créateur")}
-                {colon} {creatorName(draft.creator)} · {copy("Family", "Famille")}
-                {colon} {display(draft.family)}
+                {colon} {creatorName(draft.creator)}
+                {expert && (
+                  <>
+                    {" "}
+                    · {copy("Family", "Famille")}
+                    {colon} {display(draft.family)}
+                  </>
+                )}
               </p>
             </div>
             {original && (
@@ -1839,7 +2051,7 @@ export default function ModelEditor({
                             {colon} {referenceSources(reference, copy)}
                           </p>
                         )}
-                        <p className="text-xs text-muted-foreground">{associationStatus(access, found)}</p>
+                        <p className="text-xs text-muted-foreground">{associationStatus(access, found, true, copy)}</p>
                         {reference && (
                           <p className="text-xs text-muted-foreground">
                             {copy("Document ID", "Identifiant documentaire")}
@@ -1855,7 +2067,7 @@ export default function ModelEditor({
             {invalidReference && (
               <p role="alert" className="text-sm text-destructive">
                 {copy(
-                  "An access points to a documentary record missing from the catalog.",
+                  "An access points to a reference missing from the catalog.",
                   "Une correspondance pointe vers une fiche documentaire absente du catalogue.",
                 )}
               </p>
@@ -1890,7 +2102,9 @@ export default function ModelEditor({
               {editing === "identity"
                 ? copy("Edit identity", "Modifier l’identité")
                 : editing === "details"
-                  ? copy("Edit Registry details", "Modifier les détails Registry")
+                  ? expert
+                    ? copy("Edit Registry details", "Modifier les détails Registry")
+                    : copy("Edit details", "Modifier les détails")
                   : editing === "capabilities"
                     ? copy("Edit tasks and capabilities", "Modifier usages et capacités")
                     : copy("Edit provider access", "Modifier un accès")}
@@ -1924,6 +2138,7 @@ export default function ModelEditor({
                 <EndpointChoices
                   key={access.id}
                   access={access}
+                  technical={expert}
                   invalid={!access.endpoints?.length}
                   onChange={endpoints =>
                     updateEdit({
@@ -1954,12 +2169,14 @@ export default function ModelEditor({
                   updateEdit({ creator: creator.trim() ? creator : "Unknown", creatorSource: "manual" })
                 }
               />
-              <SearchableSelect
-                label={copy("Family", "Famille")}
-                value={form.family}
-                options={options.families}
-                onChange={family => updateEdit({ family })}
-              />
+              {expert && (
+                <SearchableSelect
+                  label={copy("Family", "Famille")}
+                  value={form.family}
+                  options={options.families}
+                  onChange={family => updateEdit({ family })}
+                />
+              )}
               <label className="block text-sm">
                 {copy("Description", "Description")}
                 <Textarea
@@ -1982,7 +2199,8 @@ export default function ModelEditor({
               />
             </div>
           )}
-          {editing === "capabilities" && (
+          {/* Basic edits tasks and capabilities in the same dialog as the rest of the details. */}
+          {(editing === "capabilities" || (editing === "details" && !expert)) && (
             <div className="space-y-3">
               <ToggleChoices
                 label={copy("Tasks", "Usages")}
@@ -2025,6 +2243,24 @@ export default function ModelEditor({
               </p>
             </div>
           )}
+          {editing === "details" && !expert && displayedReference && (
+            <section className="space-y-3 border-t pt-3">
+              <h4 className="text-sm font-semibold">{copy("Values", "Valeurs")}</h4>
+              <p className="text-xs text-muted-foreground">
+                {copy(
+                  "Values come from Models.dev unless you corrected them.",
+                  "Les valeurs viennent de Models.dev, sauf si vous les avez corrigées.",
+                )}
+              </p>
+              {valueFields("reference", displayedReference.id, commonFact)}
+              <p className="text-xs text-muted-foreground">
+                {copy(
+                  "Price corrections are saved with the model and applied as native Bifrost pricing overrides.",
+                  "Les corrections de prix sont enregistrées avec le modèle et appliquées comme overrides de tarification natifs Bifrost.",
+                )}
+              </p>
+            </section>
+          )}
           {editing === "access" && form.accesses[editingAccess] && (
             <div className="space-y-3">
               <SearchableSelect
@@ -2033,47 +2269,58 @@ export default function ModelEditor({
                 options={options.providers}
                 onChange={provider => changeEditAccess(editingAccess, { provider })}
               />
-              <label className="block text-sm">
-                {copy("Model at this provider *", "Modèle chez ce fournisseur *")}
-                <Input
-                  className="mt-1 font-mono"
-                  value={form.accesses[editingAccess].nativeModel || ""}
-                  readOnly={!!catalogAccess(form.accesses[editingAccess])}
-                  onChange={event => changeEditAccess(editingAccess, { nativeModel: event.target.value })}
-                />
-              </label>
-              <p className="text-xs text-muted-foreground">
-                {catalogAccess(form.accesses[editingAccess])
-                  ? copy("Discovered in Bifrost · read only.", "Identifiant découvert dans Bifrost · lecture seule.")
-                  : copy(
-                      "Manual access: enter the exact ID configured in Bifrost.",
-                      "Accès manuel : reprendre l’identifiant exact configuré dans Bifrost.",
-                    )}
-              </p>
+              {/* Basic types a manual access's native ID; a discovered access's IDs and route are read-only facts, so Expert's. */}
+              {(expert || !catalogAccess(form.accesses[editingAccess])) && (
+                <>
+                  <label className="block text-sm">
+                    {copy("Model at this provider *", "Modèle chez ce fournisseur *")}
+                    <Input
+                      className="mt-1 font-mono"
+                      value={form.accesses[editingAccess].nativeModel || ""}
+                      readOnly={!!catalogAccess(form.accesses[editingAccess])}
+                      onChange={event => changeEditAccess(editingAccess, { nativeModel: event.target.value })}
+                    />
+                  </label>
+                  <p className="text-xs text-muted-foreground">
+                    {catalogAccess(form.accesses[editingAccess])
+                      ? copy(
+                          "Discovered in Bifrost · read only.",
+                          "Identifiant découvert dans Bifrost · lecture seule.",
+                        )
+                      : copy(
+                          "Manual access: enter the exact ID configured in Bifrost.",
+                          "Accès manuel : reprendre l’identifiant exact configuré dans Bifrost.",
+                        )}
+                  </p>
+                </>
+              )}
               <SearchableSelect
-                label={copy("Documentary record for this access", "Fiche documentaire pour cet accès")}
+                label={copy("Reference for this access", "Fiche documentaire pour cet accès")}
                 value={form.accesses[editingAccess].referenceId || ""}
                 options={referenceOptions}
                 onChange={id => chooseEditReference(editingAccess, id)}
-                placeholder={copy("Search documentary records", "Chercher une fiche documentaire")}
+                placeholder={copy("Search references", "Chercher une fiche documentaire")}
               />
               {form.accesses[editingAccess].referenceId && (
                 <Button variant="ghost" size="sm" onClick={() => changeEditAccess(editingAccess, { referenceId: "" })}>
                   {copy("Unlink", "Dissocier")}
                 </Button>
               )}
-              {form.accesses[editingAccess].referenceId && (
+              {expert && form.accesses[editingAccess].referenceId && (
                 <details className="text-xs text-muted-foreground">
                   <summary className="cursor-pointer">{copy("Document ID", "Identifiant documentaire")}</summary>
                   <code className="block break-all">{form.accesses[editingAccess].referenceId}</code>
                 </details>
               )}
-              <label className="block text-sm">
-                {copy("Registry exposed ID", "ID exposé Registry")}
-                <Input className="mt-1 font-mono" value={form.accesses[editingAccess].id} readOnly />
-              </label>
+              {(expert || !catalogAccess(form.accesses[editingAccess])) && (
+                <label className="block text-sm">
+                  {copy("Registry exposed ID", "ID exposé Registry")}
+                  <Input className="mt-1 font-mono" value={form.accesses[editingAccess].id} readOnly />
+                </label>
+              )}
               <EndpointChoices
                 access={form.accesses[editingAccess]}
+                technical={expert}
                 invalid={!form.accesses[editingAccess].endpoints?.length}
                 onChange={endpoints => changeEditAccess(editingAccess, { endpoints })}
               />
@@ -2092,11 +2339,21 @@ export default function ModelEditor({
                   </SelectContent>
                 </Select>
               </div>
-              <p className="text-xs text-muted-foreground">
-                {copy("Route", "Route")}
-                {colon} {form.accesses[editingAccess].route}.{" "}
-                {copy("Native routing is configured separately.", "Le routage natif se règle séparément.")}
-              </p>
+              {(expert || !catalogAccess(form.accesses[editingAccess])) && (
+                <p className="text-xs text-muted-foreground">
+                  {copy("Route", "Route")}
+                  {colon} {form.accesses[editingAccess].route}.{" "}
+                  {copy("Native routing is configured separately.", "Le routage natif se règle séparément.")}
+                </p>
+              )}
+              {!expert && catalogAccess(form.accesses[editingAccess]) && (
+                <section className="space-y-3 border-t pt-3">
+                  <h4 className="text-sm font-semibold">{copy("Values for this access", "Valeurs de cet accès")}</h4>
+                  {valueFields("access", catalogAccess(form.accesses[editingAccess])!.id, key =>
+                    accessFact(form.accesses[editingAccess], key),
+                  )}
+                </section>
+              )}
               <Button
                 variant="ghost"
                 size="sm"
@@ -2114,7 +2371,8 @@ export default function ModelEditor({
             </Button>
             <Button
               disabled={
-                editing === "identity"
+                valueIssues ||
+                (editing === "identity"
                   ? !form.name.trim()
                   : editing === "access"
                     ? !form.accesses[editingAccess]?.endpoints?.length ||
@@ -2126,9 +2384,10 @@ export default function ModelEditor({
                           (!!access.referenceId &&
                             !catalog?.references.some(reference => reference.id === access.referenceId)),
                       )
-                    : false
+                    : false)
               }
               onClick={() => {
+                keepValueEdits();
                 if (editDraft) onChange(editDraft);
                 closeEdit();
                 setRegistrationIssue(undefined);

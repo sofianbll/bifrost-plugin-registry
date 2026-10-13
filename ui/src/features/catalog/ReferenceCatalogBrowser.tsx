@@ -419,7 +419,6 @@ export default function ReferenceCatalogBrowser({
           model={group.entries[0].model}
           label={labelOf(group)}
           count={group.entries.filter(entry => entry.access).length}
-          available={available.length}
         >
           {isCard(group) ? (
             <>
@@ -525,7 +524,7 @@ export default function ReferenceCatalogBrowser({
     };
     const associate = (group: ReferenceGroup) =>
       canAssociate(group) && (
-        <Button variant="ghost" size="sm" onClick={() => setAssociating(savedOf(group)!)}>
+        <Button variant="outline" size="sm" onClick={() => setAssociating(savedOf(group)!)}>
           {copy("Associate a reference", "Associer une fiche documentaire")}
           <ActionLabel label={labelOf(group)} />
         </Button>
@@ -570,7 +569,7 @@ export default function ReferenceCatalogBrowser({
               </p>
             ) : null)}
           {unknownFacts(group) ? (
-            (view.modalities || view.evidence) && <FactsUnknown associate={canAssociate(group)} />
+            (view.modalities || view.evidence) && <FactsUnknown associate={false} />
           ) : (
             <>
               {view.modalities &&
@@ -725,7 +724,6 @@ export default function ReferenceCatalogBrowser({
                           const entries = group.entries;
                           const first = entries[0].model;
                           const common = sharedReferenceFacts(group);
-                          const others = availableBeside(group).length;
                           return (
                             <TableRow
                               key={group.key}
@@ -739,22 +737,12 @@ export default function ReferenceCatalogBrowser({
                                 {view.metadata && <div className="mt-2">{details(group, entries)}</div>}
                               </TableCell>
                               {view.providers && (
-                                <TableCell className="min-w-40 align-top">
-                                  {accessLine(entries)}
-                                  {others > 0 && (
-                                    <p className="mt-1.5 text-xs text-muted-foreground">
-                                      {copy(
-                                        `${others} available, not in this card`,
-                                        `${others} disponible${others > 1 ? "s" : ""}, hors de cette fiche`,
-                                      )}
-                                    </p>
-                                  )}
-                                </TableCell>
+                                <TableCell className="min-w-40 align-top">{accessLine(entries)}</TableCell>
                               )}
                               {view.modalities && (
                                 <TableCell className="align-top">
                                   {unknownFacts(group) ? (
-                                    <FactsUnknown associate={canAssociate(group)} />
+                                    <FactsUnknown associate={false} />
                                   ) : common.modalities ? (
                                     <ModelModalitiesSummary model={first} label={labelOf(group)} />
                                   ) : (
