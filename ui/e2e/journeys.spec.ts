@@ -1612,7 +1612,9 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(ledger.getByText(/^Bifrost allows today · /)).toBeHidden();
     await ledger.getByText(/^Technical check · /).click();
     await expect(ledger.getByText(/^Bifrost allows today · /)).toBeVisible();
-    await expect(ledger.getByRole("button", { name: "Read again", exact: true })).toBeVisible();
+    // Not read from Bifrost yet: the fold names the first check instead of offering to read again.
+    await expect(ledger.getByRole("button", { name: "Check with Bifrost", exact: true })).toBeVisible();
+    await expect(ledger.getByRole("button", { name: "Read again", exact: true })).toHaveCount(0);
     await expect(page.getByRole("list", { name: "Key composition steps" })).toHaveCount(0);
     await button("More actions").click();
     await expect(page.getByRole("menuitem")).toHaveText(["Rename", "Disable", "Review binding"]);
@@ -2472,7 +2474,7 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(ledger.getByRole("listitem").filter({ hasText: "via Codex" })).toHaveCount(1);
     // The read-first page reads the key back without opening the editor, from the technical check.
     await ledger.getByText(/^Technical check · /).click();
-    await button("Read again").click();
+    await button("Check with Bifrost").click();
     await expect(ledger.getByText(/^Technical check · Verified /)).toBeVisible();
     const key = (await api("workspace")).data.keys.find((k: { id: string }) => k.id === "vk-qa-wildcard");
     expect(key.managed).toBe(true);
@@ -2518,8 +2520,12 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await dialog.getByRole("button", { name: "Adopt", exact: true }).click();
     const ledger = page.getByRole("region", { name: /^This key can call/ });
     await ledger.getByText(/^Technical check · /).click();
-    await button("Read again").click();
+    // Adopted but never read: the fold names the first check, then offers to read again (#99 critique).
+    await expect(ledger.getByRole("button", { name: "Read again", exact: true })).toHaveCount(0);
+    await button("Check with Bifrost").click();
     await expect(ledger.getByText(/^Technical check · Verified .* · 1 difference$/)).toBeVisible();
+    await expect(ledger.getByRole("button", { name: "Read again", exact: true })).toBeVisible();
+    await expect(ledger.getByRole("button", { name: "Check with Bifrost", exact: true })).toHaveCount(0);
     await expect(ledger).toHaveAccessibleName("This key can call 2 models");
     await expect(
       ledger.getByRole("listitem").filter({ hasText: "Google: Bifrost does not list this one" }),

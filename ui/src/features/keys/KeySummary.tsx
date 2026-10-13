@@ -26,11 +26,17 @@ export function useDay() {
 // list) is flagged, not counted, and is a difference; it is not drift, which stays Registry's own check. A kept
 // provider that allows every model, depends on the Bifrost version, or was not read yet leaves the total open
 // ("at least N"). The editor's "N models selected" counts the cards chosen there; kept models are not among them.
-export type LedgerRow = { name: string; via: string[]; unlisted: string[]; open?: "all" | "version" | "unread" };
+export type LedgerRow = {
+  id: string;
+  name: string;
+  via: string[];
+  unlisted: string[];
+  open?: "all" | "version" | "unread";
+};
 export function keyLedger(key: Key, models: Model[], groups: Group[]) {
   const rows = new Map<string, LedgerRow>();
   const add = (id: string, name: string, provider: string, listed = true) => {
-    const row = rows.get(id) ?? { name, via: [], unlisted: [] };
+    const row = rows.get(id) ?? { id, name, via: [], unlisted: [] };
     const list = listed ? row.via : row.unlisted;
     if (!row.via.includes(provider) && !list.includes(provider)) list.push(provider);
     rows.set(id, row);
@@ -48,7 +54,7 @@ export function keyLedger(key: Key, models: Model[], groups: Group[]) {
   const open: LedgerRow[] = [];
   for (const provider of key.policy.keptNative ?? []) {
     const permission = key.permissions?.providers.find(item => item.provider === provider);
-    const row = { name: "", via: [provider], unlisted: [] };
+    const row = { id: "", name: "", via: [provider], unlisted: [] };
     if (!key.permissions || (!permission && !key.permissions.allProviders)) {
       open.push({ ...row, open: "unread" });
       continue;
@@ -73,7 +79,7 @@ export function keyLedger(key: Key, models: Model[], groups: Group[]) {
       );
     }
   }
-  const sorted = [...rows.values()].sort((a, b) => a.name.localeCompare(b.name));
+  const sorted = [...rows.values()].sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id));
   for (const row of sorted)
     for (const list of [row.via, row.unlisted])
       list.sort((a, b) => displayProvider(a).localeCompare(displayProvider(b)));
@@ -85,6 +91,15 @@ export function keyLedger(key: Key, models: Model[], groups: Group[]) {
   };
 }
 
+// The "M models" of "Bifrost allows today": per provider, so a model several providers serve counts once each. Same
+// count as permissionSummary; null when that line shows none (every provider, or only providers read as a whole).
+const bifrostModelCount = (permissions: Key["permissions"]) => {
+  const listed =
+    permissions && !permissions.allProviders
+      ? permissions.providers.filter(p => !p.allModels && !p.versionDependent)
+      : [];
+  return listed.length ? listed.reduce((sum, p) => sum + p.models.length, 0) : null;
+};
 const modelCount = (count: number, copy: Copy) =>
   `${count} ${copy(count === 1 ? "model" : "models", count === 1 ? "modèle" : "modèles")}`;
 // The single total, on the key page and on its card: "5 models", "at least 2 models".
@@ -139,6 +154,10 @@ export function KeySummary({ virtualKey, models, groups, busy, snapshotMode, onR
       ? `${copy(`Verified ${day(publication.checkedAt)}`, `Vérifiée le ${day(publication.checkedAt)}`)}${ledger.differences ? ` · ${differenceCount(ledger.differences, copy)}` : ""}`
       : checkState(virtualKey, copy, ledger.differences);
   const kept = virtualKey.policy.keptNative ?? [];
+  // Two models can share a display name (different cards): their common ID, in Basic too, tells them apart.
+  const names = ledger.rows.filter(row => !row.open).map(row => row.name);
+  const sameName = new Set(names.filter((name, index) => names.indexOf(name) !== index));
+  const bifrostModels = bifrostModelCount(virtualKey.permissions);
   const naming =
     virtualKey.policy.naming === "both"
       ? copy("both", "les deux")
@@ -153,9 +172,14 @@ export function KeySummary({ virtualKey, models, groups, busy, snapshotMode, onR
       {ledger.rows.length ? (
         <ul className="divide-y text-sm">
           {ledger.rows.map(row => (
-            <li key={row.open ? `open-${row.via[0]}` : row.name} className="py-1.5">
+            <li key={row.open ? `open-${row.via[0]}` : row.id} className="py-1.5">
               <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-                <span className="min-w-0 break-words">{row.open ? openRow(row) : row.name}</span>
+                <span className="min-w-0 break-words">
+                  {row.open ? openRow(row) : row.name}
+                  {sameName.has(row.name) && (
+                    <span className="ml-2 break-all font-mono text-xs text-muted-foreground">{row.id}</span>
+                  )}
+                </span>
                 {row.via.length > 0 && (
                   <span className="text-xs text-muted-foreground">via {row.via.map(displayProvider).join(", ")}</span>
                 )}
@@ -238,7 +262,7 @@ export function KeySummary({ virtualKey, models, groups, busy, snapshotMode, onR
               <div className="flex flex-wrap items-center gap-2">
                 <Button type="button" variant="outline" size="sm" disabled={busy} onClick={onReread}>
                   <RotateCcw className="size-3.5" />
-                  {copy("Read again", "Relire")}
+                  {ids.length ? copy("Read again", "Relire") : copy("Check with Bifrost", "Vérifier avec Bifrost")}
                 </Button>
                 {publication?.checkedAt && (
                   <span className="break-all text-xs text-muted-foreground">
@@ -281,6 +305,14 @@ export function KeySummary({ virtualKey, models, groups, busy, snapshotMode, onR
               {copy("Bifrost allows today", "Bifrost autorise aujourd’hui")} ·{" "}
               {permissionSummary(virtualKey.permissions, copy)}
             </p>
+            {bifrostModels !== null && bifrostModels !== ledger.total && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                {copy(
+                  "Counted per provider; a model served by several providers counts once above.",
+                  "Compté par fournisseur ; un modèle servi par plusieurs fournisseurs compte une seule fois plus haut.",
+                )}
+              </p>
+            )}
             <KeyPermissions permissions={virtualKey.permissions} />
           </div>
         </div>

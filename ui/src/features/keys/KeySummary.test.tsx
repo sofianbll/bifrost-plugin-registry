@@ -210,6 +210,124 @@ must(
   "a version-dependent kept provider says so",
 );
 
+// Two different cards can share a display name (the live Hermes "DeepSeek V4.1 Flash" twice): their common IDs, in
+// Basic too, tell the rows apart; a row with a unique name stays unchanged.
+const rowIds = (html: string) =>
+  [...html.matchAll(/<span class="ml-2[^"]*font-mono[^"]*">([^<]*)<\/span>/g)].map(match => match[1]);
+const twins = [
+  card("deepseek-v4.1-flash", "DeepSeek V4.1 Flash", [access("opencode-go", "deepseek-v4.1-flash")]),
+  card("deepseek-v4.1-flash-direct", "DeepSeek V4.1 Flash", [access("deepseek", "deepseek-v4.1-flash")]),
+  card("deepseek-v4-pro", "DeepSeek V4 Pro", [access("opencode-go", "deepseek-v4-pro")]),
+];
+const twinKey: Key = {
+  ...hermes,
+  policy: {
+    groups: [],
+    added: twins.map(model => model.id),
+    excluded: [],
+    naming: "provider/model",
+    keptNative: [],
+  },
+  permissions: undefined,
+  publication: undefined,
+};
+const twinHtml = wrap(
+  "en",
+  <KeySummary
+    virtualKey={twinKey}
+    models={twins}
+    groups={fixture.groups}
+    busy={false}
+    snapshotMode={false}
+    onReread={() => {}}
+  />,
+);
+must(
+  JSON.stringify(rowIds(twinHtml)) === JSON.stringify(["deepseek-v4.1-flash", "deepseek-v4.1-flash-direct"]) &&
+    text(twinHtml).includes("This key can call 3 models") &&
+    text(twinHtml).includes("DeepSeek V4 Pro"),
+  `same-named rows show their IDs and the unique-name row does not, got ${JSON.stringify(rowIds(twinHtml))}`,
+);
+must(
+  rowIds(
+    wrap(
+      "en",
+      <KeySummary
+        virtualKey={hermes}
+        models={hermesModels}
+        groups={fixture.groups}
+        busy={false}
+        snapshotMode={false}
+        onReread={() => {}}
+      />,
+    ),
+  ).length === 0,
+  "rows with unique names stay without an ID",
+);
+
+// "Bifrost allows today · 2 providers · 5 models" differs from the total above (3): one muted sentence says why, and
+// only when the numbers differ.
+const perProvider = "Counted per provider; a model served by several providers counts once above.";
+must(
+  english.includes(perProvider) && french.includes("Compté par fournisseur ; un modèle servi par plusieurs"),
+  "the provider count (5) differs from the total (3): the page explains it in both languages",
+);
+const agreeing = summary(
+  {
+    ...hermes,
+    policy: { ...hermes.policy, keptNative: [] },
+    permissions: {
+      allProviders: false,
+      providers: [{ provider: "opencode-go", allModels: false, models: ["deepseek-v4-pro", "deepseek-v4.1-flash"] }],
+    },
+  },
+  "en",
+  hermesModels,
+);
+must(
+  agreeing.includes("This key can call 2 models") &&
+    agreeing.includes("1 provider · 2 models") &&
+    !agreeing.includes("Counted per provider"),
+  `no explanation when the counts agree, got ${agreeing}`,
+);
+must(
+  !openText.includes("Counted per provider") &&
+    !summary({ ...hermes, permissions: undefined }).includes("Counted per provider"),
+  "no explanation when Bifrost lists no per-provider count",
+);
+
+// The fold's button names the first check until Bifrost has listed IDs for the key (the body then stops saying
+// "Nothing read from Bifrost yet"), then reads again; an edit that stales the check keeps the IDs last read.
+const buttonLabel = (html: string) => html.match(/<button[^>]*>(?:<svg.*?<\/svg>)?([^<]*)<\/button>/)?.[1];
+const label = (virtualKey: Key, language: "en" | "fr" = "en") =>
+  buttonLabel(
+    wrap(
+      language,
+      <KeySummary
+        virtualKey={virtualKey}
+        models={hermesModels}
+        groups={fixture.groups}
+        busy={false}
+        snapshotMode={false}
+        onReread={() => {}}
+      />,
+    ),
+  );
+const neverRead: Key = { ...hermes, observed: null, publication: undefined };
+const staleAfterEdit: Key = {
+  ...hermes,
+  observed: hermes.publication!.actual,
+  publication: { ...hermes.publication!, state: "not_verified", checkedAt: "" },
+};
+must(
+  label(neverRead) === "Check with Bifrost" &&
+    label(neverRead, "fr") === "Vérifier avec Bifrost" &&
+    label(hermes) === "Read again" &&
+    label(hermes, "fr") === "Relire" &&
+    label(staleAfterEdit) === "Read again",
+  `the first check is named until the key was read once, got ${label(neverRead)} / ${label(hermes)} / ${label(staleAfterEdit)}`,
+);
+
 const empty = summary({ ...hermes, policy: { groups: [], added: [], excluded: [], naming: "model" } });
 must(empty.includes("No model selected yet"), `an empty key says so, got ${empty}`);
 
