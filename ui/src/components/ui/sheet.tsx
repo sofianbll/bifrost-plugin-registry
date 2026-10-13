@@ -5,6 +5,7 @@ import { createContext, useContext, useState } from "react";
 
 import { useCopy } from "@/lib/locale";
 import { cn } from "@/lib/utils";
+import { useRestoreFocus } from "./restore-focus";
 
 // Context to share expanded state between SheetContent and SheetHeader
 type SheetContextValue = {
@@ -60,6 +61,7 @@ function SheetContent({
   onPointerDownOutside,
   onInteractOutside,
   onOpenAutoFocus,
+  onCloseAutoFocus,
   style,
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Content> & {
@@ -68,6 +70,7 @@ function SheetContent({
 }) {
   const [expanded, setExpanded] = useState(false);
   const [width, setWidth] = useState(75);
+  const restoreFocus = useRestoreFocus(onOpenAutoFocus, onCloseAutoFocus);
 
   // Check if the target is a portaled element (like react-select menu)
   const isPortaledElement = (target: HTMLElement | null): boolean => {
@@ -109,7 +112,8 @@ function SheetContent({
           data-slot="sheet-content"
           onPointerDownOutside={handlePointerDownOutside}
           onInteractOutside={handleInteractOutside}
-          onOpenAutoFocus={onOpenAutoFocus}
+          onOpenAutoFocus={restoreFocus.onOpenAutoFocus}
+          onCloseAutoFocus={restoreFocus.onCloseAutoFocus}
           className={cn(
             "bg-card data-[state=open]:animate-in data-[state=closed]:animate-out overflow-hidden fixed z-50 flex min-h-0 flex-col shadow-lg transition-all ease-in-out overscroll-none data-[state=closed]:duration-100 data-[state=open]:duration-100",
             side === "right" &&

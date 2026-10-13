@@ -125,6 +125,16 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     ).toBeTruthy();
   };
 
+  // A target is at least `min` px wide and high (WCAG 2.5.8: 24 px; the named phone controls 36 px).
+  const expectMinTarget = async (target: Locator, min: number, label = "") => {
+    const box = (await target.boundingBox())!;
+    expect(box, `${label} is on the page`).not.toBeNull();
+    expect([box.width >= min, box.height >= min], `${label} is at least ${min} px: ${JSON.stringify(box)}`).toEqual([
+      true,
+      true,
+    ]);
+  };
+
   const workspace = await api("workspace");
   expect(workspace.connection.version, "This destructive QA is restricted to the synthetic fixture").toBe(
     "2.2.6-fixture",
@@ -1447,15 +1457,74 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     // #101: Review sits far below the top of the one scroll, so the footer button has to bring it into view.
     const reviewHeading = sheet().getByRole("heading", { name: "Review before saving", exact: true });
     await expect(reviewHeading, "the review starts below the first screen").not.toBeInViewport();
+    // Final fixes: only the editor's own container scrolls to a step. The sheet shell (overflow hidden) never does, or
+    // its Close button and stepper would leave the screen while the footer already shows the next step.
+    const journeyScroller = sheet().locator("[data-journey-scroll]");
+    const expectShellStill = async (where: string) => {
+      // Smooth scrolling is asynchronous: wait until neither the shell nor the editor's container moves any more.
+      await page.evaluate(
+        () =>
+          new Promise<void>(resolve => {
+            const tops = () =>
+              [...document.querySelectorAll('[data-slot="sheet-content"], [data-journey-scroll]')]
+                .map(el => el.scrollTop)
+                .join();
+            let last = tops();
+            let still = 0;
+            const frame = () => {
+              const now = tops();
+              still = now === last ? still + 1 : 0;
+              last = now;
+              if (still >= 15) resolve();
+              else requestAnimationFrame(frame);
+            };
+            requestAnimationFrame(frame);
+          }),
+      );
+      expect(await sheet().evaluate(el => el.scrollTop), `${where}: the sheet shell never scrolls`).toBe(0);
+      await expect(
+        sheet().getByRole("button", { name: "Close", exact: true }),
+        `${where}: Close stays on screen`,
+      ).toBeInViewport({ ratio: 1 });
+      await expect(
+        sheet().getByRole("navigation", { name: "Steps" }),
+        `${where}: the stepper stays on screen`,
+      ).toBeInViewport({ ratio: 1 });
+    };
     await button("Review").click();
     await expect(reviewHeading, "the footer Review button scrolls to the review").toBeInViewport();
     await expect(reviewHeading, "and moves focus to its heading").toBeFocused();
+    await expectShellStill("Edit, Review");
+    expect(
+      await journeyScroller.evaluate(el => el.scrollTop),
+      "the editor's own container did the scrolling",
+    ).toBeGreaterThan(0);
     await expect(button("Save model")).toBeDisabled();
     await expect(sheet().getByText("No changes", { exact: true })).toBeVisible();
+    await button("Back").click();
+    await expectShellStill("Edit, Back");
     await button("Cancel").click();
     await expect(button("Edit")).toBeVisible();
     await closeSheet();
     await sheet().waitFor({ state: "hidden" });
+    // Register, Expert: "Next: model details", then Review. The heading reads "Review before registering".
+    await scope(/^To add/).click();
+    await button("Open QA Unregistered details").click();
+    // Playwright scrolls a target it clicks into view, the shell included, so let the sheet finish sliding in first.
+    await page.waitForFunction(() => document.getAnimations().length === 0);
+    await button("Next: model details").click();
+    await button("Review").click();
+    const registerReview = sheet().locator("#model-review-heading");
+    await expect(registerReview).toContainText("Review before registering");
+    await expect(registerReview, "Register: Review brings its heading into view").toBeInViewport();
+    await expect(registerReview, "and focuses it").toBeFocused();
+    await expectShellStill("Register, Review");
+    await expect(button("Register")).toBeVisible();
+    await button("Back").click();
+    await expectShellStill("Register, Back");
+    await button("Cancel").click();
+    await sheet().waitFor({ state: "hidden" });
+    await scope(/^In Registry/).click();
     await expert.click();
   });
 
@@ -2455,6 +2524,56 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await composerStep("Review").click();
     await expect(keyChanges()).toContainText("No change.");
     expect((await api("workspace")).data.keys.find((k: { id: string }) => k.id === "vk-qa-codex").managed).toBe(true);
+  });
+
+  await test.step("focus returns to what opened a sheet or a dialog, on Escape and on Cancel (final fixes)", async () => {
+    // PRODUCT.md: focus is returned after sheets and dialogs. They open from state, not from a Radix Trigger, so Radix
+    // has nothing to refocus: the shared Sheet and Dialog hand the focus back to the element that had it on opening.
+    // The Help sheet, opened by the "?" button, and a model sheet, opened by its card's "Open <model> details".
+    await nav("My models").click();
+    const help = button("Help for My models");
+    const helpSheet = page.getByRole("dialog", { name: "Help", exact: true });
+    await help.click();
+    await helpSheet.waitFor();
+    await page.keyboard.press("Escape");
+    await expect(helpSheet).toBeHidden();
+    await expect(help, "Escape returns the focus to the Help button").toBeFocused();
+    await help.click();
+    await helpSheet.getByRole("button", { name: "Close", exact: true }).click();
+    await expect(help, "Close returns the focus to the Help button").toBeFocused();
+    const openChat = button("Open QA Chat details");
+    await openChat.click();
+    await sheet().getByRole("button", { name: "Edit", exact: true }).waitFor();
+    await page.keyboard.press("Escape");
+    await expect(sheet()).toBeHidden();
+    await expect(openChat, "Escape returns the focus to the card's Open button").toBeFocused();
+    // A card to register leaves the sheet with Cancel (the saved card's X is Close, tried above).
+    await scope(/^To add/).click();
+    const openUnregistered = button("Open QA Unregistered details");
+    await openUnregistered.click();
+    await button("Cancel").click();
+    await expect(sheet()).toBeHidden();
+    await expect(openUnregistered, "Cancel returns the focus to the tile that opened the sheet").toBeFocused();
+    await scope(/^In Registry/).click();
+    // The adoption dialog, opened from "Adopt this key" on an unadopted key's page (a read-only preview, nothing is adopted);
+    // the page stays on that key, where the next step starts from.
+    await page.evaluate(() => {
+      location.hash = "#/keys";
+    });
+    await keyCard("QA Google Key").getByRole("button", { name: "Adopt · QA Google Key", exact: true }).click();
+    const adopt = button("Adopt this key");
+    const adoption = page.getByRole("dialog", { name: "Adopt this key", exact: true });
+    const leaveAdoption = [
+      ["Escape", () => page.keyboard.press("Escape")],
+      ["Cancel", () => adoption.getByRole("button", { name: "Cancel", exact: true }).click()],
+    ] as const;
+    for (const [how, leave] of leaveAdoption) {
+      await adopt.click();
+      await expect(adoption.getByRole("button", { name: "Adopt", exact: true })).toBeVisible();
+      await leave();
+      await expect(adoption).toBeHidden();
+      await expect(adopt, `${how} returns the focus to "Adopt this key"`).toBeFocused();
+    }
   });
 
   await test.step("search recovery clears filter instead of starting creation", async () => {
@@ -3708,14 +3827,6 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
   await test.step("View options never clips a control; on a phone the header and card controls are touch targets (adapt)", async () => {
     // WCAG 2.5.8: every interactive element is at least 24 px wide and high; under the project's sm (40rem) the named
     // controls reach the standard control height of 2.25rem (36 px), by padding and min-height only.
-    const expectMinTarget = async (target: Locator, min: number, label = "") => {
-      const box = (await target.boundingBox())!;
-      expect(box, `${label} is on the page`).not.toBeNull();
-      expect([box.width >= min, box.height >= min], `${label} is at least ${min} px: ${JSON.stringify(box)}`).toEqual([
-        true,
-        true,
-      ]);
-    };
     // Basic folds the density segment into View options at every width: each radio, drawn or not, lies inside the popover.
     const expectNothingClipped = async (on: Page, where: string) => {
       await on.getByRole("button", { name: /^(View options|Options d’affichage)$/ }).click();
@@ -3799,6 +3910,23 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
       .locator("a, button, [role=combobox], [role=switch], input")
       .all())
       if (await control.isVisible()) await expectMinTarget(control, 24, "A header control");
+    // Links set in running text are targets too (final fixes): "Advanced: enter an access manually" on To add and each
+    // "Change" of a request line in a card's sheet (QA Shared holds a Claude and a Codex access).
+    await scope(/^To add/).click();
+    await expectMinTarget(button("Advanced: enter an access manually"), 24, "Advanced: enter an access manually");
+    await scope(/^In Registry/).click();
+    await searchModels().fill("qa-shared");
+    await button("Open QA Shared details").first().click();
+    await sheet().getByRole("tab", { name: "Access", exact: true }).click();
+    await button("Edit accesses").click();
+    const changeRequests = sheet().getByRole("button", { name: /^Change requests for / });
+    await expect(changeRequests).toHaveCount(2);
+    for (const change of await changeRequests.all())
+      await expectMinTarget(change, 24, (await change.getAttribute("aria-label")) ?? "Change requests");
+    await button("Cancel").click();
+    await closeSheet();
+    await sheet().waitFor({ state: "hidden" });
+    await searchModels().fill("");
     await expectNothingClipped(page, "English at 375 px");
     // A key's Technical check disclosure is a touch target too: all disclosures share one rule.
     await page.evaluate(() => {
