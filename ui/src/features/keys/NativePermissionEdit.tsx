@@ -77,7 +77,7 @@ export function NativeEditButton({
           type="button"
           variant="outline"
           size="sm"
-          className="h-auto min-h-8 shrink whitespace-normal text-left"
+          className="h-auto min-h-8 shrink whitespace-normal text-left max-sm:min-h-9"
           onClick={() => onEdit(request)}
         >
           {nativeEditLabel(request, copy)}

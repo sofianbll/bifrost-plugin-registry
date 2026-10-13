@@ -1051,7 +1051,7 @@ function RegistryApp({
                   e.preventDefault();
                   go("models");
                 }}
-                className="min-w-0"
+                className="-my-px min-w-0 py-px max-sm:-my-[7px] max-sm:py-[7px]"
               >
                 <img
                   src={`${import.meta.env.BASE_URL}bifrost-logo.webp`}
@@ -1146,7 +1146,7 @@ function RegistryApp({
                   aria-label={copyText(`Help for ${title}`, `Aide pour ${title}`)}
                   data-help
                   onClick={() => setHelpOpen(true)}
-                  className="inline-flex rounded-sm p-1 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="inline-flex items-center justify-center rounded-sm p-1 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring max-sm:size-9"
                 >
                   <CircleHelp className="size-4" />
                 </button>

@@ -296,6 +296,17 @@
 	body {
 		@apply bg-background text-foreground;
 	}
+	/* A disclosure is a control: its hit area is at least 24 px high (WCAG 2.5.8), and the standard 2.25rem under
+	   40rem (the project's sm), where a thumb presses it. Padding and min-height only: the text keeps its size. */
+	summary {
+		min-height: 1.5rem;
+	}
+	@media (width < 40rem) {
+		summary {
+			min-height: 2.25rem;
+			padding-block: 0.5rem;
+		}
+	}
 }
 
 @keyframes update-progress {

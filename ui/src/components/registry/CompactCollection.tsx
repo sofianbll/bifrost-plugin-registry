@@ -28,7 +28,7 @@ function CompactCollection({
             <span
               tabIndex={0}
               aria-label={item.label}
-              className={`inline-flex max-w-full shrink-0 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${item.active === true ? "bg-chart-success/15 ring-2 ring-chart-success" : item.active === false ? "border border-dashed border-muted-foreground bg-background grayscale" : ""}`}
+              className={`inline-flex min-h-6 max-w-full shrink-0 items-center rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${item.active === true ? "bg-chart-success/15 ring-2 ring-chart-success" : item.active === false ? "border border-dashed border-muted-foreground bg-background grayscale" : ""}`}
             >
               {item.icon ?? (
                 <Badge variant="outline" className="max-w-25 text-xs">

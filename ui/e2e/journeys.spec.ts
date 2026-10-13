@@ -3435,6 +3435,115 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await page.setViewportSize({ width: 1440, height: 950 });
   });
 
+  await test.step("View options never clips a control; on a phone the header and card controls are touch targets (adapt)", async () => {
+    // WCAG 2.5.8: every interactive element is at least 24 px wide and high; under the project's sm (40rem) the named
+    // controls reach the standard control height of 2.25rem (36 px), by padding and min-height only.
+    const expectMinTarget = async (target: Locator, min: number, label = "") => {
+      const box = (await target.boundingBox())!;
+      expect(box, `${label} is on the page`).not.toBeNull();
+      expect([box.width >= min, box.height >= min], `${label} is at least ${min} px: ${JSON.stringify(box)}`).toEqual([
+        true,
+        true,
+      ]);
+    };
+    // Basic folds the density segment into View options at every width: each radio, drawn or not, lies inside the popover.
+    const expectNothingClipped = async (on: Page, where: string) => {
+      await on.getByRole("button", { name: /^(View options|Options d’affichage)$/ }).click();
+      const popover = on.locator('[data-slot="popover-content"]');
+      await popover.getByRole("radio").first().waitFor();
+      await on.waitForFunction(() => document.getAnimations().length === 0); // the popover zooms in for a moment
+      const frame = (await popover.boundingBox())!;
+      const radios = await popover.getByRole("radio").all();
+      expect(radios.length, `${where}: View, Shape, Density and Logo segments`).toBe(9);
+      for (const radio of radios) {
+        const box = (await radio.boundingBox())!;
+        const name = await radio.evaluate(el => el.textContent?.trim().replace(/\s+/g, " "));
+        expect(
+          [box.x >= frame.x - 0.5, box.x + box.width <= frame.x + frame.width + 0.5],
+          `${where}: ${name} lies inside the popover ${JSON.stringify({ box, frame })}`,
+        ).toEqual([true, true]);
+        expect(
+          await radio.evaluate(el => el.scrollWidth <= el.clientWidth),
+          `${where}: ${name} shows all its text`,
+        ).toBe(true);
+      }
+      expect(
+        await popover.evaluate(el => el.scrollWidth <= el.clientWidth),
+        `${where}: the popover does not scroll`,
+      ).toBe(true);
+      await on.keyboard.press("Escape");
+      await expect(popover).toHaveCount(0);
+    };
+    await page.setViewportSize({ width: 1440, height: 950 });
+    await nav("My models").click();
+    await setExpert(false);
+    await expectNothingClipped(page, "English at 1440 px");
+    // The count stays in the name and the tooltip of each density segment, not in its drawn label.
+    await button("View options").click();
+    for (const [size, columns] of [
+      ["Small", 4],
+      ["Medium", 3],
+      ["Large", 2],
+    ] as const) {
+      const segment = page.getByRole("radio", { name: `${size} · ${columns} columns`, exact: true });
+      await expect(segment).toHaveAttribute("title", `${size} · ${columns} columns on a wide screen`);
+      expect((await segment.boundingBox())!.width, `${size} is a short segment`).toBeLessThan(100);
+    }
+    await page.keyboard.press("Escape");
+    const french = await browser.newPage({ baseURL, viewport: { width: 1440, height: 950 } });
+    await skipTour(french);
+    french.on("pageerror", e => errors.push(e.message));
+    await french.goto("/?lang=fr");
+    await french.getByLabel("Jeton administrateur", { exact: true }).fill(token);
+    await french.getByRole("button", { name: "Se connecter", exact: true }).click();
+    await french
+      .getByRole("button", { name: /^Ouvrir la fiche / })
+      .first()
+      .waitFor();
+    await expectNothingClipped(french, "French at 1440 px");
+    await french.close();
+
+    // Desktop keeps its size: the Help button stays 24 px and the Filters button stays compact (32 px).
+    const desktopHelp = (await button("Help for My models").boundingBox())!;
+    expect([desktopHelp.width, desktopHelp.height], "Help keeps its desktop size").toEqual([24, 24]);
+    expect((await page.getByRole("button", { name: /^Filters/ }).boundingBox())!.height, "Filters stays compact").toBe(
+      32,
+    );
+
+    // 375 px: the named controls are 36 px, and every interactive element of the header is at least 24 px.
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.locator(".content-container").evaluate(el => el.scrollTo(0, 0));
+    await expectMinTarget(button("Help for My models"), 36, "Help");
+    await expectMinTarget(
+      page.locator("header").getByRole("button", { name: "Toggle sidebar", exact: true }),
+      36,
+      "Sidebar toggle",
+    );
+    await expectMinTarget(page.getByRole("button", { name: /^Filters/ }), 36, "Filters");
+    await expectMinTarget(button("View options"), 36, "View options");
+    await expectMinTarget(page.getByRole("button", { name: /^Open .* details$/ }).first(), 36, "Open details");
+    for (const control of await page
+      .locator("header")
+      .locator("a, button, [role=combobox], [role=switch], input")
+      .all())
+      if (await control.isVisible()) await expectMinTarget(control, 24, "A header control");
+    await expectNothingClipped(page, "English at 375 px");
+    // A key's Technical check disclosure is a touch target too: all disclosures share one rule.
+    await page.evaluate(() => {
+      location.hash = "#/keys";
+    });
+    await openDevelopmentKey();
+    await expectMinTarget(
+      page.locator("summary").filter({ hasText: /^Technical check/ }),
+      36,
+      "The Technical check disclosure",
+    );
+    await page.evaluate(() => {
+      location.hash = "#/models";
+    });
+    await page.setViewportSize({ width: 1440, height: 950 });
+  });
+
   await test.step("dark theme and logout clear secrets and workspace", async () => {
     await button("Use dark theme").click();
     await shot("after-catalog-dark-mobile");

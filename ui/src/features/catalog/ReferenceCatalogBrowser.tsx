@@ -476,7 +476,7 @@ export default function ReferenceCatalogBrowser({
           <div className="min-w-0 flex-1">
             <button
               type="button"
-              className="-my-[3px] block w-full rounded-sm py-[3px] text-left text-sm font-semibold leading-snug [overflow-wrap:anywhere] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="-my-[3px] block w-full rounded-sm py-[3px] text-left text-sm font-semibold leading-snug [overflow-wrap:anywhere] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring max-sm:min-h-9"
               title={name}
               aria-label={copy(`Open ${labelOf(group)} details`, `Ouvrir la fiche ${labelOf(group)}`)}
               onClick={() => open(group)}
