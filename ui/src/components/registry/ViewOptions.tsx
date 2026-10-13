@@ -211,7 +211,7 @@ export function ViewControls({
                   aria-label={copy("Primary logo on model cards", "Logo principal des fiches modèles")}
                 >
                   <ToggleGroupItem value="creator">{copy("Creator", "Créateur")}</ToggleGroupItem>
-                  <ToggleGroupItem value="provider">{copy("Provider", "Fournisseur d’accès")}</ToggleGroupItem>
+                  <ToggleGroupItem value="provider">{copy("Provider", "Fournisseur")}</ToggleGroupItem>
                 </ToggleGroup>
               </div>
             )}

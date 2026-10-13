@@ -3636,8 +3636,10 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
         const box = (await radio.boundingBox())!;
         const name = await radio.evaluate(el => el.textContent?.trim().replace(/\s+/g, " "));
         expect(
-          [box.x >= frame.x - 0.5, box.x + box.width <= frame.x + frame.width + 0.5],
-          `${where}: ${name} lies inside the popover ${JSON.stringify({ box, frame })}`,
+          // The popover pads its content by 16 px: a segment must stay clear of the frame by at least half of it,
+          // so a font that renders a pixel wider (Linux in CI) cannot push one out.
+          [box.x >= frame.x + 8, box.x + box.width <= frame.x + frame.width - 8],
+          `${where}: ${name} lies inside the popover with room to spare ${JSON.stringify({ box, frame })}`,
         ).toEqual([true, true]);
         expect(
           await radio.evaluate(el => el.scrollWidth <= el.clientWidth),
