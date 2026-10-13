@@ -219,7 +219,7 @@ export function AdoptionBlockers({
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="mt-2"
+                    className="mt-2 max-sm:h-9"
                     onClick={() => onShowToAdd(blocker.models.map(model => `${blocker.provider}/${model}`))}
                   >
                     {copyText("Show in To add", "Voir dans À ajouter")}
@@ -254,7 +254,7 @@ function ModelNames({ models }: { models: string[] }) {
           <button
             type="button"
             aria-expanded={all}
-            className="rounded-sm underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="-my-1 inline-flex min-h-6 min-w-6 items-center justify-center rounded-sm underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring max-sm:-my-2 max-sm:min-h-9 max-sm:min-w-9"
             onClick={() => setAll(!all)}
           >
             {all ? (
@@ -325,7 +325,7 @@ function DecisionRow({
       size="sm"
       aria-pressed={kept.includes(who)}
       // The selected style of a Toggle segment (toggle.tsx): accent background, 1px muted-foreground outline.
-      className="h-auto min-h-8 whitespace-normal text-left aria-pressed:bg-accent aria-pressed:text-foreground aria-pressed:outline-solid aria-pressed:outline-1 aria-pressed:-outline-offset-1 aria-pressed:outline-muted-foreground dark:aria-pressed:bg-accent"
+      className="h-auto min-h-8 whitespace-normal text-left max-sm:min-h-9 aria-pressed:bg-accent aria-pressed:text-foreground aria-pressed:outline-solid aria-pressed:outline-1 aria-pressed:-outline-offset-1 aria-pressed:outline-muted-foreground dark:aria-pressed:bg-accent"
       onClick={() => onKeep!(who, true)}
     >
       {keepLabel(who)}

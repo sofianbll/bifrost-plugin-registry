@@ -92,7 +92,9 @@ export function ViewControls({
     // Layout controls sit in the toolbar when the container is wide, inside View options when it is narrow;
     // the popover is not portaled so both follow the same container. Below that width a grid has one or two
     // columns whatever the density, so the 4/3/2 column counts hide too. folded (Basic mode) keeps them in the popover at any width.
-    const layoutControls = (
+    // In the popover (224 px of room) the column count would push the density segment out of view: it stays in
+    // the accessible name and the tooltip but is not drawn (inPopover).
+    const layoutControls = (inPopover: boolean) => (
       <>
         <div className="space-y-1">
           <p className="text-xs font-medium text-muted-foreground">{copy("View", "Vue")}</p>
@@ -143,15 +145,26 @@ export function ViewControls({
             >
               {(["small", "medium", "large"] as ViewOptions["size"][]).map(size => {
                 const columns = gridColumns(size);
+                const label = copy(
+                  { small: "Small", medium: "Medium", large: "Large" }[size],
+                  { small: "Petit", medium: "Moyen", large: "Grand" }[size],
+                );
                 return (
-                  <ToggleGroupItem key={size} value={size}>
-                    <span>
-                      {copy(
-                        { small: "Small", medium: "Medium", large: "Large" }[size],
-                        { small: "Petit", medium: "Moyen", large: "Grand" }[size],
-                      )}
-                    </span>
-                    <span className="text-xs text-muted-foreground @max-2xl:hidden">
+                  <ToggleGroupItem
+                    key={size}
+                    value={size}
+                    title={
+                      inPopover
+                        ? `${label} · ${columns} ${copy("columns on a wide screen", "colonnes sur grand écran")}`
+                        : undefined
+                    }
+                  >
+                    <span>{label}</span>
+                    <span
+                      className={
+                        inPopover ? "sr-only @max-2xl:hidden" : "text-xs text-muted-foreground @max-2xl:hidden"
+                      }
+                    >
                       <span className="sr-only"> · </span>
                       {columns} {copy("columns", "colonnes")}
                     </span>
@@ -168,10 +181,15 @@ export function ViewControls({
         className="flex flex-wrap items-center gap-3"
         aria-label={copy(`${scope || "List"} view options`, `Options d’affichage · ${scope || "liste"}`)}
       >
-        {!folded && <div className="contents @max-2xl:hidden">{layoutControls}</div>}
+        {!folded && <div className="contents @max-2xl:hidden">{layoutControls(false)}</div>}
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
-            <Button size="sm" variant="outline" aria-label={copy("View options", "Options d’affichage")}>
+            <Button
+              size="sm"
+              variant="outline"
+              className="max-sm:h-9"
+              aria-label={copy("View options", "Options d’affichage")}
+            >
               <SlidersHorizontal className="size-4" />
               <span className="@max-md:hidden">{copy("View options", "Options d’affichage")}</span>
             </Button>
@@ -182,7 +200,7 @@ export function ViewControls({
                 ? copy("Model view options", "Options d’affichage des modèles")
                 : copy(`${scope || "View"} options`, `${scope || "Vue"} · options`)}
             </h3>
-            <div className={folded ? "space-y-3" : "hidden space-y-3 @max-2xl:block"}>{layoutControls}</div>
+            <div className={folded ? "space-y-3" : "hidden space-y-3 @max-2xl:block"}>{layoutControls(true)}</div>
             {logoChoice && (
               <div className="space-y-1">
                 <p className="text-xs font-medium text-muted-foreground">{copy("Primary logo", "Logo principal")}</p>

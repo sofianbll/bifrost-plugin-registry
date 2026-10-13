@@ -257,7 +257,7 @@ export default function AdoptionDialog({
                   {copyText("This preview is out of date.", "Cet aperçu n’est plus à jour.")}
                 </p>
               )}
-              <Button variant="outline" size="sm" disabled={busy} onClick={() => void refresh()}>
+              <Button variant="outline" size="sm" className="max-sm:h-9" disabled={busy} onClick={() => void refresh()}>
                 {copyText("Refresh preview", "Actualiser l’aperçu")}
               </Button>
             </div>
