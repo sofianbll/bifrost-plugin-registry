@@ -1818,10 +1818,13 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     const dialog = page.getByRole("dialog");
     // Spec #85: the dialog opens on the decisions, one numbered row per provider, each with its choices.
     // Critique round 2: Bifrost reports Mistral disabled, so the dialog keeps it in Bifrost from the start (undoable);
-    // it counts as decided, and the progress sits next to Adopt.
-    const decisions = dialog.getByRole("region", { name: "1 decision before adopting" });
-    await expect(decisions.getByRole("heading", { name: "1 decision before adopting" })).toBeInViewport();
-    await expect(decisions).toContainText("It is required to adopt the key.");
+    // it counts as decided, and the progress sits next to Adopt. #101: the heading counts that row too ("2 decisions
+    // · 1 already made"), so it agrees with the footer ("1 of 2 decided").
+    const decisions = dialog.getByRole("region", { name: "2 decisions before adopting · 1 already made", exact: true });
+    await expect(
+      decisions.getByRole("heading", { name: "2 decisions before adopting · 1 already made", exact: true }),
+    ).toBeInViewport();
+    await expect(decisions).toContainText("Each one is required to adopt the key.");
     await expect(decisions.locator("ol > li")).toHaveCount(1);
     const keptMistral = dialog.getByRole("region", { name: "Kept in Bifrost" });
     await expect(keptMistral).toContainText("Mistral is disabled in Bifrost, so Registry leaves it as is.");
@@ -1840,8 +1843,9 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(decisions).toContainText(
       "Registry uses one subscription per model: choose the one to use, and Bifrost keeps handling the other for this key.",
     );
+    // Each choice is a button with a selected state (aria-pressed); none is chosen yet.
     for (const name of ["Use Claude for this model", "Use Codex for this model"])
-      await expect(dialog.getByRole("button", { name, exact: true })).toBeVisible();
+      await expect(dialog.getByRole("button", { name, exact: true, pressed: false })).toBeVisible();
     for (const jargon of ["native", "readback", "cannot hold"]) await expect(dialog).not.toContainText(jargon);
     // What Registry would manage waits behind a disclosure.
     await expect(dialog.getByText("Accesses Registry will manage (3)", { exact: true })).toBeVisible();
@@ -2367,7 +2371,9 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     const kept = dialog.getByRole("region", { name: "Kept in Bifrost" });
     await expect(kept).toContainText("Mistral · 3 models kept in Bifrost");
     await expect(kept).toContainText("Registry will not manage or change Mistral’s permissions");
-    await expect(dialog.getByRole("heading", { name: "1 decision before adopting" })).toBeVisible();
+    await expect(
+      dialog.getByRole("heading", { name: "2 decisions before adopting · 1 already made", exact: true }),
+    ).toBeVisible();
     await expect(dialog.getByText("1 of 2 decided", { exact: true })).toBeVisible();
     await expect(dialog.getByRole("button", { name: "Adopt", exact: true })).toBeDisabled();
     // The collision is resolved inline: using Claude for qa-shared keeps Codex in Bifrost.
@@ -2381,9 +2387,9 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(dialog.getByText("mistral/qa-mistral-large", { exact: true })).toBeVisible();
     // The choice can be undone, and made again.
     await dialog.getByRole("button", { name: "Stop keeping Mistral in Bifrost", exact: true }).click();
-    await expect(dialog.getByRole("region", { name: "1 decision before adopting" })).toContainText(
-      "Mistral is disabled in Bifrost",
-    );
+    await expect(
+      dialog.getByRole("region", { name: "2 decisions before adopting · 1 already made", exact: true }),
+    ).toContainText("Mistral is disabled in Bifrost");
     await expect(dialog.getByText("1 of 2 decided", { exact: true })).toBeVisible();
     await expect(dialog.getByRole("button", { name: "Adopt", exact: true })).toBeDisabled();
     await dialog.getByRole("button", { name: "Keep Mistral in Bifrost", exact: true }).click();

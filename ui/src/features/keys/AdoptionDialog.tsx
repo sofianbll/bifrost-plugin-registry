@@ -21,7 +21,7 @@ import { useCopy, useFormat } from "../../lib/locale";
 import { AdoptionBlockers } from "./AdoptionBlockers";
 import { NativeEditDialog, type NativeEditRequest } from "./NativePermissionEdit";
 import { KeptProviders } from "./KeptNative";
-import { adoptionProgress, disabledProviders } from "./key-readiness";
+import { adoptionProgress, decidedLabel, disabledProviders } from "./key-readiness";
 
 // onShowToAdd: called with the provider/native routes of the unsaved models blocking the key.
 // onNativeEdited: called once the key was edited in Bifrost (#93), so the caller reloads its workspace.
@@ -185,6 +185,8 @@ export default function AdoptionDialog({
               <AdoptionBlockers
                 readiness={preview.readiness}
                 reasons={preview.blocked}
+                kept={kept}
+                progress={progress}
                 onShowToAdd={onShowToAdd}
                 onKeep={operation === "adopt" ? keep : undefined}
                 onEditNative={operation === "adopt" && !snapshot ? setNativeEdit : undefined}
@@ -267,10 +269,7 @@ export default function AdoptionDialog({
         <DialogFooter className="sticky bottom-0 -mx-6 flex-row flex-wrap items-center justify-end gap-2 border-t bg-white px-6 py-3 dark:bg-card">
           {progress.total > 0 && (
             <p className="w-full text-xs text-muted-foreground sm:mr-auto sm:w-auto">
-              {copyText(
-                `${progress.decided} of ${progress.total} decided`,
-                `${progress.decided} sur ${progress.total} ${progress.total > 1 ? "décidées" : "décidée"}`,
-              )}
+              {decidedLabel(progress, copyText)}
             </p>
           )}
           <Button variant="outline" className="flex-1 sm:flex-none" disabled={busy} onClick={onClose}>
