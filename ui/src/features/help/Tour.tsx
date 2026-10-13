@@ -64,10 +64,7 @@ export function TourOffer({
         <p className="text-muted-foreground">
           {canStart
             ? copy("Models, Groups, Keys, then adopting a key.", "Modèles, groupes, clés, puis l’adoption d’une clé.")
-            : copy(
-                "Publish or discard your key draft first.",
-                "Publiez ou abandonnez d’abord votre brouillon de clé.",
-              )}
+            : copy("Publish or discard your key draft first.", "Publiez ou abandonnez d’abord votre brouillon de clé.")}
         </p>
       </div>
       <div className="flex flex-wrap items-center gap-2">
