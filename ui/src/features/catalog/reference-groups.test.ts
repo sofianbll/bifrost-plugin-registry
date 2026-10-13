@@ -253,17 +253,20 @@ if (
   JSON.stringify([{ kind: "available", count: 1 }, { kind: "no-reference" }])
 )
   throw new Error("Attention badges lost their order");
+// A card without a reference wears that one badge: its guessed creator adds none.
 const guessed = [{ ...models[2], creatorSource: "inferred" as const }];
 if (
   kinds(groupReferenceModels(guessed, catalog)[0], 1) !==
-  JSON.stringify([{ kind: "available", count: 1 }, { kind: "no-reference" }, { kind: "inferred-creator" }])
+  JSON.stringify([{ kind: "available", count: 1 }, { kind: "no-reference" }])
 )
-  throw new Error("An inferred creator was not announced after the other badges");
+  throw new Error("A card without reference and with a guessed creator must wear one badge for it");
+if (kinds(groupReferenceModels(guessed, catalog)[0], 0) !== JSON.stringify([{ kind: "no-reference" }]))
+  throw new Error("A guessed creator must not add a second badge to a card without reference");
 if (
   kinds(groupReferenceModels([{ ...models[0], creatorSource: "inferred" as const }], catalog)[0], 0) !==
   JSON.stringify([{ kind: "inferred-creator" }])
 )
-  throw new Error("An inferred creator needs no missing reference to be announced");
+  throw new Error("A guessed creator on a card that has a reference is still announced");
 console.log("Saved cards get attention badges only: OK");
 
 // The To add count counts the same tiles before and after the catalogue loads: without it, grouping

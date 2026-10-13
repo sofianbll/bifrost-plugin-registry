@@ -36,7 +36,8 @@ const stepCopy = (id: TourStep["id"], copy: Copy) =>
     },
   })[id];
 
-// Offered once on the first visit, inline so that it covers nothing.
+// Offered once on the first visit, inline so that it covers nothing. The app shows it on My models only, and a
+// phone does not show it at all (it would push the page down): "?" starts the tour from any page and width.
 export function TourOffer({
   canStart,
   onStart,
@@ -53,13 +54,13 @@ export function TourOffer({
       onKeyDown={event => {
         if (event.key === "Escape") onDismiss();
       }}
-      className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-sm border bg-muted/30 p-3 text-sm"
+      className="mb-5 hidden flex-wrap items-center justify-between gap-3 rounded-sm border bg-muted/30 p-3 text-sm sm:flex"
     >
       <div className="min-w-0 flex-1">
         <p className="font-medium">
           {copy("New here? Take a one-minute tour.", "Nouveau ici ? Faites un tour d’une minute.")}
         </p>
-        <p className={canStart ? "text-muted-foreground max-sm:hidden" : "text-muted-foreground"}>
+        <p className="text-muted-foreground">
           {canStart
             ? copy("Models, Groups, Keys, then adopting a key.", "Modèles, groupes, clés, puis l’adoption d’une clé.")
             : copy(

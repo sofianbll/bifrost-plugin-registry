@@ -1,6 +1,7 @@
 import {
   alsoAvailable,
   applyModelId,
+  associationStatus,
   canonicalCapabilities,
   changeAccessProvider,
   declaredEndpoints,
@@ -368,4 +369,36 @@ equal(
 );
 equal(showsNativeModel(held, held[2], true), true);
 equal(showsNativeModel(held.slice(1), held[1], false), false);
+// Basic says how a reference was linked only when it needs a look, and never in the Expert words.
+const found = (patch: Record<string, unknown>) => ({ ...patch }) as Parameters<typeof associationStatus>[1];
+const linked = { ...held[0], referenceId: "creator/new-model" };
+const states = [
+  [linked, found({ referenceId: "creator/new-model", mappingManual: true })],
+  [linked, found({ referenceId: "creator/new-model" })],
+  [{ ...held[0] }, found({})],
+  [{ ...held[0], referenceId: "creator/new-model" }, found({})],
+  [{ ...held[0], referenceId: "" }, found({ referenceId: "creator/new-model" })],
+] as const;
+equal(
+  states.map(([access, row]) => associationStatus(access, row, true, english)),
+  [
+    "Mapping chosen in Registry",
+    "Automatically suggested mapping · verify",
+    "No mapping",
+    "Mapping proposed in this draft",
+    "Unlink proposed in this draft",
+  ],
+);
+equal(
+  states.map(([access, row]) => associationStatus(access, row, false, english)),
+  [
+    "",
+    "Suggested automatically · check that it fits",
+    "",
+    "Reference proposed in this draft",
+    "Unlink proposed in this draft",
+  ],
+);
+equal(associationStatus(held[0], found({ referenceId: "x" }), false, fr), "Suggérée automatiquement · à vérifier");
+equal(associationStatus(linked, found({}), false, fr), "Fiche documentaire proposée dans ce brouillon");
 console.log("model editor data checks passed");
