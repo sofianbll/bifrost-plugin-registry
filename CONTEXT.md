@@ -84,6 +84,10 @@ _Avoid_ : protocole, endpoint
 **Catalogue publié** :
 Liste réellement renvoyée au client lorsqu'il demande les modèles avec sa clé.
 
+**Vérifiée** :
+Se dit d'une clé dont le catalogue publié, relu avec cette clé, correspond à ce que Registry y a publié. Elle atteste le catalogue observé à cet instant, ni le routage ni les capacités. Un modèle que Bifrost ne liste pas n'entre jamais dans le total vérifié : il est signalé comme écart.
+_Avoid_ : testée, qualifiée
+
 **Aperçu du brouillon** :
 Liste prévue après publication des modifications en cours. Sa valeur dépend des données disponibles ; elle ne constitue pas une observation de l'API publiée.
 
