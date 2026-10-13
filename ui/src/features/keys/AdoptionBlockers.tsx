@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { displayProvider } from "../../components/registry/BrandIcon";
 import type { Readiness, ReadinessBlocker } from "../../domain/registry";
 import { useCopy, type Copy } from "../../lib/locale";
-import { blockerLine } from "./key-readiness";
+import { adoptionProgress, blockerLine, decisionsHeading } from "./key-readiness";
 import { NativeEditButton, nativeEditFor, type NativeEditRequest } from "./NativePermissionEdit";
 
 // The server writes its adoption reasons as English text in about twenty places
@@ -113,15 +113,22 @@ export function adoptionReason(reason: string, copyText: Copy) {
 // that allows every model (dynamic) or a model allowed through two providers (collision, where either provider
 // can be kept), and #93's native edits (NativeEditButton: remove models, replace "all models"/"all providers").
 // A provider the preview keeps native comes back flagged `kept` and is shown by KeptProviders, not here.
+// The heading counts every decision of the dialog, the ones already made included (a provider disabled in Bifrost is
+// kept from the start), from the same `progress` as the dialog's footer ("n of N decided"), so the two always agree.
+// A choice button in `kept` is shown pressed (aria-pressed), like a selected Toggle segment.
 export function AdoptionBlockers({
   readiness,
   reasons: plain,
+  kept = [],
+  progress,
   onShowToAdd,
   onKeep,
   onEditNative,
 }: {
   readiness?: Readiness;
   reasons: string[];
+  kept?: string[];
+  progress?: { decided: number; total: number };
   onShowToAdd?: (routes: string[]) => void;
   onKeep?: (provider: string, keep: boolean) => void;
   onEditNative?: (request: NativeEditRequest) => void;
@@ -144,19 +151,17 @@ export function AdoptionBlockers({
       rows.set(blocker.provider, [...(rows.get(blocker.provider) ?? []), blocker]);
   // Models to add are settled on the models page, not here: listed apart, unnumbered (spec #85, critique round 2).
   const toAdd = (readiness?.blockers ?? []).filter(blocker => !blocker.kept && blocker.kind === "unsaved");
-  const count = readiness ? rows.size : plain.length;
-  const title = copyText(
-    `${count} ${count === 1 ? "decision" : "decisions"} before adopting`,
-    `${count} ${count === 1 ? "décision" : "décisions"} avant d’adopter`,
-  );
+  const left = readiness ? rows.size : plain.length;
+  const counts = readiness ? (progress ?? adoptionProgress(readiness, kept, [])) : { decided: 0, total: plain.length };
+  const title = decisionsHeading(counts, copyText);
   const before = copyText("Before adopting", "Avant d’adopter");
   return (
     <>
-      {count > 0 && (
+      {left > 0 && (
         <section aria-label={title} className="rounded-sm border border-chart-warning/50 bg-chart-warning/10 p-3">
           <h3 className="font-medium">{title}</h3>
           <p className="text-xs text-muted-foreground">
-            {count === 1
+            {counts.total === 1
               ? copyText("It is required to adopt the key.", "Elle est nécessaire pour adopter la clé.")
               : copyText("Each one is required to adopt the key.", "Chacune est nécessaire pour adopter la clé.")}
           </p>
@@ -168,6 +173,7 @@ export function AdoptionBlockers({
                     provider={provider}
                     blockers={blockers}
                     readiness={readiness}
+                    kept={kept}
                     onKeep={onKeep}
                     onEditNative={onEditNative}
                   />
@@ -247,12 +253,14 @@ function DecisionRow({
   provider,
   blockers,
   readiness,
+  kept,
   onKeep,
   onEditNative,
 }: {
   provider: string;
   blockers: ReadinessBlocker[];
   readiness: Readiness;
+  kept: string[];
   onKeep?: (provider: string, keep: boolean) => void;
   onEditNative?: (request: NativeEditRequest) => void;
 }) {
@@ -286,7 +294,9 @@ function DecisionRow({
       type="button"
       variant="outline"
       size="sm"
-      className="h-auto min-h-8 whitespace-normal text-left"
+      aria-pressed={kept.includes(who)}
+      // The selected style of a Toggle segment (toggle.tsx): accent background, 1px muted-foreground outline.
+      className="h-auto min-h-8 whitespace-normal text-left aria-pressed:bg-accent aria-pressed:text-foreground aria-pressed:outline-solid aria-pressed:outline-1 aria-pressed:-outline-offset-1 aria-pressed:outline-muted-foreground dark:aria-pressed:bg-accent"
       onClick={() => onKeep!(who, true)}
     >
       {keepLabel(who)}

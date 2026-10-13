@@ -1,7 +1,8 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { LanguageContext } from "../../lib/locale";
+import { LanguageContext, type Copy } from "../../lib/locale";
 import type { Readiness } from "../../domain/registry";
 import { AdoptionBlockers } from "./AdoptionBlockers";
+import { adoptionProgress, decidedLabel, decisionsHeading } from "./key-readiness";
 
 // #87, spec #85: the adoption dialog opens on a short numbered list of decisions, one per provider, each with its choices.
 const render = (
@@ -217,8 +218,86 @@ const rest = text(
   ),
 );
 must(
-  !rest.includes("Mistral") && rest.includes("allows every provider") && rest.includes("1 decision before adopting"),
-  "kept providers leave the decision list",
+  !rest.includes("Mistral") &&
+    rest.includes("allows every provider") &&
+    rest.includes("2 decisions before adopting · 1 already made"),
+  `kept providers leave the decision list but stay in the count, got ${rest}`,
+);
+// #101: Mistral is disabled in Bifrost, so the dialog keeps it from the start: a decision already made. The heading
+// counts it like the footer does, both written from one adoptionProgress ("3 decisions · 1 already made" = "1 of 3 decided").
+const auto: Readiness = {
+  state: "blocked",
+  blockers: [
+    { ...hermes.blockers[0], providerDisabled: true, kept: true },
+    { provider: "deepseek", kind: "undiscovered", count: 1, models: ["deepseek-v4"] },
+    { provider: "Codex", kind: "collision", count: 1, models: ["qa-shared"], reasons: [shared], with: ["Claude"] },
+  ],
+};
+const autoProgress = adoptionProgress(auto, ["mistral"], []);
+must(
+  autoProgress.decided === 1 && autoProgress.total === 3,
+  `one of three is decided, got ${JSON.stringify(autoProgress)}`,
+);
+const autoOnce = (language: "en" | "fr", props: { kept?: string[]; progress?: typeof autoProgress }) =>
+  renderToStaticMarkup(
+    <LanguageContext.Provider value={language}>
+      <AdoptionBlockers readiness={auto} reasons={[]} onKeep={() => {}} {...props} />
+    </LanguageContext.Provider>,
+  );
+for (const props of [{ kept: ["mistral"], progress: autoProgress }, { kept: ["mistral"] }, {}]) {
+  const heading = text(autoOnce("en", props));
+  must(
+    heading.includes("3 decisions before adopting · 1 already made"),
+    `heading counts the row decided from the start, got ${heading}`,
+  );
+}
+for (const [language, heading, footer] of [
+  ["en", "3 decisions before adopting · 1 already made", "1 of 3 decided"],
+  ["fr", "3 décisions avant d’adopter · 1 déjà prise", "1 sur 3 décidées"],
+] as const) {
+  const copy: Copy = (en, fr) => (language === "fr" ? fr : en);
+  must(
+    decisionsHeading(autoProgress, copy) === heading,
+    `${language} heading, got ${decisionsHeading(autoProgress, copy)}`,
+  );
+  must(decidedLabel(autoProgress, copy) === footer, `${language} footer, got ${decidedLabel(autoProgress, copy)}`);
+  const shown = autoOnce(language, { kept: ["mistral"], progress: autoProgress });
+  must(
+    shown.includes(`aria-label="${heading}"`) && text(shown).includes(heading),
+    `${language}: the dialog shows the heading, got ${text(shown)}`,
+  );
+  must(
+    !text(shown).includes("Mistral") && !text(shown).includes("1 sur 4") && !text(shown).includes("1 of 4"),
+    "no other count",
+  );
+}
+// A choice made is a pressed button, and the other choices of that decision are not.
+const pressedOf = (html: string) =>
+  Object.fromEntries(
+    [...html.matchAll(/<button[^>]*aria-pressed="(true|false)"[^>]*>([^<]*)</g)].map(m => [m[2], m[1]]),
+  );
+const unchosen = pressedOf(collision);
+must(
+  JSON.stringify(unchosen) ===
+    JSON.stringify({ "Use Claude for this model": "false", "Use Codex for this model": "false" }),
+  `no choice yet: both unpressed, got ${JSON.stringify(unchosen)}`,
+);
+// Codex kept in Bifrost is the choice labelled "Use Claude for this model".
+const chosen = pressedOf(
+  renderToStaticMarkup(
+    <LanguageContext.Provider value="en">
+      <AdoptionBlockers readiness={twice} reasons={[shared]} kept={["Codex"]} onKeep={() => {}} />
+    </LanguageContext.Provider>,
+  ),
+);
+must(
+  JSON.stringify(chosen) ===
+    JSON.stringify({ "Use Claude for this model": "true", "Use Codex for this model": "false" }),
+  `Codex kept: its option is pressed, the other is not, got ${JSON.stringify(chosen)}`,
+);
+must(
+  JSON.stringify(pressedOf(offer)) === JSON.stringify({ "Keep Mistral in Bifrost": "false" }),
+  "the keep offer of a single provider is a pressed-state button too, unpressed until chosen",
 );
 // A key that allows every model of a provider says so, in both languages, without the word "dynamic".
 const dynamic = ["Dynamic native model allowlist is unsupported for Claude"];

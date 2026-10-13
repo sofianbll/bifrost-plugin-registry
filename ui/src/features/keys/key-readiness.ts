@@ -80,6 +80,17 @@ export function adoptionProgress(readiness: Readiness | undefined, kept: string[
   return { decided: decided.size, total: decided.size + pending.size };
 }
 
+// The one count, said twice: the heading of the decisions and the footer next to Adopt. Both are written from the same
+// adoptionProgress, rows decided from the start (a provider disabled in Bifrost) included, so they cannot disagree (#101).
+type Progress = ReturnType<typeof adoptionProgress>;
+export const decisionsHeading = ({ decided, total }: Progress, copy: Copy) =>
+  copy(
+    `${total} ${total === 1 ? "decision" : "decisions"} before adopting${decided ? ` · ${decided} already made` : ""}`,
+    `${total} ${total === 1 ? "décision" : "décisions"} avant d’adopter${decided ? ` · ${decided} ${decided === 1 ? "déjà prise" : "déjà prises"}` : ""}`,
+  );
+export const decidedLabel = ({ decided, total }: Progress, copy: Copy) =>
+  copy(`${decided} of ${total} decided`, `${decided} sur ${total} ${total > 1 ? "décidées" : "décidée"}`);
+
 // Providers Bifrost reports as disabled, not kept yet: the dialog keeps them in Bifrost from the start.
 export const disabledProviders = (readiness: Readiness | undefined) => [
   ...new Set(

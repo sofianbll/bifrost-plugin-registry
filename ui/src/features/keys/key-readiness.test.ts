@@ -4,6 +4,8 @@ import type { Copy } from "../../lib/locale";
 import {
   adoptionProgress,
   blockerLine,
+  decidedLabel,
+  decisionsHeading,
   disabledProviders,
   readinessLabel,
   readinessReason,
@@ -192,6 +194,28 @@ equal(
   "an edit that did not settle the row is not",
 );
 equal(adoptionProgress(undefined, [], []), { decided: 0, total: 0 }, "no verdict, nothing to decide");
+// #101: the heading and the footer say the same count, rows decided from the start (a provider disabled in Bifrost) included.
+const autoKept = adoptionProgress(
+  {
+    state: "blocked",
+    blockers: [{ ...disabledMistral, kept: true }, block("deepseek", "undiscovered", ["v4"]), codex],
+  },
+  ["mistral"],
+  [],
+);
+equal(autoKept, { decided: 1, total: 3 }, "one row decided from the start, two to decide");
+equal(decisionsHeading(autoKept, english), "3 decisions before adopting · 1 already made", "heading, English");
+equal(decidedLabel(autoKept, english), "1 of 3 decided", "footer, English");
+equal(decisionsHeading(autoKept, french), "3 décisions avant d’adopter · 1 déjà prise", "heading, French");
+equal(decidedLabel(autoKept, french), "1 sur 3 décidées", "footer, French");
+equal(decisionsHeading({ decided: 0, total: 1 }, english), "1 decision before adopting", "none made, singular");
+equal(decisionsHeading({ decided: 0, total: 1 }, french), "1 décision avant d’adopter", "none made, singular, French");
+equal(decisionsHeading({ decided: 2, total: 4 }, english), "4 decisions before adopting · 2 already made", "plural");
+equal(
+  decisionsHeading({ decided: 2, total: 4 }, french),
+  "4 décisions avant d’adopter · 2 déjà prises",
+  "plural, French",
+);
 // A provider Bifrost reports as disabled is kept in Bifrost from the start (still undoable).
 equal(
   disabledProviders({
