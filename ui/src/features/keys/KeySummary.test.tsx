@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { fixture } from "../../dev/fixtures/registry";
 import type { Key, Model } from "../../domain/registry";
 import { LanguageContext } from "../../lib/locale";
-import { checkState, formatDay, keyLedger, KeySummary } from "./KeySummary";
+import { checkState, formatDay, formatMoment, keyLedger, KeySummary } from "./KeySummary";
 
 // Spec #85 round 2 and #99: a managed key opens on one ledger, "This key can call N models" (the h1 names the key, #69), one row
 // per model with the subscriptions that serve it; the technical check waits in one fold.
@@ -159,11 +159,11 @@ for (const line of [
   "Edit selection counts only",
   "Technical check · Verified Oct 12, 2026 · 1 difference",
   "Checked with Bifrost",
-  "Read again",
+  "Check again",
   "Bifrost allows today",
 ])
   must(english.includes(line), `English ledger must read "${line}", got ${english}`);
-for (const jargon of ["Readback", "chosen in Registry", "IDs ·", "call 5"])
+for (const jargon of ["Readback", "Read again", "chosen in Registry", "IDs ·", "call 5", "not checked yet"])
   must(!english.includes(jargon), `no "${jargon}" on the read page, got ${english}`);
 must(
   english.indexOf("This key can call") < english.indexOf("Technical check") &&
@@ -178,7 +178,7 @@ for (const line of [
   "Conservé dans Bifrost : DeepSeek",
   "Vérification technique · Vérifiée le 12/10/2026 · 1 écart",
   "Vérifié avec Bifrost",
-  "Relire",
+  "Vérifier à nouveau",
   "Bifrost autorise aujourd’hui",
 ])
   must(french.includes(line), `French ledger must read "${line}", got ${french}`);
@@ -296,8 +296,8 @@ must(
   "no explanation when Bifrost lists no per-provider count",
 );
 
-// The fold's button names the first check until Bifrost has listed IDs for the key (the body then stops saying
-// "Nothing read from Bifrost yet"), then reads again; an edit that stales the check keeps the IDs last read.
+// The button names the first check until Bifrost has listed IDs for the key (the body then stops saying it was
+// not checked), then checks again; an edit that stales the check keeps the IDs last read.
 const buttonLabel = (html: string) => html.match(/<button[^>]*>(?:<svg.*?<\/svg>)?([^<]*)<\/button>/)?.[1];
 const label = (virtualKey: Key, language: "en" | "fr" = "en") =>
   buttonLabel(
@@ -322,10 +322,67 @@ const staleAfterEdit: Key = {
 must(
   label(neverRead) === "Check with Bifrost" &&
     label(neverRead, "fr") === "Vérifier avec Bifrost" &&
-    label(hermes) === "Read again" &&
-    label(hermes, "fr") === "Relire" &&
-    label(staleAfterEdit) === "Read again",
+    label(hermes) === "Check again" &&
+    label(hermes, "fr") === "Vérifier à nouveau" &&
+    label(staleAfterEdit) === "Check again",
   `the first check is named until the key was read once, got ${label(neverRead)} / ${label(hermes)} / ${label(staleAfterEdit)}`,
+);
+
+// Critique round 5: a key Bifrost has not been asked about is provisional. The headline says so and the check sits
+// beside it, outside the closed fold; once checked, the headline is plain and the button moves into the fold.
+const buttons = (html: string) => (html.match(/<button/g) ?? []).length;
+const page = (virtualKey: Key, language: "en" | "fr" = "en") =>
+  wrap(
+    language,
+    <KeySummary
+      virtualKey={virtualKey}
+      models={hermesModels}
+      groups={fixture.groups}
+      busy={false}
+      snapshotMode={false}
+      onReread={() => {}}
+    />,
+  );
+const unchecked = page(neverRead);
+const headingOf = (html: string) => text(html.match(/<h2[^>]*>[\s\S]*?<\/h2>/)?.[0] ?? "");
+must(
+  headingOf(unchecked).startsWith("This key can call 3 models · not checked yet") &&
+    headingOf(page(neverRead, "fr")) === "Cette clé peut appeler 3 modèles · pas encore vérifiée",
+  `an unchecked headline is provisional, got ${headingOf(unchecked)}`,
+);
+must(
+  unchecked.indexOf("Check with Bifrost") < unchecked.indexOf("<details") && buttons(unchecked) === 1,
+  "the first check is beside the headline, not only inside the fold, and only once",
+);
+must(
+  headingOf(page(hermes)) === "This key can call 3 models" &&
+    headingOf(page({ ...hermes, publication: { ...hermes.publication!, state: "drift" } })) ===
+      "This key can call 3 models" &&
+    page(hermes).indexOf("Check again") > page(hermes).indexOf("<details"),
+  "a checked key has a plain headline and checks again inside the fold",
+);
+must(
+  headingOf(
+    wrap(
+      "en",
+      <KeySummary
+        virtualKey={neverRead}
+        models={hermesModels}
+        groups={fixture.groups}
+        busy={false}
+        snapshotMode
+        onReread={() => {}}
+      />,
+    ),
+  ) === "This key can call 3 models",
+  "a local copy cannot be checked, so its headline is not provisional",
+);
+must(text(unchecked).includes("Not checked with Bifrost yet."), "an unchecked key says so in the fold too");
+
+must(
+  headingOf(page({ ...neverRead, policy: { groups: [], added: [], excluded: [], naming: "model" } })) ===
+    "This key cannot call any model yet",
+  "a key with no model claims no list that would be provisional",
 );
 
 const empty = summary({ ...hermes, policy: { groups: [], added: [], excluded: [], naming: "model" } });
@@ -336,6 +393,12 @@ must(
   formatDay("en", "2026-10-12T09:30:00Z") === "Oct 12, 2026" &&
     formatDay("fr", "2026-10-12T09:30:00Z") === "12/10/2026",
   "locale dates",
+);
+// The time beside the check reads in the same format as the day in the fold's summary, without seconds (#101).
+must(
+  /^Oct 12, 2026, \d{1,2}:\d{2} (AM|PM)$/.test(formatMoment("en", "2026-10-12T09:30:45Z")) &&
+    /^12\/10\/2026 \d{2}:\d{2}$/.test(formatMoment("fr", "2026-10-12T09:30:45Z")),
+  `moment, got ${formatMoment("en", "2026-10-12T09:30:45Z")} / ${formatMoment("fr", "2026-10-12T09:30:45Z")}`,
 );
 
 console.log("Key summary checks passed");

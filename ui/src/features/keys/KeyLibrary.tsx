@@ -107,6 +107,16 @@ export function KeyLibrary({
       </Badge>
     );
   };
+  // The card button names what the page it opens is for: adopting a key that can be, the blockers of one that
+  // cannot, else just opening it. The page behind is the same; only the name says where it leads.
+  const openLabel = (key: Key) => {
+    const state = readinessState(key);
+    return state === "ready" || state === "unknown"
+      ? copy("Adopt", "Adopter")
+      : state === "blocked"
+        ? copy("See what blocks it", "Voir ce qui bloque")
+        : copy("Open", "Ouvrir");
+  };
   const reasonLine = (key: Key) => {
     const reason = readinessReason(key.readiness, copy);
     return (
@@ -186,7 +196,7 @@ export function KeyLibrary({
               disabled={busy}
               onClick={() => onOpen(key)}
             >
-              {key.managed === false ? copy("Review", "Examiner") : copy("Open", "Ouvrir")}
+              {openLabel(key)}
               <ActionLabel label={labelOf(key)} />
               <ArrowRight className="size-3.5" />
             </Button>
@@ -316,7 +326,7 @@ export function KeyLibrary({
               </TableCell>
               <TableCell className="text-right">
                 <Button type="button" size="sm" variant="ghost" disabled={busy} onClick={() => onOpen(key)}>
-                  {key.managed === false ? copy("Review", "Examiner") : copy("Open", "Ouvrir")}
+                  {openLabel(key)}
                   <ActionLabel label={labelOf(key)} />
                   <ArrowRight className="size-3.5" />
                 </Button>
