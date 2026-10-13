@@ -142,7 +142,7 @@ export default function AdoptionDialog({
     }
   };
   const progress = adoptionProgress(preview?.readiness, kept, edited);
-  // Why Adopt is off beyond the decisions: models to register first (not a numbered decision).
+  // Why Adopt is off beyond the decisions: models to register first, or the key to fix in Bifrost (no numbered decision).
   const prerequisite = preview?.canApply ? "" : prerequisiteLine(preview?.readiness, copyText);
   const routes = (ids: string[]) => (
     <ul className="mt-2 space-y-1">

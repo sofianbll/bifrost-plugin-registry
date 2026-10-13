@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { useCopy, useFormat } from "../../lib/locale";
+import { differenceCount, differenceNote } from "../keys/KeySummary";
 
 // The short help, shared by the side sheet ("?") and Settings → Help. Labels are set in bold, spelled
 // as the buttons and badges read in the same language (not <q>: some labels carry their own quotes).
@@ -217,6 +218,13 @@ export function HelpContent({ expert = false }: { expert?: boolean }) {
                 "après la publication, Registry demande à Bifrost quels ID de modèles la clé liste et les compare à ce que vous avez choisi. Les modèles ne sont pas appelés.",
               )}
             </dd>
+          </div>
+          <div className="contents">
+            <dt>
+              {/* The chip's own wording and tooltip, from the helpers that write them on the key (ADR 0001). */}
+              <Q>{`${copy("Verified", "Vérifiée")} · ${differenceCount(1, copy)}`}</Q>
+            </dt>
+            <dd className="mb-2 sm:mb-0">{differenceNote(1, copy)}</dd>
           </div>
           <div className="contents">
             <dt>

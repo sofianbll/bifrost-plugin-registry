@@ -2387,6 +2387,42 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(dialog).not.toContainText("dynamic model list");
     await expect(dialog.getByText(/^Accesses Registry will manage/)).toHaveCount(0);
     await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+
+    // Final critique, P1: a key disabled or expired in Bifrost has no choice to make, so it is no decision. The fixture has
+    // no such key; the preview of this one is answered with that single key-level blocker, as the server sends it.
+    await page.route("**/api/keys/adopt", async route => {
+      const response = await route.fetch();
+      const preview = await response.json();
+      await route.fulfill({
+        response,
+        json: {
+          ...preview,
+          readiness: {
+            state: "blocked",
+            blockers: [
+              { provider: "", kind: "other", count: 1, models: [], reasons: ["Native key is inactive or expired"] },
+            ],
+          },
+          blocked: ["Native key is inactive or expired"],
+          canApply: false,
+          previewToken: undefined,
+        },
+      });
+    });
+    await button("Adopt this key").click();
+    const before = dialog.getByRole("region", { name: "Before adopting", exact: true });
+    await expect(before.getByRole("heading", { name: "Nothing to decide yet", exact: true })).toBeVisible();
+    await expect(before).toContainText("This key is disabled or expired in Bifrost.");
+    await expect(before).toContainText("Enable or renew this key in Bifrost, then press Refresh preview.");
+    // No count of decisions anywhere, no numbered list, no button that would settle it; the footer says why Adopt is off.
+    await expect(dialog).not.toContainText("decision");
+    await expect(dialog).not.toContainText("decided");
+    await expect(dialog.locator("ol")).toHaveCount(0);
+    await expect(before.getByRole("button")).toHaveCount(0);
+    await expect(dialog.getByText("Enable or renew the key in Bifrost first", { exact: true })).toBeVisible();
+    await expect(dialog.getByRole("button", { name: "Adopt", exact: true })).toBeDisabled();
+    await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+    await page.unroute("**/api/keys/adopt");
   });
 
   await test.step("unmanaged key opens on adoption; the composer follows adoption", async () => {
@@ -3038,6 +3074,11 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     ).toContainText("qa-ghost");
     await expect(ledger.getByRole("listitem").filter({ hasText: "via Google" })).toHaveCount(1);
     await expect(ledger).toContainText("Kept in Bifrost: Google.");
+    // Final critique: the difference explains itself, as a tooltip on the summary and as a hidden sentence it is described by.
+    const explanation = "Bifrost confirmed this key. 1 permission kept in Bifrost is not listed by Bifrost.";
+    const verdict = ledger.getByText(/^Technical check · Verified .* · 1 difference$/);
+    await expect(verdict).toHaveAttribute("title", explanation);
+    await expect(verdict).toHaveAccessibleDescription(explanation);
     // A kept route is Bifrost's: Registry's own check still reads verified, with no missing route.
     const key = (await api("workspace")).data.keys.find((k: { id: string }) => k.id === "vk-qa-kept");
     expect(key.publication.state).toBe("verified");
@@ -3047,6 +3088,7 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await editSelection();
     await composerStep("Review").click();
     await expect(page.getByText("Verified · 1 difference", { exact: true })).toBeVisible();
+    await expect(page.getByText("Verified · 1 difference", { exact: true })).toHaveAccessibleDescription(explanation);
     await expect(page.getByText("1 model selected · 0 groups", { exact: true })).toBeVisible();
     await expect(
       page.getByText(
@@ -3056,6 +3098,9 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     ).toBeVisible();
     await button("All virtual keys").click();
     await expect(keyCard("QA Kept Key")).toContainText("2 models · Verified · 1 difference");
+    const chip = keyCard("QA Kept Key").getByText("Verified · 1 difference", { exact: true });
+    await expect(chip).toHaveAttribute("title", explanation);
+    await expect(chip).toHaveAccessibleDescription(explanation);
   });
 
   await test.step("a check that fails after publishing names the key, not its id", async () => {

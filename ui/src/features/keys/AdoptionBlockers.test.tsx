@@ -143,6 +143,107 @@ must(
   `only models to add: no decision, got ${toAddOnly}`,
 );
 
+// Final critique, P1: a blocker no choice settles (here a key disabled or expired in Bifrost, no provider, no button) is
+// no decision. It is listed under "Before adopting" with its next step; with nothing else to decide the heading says so
+// instead of "0 decisions", and the footer beside Adopt (prerequisiteLine) gives the same reason in one clause.
+const inactiveReason = "Native key is inactive or expired";
+const inactive: Readiness = {
+  state: "blocked",
+  blockers: [{ provider: "", kind: "other", count: 1, models: [], reasons: [inactiveReason] }],
+};
+const inactiveProgress = adoptionProgress(inactive, [], []);
+must(inactiveProgress.total === 0 && inactiveProgress.decided === 0, "a key-level blocker is no decision");
+const inactiveEnglish = render(
+  "en",
+  inactive,
+  [inactiveReason],
+  () => {},
+  () => {},
+  () => {},
+);
+const inactivePlain = text(inactiveEnglish);
+must(
+  inactivePlain.includes("Nothing to decide yet") &&
+    decisionsHeading(inactiveProgress, (en: string) => en) === "Nothing to decide yet",
+  `no decision: the heading says so, got ${inactivePlain}`,
+);
+must(
+  !/decision|0 of 0|Each one is required/.test(inactivePlain) && !inactiveEnglish.includes("<ol"),
+  `no decision count, no numbered list, got ${inactivePlain}`,
+);
+must(
+  inactivePlain.includes("This key is disabled or expired in Bifrost.") &&
+    inactivePlain.includes("Enable or renew this key in Bifrost, then press Refresh preview."),
+  `the reason and the next step are shown, got ${inactivePlain}`,
+);
+must(
+  /<section aria-label="Before adopting"/.test(inactiveEnglish) && !inactiveEnglish.includes("<button"),
+  "a separate Before adopting block, with no button to press",
+);
+const inactiveFrench = render(
+  "fr",
+  inactive,
+  [inactiveReason],
+  () => {},
+  () => {},
+  () => {},
+);
+for (const line of [
+  "Rien à décider pour l’instant",
+  "Cette clé est désactivée ou expirée dans Bifrost.",
+  "Activez ou renouvelez cette clé dans Bifrost, puis appuyez sur Actualiser l’aperçu.",
+])
+  must(text(inactiveFrench).includes(line), `French dialog must read "${line}", got ${text(inactiveFrench)}`);
+must(!/décision|0 sur 0/.test(text(inactiveFrench)), "no decision count in French either");
+// Beside one provider decision the total is 1: the key-level blocker is listed apart, under "Before adopting".
+const inactiveAndMistral: Readiness = { state: "blocked", blockers: [...inactive.blockers, hermes.blockers[0]] };
+const beside = render(
+  "en",
+  inactiveAndMistral,
+  [inactiveReason],
+  undefined,
+  () => {},
+  () => {},
+);
+const besideProgress = adoptionProgress(inactiveAndMistral, [], []);
+must(
+  besideProgress.total === 1 && text(beside).includes("1 decision before adopting"),
+  `one decision beside the key-level blocker, got ${text(beside)}`,
+);
+must(
+  count(beside.split("<ol")[1].split("</ol>")[0], /<li/g) === 1 &&
+    !beside.split("</ol>")[0].includes("disabled or expired") &&
+    beside.split("</ol>")[1].includes("This key is disabled or expired in Bifrost.") &&
+    !beside.includes("Nothing to decide yet"),
+  "one numbered row for the provider; the key-level blocker follows, unnumbered",
+);
+must(
+  text(beside).includes("Before adopting") && text(beside).includes("press Refresh preview"),
+  "the block is named and gives the next step",
+);
+// A reason with no choice that is not about the key's state reads the generic next step.
+const profile = render(
+  "en",
+  {
+    state: "blocked",
+    blockers: [
+      {
+        provider: "",
+        kind: "other",
+        count: 1,
+        models: [],
+        reasons: ["Native key is controlled by an external access profile"],
+      },
+    ],
+  },
+  [],
+);
+must(
+  text(profile).includes("This key’s permissions come from an external profile.") &&
+    text(profile).includes("Fix this in Bifrost, then press Refresh preview."),
+  `any other reason: the generic next step, got ${text(profile)}`,
+);
+
 // A provider Bifrost has disabled says so in plain words.
 const disabled: Readiness = { state: "blocked", blockers: [{ ...hermes.blockers[0], providerDisabled: true }] };
 must(
@@ -508,6 +609,7 @@ for (const language of ["en", "fr"] as const)
       () => {},
     ),
     render(language, twice, [shared], undefined, () => {}),
+    render(language, inactive, [inactiveReason], undefined, () => {}),
     render(language, undefined, reasonsSent),
     render(
       language,

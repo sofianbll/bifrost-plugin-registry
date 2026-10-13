@@ -1,4 +1,6 @@
+import { useId } from "react";
 import { RotateCcw } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { displayProvider } from "../../components/registry/BrandIcon";
 import { exposed, members, retainedAccesses, type Group, type Key, type Model } from "../../domain/registry";
@@ -105,6 +107,58 @@ export const checkState = (key: Key, copy: Copy, differences = 0) =>
     : key.publication?.state === "drift"
       ? copy("Differences found", "Écarts trouvés")
       : copy("Not checked yet", "Pas encore vérifiée");
+// What "Verified · 1 difference" means (ADR 0001, #99), said once: Bifrost confirmed the key, and the permissions kept in
+// Bifrost that its list leaves out are the differences. Empty without difference. checkDifferenceNote gates it like
+// checkState does (only a verified key reads differences), so the note and the count always come together.
+export const differenceNote = (count: number, copy: Copy) =>
+  count
+    ? copy(
+        `Bifrost confirmed this key. ${count} ${count === 1 ? "permission kept in Bifrost is" : "permissions kept in Bifrost are"} not listed by Bifrost.`,
+        `Bifrost a confirmé cette clé. ${count} ${count === 1 ? "permission conservée dans Bifrost n’est pas listée" : "permissions conservées dans Bifrost ne sont pas listées"} par Bifrost.`,
+      )
+    : "";
+export const checkDifferenceNote = (key: Key, copy: Copy, differences = 0) =>
+  key.publication?.state === "verified" ? differenceNote(differences, copy) : "";
+
+// The check as a chip (key card, table, publication card): its explanation is the tooltip for the mouse and a hidden
+// sentence the chip is described by for assistive technology, next to the chip so its own text stays "Verified · 1 difference".
+export function CheckBadge({
+  virtualKey,
+  differences,
+  idle,
+}: {
+  virtualKey: Key;
+  differences: number;
+  // The variant before any verdict: the card outlines it, the publication card keeps it secondary.
+  idle: "outline" | "secondary";
+}) {
+  const copy = useCopy();
+  const id = useId();
+  const state = virtualKey.publication?.state;
+  const note = checkDifferenceNote(virtualKey, copy, differences);
+  return (
+    <>
+      <Badge
+        variant={
+          state === "verified" && !differences
+            ? "success"
+            : state === "drift" || state === "verified"
+              ? "warning"
+              : idle
+        }
+        title={note || undefined}
+        aria-describedby={note ? id : undefined}
+      >
+        {checkState(virtualKey, copy, differences)}
+      </Badge>
+      {note && (
+        <span id={id} className="sr-only">
+          {note}
+        </span>
+      )}
+    </>
+  );
+}
 
 // What a check does, said once for the key page and the editor.
 export const checkNote = (copy: Copy) =>
@@ -155,6 +209,7 @@ type Props = {
 export function KeySummary({ virtualKey, models, groups, busy, snapshotMode, onReread }: Props) {
   const copy = useCopy();
   const { colon, day, moment } = useFormat();
+  const noteId = useId();
   const ledger = keyLedger(virtualKey, models, groups);
   const publication = virtualKey.publication;
   const pending = Object.entries(virtualKey.pendingAccessSelection || {});
@@ -189,6 +244,8 @@ export function KeySummary({ virtualKey, models, groups, busy, snapshotMode, onR
     : publication?.state === "verified" && publication.checkedAt
       ? `${copy(`Verified ${day(publication.checkedAt)}`, `Vérifiée le ${day(publication.checkedAt)}`)}${ledger.differences ? ` · ${differenceCount(ledger.differences, copy)}` : ""}`
       : checkState(virtualKey, copy, ledger.differences);
+  // The verdict in the fold's summary reads "Verified … · 1 difference": the tooltip and the hidden sentence explain it.
+  const verdictNote = snapshotMode ? "" : checkDifferenceNote(virtualKey, copy, ledger.differences);
   const kept = virtualKey.policy.keptNative ?? [];
   // Two models can share a display name (different cards): their common ID, in Basic too, tells them apart.
   const names = ledger.rows.filter(row => !row.open).map(row => row.name);
@@ -273,8 +330,17 @@ export function KeySummary({ virtualKey, models, groups, busy, snapshotMode, onR
           )}
         </p>
       )}
+      {verdictNote && (
+        <span id={noteId} className="sr-only">
+          {verdictNote}
+        </span>
+      )}
       <details className="border-t pt-3 text-sm">
-        <summary className="cursor-pointer font-medium">
+        <summary
+          className="cursor-pointer font-medium"
+          title={verdictNote || undefined}
+          aria-describedby={verdictNote ? noteId : undefined}
+        >
           {copy("Technical check", "Vérification technique")}
           {/* The headline already says "not checked yet": the fold does not repeat it. */}
           {!headlineSaysUnchecked && ` · ${verdict}`}
