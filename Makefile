@@ -1,6 +1,10 @@
-.PHONY: check test ui-check script-check lint build serve native hooks
+.PHONY: check verify test ui-check script-check lint build serve native hooks
 
 check: test ui-check script-check
+
+# make check, then the browser journeys only if it passed; logs in dist/checks/verify/, one VERIFY PASSED or FAILED line.
+verify:
+	./scripts/verify.sh
 
 test:
 	./scripts/test.sh
@@ -12,6 +16,8 @@ script-check:
 	python3 scripts/test_import_bifrost_datasheets.py
 	for f in scripts/*.sh packaging/*.sh; do bash -n "$$f" || exit 1; done
 	bash scripts/test-github-setup.sh
+	bash scripts/test-verify.sh
+	bash scripts/test-test-copy-install.sh
 	bash scripts/check-case-collisions.sh
 	@if command -v bun >/dev/null 2>&1 && [ -d dist/models-dev-upstream ]; then \
 		bun scripts/build-modelsdev-snapshot.test.ts; \
