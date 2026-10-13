@@ -4,6 +4,7 @@ import * as React from "react";
 
 import { useCopy } from "@/lib/locale";
 import { cn } from "@/lib/utils";
+import { useRestoreFocus } from "./restore-focus";
 
 function Dialog({ ...props }: React.ComponentProps<typeof DialogPrimitive.Root>) {
   return <DialogPrimitive.Root data-slot="dialog" {...props} />;
@@ -39,12 +40,15 @@ function DialogContent({
   children,
   showCloseButton = true,
   disableOutsideClick = true,
+  onOpenAutoFocus,
+  onCloseAutoFocus,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean;
   disableOutsideClick?: boolean;
 }) {
   const copy = useCopy();
+  const restoreFocus = useRestoreFocus(onOpenAutoFocus, onCloseAutoFocus);
   return (
     <DialogPortal data-slot="dialog-portal">
       <DialogOverlay />
@@ -55,6 +59,8 @@ function DialogContent({
           className,
         )}
         onInteractOutside={disableOutsideClick ? e => e.preventDefault() : undefined}
+        onOpenAutoFocus={restoreFocus.onOpenAutoFocus}
+        onCloseAutoFocus={restoreFocus.onCloseAutoFocus}
         {...props}
       >
         {children}

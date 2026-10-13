@@ -387,11 +387,12 @@ function EndpointChoices({
         <span aria-hidden="true" className="text-muted-foreground">
           ·
         </span>{" "}
+        {/* A 24 px target (WCAG 2.5.8); the negative margin keeps the line height. */}
         <Button
           type="button"
           variant="link"
           size="sm"
-          className="h-auto px-0"
+          className="-my-0.5 h-auto min-h-6 px-0"
           aria-label={copy(`Change requests for ${name}`, `Changer les requêtes pour ${name}`)}
           onClick={() => setChanging(true)}
         >

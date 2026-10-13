@@ -1423,10 +1423,11 @@ function RegistryApp({
                             "Models discovered in Bifrost and not saved yet. Open one to register it.",
                             "Modèles découverts dans Bifrost et pas encore enregistrés. Ouvrez-en un pour l’enregistrer.",
                           )}{" "}
+                          {/* A 24 px target (WCAG 2.5.8); the negative margin keeps the line height. */}
                           <Button
                             variant="link"
                             size="sm"
-                            className="h-auto p-0 align-baseline"
+                            className="-my-0.5 h-auto min-h-6 p-0 align-baseline"
                             onClick={() => openModel(newModel(), true)}
                           >
                             {copyText("Advanced: enter an access manually", "Avancé : saisir un accès manuellement")}
