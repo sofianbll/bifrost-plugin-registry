@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { displayProvider } from "../../components/registry/BrandIcon";
 import type { Readiness, ReadinessBlocker } from "../../domain/registry";
 import { useCopy, useFormat, type Copy } from "../../lib/locale";
-import { adoptionProgress, blockerLine, decisionsHeading } from "./key-readiness";
+import { adoptionProgress, blockerLine, decisionsHeading, fixReasons, fixStep, splitBlockers } from "./key-readiness";
 import { NativeEditButton, nativeEditFor, type NativeEditRequest } from "./NativePermissionEdit";
 
 // The server writes its adoption reasons as English text in about twenty places
@@ -110,7 +110,9 @@ export function adoptionReason(reason: string, copyText: Copy) {
 // (the key as a whole when it has its own blockers), each blocker with its count, the models it concerns named in
 // the line (three, then "+N"), and the choices that resolve the row. Every row is required: the key cannot be adopted before.
 // Unsaved models are no decision (only the models page settles them): they follow, unnumbered, under "Before
-// adopting", with onShowToAdd. Choices: onKeep (#92) for undiscovered models, a provider
+// adopting", with onShowToAdd. Neither is a blocker no choice settles (a key disabled or expired in Bifrost): it is
+// listed there too, with the next step in plain words, and the heading reads "Nothing to decide yet" when no
+// decision is left. Choices: onKeep (#92) for undiscovered models, a provider
 // that allows every model (dynamic) or a model allowed through two providers (collision, where either provider
 // can be kept), and #93's native edits (NativeEditButton: remove models, replace "all models"/"all providers").
 // A provider the preview keeps native comes back flagged `kept` and is shown by KeptProviders, not here.
@@ -146,12 +148,10 @@ export function AdoptionBlockers({
         </p>
       </section>
     );
-  const rows = new Map<string, ReadinessBlocker[]>();
-  for (const blocker of readiness?.blockers ?? [])
-    if (!blocker.kept && blocker.kind !== "unsaved")
-      rows.set(blocker.provider, [...(rows.get(blocker.provider) ?? []), blocker]);
+  const { decisions: rows } = splitBlockers(readiness);
   // Models to add are settled on the models page, not here: listed apart, unnumbered (spec #85, critique round 2).
   const toAdd = (readiness?.blockers ?? []).filter(blocker => !blocker.kept && blocker.kind === "unsaved");
+  const fixes = fixReasons(readiness);
   const left = readiness ? rows.size : plain.length;
   const counts = readiness ? (progress ?? adoptionProgress(readiness, kept, [])) : { decided: 0, total: plain.length };
   const title = decisionsHeading(counts, copyText);
@@ -195,8 +195,9 @@ export function AdoptionBlockers({
           )}
         </section>
       )}
-      {toAdd.length > 0 && (
+      {(toAdd.length > 0 || fixes.length > 0) && (
         <section aria-label={before} className="space-y-3 rounded-sm border p-3">
+          {fixes.length > 0 && <h3 className="font-medium">{counts.total === 0 ? title : before}</h3>}
           {toAdd.map(blocker => {
             const name = displayProvider(blocker.provider);
             return (
@@ -229,6 +230,12 @@ export function AdoptionBlockers({
               </div>
             );
           })}
+          {fixes.map((reason, index) => (
+            <div key={`${index}/${reason}`}>
+              <p className="break-words font-medium">{adoptionReason(reason, copyText)}</p>
+              <p className="text-xs">{fixStep(reason, copyText)}</p>
+            </div>
+          ))}
         </section>
       )}
     </>

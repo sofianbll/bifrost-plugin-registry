@@ -21,7 +21,7 @@ import {
   type ReadinessState,
 } from "./key-readiness";
 import { permissionSummary } from "./KeyComposer.state";
-import { checkState, keyLedger, ledgerTotal } from "./KeySummary";
+import { CheckBadge, keyLedger, ledgerTotal } from "./KeySummary";
 import { useSessionState } from "../../lib/session-state";
 
 type Props = {
@@ -126,23 +126,9 @@ export function KeyLibrary({
     );
   };
   // A verified key whose readback lacks a kept model reads "Verified · 1 difference" (#99), as a warning.
-  const checkBadge = (key: Key) => {
-    const state = key.publication?.state;
-    const { differences } = keyLedger(key, models, groups);
-    return (
-      <Badge
-        variant={
-          state === "verified" && !differences
-            ? "success"
-            : state === "drift" || state === "verified"
-              ? "warning"
-              : "outline"
-        }
-      >
-        {checkState(key, copy, differences)}
-      </Badge>
-    );
-  };
+  const checkBadge = (key: Key) => (
+    <CheckBadge virtualKey={key} differences={keyLedger(key, models, groups).differences} idle="outline" />
+  );
   const dupeHint = (key: Key) =>
     dupes.has(key.id) && (
       <p className="text-xs text-chart-warning-ink">

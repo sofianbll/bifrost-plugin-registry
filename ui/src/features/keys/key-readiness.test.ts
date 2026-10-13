@@ -7,10 +7,13 @@ import {
   decidedLabel,
   decisionsHeading,
   disabledProviders,
+  fixReasons,
+  fixStep,
   prerequisiteLine,
   readinessLabel,
   readinessReason,
   readinessState,
+  splitBlockers,
   unsavedRoutes,
 } from "./key-readiness";
 
@@ -258,6 +261,102 @@ equal(
   adoptionProgress({ state: "blocked", blockers: [vertex] }, [], []),
   { decided: 0, total: 0 },
   "the prerequisite is not counted as a decision",
+);
+// Final critique, P1: a blocker no choice settles is a prerequisite, not a decision. A key disabled or expired in
+// Bifrost has no provider and no button, so "2 decisions · 0 of 2 decided" could never reach Adopt.
+const inactiveReason = "Native key is inactive or expired";
+const inactive = block("", "other", [], [inactiveReason]);
+const profile = block("", "other", [], ["Native key is controlled by an external access profile"]);
+const noProviderKey = block("Codex", "other", [], ["No enabled native provider key for Codex/x"]);
+equal(
+  adoptionProgress({ state: "blocked", blockers: [inactive] }, [], []),
+  { decided: 0, total: 0 },
+  "a key-level blocker alone is no decision",
+);
+equal(
+  adoptionProgress({ state: "blocked", blockers: [inactive, profile, noProviderKey] }, [], []),
+  { decided: 0, total: 0 },
+  "key-level and provider reasons with no choice are no decision either",
+);
+equal(
+  adoptionProgress({ state: "blocked", blockers: [inactive, mistral] }, [], []),
+  { decided: 0, total: 1 },
+  "a key-level blocker beside one provider decision: total 1",
+);
+equal(
+  adoptionProgress({ state: "blocked", blockers: [inactive, { ...mistral, kept: true }] }, ["mistral"], []),
+  { decided: 1, total: 1 },
+  "the decision once made; the key-level blocker still is not one",
+);
+equal(
+  adoptionProgress({ state: "blocked", blockers: [inactive, everyProvider] }, [], []),
+  { decided: 0, total: 1 },
+  "every provider is a decision (a native edit settles it)",
+);
+// A provider's own reason with no choice sits in its decision row once another blocker of that provider has a choice
+// (keeping the provider settles both); alone, it is a prerequisite.
+const mixed = block("mistral", "other", [], ["Empty native allowed_models has version-dependent meaning for mistral"]);
+equal(
+  [...splitBlockers({ state: "blocked", blockers: [mixed, mistral, inactive] }).decisions].map(([p, b]) => [
+    p,
+    b.length,
+  ]),
+  [["mistral", 2]],
+  "the reason rides with its provider's decision",
+);
+equal(
+  splitBlockers({
+    state: "blocked",
+    blockers: [mixed, inactive, unsaved, { ...mistral, kept: true }],
+  }).prerequisites.map(blocker => blocker.provider),
+  ["mistral", ""],
+  "the others are prerequisites; models to add and kept rows are neither",
+);
+equal(fixReasons({ state: "blocked", blockers: [inactive, mistral] }), [inactiveReason], "reasons to fix in Bifrost");
+equal(fixReasons(undefined), [], "none without a verdict");
+// The heading says there is nothing to decide, not "0 decisions"; the footer count is not shown at zero.
+equal(decisionsHeading({ decided: 0, total: 0 }, english), "Nothing to decide yet", "no decision, English");
+equal(decisionsHeading({ decided: 0, total: 0 }, french), "Rien à décider pour l’instant", "no decision, French");
+// The next step and the footer clause for it, in both languages; the footer keeps one clause per distinct need.
+equal(
+  fixStep(inactiveReason, english),
+  "Enable or renew this key in Bifrost, then press Refresh preview.",
+  "next step, inactive key",
+);
+equal(
+  fixStep(inactiveReason, french),
+  "Activez ou renouvelez cette clé dans Bifrost, puis appuyez sur Actualiser l’aperçu.",
+  "next step, inactive key, French",
+);
+equal(
+  fixStep("Native key is controlled by an external access profile", english),
+  "Fix this in Bifrost, then press Refresh preview.",
+  "next step, any other reason",
+);
+equal(
+  prerequisiteLine({ state: "blocked", blockers: [inactive] }, english),
+  "Enable or renew the key in Bifrost first",
+  "the footer says why Adopt is off: the key",
+);
+equal(
+  prerequisiteLine({ state: "blocked", blockers: [inactive] }, french),
+  "Activez ou renouvelez d’abord la clé dans Bifrost",
+  "the footer clause, in French",
+);
+equal(
+  prerequisiteLine({ state: "blocked", blockers: [profile, noProviderKey] }, english),
+  "Fix the key in Bifrost first",
+  "several reasons of one kind: one clause",
+);
+equal(
+  prerequisiteLine({ state: "blocked", blockers: [vertex, inactive, mistral] }, english),
+  "Register 8 Vertex AI models first · Enable or renew the key in Bifrost first",
+  "models to register and a key to fix: both clauses, models first",
+);
+equal(
+  prerequisiteLine({ state: "blocked", blockers: [{ ...inactive, kept: true }] }, english),
+  "",
+  "a kept row waits for nothing",
 );
 // A provider Bifrost reports as disabled is kept in Bifrost from the start (still undoable).
 equal(

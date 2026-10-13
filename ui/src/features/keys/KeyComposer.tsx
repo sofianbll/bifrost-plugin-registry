@@ -24,7 +24,7 @@ import {
 } from "../../domain/registry";
 import { useCopy, useFormat } from "../../lib/locale";
 import { KeptNative } from "./KeptNative";
-import { checkLabel, checkNote, checkState, keyLedger, keptNote } from "./KeySummary";
+import { CheckBadge, checkLabel, checkNote, keyLedger, keptNote } from "./KeySummary";
 import {
   accessOrigin,
   keyBaseline,
@@ -753,19 +753,7 @@ export function PublicationCard({
           {snapshotMode
             ? copy("Saved in this local copy", "Enregistré dans cette copie locale")
             : copy("Published selection and Bifrost check", "Sélection publiée et vérification avec Bifrost")}
-          {!snapshotMode && (
-            <Badge
-              variant={
-                publication?.state === "verified" && !differences
-                  ? "success"
-                  : publication?.state === "verified" || publication?.state === "drift"
-                    ? "warning"
-                    : "secondary"
-              }
-            >
-              {checkState(virtualKey, copy, differences)}
-            </Badge>
-          )}
+          {!snapshotMode && <CheckBadge virtualKey={virtualKey} differences={differences} idle="secondary" />}
         </CardTitle>
         <p className="text-xs text-muted-foreground">
           {snapshotMode

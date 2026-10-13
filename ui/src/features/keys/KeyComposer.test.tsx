@@ -106,6 +106,36 @@ must(
   "no difference, a plain Verified",
 );
 
+// The card explains the difference, as the key page and the cards do (tooltip and hidden sentence); a plain Verified does not.
+for (const [language, sentence] of [
+  ["en", "Bifrost confirmed this key. 1 permission kept in Bifrost is not listed by Bifrost."],
+  ["fr", "Bifrost a confirmé cette clé. 1 permission conservée dans Bifrost n’est pas listée par Bifrost."],
+] as const) {
+  const html = wrap(
+    language,
+    <PublicationCard
+      virtualKey={kept}
+      differences={1}
+      savedIds={[]}
+      busy={false}
+      snapshotMode={false}
+      onReread={() => {}}
+    />,
+  );
+  const id = html.match(/<span id="([^"]+)" class="sr-only">/)?.[1];
+  must(
+    !!id &&
+      html.includes(`title="${sentence}"`) &&
+      html.includes(`aria-describedby="${id}"`) &&
+      text(html).includes(sentence),
+    `${language}: the card explains the difference, got ${html}`,
+  );
+  must(
+    !publicationText(kept, 0, language).includes(sentence.slice(0, 20)),
+    `${language}: no difference, no explanation`,
+  );
+}
+
 // The editor computes that count the way the key page does, from the same ledger: Google/qa-ghost is not listed.
 const page = text(
   wrap(

@@ -2,7 +2,18 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { fixture } from "../../dev/fixtures/registry";
 import type { Key, Model } from "../../domain/registry";
 import { LanguageContext } from "../../lib/locale";
-import { checkFailed, checkLabel, checkState, keptNote, keyLedger, KeySummary, verifiedToast } from "./KeySummary";
+import {
+  checkDifferenceNote,
+  checkFailed,
+  checkLabel,
+  checkState,
+  differenceCount,
+  differenceNote,
+  keptNote,
+  keyLedger,
+  KeySummary,
+  verifiedToast,
+} from "./KeySummary";
 
 // Spec #85 round 2 and #99: a managed key opens on one ledger, "This key can call N models" (the h1 names the key, #69), one row
 // per model with the subscriptions that serve it; the technical check waits in one fold.
@@ -494,5 +505,77 @@ must(
 
 const empty = summary({ ...hermes, policy: { groups: [], added: [], excluded: [], naming: "model" } });
 must(empty.includes("No model selected yet"), `an empty key says so, got ${empty}`);
+
+// Final critique: "Verified · 1 difference" explains itself (ADR 0001, #99), from the helper that counts the difference.
+const sentence = {
+  en: [
+    "Bifrost confirmed this key. 1 permission kept in Bifrost is not listed by Bifrost.",
+    "Bifrost confirmed this key. 2 permissions kept in Bifrost are not listed by Bifrost.",
+  ],
+  fr: [
+    "Bifrost a confirmé cette clé. 1 permission conservée dans Bifrost n’est pas listée par Bifrost.",
+    "Bifrost a confirmé cette clé. 2 permissions conservées dans Bifrost ne sont pas listées par Bifrost.",
+  ],
+};
+must(
+  differenceNote(1, en) === sentence.en[0] &&
+    differenceNote(2, en) === sentence.en[1] &&
+    differenceNote(1, fr) === sentence.fr[0] &&
+    differenceNote(2, fr) === sentence.fr[1] &&
+    differenceNote(0, en) === "" &&
+    differenceNote(0, fr) === "",
+  "the explanation counts the permissions in both languages and is empty without a difference",
+);
+// The note comes with the count, whatever the state or the number: it is written exactly when checkState counts differences.
+for (const state of ["verified", "drift", "not_verified"] as const)
+  for (const count of [0, 1, 3]) {
+    const key: Key = { ...hermes, publication: { ...hermes.publication!, state } };
+    must(
+      (checkDifferenceNote(key, en, count) !== "") ===
+        checkState(key, en, count).includes(differenceCount(count, en)) &&
+        (checkDifferenceNote(key, fr, count) !== "") ===
+          checkState(key, fr, count).includes(differenceCount(count, fr)),
+      `${state} with ${count}: the note and the counted differences go together`,
+    );
+  }
+must(checkDifferenceNote({ ...hermes, publication: undefined }, en, 1) === "", "no verdict, no note");
+// On the key page the fold's summary carries it as a tooltip and as a hidden sentence it is described by.
+const page_ = (virtualKey: Key, language: "en" | "fr" = "en") =>
+  wrap(
+    language,
+    <KeySummary
+      virtualKey={virtualKey}
+      models={hermesModels}
+      groups={fixture.groups}
+      busy={false}
+      snapshotMode={false}
+      onReread={() => {}}
+    />,
+  );
+for (const language of ["en", "fr"] as const) {
+  const html = page_(hermes, language);
+  const describedby = html.match(/<summary[^>]*aria-describedby="([^"]+)"/)?.[1];
+  must(
+    !!describedby &&
+      html.includes(`<span id="${describedby}" class="sr-only">${sentence[language][0]}</span>`) &&
+      html.includes(`<summary class="cursor-pointer font-medium" title="${sentence[language][0]}"`),
+    `${language}: the summary reads "Verified … 1 difference" with its explanation, got ${html}`,
+  );
+}
+const noExplanation: [string, Key][] = [
+  [
+    "a verified key without difference",
+    { ...hermes, policy: { ...hermes.policy, keptNative: [] }, permissions: undefined },
+  ],
+  ["a key whose check found differences", { ...hermes, publication: { ...hermes.publication!, state: "drift" } }],
+  ["a key not checked yet", { ...hermes, publication: undefined }],
+];
+for (const [what, virtualKey] of noExplanation) {
+  const html = page_(virtualKey);
+  must(
+    !html.includes("Bifrost confirmed this key") && !html.includes("aria-describedby"),
+    `${what}: no explanation, got ${text(html)}`,
+  );
+}
 
 console.log("Key summary checks passed");

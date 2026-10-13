@@ -89,7 +89,7 @@ _Avoid_ : protocole, endpoint
 Liste réellement renvoyée au client lorsqu'il demande les modèles avec sa clé.
 
 **Vérifiée** :
-Se dit d'une clé dont le catalogue publié, relu avec cette clé, correspond à ce que Registry y a publié. Elle atteste le catalogue observé à cet instant, ni le routage ni les capacités. Un modèle que Bifrost ne liste pas n'entre jamais dans le total vérifié : il est signalé comme écart.
+Se dit d'une clé dont le catalogue publié, relu avec cette clé, correspond à ce que Registry y a publié. Elle atteste le catalogue observé à cet instant, ni le routage ni les capacités. Un modèle que Bifrost ne liste pas n'entre jamais dans le total vérifié : il est signalé comme écart. « Vérifiée · 1 écart » se lit : Bifrost a confirmé la clé, mais 1 permission conservée dans Bifrost n'y est pas listée ; une infobulle et l'aide le disent.
 _Avoid_ : testée, qualifiée
 
 **Vérifier avec Bifrost** :
@@ -124,11 +124,11 @@ Confier à Registry le choix des modèles d'une clé créée dans Bifrost, sans 
 _Avoid_ : importer, examiner (comme nom d'une action de carte)
 
 **Décision d'adoption** :
-Choix obligatoire que la fenêtre d'adoption demande avant d'adopter, une ligne par fournisseur, avec les modèles concernés nommés dans la ligne. Le compte « n sur N décidées » ne compte que les décisions.
+Choix obligatoire que la fenêtre d'adoption demande avant d'adopter, une ligne par fournisseur, avec les modèles concernés nommés dans la ligne. Le compte « n sur N décidées » ne compte que les décisions. Un blocage qu'aucun bouton ne règle (clé désactivée ou expirée dans Bifrost) n'en est pas une : c'est un préalable.
 _Avoid_ : étape, blocage (une décision est la réponse à un blocage)
 
 **Préalable à l'adoption** :
-Ce qu'il faut faire hors de la fenêtre avant d'adopter, comme enregistrer des modèles que Bifrost liste sans fiche. Il se dit à côté du compte des décisions, sans en être une.
+Ce qu'il faut faire hors de la fenêtre avant d'adopter, comme enregistrer des modèles que Bifrost liste sans fiche, ou activer une clé désactivée ou expirée dans Bifrost puis actualiser l'aperçu. Il se dit à côté du compte des décisions, sans en être une.
 _Avoid_ : décision
 
 **Relier à nouveau la clé Bifrost** :

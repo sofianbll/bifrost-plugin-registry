@@ -145,6 +145,27 @@ for (const [language, line] of [
   const text = plain(render(language, [unlisted]));
   if (!text.includes(line)) throw new Error(`${language}: the key card must read "${line}", got ${text}`);
 }
+// Final critique: that check explains itself, on the card and in the table: a tooltip on the chip and a hidden sentence
+// it is described by; a plain "Verified" carries neither.
+const explained = {
+  en: "Bifrost confirmed this key. 1 permission kept in Bifrost is not listed by Bifrost.",
+  fr: "Bifrost a confirmé cette clé. 1 permission conservée dans Bifrost n’est pas listée par Bifrost.",
+};
+for (const layout of ["grid", "table"] as const)
+  for (const language of ["en", "fr"] as const) {
+    const html = render(language, [unlisted], { layout });
+    const note = html.match(/<span id="([^"]+)" class="sr-only">([^<]*)<\/span>/);
+    if (
+      !note ||
+      note[2] !== explained[language] ||
+      !html.includes(`title="${explained[language]}"`) ||
+      !html.includes(`aria-describedby="${note[1]}"`)
+    )
+      throw new Error(`${language} ${layout}: the chip must carry its explanation, got ${html}`);
+    for (const none of [keptKey, { ...unlisted, publication: { ...unlisted.publication!, state: "drift" as const } }])
+      if (render(language, [none], { layout }).includes(explained[language].slice(0, 25)))
+        throw new Error(`${language} ${layout}: no explanation without a counted difference`);
+  }
 const tableText = (language: "en" | "fr") => plain(render(language, [keptKey], { layout: "table" }));
 if (
   !tableText("en").includes("4 models") ||

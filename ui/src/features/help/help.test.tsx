@@ -109,6 +109,17 @@ for (const phrase of [
   "Adopter",
 ])
   must(french.includes(phrase), `French glossary explains ${phrase}`);
+// Final critique: "Verified · 1 difference" is explained once in the glossary, with the sentence the key's tooltip reads.
+must(
+  english.includes("Verified · 1 difference") &&
+    english.includes("Bifrost confirmed this key. 1 permission kept in Bifrost is not listed by Bifrost."),
+  "English glossary explains Verified with a difference",
+);
+must(
+  french.includes("Vérifiée · 1 écart") &&
+    french.includes("Bifrost a confirmé cette clé. 1 permission conservée dans Bifrost n’est pas listée par Bifrost."),
+  "French glossary explains Verified with a difference",
+);
 // The check has one name: the glossary says "Checked with Bifrost", never "Readback"; the example is no real provider.
 for (const [language, words] of [
   ["en", english],
