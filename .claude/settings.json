@@ -6,6 +6,11 @@
           {
             "type": "command",
             "command": "if [ \"${CLAUDE_CODE_REMOTE:-}\" = true ]; then make -C \"${CLAUDE_PROJECT_DIR:-.}\" hooks; fi"
+          },
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR:-.}/scripts/session-state.sh\"",
+            "timeout": 45
           }
         ]
       }
