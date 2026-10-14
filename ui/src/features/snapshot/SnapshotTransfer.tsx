@@ -119,7 +119,7 @@ export default function SnapshotTransfer({
     models: copy("Models", "Modèles"),
     groups: copy("Groups", "Groupes"),
     policies: copy("Policies", "Politiques"),
-    references: copy("References", "Références"),
+    references: copy("Datasheets", "Références"),
     accesses: copy("Accesses", "Accès"),
     sources: copy("Sources", "Sources"),
   };

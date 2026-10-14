@@ -228,7 +228,7 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
       "preview and confirm",
       "kept in Bifrost",
       "inferred creator",
-      "Associate a reference",
+      "Associate a datasheet",
       "Add to card",
       "no reference",
     ])
@@ -1015,7 +1015,7 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await setExpert(false);
   });
 
-  await test.step("cards without a reference: inferred creator, override, clear, Associate a reference", async () => {
+  await test.step("cards without a reference: inferred creator, override, clear, Associate a datasheet", async () => {
     // qa-codex-mini, qa-sonnet and qa-flash have no reference and one subscription each (Codex →
     // openai, Claude → anthropic, Google → gemini); QA Shared spans two, so nothing is guessed.
     const card = (name: string) => page.locator('[data-slot="card"]').filter({ has: button(`Open ${name} details`) });
@@ -1033,7 +1033,7 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
       await expect(card(name).locator("[data-attention]")).toHaveText(["no reference", "inferred creator"]);
       await expect(card(name).getByText(unknownFacts, { exact: true })).toBeVisible();
       await expect(card(name).getByText("? → ?")).toHaveCount(0);
-      const associate = card(name).getByRole("button", { name: `Associate a reference · ${name}`, exact: true });
+      const associate = card(name).getByRole("button", { name: `Associate a datasheet · ${name}`, exact: true });
       await expect(associate).toBeVisible();
       // The action is as light as the other card buttons, not a second title: no heavier than 500.
       expect(await associate.evaluate(el => getComputedStyle(el).fontWeight), "Associate is not at title weight").toBe(
@@ -1046,7 +1046,7 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     }
     await expect(card("QA Shared").locator("[data-attention]")).toHaveText(["no reference"]);
     await expect(card("QA Opus").locator("[data-attention]")).toHaveText(["+1 available"]);
-    await expect(card("QA Opus").getByRole("button", { name: /^Associate a reference/ })).toHaveCount(0);
+    await expect(card("QA Opus").getByRole("button", { name: /^Associate a datasheet/ })).toHaveCount(0);
     expect(await modelOf("qa-sonnet")).toMatchObject({ creator: "Anthropic", creatorSource: "inferred" });
     expect(await modelOf("qa-opus")).toMatchObject({ creatorSource: "reference" });
 
@@ -1104,9 +1104,9 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     expect((await modelOf("qa-codex-mini")).creator).toMatch(/^(Unknown)?$/);
 
     // Associate: search the references, save the correspondence with the card, read its facts.
-    await card("qa-flash").getByRole("button", { name: "Associate a reference · qa-flash", exact: true }).click();
-    const dialog = page.getByRole("dialog", { name: "Associate a reference" });
-    const search = dialog.getByRole("textbox", { name: "Search references", exact: true });
+    await card("qa-flash").getByRole("button", { name: "Associate a datasheet · qa-flash", exact: true }).click();
+    const dialog = page.getByRole("dialog", { name: "Associate a datasheet" });
+    const search = dialog.getByRole("textbox", { name: "Search datasheets", exact: true });
     await expect(search).toHaveValue("qa-flash"); // starts from the native name
     await expect(dialog.getByText("No reference matches. Try fewer words.")).toBeVisible();
     await search.fill("gemini");
@@ -1124,7 +1124,7 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(flash.locator("[data-attention]")).toHaveCount(0);
     await expect(flash.getByText(unknownFacts, { exact: true })).toHaveCount(0);
     await expect(flash.getByRole("button", { name: /Input: Text, Image; Output: Text/ })).toBeVisible();
-    await expect(flash.getByRole("button", { name: /^Associate a reference/ })).toHaveCount(0);
+    await expect(flash.getByRole("button", { name: /^Associate a datasheet/ })).toHaveCount(0);
     expect(await modelOf("qa-flash")).toMatchObject({ creator: "Google", creatorSource: "reference" });
     expect((await modelOf("qa-flash")).accesses[0].referenceId).toBe("google/qa-gemini");
     await shot("cards-without-reference");
@@ -1454,6 +1454,11 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(sheet().locator("#editor-journey-step-2")).not.toContainText("You’re saving changes");
     await expect(sheet().locator("#editor-journey-summary")).toBeVisible();
     await expect(sheet().getByRole("textbox", { name: "Display name *", exact: true })).toBeVisible();
+    // #110: the spy syncs on open too — the view shows Accesses, so the active step is 1, not the last clicked.
+    await expect(
+      sheet().getByRole("navigation", { name: "Steps" }).locator('[aria-current="step"]'),
+      "the active step follows the view from the start",
+    ).toHaveText(/^1\. /);
     // #101: Review sits far below the top of the one scroll, so the footer button has to bring it into view.
     const reviewHeading = sheet().getByRole("heading", { name: "Review before saving", exact: true });
     await expect(reviewHeading, "the review starts below the first screen").not.toBeInViewport();

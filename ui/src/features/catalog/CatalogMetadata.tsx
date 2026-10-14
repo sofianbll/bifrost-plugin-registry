@@ -333,13 +333,13 @@ export default function CatalogMetadata({
                     setVisibleCount(40);
                   }}
                 >
-                  {copy("Reference cards", "Fiches documentaires")} ({catalog.references.length})
+                  {copy("Datasheets", "Fiches documentaires")} ({catalog.references.length})
                 </Button>
               </div>
               {mode === "reference" && (
                 <>
                   <Button variant="outline" size="sm" onClick={() => setNewReference({ id: "", name: "" })}>
-                    {copy("New reference", "Nouvelle fiche")}
+                    {copy("New datasheet", "Nouvelle fiche")}
                   </Button>
                   {newReference && (
                     <form
@@ -416,7 +416,7 @@ export default function CatalogMetadata({
                 <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
                 <Input
                   aria-label={copy(
-                    mode === "access" ? "Search provider accesses" : "Search references",
+                    mode === "access" ? "Search provider accesses" : "Search datasheets",
                     mode === "access" ? "Rechercher des accès fournisseurs" : "Rechercher des fiches",
                   )}
                   placeholder={copy(

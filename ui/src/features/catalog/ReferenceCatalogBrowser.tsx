@@ -354,7 +354,7 @@ export default function ReferenceCatalogBrowser({
               </p>
               {factLines(group.reference.fields)}
               <Button variant="ghost" size="sm" onClick={() => onMetadata("reference", group.reference!.id)}>
-                {copy("Reference metadata", "Métadonnées de référence")}
+                {copy("Datasheet metadata", "Métadonnées de référence")}
               </Button>
             </div>
           )}
@@ -388,7 +388,7 @@ export default function ReferenceCatalogBrowser({
                     {colon} {catalogAccess.id}
                   </p>
                   <p>
-                    {copy("Reference match", "Correspondance de référence")}
+                    {copy("Datasheet match", "Correspondance de référence")}
                     {colon} {catalogAccess.referenceId || copy("None", "Aucune")} ·{" "}
                     {catalogAccess.mappingManual ? copy("chosen", "choisie") : copy("suggested", "suggérée")}
                   </p>
@@ -525,7 +525,7 @@ export default function ReferenceCatalogBrowser({
     const associate = (group: ReferenceGroup) =>
       canAssociate(group) && (
         <Button variant="outline" size="sm" onClick={() => setAssociating(savedOf(group)!)}>
-          {copy("Associate a reference", "Associer une fiche documentaire")}
+          {copy("Associate a datasheet", "Associer une fiche documentaire")}
           <ActionLabel label={labelOf(group)} />
         </Button>
       );

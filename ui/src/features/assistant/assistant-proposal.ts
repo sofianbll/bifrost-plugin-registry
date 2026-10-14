@@ -104,7 +104,7 @@ export function suggestionRows(model: Model, suggestion: Suggestion): Suggestion
   if (suggestion.referenceId && model.accesses.some(access => access.referenceId !== suggestion.referenceId)) {
     rows.push({
       key: "referenceId",
-      label: "Reference match for all accesses",
+      label: "Datasheet match for all accesses",
       current: [...new Set(model.accesses.map(access => access.referenceId || "Unmapped"))].join(", "),
       proposed: suggestion.referenceId,
       checked: false,

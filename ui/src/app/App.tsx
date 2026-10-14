@@ -344,7 +344,7 @@ function RegistryApp({
         setReferenceError(
           error instanceof Error
             ? error.message
-            : copyText("Reference catalog unavailable.", "Catalogue de référence indisponible."),
+            : copyText("Datasheet catalog unavailable.", "Catalogue de référence indisponible."),
         );
       return false;
     }
@@ -1292,7 +1292,7 @@ function RegistryApp({
                 <Button
                   variant="outline"
                   size="icon"
-                  className="size-8 shrink-0"
+                  className="size-8 max-sm:size-9 shrink-0"
                   aria-label={copyText("Sign out", "Se déconnecter")}
                   title={copyText("Sign out", "Se déconnecter")}
                   disabled={!!busy || loading}

@@ -49,23 +49,30 @@ export function EditorJourney({
   const copy = useCopy();
   // The spy reads the sections once the scroll settles (one animation frame), never mid-frame.
   const spyFrame = useRef(0);
+  const scrollerRef = useRef<HTMLDivElement>(null);
   useEffect(() => () => cancelAnimationFrame(spyFrame.current), []);
+  const readActiveStep = (scroller: HTMLElement) => {
+    const sections = [...scroller.querySelectorAll<HTMLElement>('[id^="editor-journey-step-"]')];
+    if (!sections.length) return;
+    const index = (section: Element) => Number(section.id.replace("editor-journey-step-", ""));
+    const top = scroller.getBoundingClientRect().top;
+    let active = index(sections[0]);
+    for (const section of sections) if (section.getBoundingClientRect().top - top <= 96) active = index(section);
+    // Scrolled to the end: the last step is active even when its section is shorter than the view.
+    if (scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 4)
+      active = index(sections[sections.length - 1]);
+    onStepSpy?.(active);
+  };
+  // Opening Expert shows the first section, whatever the last click left active: sync once on mount (#110).
+  // `expert` flips when the read view switches to edit; onStepSpy is a fresh closure each render, so key on expert.
+  useEffect(() => {
+    if (expert && scrollerRef.current) readActiveStep(scrollerRef.current);
+  }, [expert]);
   const spy = (event: React.UIEvent<HTMLElement>) => {
     if (!expert || !onStepSpy) return;
     const scroller = event.currentTarget;
     cancelAnimationFrame(spyFrame.current);
-    spyFrame.current = requestAnimationFrame(() => {
-      const sections = [...scroller.querySelectorAll<HTMLElement>('[id^="editor-journey-step-"]')];
-      if (!sections.length) return;
-      const index = (section: Element) => Number(section.id.replace("editor-journey-step-", ""));
-      const top = scroller.getBoundingClientRect().top;
-      let active = index(sections[0]);
-      for (const section of sections) if (section.getBoundingClientRect().top - top <= 96) active = index(section);
-      // Scrolled to the end: the last step is active even when its section is shorter than the view.
-      if (scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 4)
-        active = index(sections[sections.length - 1]);
-      onStepSpy(active);
-    });
+    spyFrame.current = requestAnimationFrame(() => readActiveStep(scroller));
   };
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -96,6 +103,7 @@ export function EditorJourney({
         </header>
       )}
       <div
+        ref={scrollerRef}
         data-journey-scroll
         onScroll={spy}
         className="@container/journey custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain py-4 pr-1"

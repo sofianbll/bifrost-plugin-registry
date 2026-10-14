@@ -1038,7 +1038,7 @@ export default function ModelEditor({
             original.accesses.some(before => sameAccess(before, access) && before.referenceId !== access.referenceId),
           )
           .map(access => ({
-            plain: `${copy("Reference changed for", "Fiche documentaire modifiée pour")} ${displayProvider(access.provider)}`,
+            plain: `${copy("Datasheet changed for", "Fiche documentaire modifiée pour")} ${displayProvider(access.provider)}`,
             technical: `${copy("Documentary record for", "Fiche documentaire de")} ${displayProvider(access.provider)}${colon} ${referenceName(original.accesses.find(before => sameAccess(before, access))?.referenceId)} → ${referenceName(access.referenceId)}`,
           })),
         ...draft.accesses
@@ -1482,7 +1482,7 @@ export default function ModelEditor({
       >
         {catalogError && (
           <p role="status" className="rounded-sm border p-3 text-xs text-muted-foreground">
-            {copy("Reference data unavailable", "Données de référence indisponibles")}
+            {copy("Datasheet data unavailable", "Données de référence indisponibles")}
             {colon} {catalogError}.{" "}
             {copy("Existing accesses remain visible.", "Les accès déjà présents restent visibles.")}
           </p>
@@ -2458,7 +2458,7 @@ export default function ModelEditor({
                 value={form.accesses[editingAccess].referenceId || ""}
                 options={referenceOptions}
                 onChange={id => chooseEditReference(editingAccess, id)}
-                placeholder={copy("Search references", "Chercher une fiche documentaire")}
+                placeholder={copy("Search datasheets", "Chercher une fiche documentaire")}
               />
               {form.accesses[editingAccess].referenceId && (
                 <Button variant="ghost" size="sm" onClick={() => changeEditAccess(editingAccess, { referenceId: "" })}>

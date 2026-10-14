@@ -58,7 +58,7 @@ for (const phrase of [
   "kept in Bifrost",
   "Ready to adopt",
   "inferred creator",
-  "Associate a reference",
+  "Associate a datasheet",
   "Add to card",
   "no reference",
 ])

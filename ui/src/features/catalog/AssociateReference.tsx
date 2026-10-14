@@ -59,7 +59,7 @@ export function AssociateReferenceDialog({
     >
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{copy("Associate a reference", "Associer une fiche documentaire")}</DialogTitle>
+          <DialogTitle>{copy("Associate a datasheet", "Associer une fiche documentaire")}</DialogTitle>
           <DialogDescription>
             {copy(
               "Choose the reference that describes this model. Its facts fill the card, and every access of the card is linked to it.",
@@ -68,12 +68,12 @@ export function AssociateReferenceDialog({
           </DialogDescription>
         </DialogHeader>
         <Input
-          aria-label={copy("Search references", "Rechercher des fiches documentaires")}
+          aria-label={copy("Search datasheets", "Rechercher des fiches documentaires")}
           placeholder={copy("Name, ID or creator", "Nom, identifiant ou créateur")}
           value={query}
           onChange={event => setQuery(event.target.value)}
         />
-        <ul aria-label={copy("References", "Fiches documentaires")} className="max-h-72 space-y-1.5 overflow-y-auto">
+        <ul aria-label={copy("Datasheets", "Fiches documentaires")} className="max-h-72 space-y-1.5 overflow-y-auto">
           {matches.slice(0, shown).map(reference => (
             <li key={reference.id}>
               <Button

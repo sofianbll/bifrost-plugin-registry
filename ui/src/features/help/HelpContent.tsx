@@ -122,7 +122,7 @@ export function HelpContent({ expert = false }: { expert?: boolean }) {
               "An inferred creator is guessed from the model name or the provider serving it. ",
               "Un créateur déduit est supposé d’après le nom du modèle ou le fournisseur qui le sert. ",
             )}
-            <Q>{copy("Associate a reference", "Associer une fiche documentaire")}</Q>{" "}
+            <Q>{copy("Associate a datasheet", "Associer une fiche documentaire")}</Q>{" "}
             {copy(
               "links the card to a Models.dev entry, so its facts and creator are real.",
               "relie la fiche à une entrée Models.dev : ses données et son créateur deviennent fiables.",
