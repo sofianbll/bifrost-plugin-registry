@@ -10,7 +10,7 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md) for commands and repository layout. The 
 
 The native Go plugin has a separate build and qualification path. Passing source CI does not establish gateway/plugin ABI compatibility or production readiness. Preserve the distinction between the dynamic Bifrost image and the separately installed `.so`.
 
-Verify with `make verify` (checks, then the browser journeys) and read its last line: a wrapper's exit code is not evidence.
+Verify with `make verify` (checks, lint, then the browser journeys) and read its last line: a wrapper's exit code is not evidence.
 
 ## Delegation
 

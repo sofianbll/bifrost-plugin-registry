@@ -1,6 +1,6 @@
 # UI work
 
-Context to read first: [PRODUCT.md](../../PRODUCT.md) (who uses the panel and why), [DESIGN.md](../../DESIGN.md) (the visual system as it exists; its style wording is inferred and may be edited), [the UI contract](../design/component-library.md) (accepted decisions, not reopened without the owner), [CONTEXT.md](../../CONTEXT.md) (the words) and [docs/adr/](../adr/).
+Context to read first: [PRODUCT.md](../../PRODUCT.md) (who uses the panel and why), [DESIGN.md](../../DESIGN.md) (the visual system as it exists; its style wording is inferred and may be edited), [the UI contract](../design/component-library.md) (accepted decisions, not reopened without the owner), [CONTEXT.md](../../CONTEXT.md) (the words) and [docs/adr/](../adr/). The UI contract is 70 KB: open its "Où chercher" table and read only the sections it points to; accepted decisions also sit in its lower half.
 
 ## Order of work
 
@@ -11,7 +11,7 @@ Context to read first: [PRODUCT.md](../../PRODUCT.md) (who uses the panel and wh
 
 ## Briefs for subagents
 
-Name the worktree and the branch, list the files the agent may edit, list the findings with their source lines, state the owner's decisions as binding, and give a completion criterion the agent can prove: `make verify` ends with `VERIFY PASSED` (it reads the last line itself), one commit, no push. Merge their branches with merge commits.
+Name the worktree and the branch, list the files the agent may edit, list the findings with their source lines, state the owner's decisions as binding, and give a completion criterion the agent can prove: `make verify` ends with a line starting `VERIFY PASSED` (it reads the last line itself; a parenthesis says what lint left out, and CI runs it), one commit, no push. Merge their branches with merge commits.
 
 ## Before merging
 
