@@ -33,7 +33,7 @@ type configuration struct {
 	UIDir             string   `json:"ui_dir,omitempty"`
 }
 type instance struct {
-	store  atomic.Pointer[registry.Store]
+	store  *registry.Store
 	server *http.Server
 }
 
@@ -67,22 +67,18 @@ func Init(config any) error {
 	if e = registry.StrictJSON(data, &cfg, true); e != nil {
 		return e
 	}
-	inst := &instance{}
-	if cfg.RegistryPath != "" {
-		store, err := openOrCreateStore(cfg.RegistryPath)
-		if err != nil {
-			return err
-		}
-		for _, a := range store.Load().Ambiguities() {
-			log.Printf("bifrost-registry: warning: %s", a)
-		}
-		inst.store.Store(store)
+	if cfg.RegistryPath == "" {
+		return errors.New("registry_path is required")
 	}
+	store, err := openOrCreateStore(cfg.RegistryPath)
+	if err != nil {
+		return err
+	}
+	for _, a := range store.Load().Ambiguities() {
+		log.Printf("bifrost-registry: warning: %s", a)
+	}
+	inst := &instance{store: store}
 	if cfg.AdminListen != "" {
-		store := inst.store.Load()
-		if store == nil {
-			return errors.New("registry_path is required for standalone admin listener")
-		}
 		env := cfg.AdminTokenEnv
 		if env == "" {
 			env = "REGISTRY_ADMIN_TOKEN"
@@ -182,11 +178,7 @@ func HTTPTransportPreHook(ctx *schemas.BifrostContext, req *schemas.HTTPRequest)
 		return failureResponse(unavailable()), nil
 	}
 	input := &registry.Request{Method: req.Method, Path: req.Path, Headers: req.Headers, Body: req.Body}
-	store := inst.store.Load()
-	if store == nil {
-		return failureResponse(unavailable()), nil
-	}
-	sess, f := store.Load().Prepare(input)
+	sess, f := inst.store.Load().Prepare(input)
 	if f != nil {
 		return failureResponse(f), nil
 	}
