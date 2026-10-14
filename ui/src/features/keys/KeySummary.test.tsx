@@ -126,6 +126,26 @@ must(
   unread.total === 3 && unread.differences === 0 && rows(unread).includes("DeepSeek V4.1 Flash|deepseek,opencode-go|"),
   `no readback, no difference, got ${rows(unread)}`,
 );
+// ADR 0001 (#110): a Registry route missing from the readback leaves the total too; the drift stays the check state's.
+const drifted = keyLedger(
+  {
+    ...hermes,
+    publication: {
+      ...hermes.publication!,
+      state: "drift",
+      actual: hermes.publication!.actual!.filter(id => id !== "opencode-go/deepseek-v4.1-flash"),
+      missing: ["opencode-go/deepseek-v4.1-flash"],
+    },
+  },
+  hermesModels,
+  fixture.groups,
+);
+must(
+  drifted.total === 2 &&
+    drifted.differences === 2 &&
+    rows(drifted).includes("DeepSeek V4.1 Flash||deepseek,opencode-go"),
+  `a Registry route Bifrost does not list is not counted, got ${rows(drifted)}`,
+);
 // A model waiting for an access choice is not published; left with only an unlisted kept route, it is not counted.
 const withheld = keyLedger(
   { ...hermes, pendingAccessSelection: { "deepseek-v4.1-flash": ["a", "b"] } },
