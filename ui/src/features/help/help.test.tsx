@@ -60,7 +60,7 @@ for (const phrase of [
   "inferred creator",
   "Associate a datasheet",
   "Add to card",
-  "no reference",
+  "no datasheet",
 ])
   must(english.includes(phrase), `English help mentions ${phrase}`);
 const french = help("fr");

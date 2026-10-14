@@ -113,7 +113,7 @@ export function HelpContent({ expert = false }: { expert?: boolean }) {
         <ul className="list-disc space-y-2 pl-5 text-muted-foreground">
           <li>
             {copy(
-              "A badge shows only when something needs attention: “no reference”, “inferred creator”, “+1 available”.",
+              "A badge shows only when something needs attention: “no datasheet”, “inferred creator”, “+1 available”.",
               "Un badge n’apparaît que si quelque chose demande votre attention : « sans référence », « créateur déduit », « +1 disponible ».",
             )}
           </li>

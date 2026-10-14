@@ -589,7 +589,7 @@ export default function CatalogMetadata({
                         </div>
                         {matchId && !catalog.references.some(reference => reference.id === matchId) && (
                           <p className="text-xs text-destructive">
-                            {copy("No reference has this exact ID.", "Aucune fiche ne possède cet ID exact.")}
+                            {copy("No datasheet has this exact ID.", "Aucune fiche ne possède cet ID exact.")}
                           </p>
                         )}
                       </div>

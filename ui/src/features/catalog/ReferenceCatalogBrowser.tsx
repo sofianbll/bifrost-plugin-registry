@@ -278,7 +278,7 @@ export default function ReferenceCatalogBrowser({
               }
             : {
                 key: attention.kind,
-                text: copy("no reference", "sans référence"),
+                text: copy("no datasheet", "sans référence"),
                 title: copy(
                   "No Models.dev reference is linked to this card",
                   "Aucune fiche documentaire Models.dev n’est associée à cette fiche",

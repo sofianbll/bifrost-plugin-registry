@@ -230,7 +230,7 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
       "inferred creator",
       "Associate a datasheet",
       "Add to card",
-      "no reference",
+      "no datasheet",
     ])
       await expect(helpPanel).toContainText(phrase);
     await expect(helpPanel, "The help speaks of the key, not of an endpoint").not.toContainText("/v1/models");
@@ -405,10 +405,10 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(badges("QA Opus")).toHaveText(["+1 available"]);
     await expect(badges("QA Opus Fast")).toHaveCount(0);
     // Cards without a Models.dev reference say so once, QA Shared (two subscriptions) included.
-    await expect(badges("QA Shared")).toHaveText(["no reference"]);
+    await expect(badges("QA Shared")).toHaveText(["no datasheet"]);
     // Their creator is guessed from the single subscription serving them: one more badge.
     for (const name of ["qa-sonnet", "qa-codex-mini", "qa-flash"])
-      await expect(badges(name)).toHaveText(["no reference", "inferred creator"]);
+      await expect(badges(name)).toHaveText(["no datasheet", "inferred creator"]);
     await expect(page.locator("[data-attention]")).toHaveCount(8);
     // Said once per tile: "+1 available" is the badge, not also a count in the Accesses button.
     await expect(
@@ -1030,7 +1030,7 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
       ["qa-flash", "Google"],
     ]) {
       await expect(card(name)).toContainText(creator);
-      await expect(card(name).locator("[data-attention]")).toHaveText(["no reference", "inferred creator"]);
+      await expect(card(name).locator("[data-attention]")).toHaveText(["no datasheet", "inferred creator"]);
       await expect(card(name).getByText(unknownFacts, { exact: true })).toBeVisible();
       await expect(card(name).getByText("? → ?")).toHaveCount(0);
       const associate = card(name).getByRole("button", { name: `Associate a datasheet · ${name}`, exact: true });
@@ -1044,7 +1044,7 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
         "Associate is an outline button",
       ).toBe("1px");
     }
-    await expect(card("QA Shared").locator("[data-attention]")).toHaveText(["no reference"]);
+    await expect(card("QA Shared").locator("[data-attention]")).toHaveText(["no datasheet"]);
     await expect(card("QA Opus").locator("[data-attention]")).toHaveText(["+1 available"]);
     await expect(card("QA Opus").getByRole("button", { name: /^Associate a datasheet/ })).toHaveCount(0);
     expect(await modelOf("qa-sonnet")).toMatchObject({ creator: "Anthropic", creatorSource: "inferred" });
@@ -1081,7 +1081,7 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     ).toMatchObject({ creator: "QA Labs", creatorSource: "manual" });
     await sheet().waitFor({ state: "hidden" });
     await expect(card("qa-codex-mini")).toContainText("QA Labs");
-    await expect(card("qa-codex-mini").locator("[data-attention]")).toHaveText(["no reference"]);
+    await expect(card("qa-codex-mini").locator("[data-attention]")).toHaveText(["no datasheet"]);
     // Saving one card does not turn the other guesses into stored values.
     expect(await modelOf("qa-codex-mini")).toMatchObject({ creator: "QA Labs", creatorSource: "manual" });
     expect(await modelOf("qa-sonnet")).toMatchObject({ creator: "Anthropic", creatorSource: "inferred" });
@@ -1108,7 +1108,7 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     const dialog = page.getByRole("dialog", { name: "Associate a datasheet" });
     const search = dialog.getByRole("textbox", { name: "Search datasheets", exact: true });
     await expect(search).toHaveValue("qa-flash"); // starts from the native name
-    await expect(dialog.getByText("No reference matches. Try fewer words.")).toBeVisible();
+    await expect(dialog.getByText("No datasheet matches. Try fewer words.")).toBeVisible();
     await search.fill("gemini");
     write = writes();
     await dialog.getByRole("button", { name: /^QA Gemini/ }).click();
@@ -1153,8 +1153,8 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await button("Sign in").click();
     await button("Open QA Chat details").waitFor();
     await groupModels("No grouping"); // a reload opens grouped by provider again
-    await expect(card("qa-flash").locator("[data-attention]")).toHaveText(["no reference", "inferred creator"]);
-    await expect(card("qa-codex-mini").locator("[data-attention]")).toHaveText(["no reference", "inferred creator"]);
+    await expect(card("qa-flash").locator("[data-attention]")).toHaveText(["no datasheet", "inferred creator"]);
+    await expect(card("qa-codex-mini").locator("[data-attention]")).toHaveText(["no datasheet", "inferred creator"]);
   });
 
   await test.step("model cancel protects draft; focus stays in editor", async () => {

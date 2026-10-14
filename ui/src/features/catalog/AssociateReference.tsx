@@ -94,7 +94,7 @@ export function AssociateReferenceDialog({
         <p role="status" className="text-xs text-muted-foreground">
           {!matches.length
             ? copy(
-                "No reference matches. Try fewer words.",
+                "No datasheet matches. Try fewer words.",
                 "Aucune fiche documentaire ne correspond. Essayez moins de mots.",
               )
             : matches.length > shown
