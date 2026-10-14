@@ -2,6 +2,21 @@
 
 Ce contrat regroupe les décisions validées pour finaliser l’interface complète. Il s’applique avant chaque modification visuelle. Les choix déjà validés restent acquis et ne sont pas à redemander. Dans ce mandat, l’agent peut finaliser les détails cohérents qui restent ouverts; toute modification d’une décision validée exige l’accord de Sofian.
 
+**Où chercher.** Cette page fait 70 Ko : cherchez le titre avec `grep -n '^## ' docs/design/component-library.md` et lisez seulement la section qui répond, au lieu de la lire en entier.
+
+| Question | Section |
+| --- | --- |
+| Cartes, Grille/Tableau, Rectangle/Carré, densité | Cartes de catalogue |
+| Capacités, modalités, panneau de comparaison | Capacités et données ; en bas de page : Shared capabilities and accepted optional modalities |
+| Basic/Expert, seuil de 1280 px, thème, langues, navigation | Composition et adaptation |
+| Champs obligatoires, réglages, aide, sources, modèles personnalisés | Parcours, réglages et aide |
+| Hauteurs des contrôles, tailles de texte | Corrections de cohérence en cours — 27 septembre 2026 |
+| Panneau sur un vrai gateway, adoption d’une clé, total d’une clé | Panneau sur un vrai gateway — spec #65 ; 2026-10-11 — spec #85 |
+| Fondation (shadcn/Radix, Vercel, Geist), niveaux Atomic Design | en bas de page : Accepted foundation and source policy ; Atomic Design contract |
+| Opérations exposées par accès fournisseur | en bas de page : Explicit operations per provider access — 2026-09-27 |
+| État Expert unique, pluriel des clés, libellés des totaux du catalogue, chaînes localisées | en bas de page : Corrections de rendu et de parcours — 28 septembre 2026 |
+| Les mots (Enregistrer, Ajouter, Vérifiée…) | [CONTEXT.md](../../CONTEXT.md), pas cette page |
+
 ## Source, composition et portée
 
 La version intégrée se trouve maintenant dans le checkout principal `/Users/sofian/Developer/50-Experiments/bifrost-plugin-registry`, sous `ui/src/app`, `ui/src/features` et `ui/src/components/registry`. Elle reprend le dernier prototype du worktree `review-catalog-pr15`; ce dernier est conservé comme source de la consolidation. Ne pas repartir des anciens fichiers plats ni des snapshots historiques.
@@ -113,9 +128,9 @@ Les inventaires, la galerie de comparaison et les journaux de vérification de c
 
 ---
 
-# Inventaire historique des composants — état du 27 septembre 2026
+# Inventaire du 27 septembre 2026 et décisions acceptées de septembre
 
-La suite conserve le relevé et les observations de cette date. Ses hypothèses de validation ne remplacent pas les décisions consolidées dans le contrat actuel ci-dessus.
+La suite conserve le relevé et les observations de cette date. Elle contient aussi des décisions acceptées que le contrat actuel ci-dessus ne reprend pas (fondation shadcn/Radix, capacités et modalités, opérations par accès, corrections de rendu du 28 septembre) : elles restent en vigueur tant que le contrat actuel ne dit pas autre chose. Les hypothèses de validation et les inventaires ne remplacent pas ce contrat.
 
 Status: the local gallery aggregates 124 previews across 19 families, including current implementations, historical versions and visual references. The separate validated design-system page contains the two accepted families: the latest card structure and icon-only capability summaries. Sofian subsequently approved the Vercel comparison panel presentation with the Braces (`{}`) icon for Structured Output. The approved presentation now backs the shared panel using Registry facts; missing values remain unknown. The previously rejected panel is historical. Other component choices and complete page composition remain pending.
 

@@ -1,6 +1,6 @@
 # UI work
 
-Context to read first: [PRODUCT.md](../../PRODUCT.md) (who uses the panel and why), [DESIGN.md](../../DESIGN.md) (the visual system as it exists; its style wording is inferred and may be edited), [the UI contract](../design/component-library.md) (accepted decisions, not reopened without the owner), [CONTEXT.md](../../CONTEXT.md) (the words) and [docs/adr/](../adr/).
+Context to read first: [PRODUCT.md](../../PRODUCT.md) (who uses the panel and why), [DESIGN.md](../../DESIGN.md) (the visual system as it exists; its style wording is inferred and may be edited), [the UI contract](../design/component-library.md) (accepted decisions, not reopened without the owner), [CONTEXT.md](../../CONTEXT.md) (the words) and [docs/adr/](../adr/). The UI contract is 70 KB: open its "Où chercher" table and read only the sections it points to; accepted decisions also sit in its lower half.
 
 ## Order of work
 
