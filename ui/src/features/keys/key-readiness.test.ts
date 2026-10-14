@@ -198,6 +198,22 @@ equal(
   "an edit that did not settle the row is not",
 );
 equal(adoptionProgress(undefined, [], []), { decided: 0, total: 0 }, "no verdict, nothing to decide");
+// #110: snapshot mode has no native-edit button, so an "every provider" key is a prerequisite there, no decision.
+equal(
+  adoptionProgress({ state: "blocked", blockers: [everyProvider] }, [], [], false),
+  { decided: 0, total: 0 },
+  "every provider in snapshot mode: no decision",
+);
+equal(
+  adoptionProgress({ state: "blocked", blockers: [everyProvider] }, [], []),
+  { decided: 0, total: 1 },
+  "every provider live: one decision",
+);
+equal(
+  fixReasons({ state: "blocked", blockers: [everyProvider] }, false),
+  ["allow_all_providers grants future providers and cannot be represented safely"],
+  "every provider in snapshot mode: a fix-in-Bifrost reason",
+);
 // #101: the heading and the footer say the same count, rows decided from the start (a provider disabled in Bifrost) included.
 const autoKept = adoptionProgress(
   {

@@ -148,12 +148,13 @@ export function AdoptionBlockers({
         </p>
       </section>
     );
-  const { decisions: rows } = splitBlockers(readiness);
+  const { decisions: rows } = splitBlockers(readiness, !!onEditNative);
   // Models to add are settled on the models page, not here: listed apart, unnumbered (spec #85, critique round 2).
   const toAdd = (readiness?.blockers ?? []).filter(blocker => !blocker.kept && blocker.kind === "unsaved");
-  const fixes = fixReasons(readiness);
-  const left = readiness ? rows.size : plain.length;
-  const counts = readiness ? (progress ?? adoptionProgress(readiness, kept, [])) : { decided: 0, total: plain.length };
+  // Without a verdict (rebinding, older server) the plain reasons are prerequisites, never "N decisions" (#110).
+  const fixes = readiness ? fixReasons(readiness, !!onEditNative) : plain;
+  const left = readiness ? rows.size : 0;
+  const counts = readiness ? (progress ?? adoptionProgress(readiness, kept, [], !!onEditNative)) : { decided: 0, total: 0 };
   const title = decisionsHeading(counts, copyText);
   const before = copyText("Before adopting", "Avant d’adopter");
   return (
@@ -167,32 +168,18 @@ export function AdoptionBlockers({
               : copyText("Each one is required to adopt the key.", "Chacune est nécessaire pour adopter la clé.")}
           </p>
           <ol className="mt-2 list-decimal space-y-3 pl-5">
-            {readiness
-              ? [...rows].map(([provider, blockers]) => (
-                  <DecisionRow
-                    key={provider || "key"}
-                    provider={provider}
-                    blockers={blockers}
-                    readiness={readiness}
-                    kept={kept}
-                    onKeep={onKeep}
-                    onEditNative={onEditNative}
-                  />
-                ))
-              : plain.map((reason, index) => (
-                  <li key={`${index}/${reason}`} className="break-words pl-1">
-                    {adoptionReason(reason, copyText)}
-                  </li>
-                ))}
+            {[...rows].map(([provider, blockers]) => (
+              <DecisionRow
+                key={provider || "key"}
+                provider={provider}
+                blockers={blockers}
+                readiness={readiness!}
+                kept={kept}
+                onKeep={onKeep}
+                onEditNative={onEditNative}
+              />
+            ))}
           </ol>
-          {!readiness && plain.some(reason => reason.startsWith("Dynamic native model allowlist")) && (
-            <p className="mt-3 text-xs">
-              {copyText(
-                "Keep this key as it is in Bifrost, or review a key that lists its models one by one. Registry cannot safely copy an “every model” permission.",
-                "Gardez cette clé telle quelle dans Bifrost, ou examinez une clé qui liste ses modèles un par un. Registry ne sait pas reprendre fidèlement une permission « tous les modèles ».",
-              )}
-            </p>
-          )}
         </section>
       )}
       {(toAdd.length > 0 || fixes.length > 0) && (
@@ -236,6 +223,14 @@ export function AdoptionBlockers({
               <p className="text-xs">{fixStep(reason, copyText)}</p>
             </div>
           ))}
+          {!readiness && fixes.some(reason => reason.startsWith("Dynamic native model allowlist")) && (
+            <p className="text-xs">
+              {copyText(
+                "Keep this key as it is in Bifrost, or review a key that lists its models one by one. Registry cannot safely copy an “every model” permission.",
+                "Gardez cette clé telle quelle dans Bifrost, ou examinez une clé qui liste ses modèles un par un. Registry ne sait pas reprendre fidèlement une permission « tous les modèles ».",
+              )}
+            </p>
+          )}
         </section>
       )}
     </>

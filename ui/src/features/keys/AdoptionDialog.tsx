@@ -141,9 +141,9 @@ export default function AdoptionDialog({
       setApplying(false);
     }
   };
-  const progress = adoptionProgress(preview?.readiness, kept, edited);
+  const progress = adoptionProgress(preview?.readiness, kept, edited, !snapshot);
   // Why Adopt is off beyond the decisions: models to register first, or the key to fix in Bifrost (no numbered decision).
-  const prerequisite = preview?.canApply ? "" : prerequisiteLine(preview?.readiness, copyText);
+  const prerequisite = preview?.canApply ? "" : prerequisiteLine(preview?.readiness, copyText, !snapshot);
   const routes = (ids: string[]) => (
     <ul className="mt-2 space-y-1">
       {ids.map(id => (

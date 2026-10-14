@@ -68,8 +68,10 @@ export const unsavedRoutes = (readiness: Readiness | undefined) =>
 // allowed, a model allowed through two providers) or edit the key's "every provider" permission. Every other blocker
 // (a key disabled or expired in Bifrost, an external profile) needs a change in Bifrost itself: it is a prerequisite, no
 // decision, since no button of the dialog settles it. Models to add are the models page's, apart from both.
+// nativeEdit is false in snapshot mode (#110): the dialog has no native-edit button there, so an "every provider"
+// permission is a prerequisite, not a decision that could never be settled.
 const keepable = ["undiscovered", "dynamic", "collision"];
-export function splitBlockers(readiness: Readiness | undefined) {
+export function splitBlockers(readiness: Readiness | undefined, nativeEdit = true) {
   const open = (readiness?.blockers ?? []).filter(blocker => !blocker.kept && blocker.kind !== "unsaved");
   const keeps = new Set(
     open.filter(blocker => blocker.provider && keepable.includes(blocker.kind)).map(b => b.provider),
@@ -77,7 +79,7 @@ export function splitBlockers(readiness: Readiness | undefined) {
   const decisions = new Map<string, ReadinessBlocker[]>();
   const prerequisites: ReadinessBlocker[] = [];
   for (const blocker of open)
-    if (blocker.kind === "all-providers" || keeps.has(blocker.provider))
+    if ((blocker.kind === "all-providers" && nativeEdit) || keeps.has(blocker.provider))
       decisions.set(blocker.provider, [...(decisions.get(blocker.provider) ?? []), blocker]);
     else prerequisites.push(blocker);
   return { decisions, prerequisites };
@@ -86,9 +88,9 @@ export function splitBlockers(readiness: Readiness | undefined) {
 // The decisions of the adoption dialog (spec #85): one per row of splitBlockers (a provider, or the key itself, ""),
 // models to add and blockers no choice settles left out. Decided: a provider kept in Bifrost (also one chosen to settle
 // a collision), or a native edit made in the dialog that removed its row.
-export function adoptionProgress(readiness: Readiness | undefined, kept: string[], edited: string[]) {
+export function adoptionProgress(readiness: Readiness | undefined, kept: string[], edited: string[], nativeEdit = true) {
   const blockers = readiness?.blockers ?? [];
-  const pending = new Set(splitBlockers(readiness).decisions.keys());
+  const pending = new Set(splitBlockers(readiness, nativeEdit).decisions.keys());
   const decided = new Set(
     [...blockers.filter(blocker => blocker.kept).map(blocker => blocker.provider), ...kept, ...edited].filter(
       provider => !pending.has(provider),
@@ -112,8 +114,8 @@ export const decidedLabel = ({ decided, total }: Progress, copy: Copy) =>
   copy(`${decided} of ${total} decided`, `${decided} sur ${total} ${total > 1 ? "décidées" : "décidée"}`);
 
 // The reasons only a change in Bifrost settles (splitBlockers' prerequisites), as sent by the server, one per reason.
-export const fixReasons = (readiness: Readiness | undefined) =>
-  splitBlockers(readiness).prerequisites.flatMap(blocker => blocker.reasons ?? []);
+export const fixReasons = (readiness: Readiness | undefined, nativeEdit = true) =>
+  splitBlockers(readiness, nativeEdit).prerequisites.flatMap(blocker => blocker.reasons ?? []);
 const inactiveKey = (reason: string) => reason === "Native key is inactive or expired";
 // The next step for such a reason, in the dialog, and the same as one clause for the footer beside Adopt.
 export const fixStep = (reason: string, copy: Copy) =>
@@ -134,7 +136,7 @@ const fixClause = (reason: string, copy: Copy) =>
 // What has to happen outside the dialog before Adopt can work: models to register first, or the key to fix in Bifrost.
 // Neither is a numbered decision (adoptionProgress leaves them out); the footer states them beside the decided count.
 // One provider is named; several are summed ("Register 10 models first"), their names being in the section above.
-export function prerequisiteLine(readiness: Readiness | undefined, copy: Copy) {
+export function prerequisiteLine(readiness: Readiness | undefined, copy: Copy, nativeEdit = true) {
   const unsaved = (readiness?.blockers ?? []).filter(blocker => blocker.kind === "unsaved" && !blocker.kept);
   const count = unsaved.reduce((sum, blocker) => sum + blocker.count, 0);
   const name = unsaved.length === 1 ? displayProvider(unsaved[0].provider) : "";
@@ -144,7 +146,7 @@ export function prerequisiteLine(readiness: Readiness | undefined, copy: Copy) {
         `Enregistrez d’abord ${count} ${count === 1 ? "modèle" : "modèles"}${name && ` ${name}`}`,
       )
     : "";
-  const fixes = new Set(fixReasons(readiness).map(reason => fixClause(reason, copy)));
+  const fixes = new Set(fixReasons(readiness, nativeEdit).map(reason => fixClause(reason, copy)));
   return [register, ...fixes].filter(Boolean).join(" · ");
 }
 

@@ -53,7 +53,7 @@ const hermesReasons = [
   "Native route mistral/qa-mistral-large needs a configured direct Registry access with the same native name",
 ];
 
-const english = render("en", hermes, hermesReasons, () => {});
+const english = render("en", hermes, hermesReasons, () => {}, () => {}, () => {});
 const plain = text(english);
 must(plain.includes("2 decisions before adopting"), `the list says how many decisions are left, got ${plain}`);
 must(count(english.split("<ol")[1].split("</ol>")[0], /<li/g) === 2, "one numbered row per provider");
@@ -119,7 +119,7 @@ must(
   "three names need no +N",
 );
 
-const french = text(render("fr", hermes, hermesReasons, () => {}));
+const french = text(render("fr", hermes, hermesReasons, () => {}, () => {}, () => {}));
 for (const line of [
   "2 décisions avant d’adopter",
   "Modèles : qa-mistral-large, qa-mistral-small, qa-mistral-code",
@@ -308,6 +308,11 @@ must(
     plainReasons.includes("No provider key is turned on for Codex/x in Bifrost."),
   `plain reasons are shown, got ${plainReasons}`,
 );
+// #110: plain reasons (rebinding) are prerequisites, never a decision count.
+must(
+  plainReasons.includes("Nothing to decide yet") && !/\d+ decisions? before adopting/.test(plainReasons),
+  `plain reasons are no decisions, got ${plainReasons}`,
+);
 must(
   text(render("fr", undefined, ["Native key is inactive or expired"])).includes(
     "Cette clé est désactivée ou expirée dans Bifrost.",
@@ -346,6 +351,7 @@ const rest = text(
     "en",
     { state: "blocked", blockers: [{ ...hermes.blockers[0], kept: true }, hermes.blockers[2]] },
     ["allow_all_providers grants future providers and cannot be represented safely"],
+    () => {},
     () => {},
     () => {},
   ),
