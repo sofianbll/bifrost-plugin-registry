@@ -24,7 +24,8 @@ const label = {
   fr: { table: "Tableau", square: "Carré", medium: "Moyen", options: "Options d’affichage" },
 };
 
-// Basic mode folds the layout controls into View options (#85); the popover closes before the capture.
+// Basic mode folds the layout controls into View options (#85); the popover closes before the capture, except for
+// the display-options shot, which illustrates it open.
 const pick = async (page: Page, language: "en" | "fr", ...radios: string[]) => {
   await page.getByRole("button", { name: label[language].options, exact: true }).click();
   for (const name of radios) await page.getByRole("radio", { name }).click();
@@ -37,7 +38,9 @@ test("catalogue table", async ({ page, language }) => {
 });
 
 test("display options", async ({ page, language }) => {
-  await pick(page, language, label[language].square, label[language].medium);
+  // The shot illustrates the popover itself (#110): it stays open, the choices just made selected.
+  await page.getByRole("button", { name: label[language].options, exact: true }).click();
+  for (const name of [label[language].square, label[language].medium]) await page.getByRole("radio", { name }).click();
   await capture(page, "display-options.png");
 });
 

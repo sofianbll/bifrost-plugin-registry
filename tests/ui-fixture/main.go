@@ -466,8 +466,8 @@ func seed() registry.Config {
 
 // seedKeys are the native virtual keys. The first two are managed; every other one is an unmanaged
 // adoption case: empty, all providers, all models of Claude (claude, wildcard), ready (codex, google), blocked
-// by models of a disabled provider (mistral, hermes), by a name an enabled provider does not serve (kept) or by a
-// discovered model without a card (unsaved).
+// by models of a disabled provider (mistral, hermes), by a name an enabled provider does not serve (kept), by a
+// discovered model without a card (unsaved), or by its own state (disabled: inactive in Bifrost, #110).
 func seedKeys() map[string]*virtualKey {
 	keys := map[string]*virtualKey{
 		"vk-qa-dev":           {ID: "vk-qa-dev", Name: "QA Development Key", Description: "Synthetic development client", Value: "sk-bf-qa-fixture-dev", Active: true, ProviderConfigs: []providerConfig{{Provider: provider, AllowedModels: []string{"qa-code", "qa-chat"}}}},
@@ -499,6 +499,8 @@ func seedKeys() map[string]*virtualKey {
 			{Provider: "Google", AllowedModels: []string{"qa-gemini", "qa-ghost"}, AllowAllKeys: true}}},
 		// qa-unregistered is discovered but has no card, and no journey saves it.
 		"vk-qa-unsaved": {ID: "vk-qa-unsaved", Name: "QA To Add Key", Description: "Synthetic unsaved client", Value: "sk-bf-qa-fixture-unsaved", Active: true, ProviderConfigs: []providerConfig{{Provider: provider, AllowedModels: []string{"qa-vision", "qa-unregistered"}, AllowAllKeys: true}}},
+		// Disabled in Bifrost (#110): adoption has nothing to decide, only a key to enable or renew there.
+		"vk-qa-disabled": {ID: "vk-qa-disabled", Name: "QA Disabled Key", Description: "Synthetic disabled client", Value: "sk-bf-qa-fixture-disabled", Active: false, ProviderConfigs: []providerConfig{{Provider: provider, AllowedModels: []string{"qa-chat"}, AllowAllKeys: true}}},
 	}
 	// Bifrost numbers every provider row; a native update sends the id back so the row keeps its limits.
 	row := 0
