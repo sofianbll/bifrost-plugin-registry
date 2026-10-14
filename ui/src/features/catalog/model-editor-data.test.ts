@@ -88,7 +88,7 @@ equal(firstRegistrationIssue({ ...validDraft, accesses: [{ ...validDraft.accesse
 
 const english = (text: string) => text;
 equal(modelEditorOptions(catalog, [], english).modelIds, [
-  { value: "new-model", label: "New Model", detail: "Reference creator/new-model", referenceId: "creator/new-model" },
+  { value: "new-model", label: "New Model", detail: "Datasheet creator/new-model", referenceId: "creator/new-model" },
 ]);
 const catalogWithNativePath: Catalog = {
   ...catalog,
@@ -399,7 +399,7 @@ equal(
     "",
     "Suggested automatically · check that it fits",
     "",
-    "Reference proposed in this draft",
+    "Datasheet proposed in this draft",
     "Unlink proposed in this draft",
   ],
 );

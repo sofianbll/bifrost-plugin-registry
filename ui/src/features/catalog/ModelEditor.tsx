@@ -1373,10 +1373,10 @@ export default function ModelEditor({
                     <Button
                       variant="ghost"
                       size="sm"
-                      aria-label={copy(`Access settings for ${named}`, `Réglages de l’accès ${named}`)}
+                      aria-label={copy(`Access settings for ${named}`, `Paramètres de l’accès ${named}`)}
                       onClick={() => openEdit("access", draft.accesses.indexOf(access))}
                     >
-                      {copy("Access settings", "Réglages de l’accès")}
+                      {copy("Access settings", "Paramètres de l’accès")}
                     </Button>
                   )}
                   <Button
@@ -1983,7 +1983,7 @@ export default function ModelEditor({
                             <p className="text-xs text-muted-foreground">
                               {expert
                                 ? copy("Documentary record", "Fiche documentaire")
-                                : copy("Reference", "Fiche documentaire")}
+                                : copy("Datasheet", "Fiche documentaire")}
                             </p>
                             <p className="text-sm font-medium">
                               {reference

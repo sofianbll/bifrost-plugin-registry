@@ -349,7 +349,7 @@ export default function ReferenceCatalogBrowser({
           {group.reference && (
             <div className="space-y-1">
               <p className="font-mono">
-                {copy("Reference", "Fiche documentaire")}
+                {copy("Datasheet", "Fiche documentaire")}
                 {colon} {group.reference.id}
               </p>
               {factLines(group.reference.fields)}

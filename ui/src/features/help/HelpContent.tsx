@@ -177,7 +177,7 @@ export function HelpContent({ expert = false }: { expert?: boolean }) {
           )}
           <div className="contents">
             <dt>
-              <Q>{copy("Reference", "Fiche documentaire")}</Q>
+              <Q>{copy("Datasheet", "Fiche documentaire")}</Q>
             </dt>
             <dd className="mb-2 sm:mb-0">
               {copy(

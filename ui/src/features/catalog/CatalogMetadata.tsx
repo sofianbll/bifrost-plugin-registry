@@ -469,8 +469,8 @@ export default function CatalogMetadata({
                         <span className="mt-1 block break-all text-xs text-muted-foreground">
                           {item.provider} · {item.model}
                           {item.referenceId
-                            ? ` · ${copy("Reference", "Fiche documentaire")} ${item.mappingManual ? copy("selected", "choisie") : copy("suggested", "suggérée")}`
-                            : ` · ${copy("No reference", "Sans fiche documentaire")}`}
+                            ? ` · ${copy("Datasheet", "Fiche documentaire")} ${item.mappingManual ? copy("selected", "choisie") : copy("suggested", "suggérée")}`
+                            : ` · ${copy("No datasheet", "Sans fiche documentaire")}`}
                         </span>
                       )}
                     </button>

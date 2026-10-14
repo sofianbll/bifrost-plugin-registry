@@ -92,7 +92,7 @@ must(
 for (const phrase of [
   "Access",
   "Subscription, provider",
-  "Reference",
+  "Datasheet",
   "Inferred creator",
   "Kept in Bifrost",
   "Checked with Bifrost",
