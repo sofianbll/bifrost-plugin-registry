@@ -17,3 +17,10 @@ done
   echo "pre-push: a check failed and the push was aborted; fix it, or skip the guard with: git push --no-verify" >&2
   exit 1
 }
+# This step is optional (it needs shellcheck installed); CI runs it on every push either way.
+if command -v shellcheck > /dev/null 2>&1; then
+  git ls-files '*.sh' | xargs shellcheck -S warning || {
+    echo "pre-push: shellcheck found a problem and the push was aborted; fix it, or skip the guard with: git push --no-verify" >&2
+    exit 1
+  }
+fi

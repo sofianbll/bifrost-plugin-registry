@@ -2,7 +2,7 @@
 
 check: test ui-check script-check
 
-# make check, then the browser journeys only if it passed; logs in dist/checks/verify/, one VERIFY PASSED or FAILED line.
+# make check, then lint, then the browser journeys, each only if the steps before it passed; logs in dist/checks/verify/, one VERIFY PASSED or FAILED line.
 verify:
 	./scripts/verify.sh
 

@@ -11,7 +11,7 @@ Context to read first: [PRODUCT.md](../../PRODUCT.md) (who uses the panel and wh
 
 ## Briefs for subagents
 
-Name the worktree and the branch, list the files the agent may edit, list the findings with their source lines, state the owner's decisions as binding, and give a completion criterion the agent can prove: `make verify` ends with `VERIFY PASSED` (it reads the last line itself), one commit, no push. Merge their branches with merge commits.
+Name the worktree and the branch, list the files the agent may edit, list the findings with their source lines, state the owner's decisions as binding, and give a completion criterion the agent can prove: `make verify` ends with a line starting `VERIFY PASSED` (it reads the last line itself; a parenthesis says what lint left out, and CI runs it), one commit, no push. Merge their branches with merge commits.
 
 ## Before merging
 
