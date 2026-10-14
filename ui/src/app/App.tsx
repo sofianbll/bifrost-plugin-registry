@@ -88,6 +88,8 @@ import AssistantSuggestion from "../features/assistant/AssistantSuggestion";
 import VirtualKeySecret from "../features/keys/VirtualKeySecret";
 import { CreatedKeySecretDialog } from "../features/keys/CreatedKeySecretDialog";
 import { useCreatedKeySecret } from "../features/keys/useCreatedKeySecret";
+import { KeyRenameDialog } from "../features/keys/KeyRenameDialog";
+import { useKeyRename } from "../features/keys/useKeyRename";
 import { omitUnchangedReferenceIds } from "../features/catalog/model-editor-data";
 import CatalogMetadata from "../features/catalog/CatalogMetadata";
 import SnapshotTransfer from "../features/snapshot/SnapshotTransfer";
@@ -241,7 +243,8 @@ function RegistryApp({
   const [groupDraft, setGroupDraft] = useState<Group | null>(null);
   const groupBaseline = useRef<Group | null>(null);
   const [keyForm, setKeyForm] = useState<KeyFormDraft | null>(null);
-  const [renameForm, setRenameForm] = useState<{ id: string; name: string } | null>(null);
+  const keyRename = useKeyRename(data, copyText, (next, label) => commit(next, label));
+  const { setRenameForm } = keyRename;
   // A managed key opens read-first; "Edit selection" opens the composer for that key (an unpublished draft keeps it open).
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [adoption, setAdoption] = useState<{ keyId: string; operation: AdoptionOperation } | null>(null);
@@ -1907,63 +1910,7 @@ function RegistryApp({
             </DialogFooter>
           </DialogContent>
         </Dialog>
-        <Dialog open={!!renameForm} onOpenChange={open => !open && !busyRef.current && setRenameForm(null)}>
-          <DialogContent inert={!!busy}>
-            <DialogHeader className="border-b pb-4">
-              <DialogTitle className="text-xl">
-                {copyText("Rename virtual key", "Renommer la clé virtuelle")}
-              </DialogTitle>
-              <DialogDescription>
-                {copyText("Updates the saved key name.", "Met à jour le nom enregistré de la clé.")}
-              </DialogDescription>
-            </DialogHeader>
-            {renameForm && (
-              <div>
-                <label className="mb-2 block text-sm font-medium">{copyText("Name", "Nom")}</label>
-                <Input
-                  aria-label={copyText("Key name", "Nom de la clé")}
-                  autoFocus
-                  value={renameForm.name}
-                  onChange={e => setRenameForm({ ...renameForm, name: e.target.value })}
-                />
-              </div>
-            )}
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setRenameForm(null)}>
-                {copyText("Cancel", "Annuler")}
-              </Button>
-              <Button
-                disabled={!!busy}
-                onClick={() => {
-                  if (
-                    !renameForm?.name.trim() ||
-                    data.keys.some(
-                      k => k.id !== renameForm.id && k.name.toLowerCase() === renameForm.name.trim().toLowerCase(),
-                    )
-                  ) {
-                    toast.error(copyText("Name is empty or already used.", "Le nom est vide ou déjà utilisé."));
-                    return;
-                  }
-                  const form = renameForm;
-                  void (async () => {
-                    if (
-                      await commit(
-                        {
-                          ...data,
-                          keys: data.keys.map(k => (k.id === form.id ? { ...k, name: form.name.trim() } : k)),
-                        },
-                        copyText("Renaming key…", "Renommage de la clé…"),
-                      )
-                    )
-                      setRenameForm(null);
-                  })();
-                }}
-              >
-                {copyText("Save", "Enregistrer")}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <KeyRenameDialog {...keyRename} copyText={copyText} busy={busy} busyRef={busyRef} />
         <Dialog open={!!confirm} onOpenChange={open => !open && setConfirm(null)}>
           <DialogContent>
             <DialogHeader className="border-b pb-4">
