@@ -1,0 +1,26 @@
+Generated with the built-in image_gen tool on 2026-10-14.
+
+ICON
+
+Use case: logo-brand
+Asset type: standalone square plugin icon, transparent PNG, high resolution
+Primary request: Design a distinctive professional brand symbol for "Bifrost Registry", an independent plugin that organizes AI model cards into a catalogue and composes access for virtual keys.
+Subject: a single bold geometric R monogram, constructed from three modular catalogue-card shapes joined into one cohesive silhouette. The upper bowl suggests a neatly indexed catalogue, with a clear large negative-space opening and an unmistakable diagonal R leg. Very simple visual idea, excellent optical balance.
+Style/medium: precise flat vector-like brand design, crisp solid edges, no texture.
+Composition/framing: square canvas; one centered symbol filling about 72 percent of the square, generous equal transparent padding. Design must remain recognizable at 24 pixels. No outer tile or container.
+Color palette: one uniform settled emerald green, approximately #187856, compatible with a restrained graphite and zinc software interface.
+Scene/backdrop: truly transparent alpha background.
+Text: no text, no wordmark.
+Constraints: one polished finished icon, not a contact sheet; no tiny details, thin linework, generic circuit nodes, chain links, hexagons, AI sparkles, robot imagery, keys or shields; no gradient, glow, shadow, 3D, bevel, border, mockup or watermark. This is a new independent Registry identity, do not reproduce the official Bifrost logo.
+
+LOGO
+
+Use case: logo-brand
+Asset type: complete horizontal plugin logo, transparent PNG, landscape canvas approximately 3:1, high resolution
+Input image 1: the approved-for-this-generation emerald Registry monogram reference. It is the exact symbol to reuse.
+Primary request: Create a polished horizontal logo for "Bifrost Registry" using the supplied emerald R mark on the left and a carefully typeset wordmark on the right.
+Composition: a clean balanced horizontal lockup, not a brand board. The symbol occupies the left quarter and the two-word name is on a single line to its right. Symbol height about 1.3 times capital-letter height, clear consistent gap, generous transparent margins. All content fully inside the frame.
+Text (verbatim): "Bifrost Registry"
+Typography: precise modern neutral geometric sans serif close to Geist, medium-semibold weight, excellent kerning, no decorative letterforms; clear lowercase letters and correct capitals B and R.
+Color palette: preserve the emerald from the supplied icon; use solid graphite #18181b for the entire wordmark.
+Constraints: Preserve the supplied symbol's geometry, its three stacked horizontal segments, open bowl, diagonal R leg, corner radii, proportions, and color exactly. Do not redesign the symbol. Flat colors and clean crisp edges. Truly transparent alpha background. No tagline, extra text, badge, outline, gradient, shadow, glow, 3D, mockup, watermark, checkerboard or contact sheet.
