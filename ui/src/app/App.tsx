@@ -83,6 +83,7 @@ import GatewayInventory from "../features/gateway/GatewayInventory";
 import ModelEditor from "../features/catalog/ModelEditor";
 import type { CatalogOverride } from "../features/catalog/model-card-fields";
 import RegistrySettings from "../features/settings/RegistrySettings";
+import { useViewPreferences } from "../features/settings/useViewPreferences";
 import AssistantSuggestion from "../features/assistant/AssistantSuggestion";
 import VirtualKeySecret from "../features/keys/VirtualKeySecret";
 import { omitUnchangedReferenceIds } from "../features/catalog/model-editor-data";
@@ -96,12 +97,7 @@ import { getCatalog, type Catalog } from "../features/catalog/catalog-api";
 import { cardName, groupReferenceModels } from "../features/catalog/reference-groups";
 import { ToggleGroup, ToggleGroupItem } from "../components/ui/toggle-group";
 import { clearSessionState, setSessionState } from "../lib/session-state";
-import {
-  ViewControls,
-  defaultViewOptions,
-  updateViewOverride,
-  type ViewOptions,
-} from "../components/registry/ViewOptions";
+import { ViewControls } from "../components/registry/ViewOptions";
 import { LanguageContext, initialLanguage, rememberLanguage, useCopy, useFormat, type Language } from "../lib/locale";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { Switch } from "../components/ui/switch";
@@ -257,18 +253,7 @@ function RegistryApp({
   // The reference catalogue is read once per Registry revision and shared by the pages.
   const [referenceCatalog, setReferenceCatalog] = useState<Catalog | null>(null);
   const [referenceError, setReferenceError] = useState("");
-  const [preferences, setPreferences] = useState<ViewOptions>(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem("registry-prototype-view") || "{}");
-      return { ...defaultViewOptions, ...saved, shape: saved.shape || defaultViewOptions.shape };
-    } catch {
-      return defaultViewOptions;
-    }
-  });
-  const [listOverrides, setListOverrides] = useState<Record<string, Partial<ViewOptions>>>({});
-  useEffect(() => {
-    localStorage.setItem("registry-prototype-view", JSON.stringify(preferences));
-  }, [preferences]);
+  const { preferences, setPreferences, setListOverrides, viewFor, setView, resetView } = useViewPreferences();
   const [dark, setDark] = useState(() => document.documentElement.classList.contains("dark"));
   useEffect(() => {
     document.documentElement.classList.toggle("dark", dark);
@@ -1011,15 +996,6 @@ function RegistryApp({
     }
   };
 
-  const viewFor = (scope: string) => ({ ...preferences, ...listOverrides[scope] });
-  const setView = (scope: string, value: ViewOptions) =>
-    setListOverrides(old => ({ ...old, [scope]: updateViewOverride(preferences, old[scope] || {}, value) }));
-  const resetView = (scope: string) =>
-    setListOverrides(old => {
-      const next = { ...old };
-      delete next[scope];
-      return next;
-    });
   const title = nav.find(item => item.id === page)!.label[language];
   const keyFormFields = keyFormState(keyForm, data.keys, keyNameMessages);
   if (loginRequired)
