@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast, Toaster } from "sonner";
-import { ArrowRight, Plus, Search } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -52,10 +52,9 @@ import { useKeyCreation } from "../features/keys/useKeyCreation";
 import CatalogMetadata from "../features/catalog/CatalogMetadata";
 import SnapshotTransfer from "../features/snapshot/SnapshotTransfer";
 import { KeyAdoptionDialog } from "../features/keys/KeyAdoptionDialog";
-import ReferenceCatalogBrowser from "../features/catalog/ReferenceCatalogBrowser";
+import { ModelLibraryPage } from "../features/catalog/ModelLibraryPage";
 import { useReferenceCatalog } from "../features/catalog/useReferenceCatalog";
 import { cardName, groupReferenceModels } from "../features/catalog/reference-groups";
-import { ToggleGroup, ToggleGroupItem } from "../components/ui/toggle-group";
 import { clearSessionState } from "../lib/session-state";
 import { ViewControls } from "../components/registry/ViewOptions";
 import { LanguageContext, initialLanguage, rememberLanguage, useCopy, useFormat, type Language } from "../lib/locale";
@@ -855,101 +854,27 @@ function RegistryApp({
                   </Card>
                 ))}
               {page === "models" && (
-                <>
-                  <div className="mb-4">
-                    {/* The scope switch sits on the title row: the description under it changes length with the scope
-                        and must not move the control the person just clicked. */}
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-                        {copyText("My models", "Mes modèles")}
-                      </h1>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <ToggleGroup
-                          type="single"
-                          variant="outline"
-                          className="bg-card"
-                          value={modelScope}
-                          onValueChange={value => value && setModelScope(value as typeof modelScope)}
-                          aria-label={copyText("Model scope", "Portée des modèles")}
-                        >
-                          <ToggleGroupItem value="registry">{scopeLabels.registry}</ToggleGroupItem>
-                          <ToggleGroupItem value="to-add">{scopeLabels.toAdd}</ToggleGroupItem>
-                        </ToggleGroup>
-                        {modelScope === "registry" && (
-                          <Button onClick={() => setModelScope("to-add")}>
-                            <Plus className="size-4" />
-                            {copyText("Register a model", "Enregistrer un modèle")}
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                    <p className="mt-1 max-w-prose text-sm text-foreground/70">
-                      {modelScope === "registry" ? (
-                        copyText(
-                          "Model cards saved in Registry, with their provider accesses.",
-                          "Fiches modèles enregistrées dans Registry, avec leurs accès fournisseurs.",
-                        )
-                      ) : (
-                        <>
-                          {copyText(
-                            "Models discovered in Bifrost and not saved yet. Open one to register it.",
-                            "Modèles découverts dans Bifrost et pas encore enregistrés. Ouvrez-en un pour l’enregistrer.",
-                          )}{" "}
-                          {/* A 24 px target (WCAG 2.5.8); the negative margin keeps the line height. */}
-                          <Button
-                            variant="link"
-                            size="sm"
-                            className="-my-0.5 h-auto min-h-6 p-0 align-baseline"
-                            onClick={() => openModel(newModel(), true)}
-                          >
-                            {copyText("Advanced: enter an access manually", "Avancé : saisir un accès manuellement")}
-                          </Button>
-                        </>
-                      )}
-                    </p>
-                  </div>
-                  {catalog.length ? (
-                    <ReferenceCatalogBrowser
-                      folded={!effectiveExpert}
-                      scope={modelScope}
-                      models={modelScope === "registry" ? data.models : toAdd}
-                      allModels={catalog}
-                      catalog={referenceCatalog}
-                      error={referenceError}
-                      onRetry={() => void loadReferenceCatalog()}
-                      registeredIds={registeredIds}
-                      registeredModels={data.models}
-                      preferences={preferences}
-                      onPreferencesChange={setPreferences}
-                      onOpen={(model, tab) => {
-                        const saved = data.models.find(row => row.id === model.id);
-                        openModel(saved ?? model, !saved, tab);
-                      }}
-                      onMetadata={(target, id) => {
-                        setCatalogFocus({ target, id });
-                        go("catalog");
-                      }}
-                      onAssociate={associateModel}
-                    />
-                  ) : (
-                    <Card className="py-0">
-                      <CardContent className="space-y-3 p-6">
-                        <h3 className="text-lg font-semibold">
-                          {copyText("Build your model catalog", "Créez votre catalogue de modèles")}
-                        </h3>
-                        <p className="max-w-prose text-sm text-muted-foreground">
-                          {copyText(
-                            "No models have been discovered yet. Configure a provider in Bifrost to see its models here.",
-                            "Aucun modèle n’a encore été découvert. Configurez un fournisseur dans Bifrost pour afficher ses modèles ici.",
-                          )}
-                        </p>
-                        <Button variant="outline" onClick={() => openModel(newModel(), true)}>
-                          {copyText("Register a model", "Enregistrer un modèle")} <ArrowRight className="size-4" />
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  )}
-                </>
+                <ModelLibraryPage
+                  copyText={copyText}
+                  modelScope={modelScope}
+                  setModelScope={setModelScope}
+                  scopeLabels={scopeLabels}
+                  effectiveExpert={effectiveExpert}
+                  registeredModels={data.models}
+                  toAdd={toAdd}
+                  catalog={catalog}
+                  referenceCatalog={referenceCatalog}
+                  referenceError={referenceError}
+                  loadReferenceCatalog={loadReferenceCatalog}
+                  registeredIds={registeredIds}
+                  preferences={preferences}
+                  setPreferences={setPreferences}
+                  openModel={openModel}
+                  newModel={newModel}
+                  setCatalogFocus={setCatalogFocus}
+                  go={go}
+                  associateModel={associateModel}
+                />
               )}
               {page === "snapshot" && <SnapshotTransfer onUnauthorized={requireLogin} onApplied={() => void load()} />}
               {page === "groups" && (
