@@ -3067,7 +3067,10 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await composerStep("Review").click();
     await button("Check again").click();
     // #110: the page may already read "Verified" from the check on open; the toast marks this check.
-    await page.getByText(/^Verified with Bifrost/).first().waitFor();
+    await page
+      .getByText(/^Verified with Bifrost/)
+      .first()
+      .waitFor();
     // The check lists Mistral's routes, but they are Bifrost's: Review must not announce their removal.
     await expect(page.getByRole("region", { name: "Changes before publishing" })).toContainText("No change.");
     await expect(page.getByRole("list", { name: "Will lose" })).toHaveCount(0);
@@ -3149,7 +3152,10 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await button("Publish changes").click();
     await expect(button("Publish changes")).toBeDisabled();
     await button("Check again").click();
-    await page.getByText(/^Verified with Bifrost/).first().waitFor();
+    await page
+      .getByText(/^Verified with Bifrost/)
+      .first()
+      .waitFor();
     expect(
       (await api("workspace")).data.keys.find((k: { id: string }) => k.id === "vk-qa-wildcard").publication.actual,
     ).toContain("Claude/qa-haiku");
