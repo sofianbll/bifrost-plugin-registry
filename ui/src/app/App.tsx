@@ -86,6 +86,8 @@ import RegistrySettings from "../features/settings/RegistrySettings";
 import { useViewPreferences } from "../features/settings/useViewPreferences";
 import AssistantSuggestion from "../features/assistant/AssistantSuggestion";
 import VirtualKeySecret from "../features/keys/VirtualKeySecret";
+import { CreatedKeySecretDialog } from "../features/keys/CreatedKeySecretDialog";
+import { useCreatedKeySecret } from "../features/keys/useCreatedKeySecret";
 import { omitUnchangedReferenceIds } from "../features/catalog/model-editor-data";
 import CatalogMetadata from "../features/catalog/CatalogMetadata";
 import SnapshotTransfer from "../features/snapshot/SnapshotTransfer";
@@ -227,9 +229,8 @@ function RegistryApp({
   const [apiError, setApiError] = useState("");
   const [needsReconcile, setNeedsReconcile] = useState(false);
   const [reconcileBlocked, setReconcileBlocked] = useState(false);
-  const [createdSecret, setCreatedSecret] = useState("");
-  const [createdSecretError, setCreatedSecretError] = useState("");
-  const createdSecretInput = useRef<HTMLInputElement>(null);
+  const createdKeySecret = useCreatedKeySecret(copyText);
+  const { setCreatedSecret, setCreatedSecretError } = createdKeySecret;
   const [locationState, setLocationState] = useState(route);
   const [modelDraft, setModelDraft] = useState<Model | null>(null);
   const modelBaseline = useRef<Model | null>(null);
@@ -978,24 +979,6 @@ function RegistryApp({
       );
     });
   };
-  const copyCreatedSecret = async () => {
-    try {
-      if (!navigator.clipboard?.writeText) throw new Error("Clipboard unavailable");
-      await navigator.clipboard.writeText(createdSecret);
-      setCreatedSecretError("");
-      toast.success(copyText("Secret copied.", "Secret copié."));
-    } catch {
-      createdSecretInput.current?.focus();
-      createdSecretInput.current?.select();
-      setCreatedSecretError(
-        copyText(
-          "Clipboard unavailable. The secret is selected; press Ctrl+C or Cmd+C to copy it.",
-          "Presse-papiers indisponible. Le secret est sélectionné ; appuyez sur Ctrl+C ou Cmd+C pour le copier.",
-        ),
-      );
-    }
-  };
-
   const title = nav.find(item => item.id === page)!.label[language];
   const keyFormFields = keyFormState(keyForm, data.keys, keyNameMessages);
   if (loginRequired)
@@ -1901,55 +1884,7 @@ function RegistryApp({
             )}
           </SheetContent>
         </Sheet>
-        <Dialog
-          open={!!createdSecret}
-          onOpenChange={open => {
-            if (!open) {
-              setCreatedSecret("");
-              setCreatedSecretError("");
-            }
-          }}
-        >
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>
-                {copyText("Copy the virtual key secret", "Copier le secret de la clé virtuelle")}
-              </DialogTitle>
-              <DialogDescription>
-                {copyText(
-                  "This native Bifrost secret is shown once. Store it before closing.",
-                  "Ce secret Bifrost natif ne s’affiche qu’une fois. Enregistrez-le avant de fermer.",
-                )}
-              </DialogDescription>
-            </DialogHeader>
-            <Input
-              ref={createdSecretInput}
-              readOnly
-              value={createdSecret}
-              aria-label={copyText("Virtual key secret", "Secret de la clé virtuelle")}
-              autoComplete="off"
-              spellCheck={false}
-              className="font-mono text-xs"
-            />
-            {createdSecretError && (
-              <p role="alert" className="text-sm text-destructive">
-                {createdSecretError}
-              </p>
-            )}
-            <DialogFooter>
-              <Button onClick={() => void copyCreatedSecret()}>{copyText("Copy secret", "Copier le secret")}</Button>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setCreatedSecret("");
-                  setCreatedSecretError("");
-                }}
-              >
-                {copyText("Done", "Terminé")}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <CreatedKeySecretDialog {...createdKeySecret} copyText={copyText} />
         <Dialog open={!!keyForm} onOpenChange={open => !open && !busyRef.current && setKeyForm(null)}>
           <DialogContent inert={!!busy}>
             <DialogHeader className="border-b pb-4">
