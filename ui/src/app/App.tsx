@@ -84,6 +84,8 @@ import ModelEditor from "../features/catalog/ModelEditor";
 import type { CatalogOverride } from "../features/catalog/model-card-fields";
 import RegistrySettings from "../features/settings/RegistrySettings";
 import { useViewPreferences } from "../features/settings/useViewPreferences";
+import { useConfirmation } from "../features/shared/useConfirmation";
+import { ConfirmationDialog } from "../features/shared/ConfirmationDialog";
 import AssistantSuggestion from "../features/assistant/AssistantSuggestion";
 import VirtualKeySecret from "../features/keys/VirtualKeySecret";
 import { CreatedKeySecretDialog } from "../features/keys/CreatedKeySecretDialog";
@@ -121,7 +123,6 @@ import { Tour, TourOffer } from "../features/help/Tour";
 import { markTourSeen, tourSeen } from "../features/help/tourSteps";
 
 type Page = "gateway" | "models" | "catalog" | "groups" | "keys" | "settings" | "snapshot";
-type Confirm = { title: string; text: string; action: () => void; confirmLabel?: string; cancelLabel?: string } | null;
 const nav: { id: Page; label: Record<Language, string>; icon: typeof Database }[] = [
   { id: "models", label: { en: "My models", fr: "Mes modèles" }, icon: Database },
   { id: "groups", label: { en: "Groups", fr: "Groupes" }, icon: Layers3 },
@@ -263,7 +264,7 @@ function RegistryApp({
     document.documentElement.classList.toggle("dark", dark);
     document.documentElement.style.colorScheme = dark ? "dark" : "light";
   }, [dark]);
-  const [confirm, setConfirm] = useState<Confirm>(null);
+  const { confirm, setConfirm } = useConfirmation();
   const [draft, setDraft] = useState<Policy | null>(null);
   const pendingKeyDraft = useRef<{ keyId: string; policy: Policy } | null>(null);
 
@@ -1911,29 +1912,7 @@ function RegistryApp({
           </DialogContent>
         </Dialog>
         <KeyRenameDialog {...keyRename} copyText={copyText} busy={busy} busyRef={busyRef} />
-        <Dialog open={!!confirm} onOpenChange={open => !open && setConfirm(null)}>
-          <DialogContent>
-            <DialogHeader className="border-b pb-4">
-              <DialogTitle className="text-xl">{confirm?.title}</DialogTitle>
-              <DialogDescription>{confirm?.text}</DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setConfirm(null)}>
-                {confirm?.cancelLabel || copyText("Cancel", "Annuler")}
-              </Button>
-              <Button
-                variant="destructive"
-                disabled={!!busy}
-                onClick={() => {
-                  confirm?.action();
-                  setConfirm(null);
-                }}
-              >
-                {confirm?.confirmLabel || copyText("Delete", "Supprimer")}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <ConfirmationDialog confirm={confirm} busy={busy} copyText={copyText} onClose={() => setConfirm(null)} />
         {adoption && (
           <AdoptionDialog
             key={`${adoption.keyId}/${adoption.operation}`}
