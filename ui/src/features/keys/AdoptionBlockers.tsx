@@ -154,7 +154,9 @@ export function AdoptionBlockers({
   // Without a verdict (rebinding, older server) the plain reasons are prerequisites, never "N decisions" (#110).
   const fixes = readiness ? fixReasons(readiness, !!onEditNative) : plain;
   const left = readiness ? rows.size : 0;
-  const counts = readiness ? (progress ?? adoptionProgress(readiness, kept, [], !!onEditNative)) : { decided: 0, total: 0 };
+  const counts = readiness
+    ? (progress ?? adoptionProgress(readiness, kept, [], !!onEditNative))
+    : { decided: 0, total: 0 };
   const title = decisionsHeading(counts, copyText);
   const before = copyText("Before adopting", "Avant d’adopter");
   return (
@@ -207,7 +209,7 @@ export function AdoptionBlockers({
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="mt-2 max-sm:h-9"
+                    className="mt-2"
                     onClick={() => onShowToAdd(blocker.models.map(model => `${blocker.provider}/${model}`))}
                   >
                     {copyText("Show in To add", "Voir dans À ajouter")}

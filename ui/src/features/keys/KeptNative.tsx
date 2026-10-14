@@ -113,7 +113,7 @@ export function KeptProviders({
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="mt-2 max-sm:h-9"
+                  className="mt-2"
                   onClick={() => onKeep(provider, false)}
                 >
                   {copy(`Stop keeping ${name} in Bifrost`, `Ne plus garder ${name} dans Bifrost`)}

@@ -461,7 +461,7 @@ export function KeyLibrary({
         ) : (
           <Popover>
             <PopoverTrigger asChild>
-              <Button size="sm" variant="outline" className="max-sm:h-9">
+              <Button size="sm" variant="outline">
                 <ListFilter className="size-4" />
                 {copy("Filters", "Filtres")}
                 {activeFilters ? ` (${activeFilters})` : ""}

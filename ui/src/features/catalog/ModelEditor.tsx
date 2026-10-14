@@ -751,7 +751,10 @@ export default function ModelEditor({
         >
           <span className="min-w-0 space-y-1">
             <strong className="block text-sm">{displayProvider(access.provider)}</strong>
-            <code className="block break-all text-xs">{access.model}</code>
+            {/* Basic names an access by its provider; the raw native ID stays for Expert and duplicates (#110). */}
+            {showsNativeModel(others, access, expert) && (
+              <code className="block break-all text-xs">{access.model}</code>
+            )}
             <span className="block text-xs text-muted-foreground">{priceOf(access)}</span>
           </span>
           <Button
@@ -1196,7 +1199,13 @@ export default function ModelEditor({
       </div>
       <div className="flex flex-wrap items-center justify-end gap-2">
         {currentStep > 0 && (
-          <Button variant="ghost" onClick={() => changeStep(currentStep - 1)}>
+          <Button
+            variant="ghost"
+            onClick={() => {
+              // Expert: Back also brings the previous section into view (#110), like a stepper pill.
+              if (changeStep(currentStep - 1) !== false && all) revealJourneyStep(currentStep - 1, false);
+            }}
+          >
             {copy("Back", "Retour")}
           </Button>
         )}
@@ -1465,6 +1474,7 @@ export default function ModelEditor({
         labels={stepLabels}
         step={currentStep}
         onStepChange={changeStep}
+        onStepSpy={all ? index => setStep(stepNames[index] ?? "review") : undefined}
         expert={all}
         summary={modelSummary}
         footer={readOnly ? readFooter : editorFooter}

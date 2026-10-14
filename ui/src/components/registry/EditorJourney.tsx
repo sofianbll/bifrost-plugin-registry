@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { useCopy } from "@/lib/locale";
 
@@ -13,6 +13,8 @@ type Props = {
   footer: ReactNode;
   // The read view of a saved card shows no steps.
   hideSteps?: boolean;
+  // Expert's one scroll: the active step follows what fills the view (scroll-spy), not only clicks (#110).
+  onStepSpy?: (step: number) => void;
 };
 
 // Expert shows every step in one scroll: whatever moves to a step brings its section into view. Only the editor's
@@ -42,8 +44,29 @@ export function EditorJourney({
   summary,
   footer,
   hideSteps,
+  onStepSpy,
 }: Props) {
   const copy = useCopy();
+  // The spy reads the sections once the scroll settles (one animation frame), never mid-frame.
+  const spyFrame = useRef(0);
+  useEffect(() => () => cancelAnimationFrame(spyFrame.current), []);
+  const spy = (event: React.UIEvent<HTMLElement>) => {
+    if (!expert || !onStepSpy) return;
+    const scroller = event.currentTarget;
+    cancelAnimationFrame(spyFrame.current);
+    spyFrame.current = requestAnimationFrame(() => {
+      const sections = [...scroller.querySelectorAll<HTMLElement>('[id^="editor-journey-step-"]')];
+      if (!sections.length) return;
+      const index = (section: Element) => Number(section.id.replace("editor-journey-step-", ""));
+      const top = scroller.getBoundingClientRect().top;
+      let active = index(sections[0]);
+      for (const section of sections) if (section.getBoundingClientRect().top - top <= 96) active = index(section);
+      // Scrolled to the end: the last step is active even when its section is shorter than the view.
+      if (scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 4)
+        active = index(sections[sections.length - 1]);
+      onStepSpy(active);
+    });
+  };
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {!hideSteps && (
@@ -74,6 +97,7 @@ export function EditorJourney({
       )}
       <div
         data-journey-scroll
+        onScroll={spy}
         className="@container/journey custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain py-4 pr-1"
       >
         {expert ? (

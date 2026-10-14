@@ -115,7 +115,7 @@ function SheetContent({
           onOpenAutoFocus={restoreFocus.onOpenAutoFocus}
           onCloseAutoFocus={restoreFocus.onCloseAutoFocus}
           className={cn(
-            "bg-card data-[state=open]:animate-in data-[state=closed]:animate-out overflow-hidden fixed z-50 flex min-h-0 flex-col shadow-lg transition-all ease-in-out overscroll-none data-[state=closed]:duration-100 data-[state=open]:duration-100",
+            "bg-card data-[state=open]:animate-in data-[state=closed]:animate-out overflow-clip fixed z-50 flex min-h-0 flex-col shadow-lg transition-all ease-in-out overscroll-none data-[state=closed]:duration-100 data-[state=open]:duration-100",
             side === "right" &&
               "data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right top-2 right-2 bottom-2 h-auto w-full max-w-[calc(100vw-1rem)] rounded-sm border sm:w-3/4",
             side === "right" && (!expandable || !expanded) && "sm:max-w-2xl",

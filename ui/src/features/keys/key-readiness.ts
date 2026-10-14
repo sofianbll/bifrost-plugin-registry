@@ -88,7 +88,12 @@ export function splitBlockers(readiness: Readiness | undefined, nativeEdit = tru
 // The decisions of the adoption dialog (spec #85): one per row of splitBlockers (a provider, or the key itself, ""),
 // models to add and blockers no choice settles left out. Decided: a provider kept in Bifrost (also one chosen to settle
 // a collision), or a native edit made in the dialog that removed its row.
-export function adoptionProgress(readiness: Readiness | undefined, kept: string[], edited: string[], nativeEdit = true) {
+export function adoptionProgress(
+  readiness: Readiness | undefined,
+  kept: string[],
+  edited: string[],
+  nativeEdit = true,
+) {
   const blockers = readiness?.blockers ?? [];
   const pending = new Set(splitBlockers(readiness, nativeEdit).decisions.keys());
   const decided = new Set(

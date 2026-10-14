@@ -53,7 +53,14 @@ const hermesReasons = [
   "Native route mistral/qa-mistral-large needs a configured direct Registry access with the same native name",
 ];
 
-const english = render("en", hermes, hermesReasons, () => {}, () => {}, () => {});
+const english = render(
+  "en",
+  hermes,
+  hermesReasons,
+  () => {},
+  () => {},
+  () => {},
+);
 const plain = text(english);
 must(plain.includes("2 decisions before adopting"), `the list says how many decisions are left, got ${plain}`);
 must(count(english.split("<ol")[1].split("</ol>")[0], /<li/g) === 2, "one numbered row per provider");
@@ -119,7 +126,16 @@ must(
   "three names need no +N",
 );
 
-const french = text(render("fr", hermes, hermesReasons, () => {}, () => {}, () => {}));
+const french = text(
+  render(
+    "fr",
+    hermes,
+    hermesReasons,
+    () => {},
+    () => {},
+    () => {},
+  ),
+);
 for (const line of [
   "2 décisions avant d’adopter",
   "Modèles : qa-mistral-large, qa-mistral-small, qa-mistral-code",
