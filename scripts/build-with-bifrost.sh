@@ -50,8 +50,6 @@ for source in (root/'native').glob('*.go'):
     shutil.copy(source,stage/source.name)
 (stage/'abi-probe').mkdir()
 shutil.copy(root/'integration/native_probe.go',stage/'abi-probe/main.go')
-(stage/'legacy-proof').mkdir()
-shutil.copy(root/'integration/legacy_plugin.go',stage/'legacy-proof/main.go')
 for f in stage.rglob('*.go'):
     f.write_text(f.read_text().replace('"bifrost-registry/internal/', '"'+module+'/registry-plugin/internal/'))
 PY
@@ -60,7 +58,7 @@ export GOWORK=off CGO_ENABLED=1
 # Both packages are loaded together before build, so the same dependency versions
 # are selected. -mod=readonly stops silent go.mod/go.sum edits.
 FLAGS=(-mod=readonly -trimpath -buildvcs=false -tags=bifrost)
-go list "${FLAGS[@]}" -deps ./bifrost-http ./registry-plugin ./registry-plugin/abi-probe ./registry-plugin/legacy-proof >/dev/null
+go list "${FLAGS[@]}" -deps ./bifrost-http ./registry-plugin ./registry-plugin/abi-probe >/dev/null
 go test "${FLAGS[@]}" ./registry-plugin
 {
  printf 'Bifrost checkout: '
@@ -78,7 +76,6 @@ go test "${FLAGS[@]}" ./registry-plugin
 printf 'Building native Bifrost and registry plugin from the same module…\n'
 go build "${FLAGS[@]}" -ldflags="$GATEWAY_LDFLAGS" -o "$OUT/bifrost-http" ./bifrost-http
 go build "${FLAGS[@]}" -ldflags="-w -s -X $MODULE/registry-plugin/internal/registry.Version=$REGISTRY_VERSION" -buildmode=plugin -o "$OUT/bifrost-registry.so" ./registry-plugin
-go build "${FLAGS[@]}" -ldflags='-w -s' -buildmode=plugin -o "$OUT/legacy-hook-proof.so" ./registry-plugin/legacy-proof
 go build "${FLAGS[@]}" -ldflags='-w -s' -o "$OUT/native-probe" ./registry-plugin/abi-probe
 "$OUT/native-probe" "$OUT/bifrost-registry.so" > "$OUT/abi-smoke.json"
 # -X silently ignores a wrong symbol path, so check the version the loaded plugin reports.
@@ -86,10 +83,9 @@ python3 -c 'import json, sys; sys.exit(json.load(open(sys.argv[1])).get("registr
   "$OUT/abi-smoke.json" "$REGISTRY_VERSION" || fail "plugin does not report Registry version $REGISTRY_VERSION"
 go version -m "$OUT/bifrost-http" > "$OUT/gateway-build-info.txt"
 go version -m "$OUT/bifrost-registry.so" > "$OUT/plugin-build-info.txt"
-go version -m "$OUT/legacy-hook-proof.so" > "$OUT/legacy-plugin-build-info.txt"
 python3 - "$OUT" <<'PY'
 import hashlib,pathlib,sys
-p=pathlib.Path(sys.argv[1]);names=['bifrost-http','bifrost-registry.so','legacy-hook-proof.so','native-probe']
+p=pathlib.Path(sys.argv[1]);names=['bifrost-http','bifrost-registry.so','native-probe']
 (p/'SHA256SUMS').write_text(''.join(hashlib.sha256((p/n).read_bytes()).hexdigest()+'  '+n+'\n' for n in names))
 PY
 printf '\nBuilt artifacts: %s\n' "$OUT"
