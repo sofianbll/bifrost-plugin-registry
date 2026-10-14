@@ -241,7 +241,7 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     for (const term of [
       "Access",
       "Subscription, provider",
-      "Reference",
+      "Datasheet",
       "Inferred creator",
       "Kept in Bifrost",
       "Checked with Bifrost",
@@ -1734,7 +1734,7 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
         await expect(sheet().getByText("Values come from Models.dev unless you corrected them.")).toHaveCount(1);
         await expect(sheet().getByText("Context length", { exact: true })).toBeVisible();
         await sheet().getByRole("tab", { name: "Sources", exact: true }).click();
-        await expect(sheet().getByText("Reference", { exact: true }).first(), "Basic says reference").toBeVisible();
+        await expect(sheet().getByText("Datasheet", { exact: true }).first(), "Basic says datasheet").toBeVisible();
         await sheet().getByRole("tab", { name: "Overview", exact: true }).click();
         await button("Edit").click();
         await sweepCardTabs("QA Opus saved, editing", true);
@@ -1905,7 +1905,7 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await button("Edit accesses").click();
     await sheet().getByRole("button", { name: "Access settings for Claude", exact: true }).click();
     dialog = page.getByRole("dialog", { name: "Edit provider access" });
-    await expect(dialog.getByRole("combobox", { name: "Reference for this access", exact: true })).toBeVisible();
+    await expect(dialog.getByRole("combobox", { name: "Datasheet for this access", exact: true })).toBeVisible();
     await expect(dialog.getByText("Values for this access", { exact: true })).toBeVisible();
     for (const name of ["Model at this provider *", "Registry exposed ID"])
       await expect(
@@ -2136,7 +2136,8 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await expect(keyChanges().getByRole("list", { name: "Will lose" })).toContainText("synthetic-provider/qa-code");
     await expect(keyChanges().getByRole("list", { name: "Will gain" })).toHaveCount(0);
     await button("Publish changes").click();
-    await page.getByText("Verified", { exact: true }).waitFor();
+    // #110: "Verified" alone already shows on the auto-checked page; the publish toast is the fresh signal.
+    await page.getByText("Published and verified with Bifrost.", { exact: true }).waitFor();
     const keys = (await api("workspace")).data.keys;
     const key = (id: string) => keys.find((k: { id: string }) => k.id === id);
     expect(key("vk-qa-dev").policy.excluded).toEqual(["qa-code"]);
@@ -2471,6 +2472,7 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
 
     // Final critique, P1: a key disabled or expired in Bifrost has no choice to make, so it is no decision.
     // The fixture carries one (vk-qa-disabled, #110): the journey is real, no mocked preview.
+    await button("All virtual keys").click();
     await keyCard("QA Disabled Key")
       .getByRole("button", { name: "See what blocks it · QA Disabled Key", exact: true })
       .click();
@@ -2644,7 +2646,7 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     // are shared.
     const sentinels = {
       en: /[àâçéèêëîïôûùœ«»]|\b(Oui|Non|Autre|[Ii]nconnue?|nouveau|Fournisseur|[Ff]iche)\b/,
-      fr: /\b(Unknown|unknown|Yes|No|Other|Saved|Partial|Loading|Search|Creator|(?<!Synthetic )Provider|Reference|Model|Models(?!\.dev)|Native|Workspace|Catalog|Access|Accesses|Capabilities|Modalities|Series|Tasks|Settings|Show|View|Create|Delete|Name|Review|Cancel|Save|Open|Edit|Declared|declared|Configured|available|[Dd]etails|Input|Output|[Pp]rice|the|and|with|of)\b/,
+      fr: /\b(Unknown|unknown|Yes|No|Other|Saved|Partial|Loading|Search|Creator|(?<!Synthetic )Provider|Reference|Datasheet|Model|Models(?!\.dev)|Native|Workspace|Catalog|Access|Accesses|Capabilities|Modalities|Series|Tasks|Settings|Show|View|Create|Delete|Name|Review|Cancel|Save|Open|Edit|Declared|declared|Configured|available|[Dd]etails|Input|Output|[Pp]rice|the|and|with|of)\b/,
     };
     const sweep = async (language: "en" | "fr", where: string) => {
       const text = await page.evaluate(() =>
@@ -3064,7 +3066,8 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await editSelection();
     await composerStep("Review").click();
     await button("Check again").click();
-    await page.getByText("Verified", { exact: true }).first().waitFor();
+    // #110: the page may already read "Verified" from the check on open; the toast marks this check.
+    await page.getByText(/^Verified with Bifrost/).first().waitFor();
     // The check lists Mistral's routes, but they are Bifrost's: Review must not announce their removal.
     await expect(page.getByRole("region", { name: "Changes before publishing" })).toContainText("No change.");
     await expect(page.getByRole("list", { name: "Will lose" })).toHaveCount(0);
@@ -3146,7 +3149,7 @@ test("UX journeys", async ({ page, pageErrors: errors, browser, baseURL }, testI
     await button("Publish changes").click();
     await expect(button("Publish changes")).toBeDisabled();
     await button("Check again").click();
-    await page.getByText("Verified", { exact: true }).first().waitFor();
+    await page.getByText(/^Verified with Bifrost/).first().waitFor();
     expect(
       (await api("workspace")).data.keys.find((k: { id: string }) => k.id === "vk-qa-wildcard").publication.actual,
     ).toContain("Claude/qa-haiku");

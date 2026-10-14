@@ -633,7 +633,7 @@ function RegistryApp({
     return () => {
       cancelled = true;
     };
-  }, [page, pageId, key?.id, snapshotMode]);
+  }, [page, pageId, key?.id, key?.managed, snapshotMode]);
   const activePolicy = draft || key?.policy;
   const isDirty = Boolean(key && draft && !same(key.policy, draft));
   const keyEditing = Boolean(key && (editingKey === key.id || isDirty));

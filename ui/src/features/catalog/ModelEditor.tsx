@@ -2454,7 +2454,7 @@ export default function ModelEditor({
                 </>
               )}
               <SearchableSelect
-                label={copy("Reference for this access", "Fiche documentaire pour cet accès")}
+                label={copy("Datasheet for this access", "Fiche documentaire pour cet accès")}
                 value={form.accesses[editingAccess].referenceId || ""}
                 options={referenceOptions}
                 onChange={id => chooseEditReference(editingAccess, id)}
