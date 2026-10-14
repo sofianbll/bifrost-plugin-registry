@@ -23,14 +23,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
@@ -92,6 +85,8 @@ import { CreatedKeySecretDialog } from "../features/keys/CreatedKeySecretDialog"
 import { useCreatedKeySecret } from "../features/keys/useCreatedKeySecret";
 import { KeyRenameDialog } from "../features/keys/KeyRenameDialog";
 import { useKeyRename } from "../features/keys/useKeyRename";
+import { KeyCreateDialog } from "../features/keys/KeyCreateDialog";
+import { useKeyCreation } from "../features/keys/useKeyCreation";
 import { omitUnchangedReferenceIds } from "../features/catalog/model-editor-data";
 import CatalogMetadata from "../features/catalog/CatalogMetadata";
 import SnapshotTransfer from "../features/snapshot/SnapshotTransfer";
@@ -110,8 +105,6 @@ import { Switch } from "../components/ui/switch";
 import KeyComposer from "../features/keys/KeyComposer";
 import { checkFailed, keyLedger, KeySummary, verifiedToast } from "../features/keys/KeySummary";
 import { permissionSummary, preserveAdoptionDraft } from "../features/keys/KeyComposer.state";
-import { keyFormState, type KeyFormDraft } from "../features/keys/key-form";
-import { KeyCreateForm } from "../features/keys/KeyCreateForm";
 import KeyLibrary from "../features/keys/KeyLibrary";
 import { KeyPermissions } from "../features/keys/KeyPermissions";
 import { readinessLabel, readinessReason, readinessState, readinessVariant } from "../features/keys/key-readiness";
@@ -243,7 +236,17 @@ function RegistryApp({
   const [modelError, setModelError] = useState("");
   const [groupDraft, setGroupDraft] = useState<Group | null>(null);
   const groupBaseline = useRef<Group | null>(null);
-  const [keyForm, setKeyForm] = useState<KeyFormDraft | null>(null);
+  const keyCreation = useKeyCreation(
+    copyText,
+    data.keys,
+    keyNameMessages,
+    (label, work) => operation(label, work),
+    setCreatedSecret,
+    setCreatedSecretError,
+    workspace => applyWorkspace(workspace),
+    (page, id) => navigate(page, id),
+  );
+  const { keyForm, setKeyForm, keyFormFields, saveKey } = keyCreation;
   const keyRename = useKeyRename(data, copyText, (next, label) => commit(next, label));
   const { setRenameForm } = keyRename;
   // A managed key opens read-first; "Edit selection" opens the composer for that key (an unpublished draft keeps it open).
@@ -918,44 +921,6 @@ function RegistryApp({
     )
       setGroupDraft(null);
   };
-  const saveKey = async () => {
-    const form = keyForm;
-    if (!form || !keyFormState(form, data.keys, keyNameMessages).canSubmit) return;
-    await operation(copyText("Creating native key…", "Création de la clé native…"), async () => {
-      const result = await createKey(form.name.trim(), form.client.trim());
-      setCreatedSecretError("");
-      setCreatedSecret(result.created.secret);
-      setKeyForm(null);
-      navigate("keys", result.created.id);
-      if (result.workspace) applyWorkspace(result.workspace);
-      else {
-        try {
-          applyWorkspace(await getWorkspace());
-        } catch (error) {
-          if (error instanceof ApiError && error.status === 401) throw error;
-          throw new Error(
-            copyText(
-              `Native key created, but workspace refresh failed: ${result.refreshError || "connection unavailable"}. Copy the displayed secret and reload later.`,
-              `Clé native créée, mais l’actualisation de l’espace a échoué : ${result.refreshError || "connexion indisponible"}. Copiez le secret affiché et rechargez plus tard.`,
-            ),
-          );
-        }
-      }
-      if (result.managed === false || result.bindingError)
-        throw new Error(
-          copyText(
-            `${result.bindingError || "Registry binding failed"}. Native key is unmanaged; copy its secret and reconcile before using it.`,
-            `${result.bindingError || "L’association Registry a échoué"}. La clé native n’est pas gérée ; copiez son secret et réconciliez avant de l’utiliser.`,
-          ),
-        );
-      toast.success(
-        copyText(
-          "Native virtual key created. Copy its secret now.",
-          "Clé virtuelle native créée. Copiez son secret maintenant.",
-        ),
-      );
-    });
-  };
   const publishKey = async () => {
     if (!key || !draft || key.managed === false) return;
     const next = { ...data, keys: data.keys.map(k => (k.id === key.id ? { ...k, policy: copy(draft) } : k)) };
@@ -984,7 +949,6 @@ function RegistryApp({
     });
   };
   const title = nav.find(item => item.id === page)!.label[language];
-  const keyFormFields = keyFormState(keyForm, data.keys, keyNameMessages);
   if (loginRequired)
     return (
       <div className="flex min-h-dvh items-center justify-center bg-background p-4 sm:p-6">
@@ -1889,28 +1853,15 @@ function RegistryApp({
           </SheetContent>
         </Sheet>
         <CreatedKeySecretDialog {...createdKeySecret} copyText={copyText} />
-        <Dialog open={!!keyForm} onOpenChange={open => !open && !busyRef.current && setKeyForm(null)}>
-          <DialogContent inert={!!busy}>
-            <DialogHeader className="border-b pb-4">
-              <DialogTitle className="text-xl">{copyText("Create virtual key", "Créer une clé virtuelle")}</DialogTitle>
-              <DialogDescription>
-                {copyText(
-                  "A native Bifrost virtual key will be created. Its secret is shown once.",
-                  "Une clé virtuelle Bifrost native sera créée. Son secret ne s’affichera qu’une fois.",
-                )}
-              </DialogDescription>
-            </DialogHeader>
-            {keyForm && <KeyCreateForm draft={keyForm} error={keyFormFields.error} onChange={setKeyForm} />}
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setKeyForm(null)}>
-                {copyText("Cancel", "Annuler")}
-              </Button>
-              <Button disabled={!!busy || !keyFormFields.canSubmit} onClick={saveKey}>
-                {copyText("Create key", "Créer la clé")}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <KeyCreateDialog
+          copyText={copyText}
+          busy={busy}
+          busyRef={busyRef}
+          keyForm={keyForm}
+          setKeyForm={setKeyForm}
+          keyFormFields={keyFormFields}
+          saveKey={saveKey}
+        />
         <KeyRenameDialog {...keyRename} copyText={copyText} busy={busy} busyRef={busyRef} />
         <ConfirmationDialog confirm={confirm} busy={busy} copyText={copyText} onClose={() => setConfirm(null)} />
         {adoption && (
