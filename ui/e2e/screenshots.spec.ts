@@ -24,20 +24,22 @@ const label = {
   fr: { table: "Tableau", square: "Carré", medium: "Moyen", options: "Options d’affichage" },
 };
 
-// Basic mode folds the layout controls into View options (#85); the popover closes before the capture.
-const pick = async (page: Page, language: "en" | "fr", ...radios: string[]) => {
+// Basic mode folds the layout controls into View options (#85); the popover closes before the capture, except for
+// the display-options shot, which illustrates it open (#110: close = false).
+const pick = async (page: Page, language: "en" | "fr", close: boolean, ...radios: string[]) => {
   await page.getByRole("button", { name: label[language].options, exact: true }).click();
   for (const name of radios) await page.getByRole("radio", { name }).click();
-  await page.keyboard.press("Escape");
+  if (close) await page.keyboard.press("Escape");
 };
 
 test("catalogue table", async ({ page, language }) => {
-  await pick(page, language, label[language].table);
+  await pick(page, language, true, label[language].table);
   await capture(page, "catalogue-table.png");
 });
 
 test("display options", async ({ page, language }) => {
-  await pick(page, language, label[language].square, label[language].medium);
+  // The shot illustrates the popover itself: it stays open, the choices just made selected.
+  await pick(page, language, false, label[language].square, label[language].medium);
   await capture(page, "display-options.png");
 });
 

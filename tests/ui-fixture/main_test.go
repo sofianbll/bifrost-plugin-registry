@@ -76,7 +76,7 @@ func TestFixtureWorkspaceAndNativeReadback(t *testing.T) {
 		Discovery []any          `json:"discovery"`
 	}
 	get := call("GET", "/api/workspace", nil, "")
-	if get.Code != 200 || json.Unmarshal(get.Body.Bytes(), &ws) != nil || len(ws.Data["models"].([]any)) != 12 || len(ws.Data["groups"].([]any)) != 2 || len(ws.Data["keys"].([]any)) != 12 || len(ws.Discovery) != 81 {
+	if get.Code != 200 || json.Unmarshal(get.Body.Bytes(), &ws) != nil || len(ws.Data["models"].([]any)) != 12 || len(ws.Data["groups"].([]any)) != 2 || len(ws.Data["keys"].([]any)) != 13 || len(ws.Discovery) != 81 {
 		t.Fatalf("workspace: %d %s", get.Code, get.Body.String())
 	}
 	group := ws.Data["groups"].([]any)[0].(map[string]any)
@@ -337,6 +337,8 @@ func TestFixtureKeysCoverAdoptionCases(t *testing.T) {
 		"vk-qa-hermes":  "undiscovered 2, saved 2, unsaved 0",
 		"vk-qa-unsaved": "unsaved 1, saved 1",
 		"vk-qa-kept":    "undiscovered 1, saved 2, unsaved 0", // an enabled provider allowing a name it does not serve (#99)
+		// #110: its one route is saved, but the key itself is inactive in Bifrost — adoption is blocked by the key, not a choice.
+		"vk-qa-disabled": "ready",
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("unmanaged key cases = %v, want %v", got, want)
@@ -346,12 +348,13 @@ func TestFixtureKeysCoverAdoptionCases(t *testing.T) {
 		"vk-qa-unmanaged": "empty", "vk-qa-all-providers": "blocked /all-providers 1", "vk-qa-claude": "blocked Claude/dynamic 1", "vk-qa-wildcard": "blocked Claude/dynamic 1",
 		"vk-qa-codex": "ready", "vk-qa-google": "ready",
 		"vk-qa-mistral": "blocked mistral/undiscovered 3 Codex/collision 1", "vk-qa-hermes": "blocked mistral/undiscovered 2", "vk-qa-unsaved": "blocked synthetic-provider/unsaved 1", "vk-qa-kept": "blocked Google/undiscovered 1",
+		"vk-qa-disabled": "blocked /other 1",
 	}
 	if !reflect.DeepEqual(readiness, wantReadiness) {
 		t.Fatalf("unmanaged key readiness = %v, want %v", readiness, wantReadiness)
 	}
 	// Adoption agrees: only the ready keys can be adopted as they are.
-	for id, apply := range map[string]bool{"vk-qa-codex": true, "vk-qa-google": true, "vk-qa-mistral": false, "vk-qa-hermes": false, "vk-qa-unsaved": false, "vk-qa-kept": false, "vk-qa-unmanaged": false} {
+	for id, apply := range map[string]bool{"vk-qa-codex": true, "vk-qa-google": true, "vk-qa-mistral": false, "vk-qa-hermes": false, "vk-qa-unsaved": false, "vk-qa-kept": false, "vk-qa-unmanaged": false, "vk-qa-disabled": false} {
 		var p struct {
 			CanApply bool `json:"canApply"`
 		}

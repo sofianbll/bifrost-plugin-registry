@@ -58,9 +58,9 @@ for (const phrase of [
   "kept in Bifrost",
   "Ready to adopt",
   "inferred creator",
-  "Associate a reference",
+  "Associate a datasheet",
   "Add to card",
-  "no reference",
+  "no datasheet",
 ])
   must(english.includes(phrase), `English help mentions ${phrase}`);
 const french = help("fr");
@@ -92,7 +92,7 @@ must(
 for (const phrase of [
   "Access",
   "Subscription, provider",
-  "Reference",
+  "Datasheet",
   "Inferred creator",
   "Kept in Bifrost",
   "Checked with Bifrost",

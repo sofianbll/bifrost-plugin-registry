@@ -3,7 +3,7 @@ import { RotateCcw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { displayProvider } from "../../components/registry/BrandIcon";
-import { exposed, members, retainedAccesses, type Group, type Key, type Model } from "../../domain/registry";
+import { exposed, members, namedIds, retainedAccesses, type Group, type Key, type Model } from "../../domain/registry";
 import { useCopy, useFormat, type Copy } from "../../lib/locale";
 import { permissionSummary } from "./KeyComposer.state";
 import { KeyPermissions } from "./KeyPermissions";
@@ -11,10 +11,11 @@ import { KeyPermissions } from "./KeyPermissions";
 // What a managed key can call (#99): one row per model, counted once whatever the subscriptions that serve it. A
 // model is its common ID (a card's alias or ID; a kept name without a card is its own). Registry routes come from
 // the selection (a model waiting for an access choice is not published); kept providers add the models Bifrost
-// allows them. Once Bifrost has listed the key's IDs, a kept route it does not list (a name its provider does not
-// list) is flagged, not counted, and is a difference; it is not drift, which stays Registry's own check. A kept
-// provider that allows every model, depends on the Bifrost version, or was not read yet leaves the total open
-// ("at least N"). The editor's "N models selected" counts the cards chosen there; kept models are not among them.
+// allows them. Once Bifrost has listed the key's IDs, a route it does not confirm leaves the total (ADR 0001, #110):
+// a kept route it does not list (a name its provider does not serve) is flagged and is a difference, not drift; a
+// Registry route missing from the readback is drift, shown by the check state. A kept provider that allows every
+// model, depends on the Bifrost version, or was not read yet leaves the total open ("at least N"). The editor's
+// "N models selected" counts the cards chosen there; kept models are not among them.
 export type LedgerRow = {
   id: string;
   name: string;
@@ -30,16 +31,21 @@ export function keyLedger(key: Key, models: Model[], groups: Group[]) {
     if (!row.via.includes(provider) && !list.includes(provider)) list.push(provider);
     rows.set(id, row);
   };
+  const publication = key.publication;
+  const actual = publication && publication.state !== "not_verified" ? publication.actual : null;
   const pending = Object.keys(key.pendingAccessSelection ?? {});
   for (const id of members(key.policy, groups)) {
     const model = models.find(item => item.id === id);
     if (!model || pending.includes(model.alias || model.id)) continue;
     const { known } = retainedAccesses(model, key.policy);
     for (const access of model.accesses.filter(item => known.includes(item.id)))
-      add(model.alias || model.id, model.name || model.id, access.provider);
+      add(
+        model.alias || model.id,
+        model.name || model.id,
+        access.provider,
+        !actual || namedIds(key.policy.naming, model.id, [access.id]).some(route => actual.includes(route)),
+      );
   }
-  const publication = key.publication;
-  const actual = publication && publication.state !== "not_verified" ? publication.actual : null;
   const open: LedgerRow[] = [];
   for (const provider of key.policy.keptNative ?? []) {
     const permission = key.permissions?.providers.find(item => item.provider === provider);

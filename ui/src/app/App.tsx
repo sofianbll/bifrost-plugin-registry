@@ -344,7 +344,7 @@ function RegistryApp({
         setReferenceError(
           error instanceof Error
             ? error.message
-            : copyText("Reference catalog unavailable.", "Catalogue de référence indisponible."),
+            : copyText("Datasheet catalog unavailable.", "Catalogue de référence indisponible."),
         );
       return false;
     }
@@ -610,6 +610,30 @@ function RegistryApp({
       pendingKeyDraft.current = null;
     } else setDraft(copy(key.policy));
   }, [key?.id]);
+  // A managed key's page opens with a fresh read of what Bifrost lists for it (#110, owner decision of
+  // 2026-10-14): a read, not a write, so the verdict never goes stale across a gateway restart. Silent on
+  // success; a failure is recorded like a manual check, without a toast.
+  useEffect(() => {
+    if (page !== "keys" || !pageId || snapshotMode) return;
+    const managed = key && key.managed !== false;
+    if (!managed) return;
+    let cancelled = false;
+    readbackKey(pageId)
+      .then(workspace => {
+        if (!cancelled) applyWorkspace(workspace);
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        if (error instanceof ApiError && error.status === 401) {
+          requireLogin();
+          return;
+        }
+        markReadbackFailure(pageId, error);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [page, pageId, key?.id, key?.managed, snapshotMode]);
   const activePolicy = draft || key?.policy;
   const isDirty = Boolean(key && draft && !same(key.policy, draft));
   const keyEditing = Boolean(key && (editingKey === key.id || isDirty));
@@ -1268,7 +1292,7 @@ function RegistryApp({
                 <Button
                   variant="outline"
                   size="icon"
-                  className="size-8 shrink-0"
+                  className="size-8 max-sm:size-9 shrink-0"
                   aria-label={copyText("Sign out", "Se déconnecter")}
                   title={copyText("Sign out", "Se déconnecter")}
                   disabled={!!busy || loading}

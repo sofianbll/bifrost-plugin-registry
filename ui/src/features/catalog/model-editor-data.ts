@@ -23,7 +23,7 @@ export function modelEditorOptions(catalog: Catalog | null, workspace: Model[], 
           {
             value: id,
             label: stringField(reference, "name") || id,
-            detail: `${copy("Reference", "Fiche documentaire")} ${reference.id}`,
+            detail: `${copy("Datasheet", "Fiche documentaire")} ${reference.id}`,
             referenceId: reference.id,
           },
         ]
@@ -232,7 +232,7 @@ export function associationStatus(access: Access, found: CatalogAccess | undefin
     return access.referenceId
       ? expert
         ? copy("Mapping proposed in this draft", "Correspondance proposée dans ce brouillon")
-        : copy("Reference proposed in this draft", "Fiche documentaire proposée dans ce brouillon")
+        : copy("Datasheet proposed in this draft", "Fiche documentaire proposée dans ce brouillon")
       : copy("Unlink proposed in this draft", "Dissociation proposée dans ce brouillon");
   if (found?.mappingManual === true)
     return expert ? copy("Mapping chosen in Registry", "Correspondance choisie dans Registry") : "";

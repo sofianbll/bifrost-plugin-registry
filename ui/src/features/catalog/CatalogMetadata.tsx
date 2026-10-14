@@ -333,13 +333,13 @@ export default function CatalogMetadata({
                     setVisibleCount(40);
                   }}
                 >
-                  {copy("Reference cards", "Fiches documentaires")} ({catalog.references.length})
+                  {copy("Datasheets", "Fiches documentaires")} ({catalog.references.length})
                 </Button>
               </div>
               {mode === "reference" && (
                 <>
                   <Button variant="outline" size="sm" onClick={() => setNewReference({ id: "", name: "" })}>
-                    {copy("New reference", "Nouvelle fiche")}
+                    {copy("New datasheet", "Nouvelle fiche")}
                   </Button>
                   {newReference && (
                     <form
@@ -416,7 +416,7 @@ export default function CatalogMetadata({
                 <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
                 <Input
                   aria-label={copy(
-                    mode === "access" ? "Search provider accesses" : "Search references",
+                    mode === "access" ? "Search provider accesses" : "Search datasheets",
                     mode === "access" ? "Rechercher des accès fournisseurs" : "Rechercher des fiches",
                   )}
                   placeholder={copy(
@@ -469,8 +469,8 @@ export default function CatalogMetadata({
                         <span className="mt-1 block break-all text-xs text-muted-foreground">
                           {item.provider} · {item.model}
                           {item.referenceId
-                            ? ` · ${copy("Reference", "Fiche documentaire")} ${item.mappingManual ? copy("selected", "choisie") : copy("suggested", "suggérée")}`
-                            : ` · ${copy("No reference", "Sans fiche documentaire")}`}
+                            ? ` · ${copy("Datasheet", "Fiche documentaire")} ${item.mappingManual ? copy("selected", "choisie") : copy("suggested", "suggérée")}`
+                            : ` · ${copy("No datasheet", "Sans fiche documentaire")}`}
                         </span>
                       )}
                     </button>
@@ -589,7 +589,7 @@ export default function CatalogMetadata({
                         </div>
                         {matchId && !catalog.references.some(reference => reference.id === matchId) && (
                           <p className="text-xs text-destructive">
-                            {copy("No reference has this exact ID.", "Aucune fiche ne possède cet ID exact.")}
+                            {copy("No datasheet has this exact ID.", "Aucune fiche ne possède cet ID exact.")}
                           </p>
                         )}
                       </div>

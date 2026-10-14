@@ -141,9 +141,9 @@ export default function AdoptionDialog({
       setApplying(false);
     }
   };
-  const progress = adoptionProgress(preview?.readiness, kept, edited);
+  const progress = adoptionProgress(preview?.readiness, kept, edited, !snapshot);
   // Why Adopt is off beyond the decisions: models to register first, or the key to fix in Bifrost (no numbered decision).
-  const prerequisite = preview?.canApply ? "" : prerequisiteLine(preview?.readiness, copyText);
+  const prerequisite = preview?.canApply ? "" : prerequisiteLine(preview?.readiness, copyText, !snapshot);
   const routes = (ids: string[]) => (
     <ul className="mt-2 space-y-1">
       {ids.map(id => (
@@ -257,7 +257,7 @@ export default function AdoptionDialog({
                   {copyText("This preview is out of date.", "Cet aperçu n’est plus à jour.")}
                 </p>
               )}
-              <Button variant="outline" size="sm" className="max-sm:h-9" disabled={busy} onClick={() => void refresh()}>
+              <Button variant="outline" size="sm" disabled={busy} onClick={() => void refresh()}>
                 {copyText("Refresh preview", "Actualiser l’aperçu")}
               </Button>
             </div>

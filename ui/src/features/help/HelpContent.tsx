@@ -113,7 +113,7 @@ export function HelpContent({ expert = false }: { expert?: boolean }) {
         <ul className="list-disc space-y-2 pl-5 text-muted-foreground">
           <li>
             {copy(
-              "A badge shows only when something needs attention: “no reference”, “inferred creator”, “+1 available”.",
+              "A badge shows only when something needs attention: “no datasheet”, “inferred creator”, “+1 available”.",
               "Un badge n’apparaît que si quelque chose demande votre attention : « sans référence », « créateur déduit », « +1 disponible ».",
             )}
           </li>
@@ -122,7 +122,7 @@ export function HelpContent({ expert = false }: { expert?: boolean }) {
               "An inferred creator is guessed from the model name or the provider serving it. ",
               "Un créateur déduit est supposé d’après le nom du modèle ou le fournisseur qui le sert. ",
             )}
-            <Q>{copy("Associate a reference", "Associer une fiche documentaire")}</Q>{" "}
+            <Q>{copy("Associate a datasheet", "Associer une fiche documentaire")}</Q>{" "}
             {copy(
               "links the card to a Models.dev entry, so its facts and creator are real.",
               "relie la fiche à une entrée Models.dev : ses données et son créateur deviennent fiables.",
@@ -177,7 +177,7 @@ export function HelpContent({ expert = false }: { expert?: boolean }) {
           )}
           <div className="contents">
             <dt>
-              <Q>{copy("Reference", "Fiche documentaire")}</Q>
+              <Q>{copy("Datasheet", "Fiche documentaire")}</Q>
             </dt>
             <dd className="mb-2 sm:mb-0">
               {copy(

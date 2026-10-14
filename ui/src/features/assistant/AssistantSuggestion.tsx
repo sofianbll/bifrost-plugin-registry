@@ -110,7 +110,7 @@ export default function AssistantSuggestion({
         reasoning: term("Reasoning"),
         tool_call: term("Tool calling"),
         structured_output: term("Structured output"),
-        referenceId: copy("Reference match for all accesses", "Correspondance documentaire pour tous les accès"),
+        referenceId: copy("Datasheet match for all accesses", "Correspondance documentaire pour tous les accès"),
       }) as Record<string, string>
     )[key] || term(original);
   const state = (value: string) =>

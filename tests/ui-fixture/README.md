@@ -91,11 +91,12 @@ embedded Models.dev snapshot; `tencent/qa-hunyuan`, `meituan/qa-longcat` and
 | QA To Add Key (`vk-qa-unsaved`) | unmanaged | `synthetic-provider`: `qa-vision` (saved) and `qa-unregistered` (discovered, no card); blocked by the unsaved model |
 | QA Wildcard Key (`vk-qa-wildcard`) | unmanaged | `Claude`: `*` (all models) and `Codex`: `qa-codex` (saved); the journeys adopt it keeping Claude in Bifrost |
 | QA Kept Key (`vk-qa-kept`) | unmanaged | `Codex`: `qa-codex-mini` (saved) and `Google`: `qa-gemini` (saved), `qa-ghost` (Google does not serve it); the journeys adopt it keeping Google in Bifrost, and its readback lacks `Google/qa-ghost` (#99) |
+| QA Disabled Key (`vk-qa-disabled`) | unmanaged, `is_active: false` | `synthetic-provider`: `qa-chat`; adoption has no decision, only a prerequisite (#110) |
 
 Adoption cases among the unmanaged keys: **ready** (`vk-qa-codex`, `vk-qa-google`),
 **empty** (`vk-qa-unmanaged`), **all providers** (`vk-qa-all-providers`), **all models of a
 provider** (`vk-qa-claude`, `vk-qa-wildcard`), **blocked by undiscovered models** (`vk-qa-mistral`,
-`vk-qa-hermes` on a disabled provider, `vk-qa-kept` on an enabled one), **blocked by discovered models without a card** (`vk-qa-unsaved`). The
+`vk-qa-hermes` on a disabled provider, `vk-qa-kept` on an enabled one), **blocked by discovered models without a card** (`vk-qa-unsaved`), **disabled** (`vk-qa-disabled`). The
 journeys adopt `vk-qa-codex`, `vk-qa-mistral` (keeping `mistral` in Bifrost), `vk-qa-wildcard`
 (keeping `Claude` in Bifrost), `vk-qa-kept` (keeping `Google` in Bifrost) and, after a native permission edit, `vk-qa-hermes`,
 `vk-qa-all-providers` and `vk-qa-claude`; `vk-qa-google` stays ready. No journey saves `qa-unregistered`.

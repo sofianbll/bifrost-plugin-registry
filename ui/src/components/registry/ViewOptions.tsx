@@ -184,12 +184,7 @@ export function ViewControls({
         {!folded && <div className="contents @max-2xl:hidden">{layoutControls(false)}</div>}
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
-            <Button
-              size="sm"
-              variant="outline"
-              className="max-sm:h-9"
-              aria-label={copy("View options", "Options d’affichage")}
-            >
+            <Button size="sm" variant="outline" aria-label={copy("View options", "Options d’affichage")}>
               <SlidersHorizontal className="size-4" />
               <span className="@max-md:hidden">{copy("View options", "Options d’affichage")}</span>
             </Button>

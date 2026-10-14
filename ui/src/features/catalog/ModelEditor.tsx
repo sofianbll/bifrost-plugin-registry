@@ -751,7 +751,10 @@ export default function ModelEditor({
         >
           <span className="min-w-0 space-y-1">
             <strong className="block text-sm">{displayProvider(access.provider)}</strong>
-            <code className="block break-all text-xs">{access.model}</code>
+            {/* Basic names an access by its provider; the raw native ID stays for Expert and duplicates (#110). */}
+            {showsNativeModel(others, access, expert) && (
+              <code className="block break-all text-xs">{access.model}</code>
+            )}
             <span className="block text-xs text-muted-foreground">{priceOf(access)}</span>
           </span>
           <Button
@@ -1035,7 +1038,7 @@ export default function ModelEditor({
             original.accesses.some(before => sameAccess(before, access) && before.referenceId !== access.referenceId),
           )
           .map(access => ({
-            plain: `${copy("Reference changed for", "Fiche documentaire modifiée pour")} ${displayProvider(access.provider)}`,
+            plain: `${copy("Datasheet changed for", "Fiche documentaire modifiée pour")} ${displayProvider(access.provider)}`,
             technical: `${copy("Documentary record for", "Fiche documentaire de")} ${displayProvider(access.provider)}${colon} ${referenceName(original.accesses.find(before => sameAccess(before, access))?.referenceId)} → ${referenceName(access.referenceId)}`,
           })),
         ...draft.accesses
@@ -1196,7 +1199,13 @@ export default function ModelEditor({
       </div>
       <div className="flex flex-wrap items-center justify-end gap-2">
         {currentStep > 0 && (
-          <Button variant="ghost" onClick={() => changeStep(currentStep - 1)}>
+          <Button
+            variant="ghost"
+            onClick={() => {
+              // Expert: Back also brings the previous section into view (#110), like a stepper pill.
+              if (changeStep(currentStep - 1) !== false && all) revealJourneyStep(currentStep - 1, false);
+            }}
+          >
             {copy("Back", "Retour")}
           </Button>
         )}
@@ -1373,10 +1382,10 @@ export default function ModelEditor({
                     <Button
                       variant="ghost"
                       size="sm"
-                      aria-label={copy(`Access settings for ${named}`, `Réglages de l’accès ${named}`)}
+                      aria-label={copy(`Access settings for ${named}`, `Paramètres de l’accès ${named}`)}
                       onClick={() => openEdit("access", draft.accesses.indexOf(access))}
                     >
-                      {copy("Access settings", "Réglages de l’accès")}
+                      {copy("Access settings", "Paramètres de l’accès")}
                     </Button>
                   )}
                   <Button
@@ -1465,6 +1474,7 @@ export default function ModelEditor({
         labels={stepLabels}
         step={currentStep}
         onStepChange={changeStep}
+        onStepSpy={all ? index => setStep(stepNames[index] ?? "review") : undefined}
         expert={all}
         summary={modelSummary}
         footer={readOnly ? readFooter : editorFooter}
@@ -1472,7 +1482,7 @@ export default function ModelEditor({
       >
         {catalogError && (
           <p role="status" className="rounded-sm border p-3 text-xs text-muted-foreground">
-            {copy("Reference data unavailable", "Données de référence indisponibles")}
+            {copy("Datasheet data unavailable", "Données de référence indisponibles")}
             {colon} {catalogError}.{" "}
             {copy("Existing accesses remain visible.", "Les accès déjà présents restent visibles.")}
           </p>
@@ -1983,7 +1993,7 @@ export default function ModelEditor({
                             <p className="text-xs text-muted-foreground">
                               {expert
                                 ? copy("Documentary record", "Fiche documentaire")
-                                : copy("Reference", "Fiche documentaire")}
+                                : copy("Datasheet", "Fiche documentaire")}
                             </p>
                             <p className="text-sm font-medium">
                               {reference
@@ -2444,11 +2454,11 @@ export default function ModelEditor({
                 </>
               )}
               <SearchableSelect
-                label={copy("Reference for this access", "Fiche documentaire pour cet accès")}
+                label={copy("Datasheet for this access", "Fiche documentaire pour cet accès")}
                 value={form.accesses[editingAccess].referenceId || ""}
                 options={referenceOptions}
                 onChange={id => chooseEditReference(editingAccess, id)}
-                placeholder={copy("Search references", "Chercher une fiche documentaire")}
+                placeholder={copy("Search datasheets", "Chercher une fiche documentaire")}
               />
               {form.accesses[editingAccess].referenceId && (
                 <Button variant="ghost" size="sm" onClick={() => changeEditAccess(editingAccess, { referenceId: "" })}>

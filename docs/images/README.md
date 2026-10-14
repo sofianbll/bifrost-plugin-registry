@@ -25,7 +25,7 @@ The workflow never commits or opens a pull request itself.
 | --- | --- |
 | `catalogue-grid.png` | Model catalogue, grid view (1440 px) |
 | `catalogue-table.png` | Model catalogue, table view (1440 px) |
-| `display-options.png` | Grid view, square shape + medium density (3 columns) |
+| `display-options.png` | Grid view with the View options popover open, square shape + medium density selected (3 columns) |
 | `model-card.png` | Model card editor: identity, overview, accesses |
 | `key-composer.png` | Virtual-key composer, step 1 (models, selections) |
 | `mobile.png` | Model catalogue at 400 px (single column, collapsed sidebar) |
