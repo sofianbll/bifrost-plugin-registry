@@ -62,7 +62,7 @@ import AdoptionDialog from "../features/keys/AdoptionDialog";
 import ReferenceCatalogBrowser from "../features/catalog/ReferenceCatalogBrowser";
 import { associateReference } from "../features/catalog/AssociateReference";
 import { modelFiltersKey } from "../features/catalog/ModelBrowser";
-import { getCatalog, type Catalog } from "../features/catalog/catalog-api";
+import { useReferenceCatalog } from "../features/catalog/useReferenceCatalog";
 import { cardName, groupReferenceModels } from "../features/catalog/reference-groups";
 import { ToggleGroup, ToggleGroupItem } from "../components/ui/toggle-group";
 import { clearSessionState, setSessionState } from "../lib/session-state";
@@ -185,8 +185,8 @@ function RegistryApp({
   const [catalogFocus, setCatalogFocus] = useState<{ target: "reference" | "access"; id: string } | null>(null);
   const [modelScope, setModelScope] = useState<"registry" | "to-add">("registry");
   // The reference catalogue is read once per Registry revision and shared by the pages.
-  const [referenceCatalog, setReferenceCatalog] = useState<Catalog | null>(null);
-  const [referenceError, setReferenceError] = useState("");
+  const { referenceCatalog, setReferenceCatalog, referenceError, setReferenceError, loadReferenceCatalog } =
+    useReferenceCatalog(copyText, () => requireLogin());
   const { preferences, setPreferences, setListOverrides, viewFor, setView, resetView } = useViewPreferences();
   const [dark, setDark] = useState(() => document.documentElement.classList.contains("dark"));
   useEffect(() => {
@@ -252,22 +252,6 @@ function RegistryApp({
   useEffect(() => {
     void load();
   }, []);
-  const loadReferenceCatalog = async () => {
-    try {
-      setReferenceCatalog(await getCatalog());
-      setReferenceError("");
-      return true;
-    } catch (error) {
-      if (error instanceof ApiError && error.status === 401) requireLogin();
-      else
-        setReferenceError(
-          error instanceof Error
-            ? error.message
-            : copyText("Datasheet catalog unavailable.", "Catalogue de référence indisponible."),
-        );
-      return false;
-    }
-  };
   // A catalogue correction already handed over the catalogue of the revision it created.
   useEffect(() => {
     if (revision && referenceCatalog?.revision !== revision) void loadReferenceCatalog();
