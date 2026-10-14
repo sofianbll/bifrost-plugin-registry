@@ -16,12 +16,10 @@ import {
   copy,
   emptyModelFilters,
   exposed,
-  keyImpact,
   members,
   same,
   unsavedModels,
   type Demo,
-  type Group,
   type Key,
   type Model,
   type Policy,
@@ -77,7 +75,8 @@ import { KeyPermissions } from "../features/keys/KeyPermissions";
 import { readinessLabel, readinessReason, readinessState, readinessVariant } from "../features/keys/key-readiness";
 import { displayProvider, setMarkLabels, setProviderBaseTypes } from "../components/registry/BrandIcon";
 import { GroupLibrary } from "../features/groups/GroupLibrary";
-import { GroupEditor } from "../features/groups/GroupEditor";
+import { GroupEditorSheet } from "../features/groups/GroupEditorSheet";
+import { useGroupEditing } from "../features/groups/useGroupEditing";
 import { HelpSheet } from "../features/help/HelpSheet";
 import { Tour, TourOffer } from "../features/help/Tour";
 import { markTourSeen, tourSeen } from "../features/help/tourSteps";
@@ -160,8 +159,15 @@ function RegistryApp({
   const [creatingModel, setCreatingModel] = useState(false);
   const [modelTab, setModelTab] = useState<"access">();
   const [modelError, setModelError] = useState("");
-  const [groupDraft, setGroupDraft] = useState<Group | null>(null);
-  const groupBaseline = useRef<Group | null>(null);
+  const groupEditing = useGroupEditing(
+    data,
+    copyText,
+    snapshotMode,
+    busyRef,
+    confirmation => setConfirm(confirmation),
+    (next, label, verifyIds) => commit(next, label, verifyIds),
+  );
+  const { groupDraft, setGroupDraft, groupBaseline, groupIsDirty, openGroup, closeGroup } = groupEditing;
   const keyCreation = useKeyCreation(
     copyText,
     data.keys,
@@ -543,7 +549,6 @@ function RegistryApp({
   const modelIsDirty = Boolean(
     modelDraft && modelBaseline.current && (!same(modelDraft, modelBaseline.current) || modelOverrides.length > 0),
   );
-  const groupIsDirty = Boolean(groupDraft && groupBaseline.current && !same(groupDraft, groupBaseline.current));
   const startTour = () => {
     markTourSeen();
     setTourOffer(false);
@@ -678,25 +683,6 @@ function RegistryApp({
     if (modelIsDirty) confirmDiscardModel(done);
     else done();
   };
-  const openGroup = (group: Group) => {
-    groupBaseline.current = copy(group);
-    setGroupDraft(copy(group));
-  };
-  const closeGroup = () => {
-    if (!groupDraft || busyRef.current) return;
-    if (groupIsDirty)
-      setConfirm({
-        title: copyText("Discard group changes?", "Abandonner les modifications du groupe ?"),
-        text: copyText(
-          "Unsaved group selections will be lost.",
-          "Les sélections non enregistrées du groupe seront abandonnées.",
-        ),
-        confirmLabel: copyText("Discard changes", "Abandonner les modifications"),
-        cancelLabel: copyText("Keep editing", "Continuer à modifier"),
-        action: () => setGroupDraft(null),
-      });
-    else setGroupDraft(null);
-  };
   const updateModel = async (overrides: CatalogOverride[]) => {
     if (!modelDraft || busyRef.current) return;
     if (firstRegistrationIssue(modelDraft)) {
@@ -799,37 +785,6 @@ function RegistryApp({
         })();
       },
     });
-  };
-  const publishGroup = async () => {
-    if (!groupDraft?.name.trim() || !groupDraft.members.length) {
-      toast.error(
-        copyText("Enter a name and select at least one model.", "Saisissez un nom et sélectionnez au moins un modèle."),
-      );
-      return;
-    }
-    if (
-      data.groups.some(g => g.id !== groupDraft.id && g.name.toLowerCase() === groupDraft.name.trim().toLowerCase())
-    ) {
-      toast.error(copyText("A group with this name already exists.", "Un groupe portant ce nom existe déjà."));
-      return;
-    }
-    const nextGroup = { ...groupDraft, name: groupDraft.name.trim() };
-    const nextGroups = data.groups.some(g => g.id === groupDraft.id)
-      ? data.groups.map(g => (g.id === groupDraft.id ? nextGroup : g))
-      : [...data.groups, nextGroup];
-    const impacted = keyImpact(data.keys, data.groups, nextGroups, data.models)
-      .filter(row => row.key.managed !== false)
-      .map(row => row.key.id);
-    if (
-      await commit(
-        { ...data, groups: nextGroups },
-        snapshotMode
-          ? copyText("Saving the group locally…", "Enregistrement local du groupe…")
-          : copyText("Publishing the group…", "Publication du groupe…"),
-        impacted,
-      )
-    )
-      setGroupDraft(null);
   };
   const publishKey = async () => {
     if (!key || !draft || key.managed === false) return;
@@ -1491,84 +1446,21 @@ function RegistryApp({
             />
           )}
         </Sheet>
-        <Sheet
-          open={!!groupDraft}
-          onOpenChange={open => {
-            if (!open) closeGroup();
-          }}
-        >
-          <SheetContent
-            inert={!!busy}
-            className={`overflow-hidden p-4 sm:p-6 ${effectiveExpert ? "sm:w-[calc(100vw-1rem)] sm:max-w-6xl" : ""}`}
-          >
-            <SheetHeader className="border-b bg-muted/40 pb-4">
-              <SheetTitle className="text-xl">
-                {copyText(
-                  groupDraft && data.groups.some(group => group.id === groupDraft.id) ? "Edit group" : "Create group",
-                  groupDraft && data.groups.some(group => group.id === groupDraft.id)
-                    ? "Modifier le groupe"
-                    : "Créer un groupe",
-                )}
-              </SheetTitle>
-              <SheetDescription>
-                {snapshotMode
-                  ? copyText(
-                      "Choose the registered models in this shared selection. Review the key impact before saving locally.",
-                      "Choisissez les modèles enregistrés de cette sélection partagée. Vérifiez l’impact sur les clés avant l’enregistrement local.",
-                    )
-                  : copyText(
-                      "Choose the registered models in this shared selection. Review the key impact before publishing.",
-                      "Choisissez les modèles enregistrés de cette sélection partagée. Vérifiez l’impact sur les clés avant la publication.",
-                    )}
-              </SheetDescription>
-            </SheetHeader>
-            {groupDraft && (
-              <GroupEditor
-                expert={effectiveExpert}
-                group={groupDraft}
-                groups={data.groups}
-                models={namedModels}
-                keys={data.keys}
-                snapshotMode={snapshotMode}
-                busy={!!busy}
-                preferences={preferences}
-                onChange={setGroupDraft}
-                onSave={() => void publishGroup()}
-                onCancel={closeGroup}
-                onDelete={() => {
-                  const target = groupDraft;
-                  setConfirm({
-                    title: copyText(`Delete ${target.name}?`, `Supprimer ${target.name} ?`),
-                    text: copyText(
-                      "Keys using this group will lose its shared models. Their local selections remain.",
-                      "Les clés utilisant ce groupe perdront ses modèles partagés. Leurs sélections locales restent intactes.",
-                    ),
-                    action: () => {
-                      const groups = data.groups.filter(item => item.id !== target.id);
-                      const keys = data.keys.map(item => ({
-                        ...item,
-                        policy: { ...item.policy, groups: item.policy.groups.filter(id => id !== target.id) },
-                      }));
-                      const impacted = data.keys
-                        .filter(item => item.managed !== false && item.policy.groups.includes(target.id))
-                        .map(item => item.id);
-                      void (async () => {
-                        if (
-                          await commit(
-                            { ...data, groups, keys },
-                            copyText("Deleting group…", "Suppression du groupe…"),
-                            impacted,
-                          )
-                        )
-                          setGroupDraft(null);
-                      })();
-                    },
-                  });
-                }}
-              />
-            )}
-          </SheetContent>
-        </Sheet>
+        <GroupEditorSheet
+          groupDraft={groupDraft}
+          setGroupDraft={setGroupDraft}
+          closeGroup={closeGroup}
+          publishGroup={groupEditing.publishGroup}
+          data={data}
+          copyText={copyText}
+          snapshotMode={snapshotMode}
+          busy={busy}
+          effectiveExpert={effectiveExpert}
+          namedModels={namedModels}
+          preferences={preferences}
+          setConfirm={setConfirm}
+          commit={commit}
+        />
         <CreatedKeySecretDialog {...createdKeySecret} copyText={copyText} />
         <KeyCreateDialog
           copyText={copyText}
