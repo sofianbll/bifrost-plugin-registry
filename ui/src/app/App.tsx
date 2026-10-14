@@ -24,7 +24,6 @@ import {
   type Policy,
   type PricingProof,
 } from "../domain/registry";
-import { firstRegistrationIssue } from "../features/catalog/model-editor-data";
 import {
   ApiError,
   clearAdminToken,
@@ -38,13 +37,13 @@ import {
   type Workspace,
 } from "../data/api";
 import GatewayInventory from "../features/gateway/GatewayInventory";
-import ModelEditor from "../features/catalog/ModelEditor";
+import { useModelEditing } from "../features/catalog/useModelEditing";
+import { ModelEditorSheet } from "../features/catalog/ModelEditorSheet";
 import type { CatalogOverride } from "../features/catalog/model-card-fields";
 import RegistrySettings from "../features/settings/RegistrySettings";
 import { useViewPreferences } from "../features/settings/useViewPreferences";
 import { useConfirmation } from "../features/shared/useConfirmation";
 import { ConfirmationDialog } from "../features/shared/ConfirmationDialog";
-import AssistantSuggestion from "../features/assistant/AssistantSuggestion";
 import VirtualKeySecret from "../features/keys/VirtualKeySecret";
 import { CreatedKeySecretDialog } from "../features/keys/CreatedKeySecretDialog";
 import { useCreatedKeySecret } from "../features/keys/useCreatedKeySecret";
@@ -52,12 +51,10 @@ import { KeyRenameDialog } from "../features/keys/KeyRenameDialog";
 import { useKeyRename } from "../features/keys/useKeyRename";
 import { KeyCreateDialog } from "../features/keys/KeyCreateDialog";
 import { useKeyCreation } from "../features/keys/useKeyCreation";
-import { omitUnchangedReferenceIds } from "../features/catalog/model-editor-data";
 import CatalogMetadata from "../features/catalog/CatalogMetadata";
 import SnapshotTransfer from "../features/snapshot/SnapshotTransfer";
 import { KeyAdoptionDialog } from "../features/keys/KeyAdoptionDialog";
 import ReferenceCatalogBrowser from "../features/catalog/ReferenceCatalogBrowser";
-import { associateReference } from "../features/catalog/AssociateReference";
 import { useReferenceCatalog } from "../features/catalog/useReferenceCatalog";
 import { cardName, groupReferenceModels } from "../features/catalog/reference-groups";
 import { ToggleGroup, ToggleGroupItem } from "../components/ui/toggle-group";
@@ -151,12 +148,25 @@ function RegistryApp({
   const createdKeySecret = useCreatedKeySecret(copyText);
   const { setCreatedSecret, setCreatedSecretError } = createdKeySecret;
   const [locationState, setLocationState] = useState(route);
-  const [modelDraft, setModelDraft] = useState<Model | null>(null);
-  const modelBaseline = useRef<Model | null>(null);
-  const [modelOverrides, setModelOverrides] = useState<CatalogOverride[]>([]);
-  const [creatingModel, setCreatingModel] = useState(false);
-  const [modelTab, setModelTab] = useState<"access">();
-  const [modelError, setModelError] = useState("");
+  const modelEditing = useModelEditing(
+    data,
+    copyText,
+    busyRef,
+    () => catalog,
+    () => referenceCatalog,
+    confirmation => setConfirm(confirmation),
+    (next, label, verifyIds, overrides) => commit(next, label, verifyIds, overrides),
+  );
+  const {
+    setModelDraft,
+    modelBaseline,
+    setModelError,
+    setCreatingModel,
+    modelIsDirty,
+    newModel,
+    openModel,
+    associateModel,
+  } = modelEditing;
   const groupEditing = useGroupEditing(
     data,
     copyText,
@@ -544,9 +554,6 @@ function RegistryApp({
   const activePolicy = draft || key?.policy;
   const isDirty = Boolean(key && draft && !same(key.policy, draft));
   const keyEditing = Boolean(key && (editingKey === key.id || isDirty));
-  const modelIsDirty = Boolean(
-    modelDraft && modelBaseline.current && (!same(modelDraft, modelBaseline.current) || modelOverrides.length > 0),
-  );
   const startTour = () => {
     markTourSeen();
     setTourOffer(false);
@@ -634,156 +641,6 @@ function RegistryApp({
     toAdd: copyText(`To add (${modelCounts.toAdd})`, `À ajouter (${modelCounts.toAdd})`),
   };
 
-  const newModel = (): Model => ({
-    id: "",
-    name: "",
-    creator: "Unknown",
-    family: "Unknown",
-    inputModalities: [],
-    outputModalities: [],
-    tasks: [],
-    kind: "Unknown",
-    summary: "",
-    context: "Unknown",
-    capabilities: {},
-    accesses: [{ provider: "", id: "", route: "Direct provider", status: "Unknown", nativeModel: "" }],
-  });
-  const openModel = (model: Model, creating: boolean, tab?: "access") => {
-    setModelTab(tab);
-    modelBaseline.current = copy(model);
-    setModelOverrides([]);
-    setCreatingModel(creating);
-    setModelError("");
-    setModelDraft(copy(model));
-  };
-  const closeModel = () => {
-    if (!modelDraft || busyRef.current) return;
-    if (modelIsDirty) confirmDiscardModel(() => setModelDraft(null));
-    else setModelDraft(null);
-  };
-  const confirmDiscardModel = (action: () => void) =>
-    setConfirm({
-      title: copyText("Discard changes?", "Abandonner les modifications ?"),
-      text: copyText(
-        "The model card and its unsaved corrections will be discarded.",
-        "La fiche et ses corrections non enregistrées seront abandonnées.",
-      ),
-      confirmLabel: copyText("Discard draft", "Abandonner le brouillon"),
-      cancelLabel: copyText("Keep editing", "Continuer à modifier"),
-      action,
-    });
-  // Cancel in the editor of a saved card returns to its read view.
-  const discardModelEdits = (revert: () => void) => {
-    const done = () => {
-      setModelError("");
-      revert();
-    };
-    if (modelIsDirty) confirmDiscardModel(done);
-    else done();
-  };
-  const updateModel = async (overrides: CatalogOverride[]) => {
-    if (!modelDraft || busyRef.current) return;
-    if (firstRegistrationIssue(modelDraft)) {
-      setModelError(
-        copyText(
-          "Provide the call name, the name, at least one request type per access and every valid provider access.",
-          "Renseignez le nom d’appel, le nom, au moins un type de requête par accès et chaque accès fournisseur valide.",
-        ),
-      );
-      return;
-    }
-    if (creatingModel && data.models.some(m => m.id === modelDraft.id)) {
-      setModelError(copyText("That model ID already exists.", "Cet identifiant de modèle existe déjà."));
-      return;
-    }
-    const allAccessIds = data.models.filter(m => m.id !== modelDraft.id).flatMap(m => m.accesses.map(a => a.id));
-    if (
-      modelDraft.accesses.some(a => allAccessIds.includes(a.id)) ||
-      new Set(modelDraft.accesses.map(a => a.id)).size !== modelDraft.accesses.length
-    ) {
-      setModelError(
-        copyText("Provider access IDs must be unique.", "Les identifiants d’accès fournisseur doivent être uniques."),
-      );
-      return;
-    }
-    const saved = omitUnchangedReferenceIds(copy(modelDraft), catalog);
-    const next = {
-      ...data,
-      models: creatingModel
-        ? [...data.models, copy(saved)]
-        : data.models.map(m => (m.id === saved.id ? copy(saved) : m)),
-    };
-    const impacted = data.keys
-      .filter(k => k.managed !== false && members(k.policy, data.groups).includes(saved.id))
-      .map(k => k.id);
-    if (await commit(next, copyText("Saving the model card…", "Enregistrement de la fiche…"), impacted, overrides)) {
-      setModelDraft(null);
-      setModelError("");
-    }
-  };
-  const associateModel = (model: Model, referenceId: string) =>
-    commit(
-      { ...data, models: data.models.map(row => (row.id === model.id ? associateReference(row, referenceId) : row)) },
-      copyText("Saving the reference…", "Enregistrement de la fiche documentaire…"),
-    );
-  const deleteModel = (model: Model) => {
-    const emptied = data.groups.filter(g => g.members.includes(model.id) && !g.members.some(id => id !== model.id));
-    if (emptied.length) {
-      const message = copyText(
-        `Remove this model from these groups, or delete the groups first: ${emptied.map(g => g.name).join(", ")}.`,
-        `Retirez ce modèle de ces groupes, ou supprimez d’abord les groupes : ${emptied.map(g => g.name).join(", ")}.`,
-      );
-      setModelError(message);
-      toast.error(message);
-      return;
-    }
-    const used = data.keys.filter(k => members(k.policy, data.groups).includes(model.id)).length;
-    setConfirm({
-      title: copyText(
-        `Delete ${cardName(model, referenceCatalog)}?`,
-        `Supprimer ${cardName(model, referenceCatalog)} ?`,
-      ),
-      text: copyText(
-        `This removes the model from its groups and key selections. ${used} key ${used === 1 ? "catalog" : "catalogs"} will change.`,
-        `Ce modèle sera retiré de ses groupes et des sélections de clés. ${used} catalogue${used === 1 ? "" : "s"} de clé${used === 1 ? "" : "s"} changera${used === 1 ? "" : "ont"}.`,
-      ),
-      action: () => {
-        const models = data.models.filter(m => m.id !== model.id);
-        const groups = data.groups.map(g => ({ ...g, members: g.members.filter(id => id !== model.id) }));
-        const keys = data.keys.map(k => {
-          const accessSelection = k.policy.accessSelection ? { ...k.policy.accessSelection } : undefined;
-          if (accessSelection) {
-            delete accessSelection[model.id];
-            if (Object.keys(accessSelection).length === 0) {
-              const { accessSelection: _, ...rest } = k.policy;
-              return { ...k, policy: rest };
-            }
-          }
-          return {
-            ...k,
-            policy: {
-              ...k.policy,
-              added: k.policy.added.filter(id => id !== model.id),
-              excluded: k.policy.excluded.filter(id => id !== model.id),
-              accessSelection,
-            },
-          };
-        });
-        void (async () => {
-          if (
-            await commit(
-              { ...data, models, groups, keys },
-              copyText("Deleting model…", "Suppression du modèle…"),
-              data.keys
-                .filter(k => k.managed !== false && members(k.policy, data.groups).includes(model.id))
-                .map(k => k.id),
-            )
-          )
-            setModelDraft(null);
-        })();
-      },
-    });
-  };
   const publishKey = async () => {
     if (!key || !draft || key.managed === false) return;
     const next = { ...data, keys: data.keys.map(k => (k.id === key.id ? { ...k, policy: copy(draft) } : k)) };
@@ -1392,58 +1249,29 @@ function RegistryApp({
             onClose={() => setTourRun(0)}
           />
         )}
-        <Sheet
-          open={!!modelDraft}
-          onOpenChange={open => {
-            if (!open) closeModel();
-          }}
-        >
-          {modelDraft && (
-            <ModelEditor
-              initialTab={modelTab}
-              expert={effectiveExpert}
-              snapshotMode={snapshotMode}
-              saved={data.models}
-              draft={modelDraft}
-              onOverridesChange={setModelOverrides}
-              onChange={setModelDraft}
-              creating={creatingModel}
-              workspace={catalog}
-              catalog={referenceCatalog}
-              catalogError={referenceError}
-              pricingProofs={pricingProofs}
-              error={modelError}
-              busy={!!busy}
-              onSave={updateModel}
-              onCancel={closeModel}
-              onDelete={deleteModel}
-              onDiscardEdits={discardModelEdits}
-              actionSlot={
-                snapshotMode ? undefined : (
-                  <AssistantSuggestion
-                    draft={modelDraft}
-                    onChange={setModelDraft}
-                    onOpenSettings={() =>
-                      setConfirm({
-                        title: copyText("Open AI settings?", "Ouvrir les réglages IA ?"),
-                        text: copyText(
-                          "This closes the model editor and discards its unsaved changes.",
-                          "Les modifications non enregistrées de la fiche seront abandonnées.",
-                        ),
-                        confirmLabel: copyText("Open settings", "Ouvrir les réglages"),
-                        cancelLabel: copyText("Keep editing", "Continuer à modifier"),
-                        action: () => {
-                          setModelDraft(null);
-                          go("settings");
-                        },
-                      })
-                    }
-                  />
-                )
-              }
-            />
-          )}
-        </Sheet>
+        <ModelEditorSheet
+          modelDraft={modelEditing.modelDraft}
+          setModelDraft={modelEditing.setModelDraft}
+          modelTab={modelEditing.modelTab}
+          setModelOverrides={modelEditing.setModelOverrides}
+          creatingModel={modelEditing.creatingModel}
+          modelError={modelEditing.modelError}
+          closeModel={modelEditing.closeModel}
+          updateModel={modelEditing.updateModel}
+          deleteModel={modelEditing.deleteModel}
+          discardModelEdits={modelEditing.discardModelEdits}
+          data={data}
+          copyText={copyText}
+          snapshotMode={snapshotMode}
+          busy={busy}
+          effectiveExpert={effectiveExpert}
+          catalog={catalog}
+          referenceCatalog={referenceCatalog}
+          referenceError={referenceError}
+          pricingProofs={pricingProofs}
+          setConfirm={setConfirm}
+          go={go}
+        />
         <GroupEditorSheet
           groupDraft={groupDraft}
           setGroupDraft={setGroupDraft}
