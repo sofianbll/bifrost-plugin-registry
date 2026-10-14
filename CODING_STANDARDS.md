@@ -31,3 +31,9 @@ Example: "Edit details" in `ui/src/features/catalog/ModelEditor.tsx` keeps the n
 A button or heading names one action with one verb taken from `CONTEXT.md`; a new term is added to `CONTEXT.md` in the same change, and the UI contract records the choice.
 Reason: "Add", "Register" and "Save" named the same action in three places and cost three critique rounds.
 Example: "Enregistrer un modèle" in `CONTEXT.md`: "Register" creates a card, "Add" only attaches an access or a card to a key or group, "Save" applies an edit.
+
+## Renaming a displayed term sweeps every occurrence in one pass
+
+When a displayed word or phrase is renamed, the same change greps and renames every inflection and composition of it — labels, aria-labels, help, tests, journeys, README screenshots — before the first journey run.
+Reason: the "Reference" → "Datasheet" sweep (#110) missed the badge, the help and two dialogs; each miss cost a 3-minute journey run, and a late catch invalidated freshly regenerated screenshots.
+Example: `git grep -n "Old term" ui/src ui/e2e docs` before committing; the grep, not the journeys, proves the sweep complete.
