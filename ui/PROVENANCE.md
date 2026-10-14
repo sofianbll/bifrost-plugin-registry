@@ -1,4 +1,12 @@
-# Upstream provenance
+# Asset provenance
+
+## Registry brand assets
+
+`public/branding/registry/` contains the independent Registry identity, generated with the built-in ImageGen tool on October 14, 2026. The original PNG exports are `registry-icon.png` and `registry-logo.png`; the [generation prompts](../docs/design/registry-brand-prompts.txt) are retained with the design records.
+
+`registry-icon.svg`, `registry-logo.svg` and `registry-logo-dark.svg` trace the PNG silhouettes into standalone vector paths, including the lettering. They embed no raster image and need no external font. The SVG symbol uses a uniform emerald (`#157558`), replacing the PNG's slight tonal variation. The light logo uses graphite lettering (`#18181b`); the dark logo uses off-white (`#fafafa`) with identical geometry. All five exports have transparent backgrounds.
+
+The SVGs were rendered on light and dark backgrounds; the icon was visually checked at 24, 32 and 64 px. These assets identify this independent plugin, rather than Maxim/Bifrost. The existing Bifrost assets and application references are unchanged.
 
 ## Provider harness catalog and recorded demo
 
