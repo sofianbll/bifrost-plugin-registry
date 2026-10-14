@@ -3,6 +3,7 @@ import { ArrowLeftFromLineIcon, ArrowRightFromLineIcon, XIcon } from "lucide-rea
 import * as React from "react";
 import { createContext, useContext, useState } from "react";
 
+import { useCopy } from "@/lib/locale";
 import { cn } from "@/lib/utils";
 
 // Context to share expanded state between SheetContent and SheetHeader
@@ -10,7 +11,7 @@ type SheetContextValue = {
 	expanded: boolean;
 	setExpanded: (expanded: boolean) => void;
 	side: "top" | "right" | "bottom" | "left";
-	expandable: boolean;
+	expandable: boolean;	width: number | null;	setWidth: React.Dispatch<React.SetStateAction<number | null>>;	minWidth: number;	maxWidth: number;	currentWidth: number;
 };
 
 const SheetContext = createContext<SheetContextValue | null>(null);
@@ -50,81 +51,84 @@ function SheetOverlay({ className, ...props }: React.ComponentProps<typeof Sheet
 }
 
 function SheetContent({
-	className,
-	children,
-	side = "right",
-	expandable = false,
-	onPointerDownOutside,
-	onInteractOutside,
-	onOpenAutoFocus,
-	...props
+  className,
+  children,
+  side = "right",
+  expandable = false,
+  onPointerDownOutside,
+  onInteractOutside,
+  onOpenAutoFocus,
+  style,
+  ...props
 }: React.ComponentProps<typeof SheetPrimitive.Content> & {
-	side?: "top" | "right" | "bottom" | "left";
-	expandable?: boolean;
+  side?: "top" | "right" | "bottom" | "left";
+  expandable?: boolean;
 }) {
-	const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const [width, setWidth] = useState<number | null>(null);
+  const viewportWidth = typeof window === "undefined" ? 1280 : window.innerWidth;
+  const minWidth = Math.min(320, viewportWidth - 16);
+  const maxWidth = Math.max(minWidth, viewportWidth - 16);
+  const currentWidth = width ?? Math.min(viewportWidth < 640 ? viewportWidth - 16 : viewportWidth * 0.75, viewportWidth < 640 ? viewportWidth - 16 : 1024);
 
-	// Check if the target is a portaled element (like react-select menu)
-	const isPortaledElement = (target: HTMLElement | null): boolean => {
-		if (!target) return false;
-		return !!(
-			target.closest('[class*="-menu"]') ||
-			target.closest('[class*="MenuPortal"]') ||
-			target.closest('[role="listbox"]') ||
-			target.closest('[role="option"]') ||
-			target.closest("[data-radix-popper-content-wrapper]") ||
-			target.closest("[data-sonner-toast]") ||
-			target.closest("[data-sonner-toaster]")
-		);
-	};
+  const isPortaledElement = (target: HTMLElement | null): boolean => {
+    if (!target) return false;
+    return !!(
+      target.closest('[class*="-menu"]') ||
+      target.closest('[class*="MenuPortal"]') ||
+      target.closest('[role="listbox"]') ||
+      target.closest('[role="option"]') ||
+      target.closest("[data-radix-popper-content-wrapper]") ||
+      target.closest("[data-sonner-toast]") ||
+      target.closest("[data-sonner-toaster]")
+    );
+  };
 
-	const handlePointerDownOutside = (event: React.PointerEvent | CustomEvent) => {
-		const target = (event as CustomEvent).detail?.originalEvent?.target as HTMLElement;
-		if (isPortaledElement(target)) {
-			event.preventDefault();
-			return;
-		}
-		onPointerDownOutside?.(event as any);
-	};
+  const handlePointerDownOutside = (event: React.PointerEvent | CustomEvent) => {
+    const target = (event as CustomEvent).detail?.originalEvent?.target as HTMLElement;
+    if (isPortaledElement(target)) {
+      event.preventDefault();
+      return;
+    }
+    onPointerDownOutside?.(event as any);
+  };
 
-	const handleInteractOutside = (event: React.FocusEvent | CustomEvent) => {
-		const target = (event as CustomEvent).detail?.originalEvent?.target as HTMLElement;
-		if (isPortaledElement(target)) {
-			event.preventDefault();
-			return;
-		}
-		onInteractOutside?.(event as any);
-	};
+  const handleInteractOutside = (event: React.FocusEvent | CustomEvent) => {
+    const target = (event as CustomEvent).detail?.originalEvent?.target as HTMLElement;
+    if (isPortaledElement(target)) {
+      event.preventDefault();
+      return;
+    }
+    onInteractOutside?.(event as any);
+  };
 
-	return (
-		<SheetContext.Provider value={{ expanded, setExpanded, side, expandable }}>
-			<SheetPortal>
-				<SheetOverlay />
-				<SheetPrimitive.Content
-					data-slot="sheet-content"
-					onPointerDownOutside={handlePointerDownOutside}
-					onInteractOutside={handleInteractOutside}
-						onOpenAutoFocus={onOpenAutoFocus}
-					className={cn(
-							"bg-card data-[state=open]:animate-in data-[state=closed]:animate-out custom-scrollbar fixed z-50 flex min-h-0 flex-col shadow-lg transition-all ease-in-out overscroll-none data-[state=closed]:duration-100 data-[state=open]:duration-100",
-						side === "right" &&
-								"data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right top-2 right-2 bottom-2 h-auto w-full max-w-[calc(100vw-1rem)] rounded-sm border sm:w-3/4",
-						side === "right" && (!expandable || !expanded) && "sm:max-w-2xl",
-						side === "right" && expandable && expanded && "sm:max-w-5xl",
-						side === "left" &&
-								"data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left top-2 bottom-2 left-2 h-auto w-full max-w-[calc(100vw-1rem)] rounded-sm border sm:w-3/4 sm:max-w-sm",
-						side === "top" && "data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top inset-x-0 top-2 h-auto border",
-						side === "bottom" &&
-							"data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom inset-x-0 bottom-2 h-auto border",
-						className,
-					)}
-					{...props}
-				>
-					{children}
-				</SheetPrimitive.Content>
-			</SheetPortal>
-		</SheetContext.Provider>
-	);
+  return (
+    <SheetContext.Provider value={{ expanded, setExpanded, side, expandable, width, setWidth, minWidth, maxWidth, currentWidth }}>
+      <SheetPortal>
+        <SheetOverlay />
+        <SheetPrimitive.Content
+          data-slot="sheet-content"
+          onPointerDownOutside={handlePointerDownOutside}
+          onInteractOutside={handleInteractOutside}
+          onOpenAutoFocus={onOpenAutoFocus}
+          className={cn(
+            "bg-card data-[state=open]:animate-in data-[state=closed]:animate-out custom-scrollbar fixed z-50 flex min-h-0 flex-col shadow-lg transition-all ease-in-out overscroll-none data-[state=closed]:duration-100 data-[state=open]:duration-100",
+            side === "right" && "data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right top-2 right-2 bottom-2 h-auto w-full max-w-[calc(100vw-1rem)] rounded-sm border sm:w-3/4",
+            side === "right" && (!expandable || !expanded) && "sm:max-w-2xl",
+            side === "left" && "data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left top-2 bottom-2 left-2 h-auto w-full max-w-[calc(100vw-1rem)] rounded-sm border sm:w-3/4 sm:max-w-sm",
+            side === "top" && "data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top inset-x-0 top-2 h-auto border",
+            side === "bottom" && "data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom inset-x-0 bottom-2 h-auto border",
+            className,
+            side === "right" && expandable && expanded && "inset-2 !w-[calc(100vw-1rem)] !max-w-none rounded-sm",
+          )}
+          style={{ ...style, ...(width !== null && expandable && !expanded ? { width, maxWidth: width } : {}) }}
+          {...props}
+        >
+          {children}
+        </SheetPrimitive.Content>
+      </SheetPortal>
+    </SheetContext.Provider>
+  );
 }
 
 function SheetHeader({
@@ -135,6 +139,7 @@ function SheetHeader({
 	...props
 }: React.ComponentProps<"div"> & { showCloseButton?: boolean; headerClassName?: string }) {
 	const sheetContext = useSheetContext();
+	const copy = useCopy();
 
 	return (
 		<div
@@ -146,20 +151,24 @@ function SheetHeader({
 				<button
 					type="button"
 					onClick={() => sheetContext?.setExpanded(!sheetContext?.expanded)}
+					aria-label={sheetContext?.expanded ? copy("Restore panel size", "Rétablir la taille du panneau") : copy("Expand panel to full screen", "Agrandir le panneau en plein écran")}
 					className="-ml-5 shrink-0 cursor-pointer opacity-70 transition-opacity hover:scale-105 hover:opacity-100"
 				>
 					{sheetContext?.expanded ? <ArrowRightFromLineIcon className="size-4" /> : <ArrowLeftFromLineIcon className="size-4" />}
-					<span className="sr-only">{sheetContext?.expanded ? "Collapse" : "Expand"}</span>
+					<span className="sr-only">{sheetContext?.expanded ? copy("Restore panel size", "Rétablir la taille du panneau") : copy("Expand panel to full screen", "Agrandir le panneau en plein écran")}</span>
 				</button>
 			)}
 
 			<div className={cn("flex h-full min-w-0 flex-1 flex-col items-start gap-1.5", sheetContext?.expandable && "ml-1", className)}>
 				{children}
 			</div>
+			{sheetContext?.expandable && sheetContext.side === "right" && !sheetContext.expanded && (
+				<input type="range" min={sheetContext.minWidth} max={sheetContext.maxWidth} step={32} value={Math.round(sheetContext.currentWidth)} aria-label={copy("Resize panel width", "Ajuster la largeur du panneau")} aria-valuetext={copy(`${Math.round(sheetContext.currentWidth)} pixels wide`, `${Math.round(sheetContext.currentWidth)} pixels de large`)} className="h-4 w-20 shrink-0 cursor-ew-resize accent-primary" onChange={event => sheetContext.setWidth(Number(event.currentTarget.value))} />
+			)}
 			{showCloseButton && (
 				<SheetPrimitive.Close className="hover:bg-accent shrink-0 cursor-pointer rounded-md p-2 opacity-70 transition-opacity hover:opacity-100">
 					<XIcon className="size-4" />
-					<span className="sr-only">Close</span>
+					<span className="sr-only">{copy("Close", "Fermer")}</span>
 				</SheetPrimitive.Close>
 			)}
 		</div>

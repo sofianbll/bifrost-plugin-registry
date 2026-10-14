@@ -571,3 +571,16 @@ div.content-container:has(.no-border-parent) #trial-notification-banner {
 	right: 0 !important;
 	transform: translate(35%, -35%) !important;
 }
+
+/* Gentle feedback scoped to the reference prototype, never the production UI. */
+@media (prefers-reduced-motion: no-preference) {
+  [data-prototype="key-composer"] [data-slot="button"] {
+    transition: background-color 150ms ease-out, border-color 150ms ease-out, box-shadow 150ms ease-out, transform 150ms ease-out;
+  }
+  [data-prototype="key-composer"] [data-slot="button"]:active:not(:disabled) {
+    transform: scale(.98);
+  }
+  [data-prototype="key-composer"] [data-slot="checkbox"] {
+    transition: background-color 150ms ease-out, border-color 150ms ease-out;
+  }
+}

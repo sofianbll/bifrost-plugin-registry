@@ -1,0 +1,11 @@
+const equal = (actual: unknown, expected: unknown) => { if (JSON.stringify(actual) !== JSON.stringify(expected)) throw new Error(`Expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`); };
+import { filterEntries } from './filter';
+import type { GalleryEntry } from './types';
+const base: GalleryEntry = { id: 'one', title: 'Carte', family: 'Cartes', level: 'Organismes', origin: 'Registry', version: 'Prototype 2026', source: 'cards.tsx', description: '', Component: () => null };
+const entries = [base, { ...base, id: 'two', origin: 'Vercel', version: 'Référence', source: 'vercel.com' }, { ...base, id: 'three', title: 'Select', family: 'Saisie', level: 'Atomes' as const }];
+equal(filterEntries(entries, '', '', '', '').length, 3);
+equal(filterEntries(entries, 'Cartes', '', 'Registry', 'PROTOTYPE').map(entry => entry.id), ['one']);
+equal(filterEntries(entries, '', 'Atomes', '', 'select').map(entry => entry.id), ['three']);
+equal(filterEntries(entries, '', '', '', 'vercel.com').map(entry => entry.id), ['two']);
+equal(filterEntries(entries, 'Cartes', 'Atomes', '', '').length, 0);
+console.log('Gallery filtering preserves versions and combines source, level, family and search.');

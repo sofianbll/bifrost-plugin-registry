@@ -1,0 +1,336 @@
+{
+  "source": {
+    "repository": "https://github.com/anomalyco/models.dev",
+    "commit": "6a0b12bc9c66e1ab4fe44232d592a32df09a77e0"
+  },
+  "model": {
+    "id": "anthropic/claude-sonnet-4-6",
+    "metadata": {
+      "id": "anthropic/claude-sonnet-4-6",
+      "name": "Claude Sonnet 4.6",
+      "description": "Claude workhorse for coding agents, careful analysis, and production cost control",
+      "family": "claude-sonnet",
+      "attachment": true,
+      "reasoning": true,
+      "tool_call": true,
+      "temperature": true,
+      "knowledge": "2025-08-31",
+      "release_date": "2026-02-17",
+      "last_updated": "2026-03-13",
+      "modalities": {
+        "input": [
+          "text",
+          "image",
+          "pdf"
+        ],
+        "output": [
+          "text"
+        ]
+      },
+      "open_weights": false,
+      "limit": {
+        "context": 1000000,
+        "output": 64000
+      },
+      "benchmarks": [
+        {
+          "name": "SWE-Atlas Codebase QnA",
+          "score": 31.2,
+          "metric": "score",
+          "harness": "Claude Code",
+          "source": "https://labs.scale.com/leaderboard/sweatlas-qna"
+        },
+        {
+          "name": "SWE-Atlas Refactoring",
+          "score": 32.21,
+          "metric": "score",
+          "harness": "Claude Code",
+          "source": "https://labs.scale.com/leaderboard/sweatlas-refactoring"
+        },
+        {
+          "name": "SWE-Atlas Test Writing",
+          "score": 31.76,
+          "metric": "score",
+          "harness": "Claude Code",
+          "source": "https://labs.scale.com/leaderboard/sweatlas-tw"
+        },
+        {
+          "name": "Artificial Analysis Coding Agent Index",
+          "score": 49.4,
+          "metric": "average pass@1",
+          "harness": "Claude Code",
+          "variant": "medium",
+          "source": "https://artificialanalysis.ai/agents/coding-agents"
+        },
+        {
+          "name": "SWE-Atlas Codebase QnA",
+          "score": 70.3,
+          "metric": "pass@1",
+          "harness": "Claude Code",
+          "variant": "medium",
+          "source": "https://artificialanalysis.ai/agents/coding-agents"
+        },
+        {
+          "name": "SWE-Bench Pro",
+          "score": 14.9,
+          "metric": "pass@1",
+          "harness": "Claude Code",
+          "variant": "medium",
+          "dataset": "hard-aa",
+          "source": "https://artificialanalysis.ai/agents/coding-agents"
+        },
+        {
+          "name": "Terminal-Bench",
+          "score": 63.1,
+          "metric": "pass@1",
+          "harness": "Claude Code",
+          "variant": "medium",
+          "version": "2.1",
+          "source": "https://artificialanalysis.ai/agents/coding-agents"
+        },
+        {
+          "name": "Terminal-Bench",
+          "score": 67,
+          "metric": "success rate",
+          "harness": "Terminus-2",
+          "version": "2.1",
+          "source": "https://www.anthropic.com/news/claude-sonnet-5",
+          "date": "2026-06-30"
+        },
+        {
+          "name": "Humanity's Last Exam",
+          "score": 34.6,
+          "metric": "accuracy",
+          "variant": "no tools",
+          "source": "https://www.anthropic.com/news/claude-sonnet-5",
+          "date": "2026-06-30"
+        },
+        {
+          "name": "Humanity's Last Exam",
+          "score": 46.8,
+          "metric": "accuracy",
+          "variant": "with tools",
+          "source": "https://www.anthropic.com/news/claude-sonnet-5",
+          "date": "2026-06-30"
+        },
+        {
+          "name": "OSWorld-Verified",
+          "score": 78.5,
+          "metric": "success rate",
+          "source": "https://www.anthropic.com/news/claude-sonnet-5",
+          "date": "2026-06-30"
+        }
+      ]
+    },
+    "sourcePath": "models/anthropic/claude-sonnet-4-6.toml"
+  },
+  "accesses": [
+    {
+      "id": "openrouter/anthropic/claude-sonnet-4.6",
+      "providerId": "openrouter",
+      "providerName": "OpenRouter",
+      "modelId": "anthropic/claude-sonnet-4.6",
+      "baseModelId": "anthropic/claude-sonnet-4-6",
+      "authored": {
+        "base_model": "anthropic/claude-sonnet-4-6",
+        "structured_output": true,
+        "reasoning_options": [
+          {
+            "type": "toggle"
+          },
+          {
+            "type": "effort",
+            "values": [
+              "low",
+              "medium",
+              "high",
+              "max"
+            ]
+          }
+        ],
+        "cost": {
+          "input": 3,
+          "output": 15,
+          "cache_read": 0.3,
+          "cache_write": 3.75,
+          "tiers": [
+            {
+              "tier": {
+                "type": "context",
+                "size": 200000
+              },
+              "input": 6,
+              "output": 22.5,
+              "cache_read": 0.6,
+              "cache_write": 7.5
+            }
+          ]
+        },
+        "limit": {
+          "output": 128000
+        }
+      },
+      "resolved": {
+        "id": "anthropic/claude-sonnet-4.6",
+        "name": "Claude Sonnet 4.6",
+        "description": "Claude workhorse for coding agents, careful analysis, and production cost control",
+        "family": "claude-sonnet",
+        "attachment": true,
+        "reasoning": true,
+        "reasoning_options": [
+          {
+            "type": "toggle"
+          },
+          {
+            "type": "effort",
+            "values": [
+              "low",
+              "medium",
+              "high",
+              "max"
+            ]
+          }
+        ],
+        "tool_call": true,
+        "structured_output": true,
+        "temperature": true,
+        "knowledge": "2025-08-31",
+        "release_date": "2026-02-17",
+        "last_updated": "2026-03-13",
+        "modalities": {
+          "input": [
+            "text",
+            "image",
+            "pdf"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "open_weights": false,
+        "limit": {
+          "context": 1000000,
+          "output": 128000
+        },
+        "cost": {
+          "input": 3,
+          "output": 15,
+          "cache_read": 0.3,
+          "cache_write": 3.75,
+          "tiers": [
+            {
+              "input": 6,
+              "output": 22.5,
+              "cache_read": 0.6,
+              "cache_write": 7.5,
+              "tier": {
+                "type": "context",
+                "size": 200000
+              }
+            }
+          ],
+          "context_over_200k": {
+            "input": 6,
+            "output": 22.5,
+            "cache_read": 0.6,
+            "cache_write": 7.5
+          }
+        }
+      },
+      "sourcePath": "providers/openrouter/models/anthropic/claude-sonnet-4.6.toml"
+    },
+    {
+      "id": "amazon-bedrock/us.anthropic.claude-sonnet-4-6",
+      "providerId": "amazon-bedrock",
+      "providerName": "Amazon Bedrock",
+      "modelId": "us.anthropic.claude-sonnet-4-6",
+      "baseModelId": "anthropic/claude-sonnet-4-6",
+      "authored": {
+        "base_model": "anthropic/claude-sonnet-4-6",
+        "reasoning_options": [
+          {
+            "type": "toggle"
+          },
+          {
+            "type": "effort",
+            "values": [
+              "low",
+              "medium",
+              "high",
+              "max"
+            ]
+          },
+          {
+            "type": "budget_tokens",
+            "min": 1024
+          }
+        ],
+        "name": "Claude Sonnet 4.6 (US)",
+        "structured_output": true,
+        "cost": {
+          "input": 3.3,
+          "output": 16.5,
+          "cache_read": 0.33,
+          "cache_write": 4.125
+        },
+        "limit": {
+          "output": 128000
+        }
+      },
+      "resolved": {
+        "id": "us.anthropic.claude-sonnet-4-6",
+        "name": "Claude Sonnet 4.6 (US)",
+        "description": "Claude workhorse for coding agents, careful analysis, and production cost control",
+        "family": "claude-sonnet",
+        "attachment": true,
+        "reasoning": true,
+        "reasoning_options": [
+          {
+            "type": "toggle"
+          },
+          {
+            "type": "effort",
+            "values": [
+              "low",
+              "medium",
+              "high",
+              "max"
+            ]
+          },
+          {
+            "type": "budget_tokens",
+            "min": 1024
+          }
+        ],
+        "tool_call": true,
+        "structured_output": true,
+        "temperature": true,
+        "knowledge": "2025-08-31",
+        "release_date": "2026-02-17",
+        "last_updated": "2026-03-13",
+        "modalities": {
+          "input": [
+            "text",
+            "image",
+            "pdf"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "open_weights": false,
+        "limit": {
+          "context": 1000000,
+          "output": 128000
+        },
+        "cost": {
+          "input": 3.3,
+          "output": 16.5,
+          "cache_read": 0.33,
+          "cache_write": 4.125
+        }
+      },
+      "sourcePath": "providers/amazon-bedrock/models/us.anthropic.claude-sonnet-4-6.toml"
+    }
+  ]
+}
