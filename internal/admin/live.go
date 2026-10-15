@@ -549,36 +549,7 @@ func (s *Server) workspace(ctx context.Context) (workspace, error) {
 			catalogModelFields(&discovered[i], catalogFieldsForAccess(config.Catalog, a.Provider, a.NativeModel))
 		}
 	}
-	dto := demoDTO{Models: []modelDTO{}, Groups: []groupDTO{}, Keys: []keyDTO{}, Campaigns: []any{}}
-	index := map[string]int{}
-	for _, m := range config.Models {
-		var ui modelDTO
-		if raw := m.Metadata["ui"]; len(raw) > 0 {
-			_ = json.Unmarshal(raw, &ui)
-		}
-		if ui.ID == "" {
-			ui = modelDTO{ID: m.Alias, Creator: m.Creator, Family: m.Family, Context: "Unknown", Kind: "Unknown"}
-		}
-		stored, cleared := cleanUnknown(ui.Creator) != "", ui.CreatorSource == "manual"
-		catalogModelFields(&ui, catalogFieldsForAccess(config.Catalog, m.Provider, m.UpstreamModel))
-		ui.CreatorSource = creatorSource(stored, cleared, cleanUnknown(ui.Creator) != "")
-		ui = sanitizeLiveModel(ui)
-		if ui.Name == "" {
-			ui.Name = m.Alias
-		}
-		a := accessDTO{Provider: m.Provider, ID: m.Provider + "/" + m.Alias, NativeModel: m.UpstreamModel, Route: "Direct provider", Status: "Configured", Endpoints: append([]string{}, m.Endpoints...), ReferenceID: workspaceReferenceID(config.Catalog, m.Provider, m.UpstreamModel)}
-		if i, ok := index[ui.ID]; ok {
-			dto.Models[i].Accesses = append(dto.Models[i].Accesses, a)
-			// A later access with a reference names the creator the first one could not.
-			if dto.Models[i].CreatorSource == "" && ui.CreatorSource == "reference" {
-				dto.Models[i].Creator, dto.Models[i].CreatorSource = ui.Creator, "reference"
-			}
-		} else {
-			ui.Accesses = []accessDTO{a}
-			index[ui.ID] = len(dto.Models)
-			dto.Models = append(dto.Models, ui)
-		}
-	}
+	dto := demoDTO{Models: workspaceModelCards(config), Groups: []groupDTO{}, Keys: []keyDTO{}, Campaigns: []any{}}
 	siblings := siblingCreators(dto.Models)
 	for i := range dto.Models {
 		inferCreator(&dto.Models[i], providers, siblings)
@@ -663,6 +634,40 @@ func (s *Server) workspace(ctx context.Context) (workspace, error) {
 		ws.Connection.Version = version
 	}
 	return ws, nil
+}
+
+func workspaceModelCards(config registry.Config) []modelDTO {
+	models := []modelDTO{}
+	index := map[string]int{}
+	for _, m := range config.Models {
+		var ui modelDTO
+		if raw := m.Metadata["ui"]; len(raw) > 0 {
+			_ = json.Unmarshal(raw, &ui)
+		}
+		if ui.ID == "" {
+			ui = modelDTO{ID: m.Alias, Creator: m.Creator, Family: m.Family, Context: "Unknown", Kind: "Unknown"}
+		}
+		stored, cleared := cleanUnknown(ui.Creator) != "", ui.CreatorSource == "manual"
+		catalogModelFields(&ui, catalogFieldsForAccess(config.Catalog, m.Provider, m.UpstreamModel))
+		ui.CreatorSource = creatorSource(stored, cleared, cleanUnknown(ui.Creator) != "")
+		ui = sanitizeLiveModel(ui)
+		if ui.Name == "" {
+			ui.Name = m.Alias
+		}
+		a := accessDTO{Provider: m.Provider, ID: m.Provider + "/" + m.Alias, NativeModel: m.UpstreamModel, Route: "Direct provider", Status: "Configured", Endpoints: append([]string{}, m.Endpoints...), ReferenceID: workspaceReferenceID(config.Catalog, m.Provider, m.UpstreamModel)}
+		if i, ok := index[ui.ID]; ok {
+			models[i].Accesses = append(models[i].Accesses, a)
+			// A later access with a reference names the creator the first one could not.
+			if models[i].CreatorSource == "" && ui.CreatorSource == "reference" {
+				models[i].Creator, models[i].CreatorSource = ui.Creator, "reference"
+			}
+		} else {
+			ui.Accesses = []accessDTO{a}
+			index[ui.ID] = len(models)
+			models = append(models, ui)
+		}
+	}
+	return models
 }
 
 // The panel selects whole cards, not filters, exclusions or individual accesses.
@@ -758,6 +763,10 @@ func (s *Server) putWorkspace(w http.ResponseWriter, r *http.Request) {
 		nativeByID[v.ID] = v
 	}
 	old := s.Store.Load().Config()
+	oldCards := map[string]modelDTO{}
+	for _, card := range workspaceModelCards(old) {
+		oldCards[card.ID] = card
+	}
 	oldEndpoints := map[string][]string{}
 	ambiguousOldEndpoints := map[string]bool{}
 	// Keep canonical identities across card edits, including legacy group references.
@@ -845,12 +854,13 @@ func (s *Server) putWorkspace(w http.ResponseWriter, r *http.Request) {
 			}
 			// Display-only enrichment must not change canonical group filter inputs.
 			creator, family := cleanUnknown(m.Creator), cleanUnknown(m.Family)
-			if m.CreatorSource == "inferred" || m.CreatorSource == "reference" {
+			before := oldCards[prior.Alias]
+			if m.CreatorSource == "inferred" || m.CreatorSource == "reference" || (prior.ID != "" && cleanUnknown(m.Creator) == cleanUnknown(before.Creator) && m.CreatorSource == before.CreatorSource) {
 				creator = prior.Creator
 			}
 			persisted := persistedCreator(sanitizeLiveModel(m))
 			stripCatalogAutofill(&persisted, catalogFieldsForAccess(cfg.Catalog, a.Provider, raw))
-			if persisted.Family == "" && family != "" {
+			if (prior.ID != "" && family == cleanUnknown(before.Family)) || (persisted.Family == "" && family != "") {
 				family = prior.Family
 			}
 			metadata, _ := json.Marshal(persisted)

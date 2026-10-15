@@ -26,15 +26,20 @@ func TestWorkspacePreservesHiddenGroupRules(t *testing.T) {
 		{"combined", registry.Group{ID: "group", Name: "Group", ModelIDs: []string{"a", "b"}, Filter: &registry.Filter{Creators: []string{"Creator"}}, Exclude: []string{"b"}}},
 		{"simple", registry.Group{ID: "group", Name: "Group", ModelIDs: []string{"a"}}},
 		{"partial-access", registry.Group{ID: "group", Name: "Group", ModelIDs: []string{"a"}}},
+		{"shared-creator-filter", registry.Group{ID: "group", Name: "Group", ModelIDs: []string{}, Filter: &registry.Filter{Creators: []string{"Creator"}}}},
+		{"shared-family-filter", registry.Group{ID: "group", Name: "Group", ModelIDs: []string{}, Filter: &registry.Filter{Families: []string{"Family"}}}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			cfg := registry.Config{SchemaVersion: 1, DefaultNaming: "provider/model", Models: []registry.Model{
 				{ID: "a", Alias: "a", Provider: "alpha", UpstreamModel: "native-a", ProviderKeyIDs: []string{"key"}, Creator: "Creator", Enabled: true, Configured: true, Endpoints: []string{"chat/completions"}},
 				{ID: "b", Alias: "b", Provider: "alpha", UpstreamModel: "native-b", ProviderKeyIDs: []string{"key"}, Creator: "Other", Enabled: true, Configured: true, Endpoints: []string{"chat/completions"}},
 			}, Groups: []registry.Group{tc.group}, Policies: []registry.Policy{{VirtualKeyID: "vk", Name: "Key", TokenSHA256: registry.TokenHash("synthetic-key"), Groups: []string{"group"}, Enabled: true}}}
-			if tc.name == "partial-access" {
+			if tc.name == "partial-access" || strings.HasPrefix(tc.name, "shared-") {
 				cfg.Models[1].Alias = "a"
 				cfg.Models[1].Provider = "beta"
+			}
+			if tc.name == "shared-family-filter" {
+				cfg.Models[0].Family, cfg.Models[1].Family = "Family", "Other"
 			}
 			if tc.name == "inferred-filter" {
 				cfg.Models[1].Creator = ""
@@ -61,6 +66,21 @@ func TestWorkspacePreservesHiddenGroupRules(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+			assertSelection := func(snapshot *registry.Snapshot) {
+				t.Helper()
+				view, ok := snapshot.View("vk")
+				if !ok || len(view.Ambiguous) != 0 || len(view.Routes) != 1 || view.Routes[0].RegistryID != "a" || view.Routes[0].Provider != "alpha" {
+					t.Fatalf("expected only canonical access a/alpha, got %+v", view)
+				}
+				if strings.HasPrefix(tc.name, "shared-") {
+					for i, model := range snapshot.Config().Models {
+						if model.Creator != cfg.Models[i].Creator || model.Family != cfg.Models[i].Family {
+							t.Fatalf("canonical access facts changed: %+v", model)
+						}
+					}
+				}
+			}
+			assertSelection(store.Load())
 			s, err := New(store, adminToken, nil)
 			if err != nil {
 				t.Fatal(err)
@@ -85,7 +105,7 @@ func TestWorkspacePreservesHiddenGroupRules(t *testing.T) {
 					}
 					return nativeResponse(200, `{"models":[{"name":"native-a","provider":"alpha","accessible_by_keys":["key"]},{"name":"native-b","provider":"alpha","accessible_by_keys":["key"]},{"name":"native-c","provider":"alpha","accessible_by_keys":["key"]}],"total":3}`), nil
 				case "/api/governance/virtual-keys":
-					return nativeResponse(200, `{"virtual_keys":[{"id":"vk","name":"Key","is_active":true}]}`), nil
+					return nativeResponse(200, `{"virtual_keys":[{"id":"vk","name":"Key","is_active":true,"provider_configs":[{"provider":"alpha","keys":[{"key_id":"key"}],"allowed_models":["a"]}]}]}`), nil
 				case "/api/governance/virtual-keys/vk":
 					if err := json.NewDecoder(r.Body).Decode(&applied); err != nil {
 						t.Fatal(err)
@@ -131,6 +151,7 @@ func TestWorkspacePreservesHiddenGroupRules(t *testing.T) {
 				}
 			}
 			put(ws, 200)
+			assertSelection(store.Load())
 			if got := store.Load().Config().Groups[0]; !reflect.DeepEqual(got, tc.group) {
 				t.Fatalf("group rules lost: got %+v want %+v", got, tc.group)
 			}
@@ -141,7 +162,15 @@ func TestWorkspacePreservesHiddenGroupRules(t *testing.T) {
 			if !reflect.DeepEqual(reopened.Load().Config().Groups[0], tc.group) {
 				t.Fatal("persisted rules differ")
 			}
-			if got := applied["provider_configs"]; !strings.Contains(strings.TrimSpace(toJSON(t, got)), `"allowed_models":["a"]`) || strings.Contains(toJSON(t, got), `"b"`) {
+			assertSelection(reopened.Load())
+			var nativeSelection []struct {
+				Provider string   `json:"provider"`
+				Models   []string `json:"allowed_models"`
+			}
+			if err := json.Unmarshal([]byte(toJSON(t, applied["provider_configs"])), &nativeSelection); err != nil {
+				t.Fatal(err)
+			}
+			if got := nativeSelection; len(got) != 1 || got[0].Provider != "alpha" || !reflect.DeepEqual(got[0].Models, []string{"a"}) {
 				t.Fatalf("native selection changed: %v", got)
 			}
 			ws = get()
@@ -172,6 +201,22 @@ func TestWorkspacePreservesHiddenGroupRules(t *testing.T) {
 			}
 			if store.Load().Revision() != before || writes != nativeWrites {
 				t.Fatal("rejected request wrote state or native permissions")
+			}
+			if strings.HasPrefix(tc.name, "shared-") {
+				put(get(), 200)
+				assertSelection(store.Load())
+				edited := get()
+				if tc.name == "shared-creator-filter" {
+					edited.Data.Models[0].Creator, edited.Data.Models[0].CreatorSource = "Edited", "manual"
+				} else {
+					edited.Data.Models[0].Family = "Edited"
+				}
+				put(edited, 200)
+				for _, model := range store.Load().Config().Models {
+					if (tc.name == "shared-creator-filter" && model.Creator != "Edited") || (tc.name == "shared-family-filter" && model.Family != "Edited") {
+						t.Fatalf("explicit card edit was ignored for access %s", model.ID)
+					}
+				}
 			}
 		})
 	}
