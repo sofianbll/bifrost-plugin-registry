@@ -120,17 +120,18 @@ export function NavigationShell({
                 e.preventDefault();
                 go("models");
               }}
-              className="-my-px min-w-0 py-px max-sm:-my-[7px] max-sm:py-[7px]"
+              className="min-w-0 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring max-sm:-my-0.5 max-sm:py-0.5"
             >
+              {/* Crop only the existing SVG's transparent margins, keeping the header and artwork geometry. */}
               <img
-                src={`${import.meta.env.BASE_URL}bifrost-logo.webp`}
-                alt="Bifrost"
-                className="h-[22px] max-w-[145px] object-contain object-left dark:hidden"
+                src={`${import.meta.env.BASE_URL}branding/registry/registry-logo.svg`}
+                alt="Registry"
+                className="h-8 w-[145px] object-cover dark:hidden"
               />
               <img
-                src={`${import.meta.env.BASE_URL}bifrost-logo-dark.webp`}
-                alt="Bifrost"
-                className="hidden h-[22px] max-w-[145px] object-contain object-left dark:block"
+                src={`${import.meta.env.BASE_URL}branding/registry/registry-logo-dark.svg`}
+                alt="Registry"
+                className="hidden h-8 w-[145px] object-cover dark:block"
               />
             </a>
             <SidebarTrigger

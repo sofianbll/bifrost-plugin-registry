@@ -6,7 +6,7 @@
 
 `registry-icon.svg`, `registry-logo.svg` and `registry-logo-dark.svg` trace the PNG silhouettes into standalone vector paths, including the lettering. They embed no raster image and need no external font. The SVG symbol uses a uniform emerald (`#157558`), replacing the PNG's slight tonal variation. The light logo uses graphite lettering (`#18181b`); the dark logo uses off-white (`#fafafa`) with identical geometry. All five exports have transparent backgrounds.
 
-The SVGs were rendered on light and dark backgrounds; the icon was visually checked at 24, 32 and 64 px. These assets identify this independent plugin, rather than Maxim/Bifrost. The existing Bifrost assets and application references are unchanged.
+The SVGs were rendered on light and dark backgrounds; the icon was visually checked at 24, 32 and 64 px. These assets identify this independent plugin, rather than Maxim/Bifrost. The app navigation and favicon, both README headers and the EN/FR documentation site now use these existing SVGs; `docs/public/branding/registry/` holds unchanged copies for the documentation build. The existing Bifrost assets, provider identities and Bifrost attribution remain intact.
 
 ## Provider harness catalog and recorded demo
 
