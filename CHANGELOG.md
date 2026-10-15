@@ -4,6 +4,22 @@ Release downloads and their exact source commits are listed in [GitHub Releases]
 
 ## Unreleased
 
+- Delta on `main` since **v0.3.0-rc.8**, as of October 15, 2026; no new release or production deployment is implied.
+- Bifrost catalogue parameter lookups use bounded concurrency (at most eight), retaining deterministic output and cancelling remaining work on failure (#62).
+- Registry files can reach **32 MiB** on load/save; an oversized save keeps the previous file and state. Admin API bodies remain capped at **4 MiB** (snapshot import retains its envelope allowance), so a larger file can be exported but cannot be re-imported through that API (#64).
+- Catalogue browsing separates saved cards from To add, preserves saved accesses on edit and offers other accesses only through explicit Add; identity, provenance, matching, read-first cards and subscription-oriented browsing are improved (#76, #98).
+- Native-key readiness and adoption show prerequisites and provider choices; a provider can stay in Bifrost through `kept_native`. Native permission edits require a token-bound preview, explicit confirmation and readback; kept-native routes pass through the plugin runtime (#98).
+- The Impeccable flow and follow-ups align key totals with Bifrost readback, re-read managed keys on open, simplify Basic without removing capabilities, clarify adoption decisions and Datasheet/access-settings wording, and improve focus return, Expert navigation and mobile touch targets (#108, #115). These fixes do not establish a new critique score.
+- Removed remaining dead native-menu fixture/build paths, embedded-admin APIs and lazy-init store pointer; `registry_path` is required at plugin initialization (#117, closes #32).
+- Split the browser journeys into theme modules and extracted cohesive UI responsibilities from RegistryApp (#105: #118–#123, #125–#131). The suite remains **one sequential test with 49 top-level steps plus one nested call**, not 49 independent tests; assertions, fixture and screenshot baselines are preserved. Shared orchestration stays in App; the owner accepted completion.
+- Added `make verify`, session-state and test-copy tooling, fresh-UI-build guards and coding/UI conventions; updated Registry branding and locked UI/tooling dependencies (#111/#112, #114, #116 and dependency PRs).
+
+**Compatibility and rollback:** rc.8's `Policy` has no `kept_native`, and its `Parse` rejects unknown fields. An older plugin cannot reopen a newer Registry file containing this field; switching only the `.so` back is not a safe rollback. Follow [Install: Upgrade and rollback](docs/INSTALL.md#upgrade-and-rollback): stop the gateway and restore the complete saved volume (Bifrost database, plugin URL and Registry data together), plus the prior gateway image if changed. This documents the format boundary and existing rollback procedure, not a new runtime qualification of this delta.
+
+## Historical changes already included by rc.8 — September 24–October 2, 2026
+
+Previously listed as Unreleased, the following entries predate rc.8 (Git history: #13/#15/#18, #27/#28/#31). This is a dated historical summary, not a new release or a claim that they first shipped together. The earlier note that published `v0.2.0-rc.1` binaries were unchanged applied to that working state; later release candidates already include these changes.
+
 - Searchable Model ID, Creator and series selectors with custom values, known metadata/access prefill and atomic reference matching.
 - Optional AI suggestions through a selected native virtual key, with field-by-field review before saving; Chat Completions and Responses supported.
 - On-demand native virtual-key reveal/copy, visible unknown capabilities and a scrollable model editor.
@@ -14,10 +30,8 @@ Release downloads and their exact source commits are listed in [GitHub Releases]
 - Production React source moved to `ui/`; matching build paths updated without changing runtime behavior.
 - Source CI, contribution instructions, issue forms and pull request template.
 - Clear license attribution and private vulnerability reporting instructions.
-- The 18 browser journeys now run as `@playwright/test` specs (`ui/e2e`) in a new E2E workflow, re-expressed against the current UI (the September 25 script no longer matched it), and the README screenshots are generated Playwright baselines refreshed by a manual workflow run. `tests/ux_journeys.cjs` and the unreferenced legacy-UI `tests/browser_smoke.py` are removed (Git history).
+- At the October 1–2 checkpoint, the 18 browser journeys were ported to `@playwright/test` (`ui/e2e`) in a new E2E workflow, re-expressed against that UI (the September 25 script no longer matched it), and README screenshots became generated Playwright baselines refreshed by a manual workflow run. `tests/ux_journeys.cjs` and the unreferenced legacy-UI `tests/browser_smoke.py` were removed (Git history).
 - Removed the deferred native-menu integration (host patches, `REGISTRY_NATIVE_UI` build flag), four superseded integration probes and `HANDOFF.md`; `.agents/` is no longer tracked. All remain in Git history at `61648dd` (native-menu work stays tracked in issue #7).
-
-The published `v0.2.0-rc.1` binaries are unchanged; these additions require a newly compiled compatible plugin.
 
 ## [0.3.0-rc.8] — 2026-10-08
 

@@ -20,18 +20,19 @@ Catalogue and key verification carry equal weight (confirmed by Sofian): one pla
 
 ## Operating Context
 
-- The plugin is a `.so` installed separately from the official dynamic Bifrost image; the panel is served by the plugin on its own port (8099) with its own admin token.
-- Bifrost 2.2.6 is the qualified gateway. Changes are tried on a test copy of the gateway before any real use.
+- The plugin is a `.so` installed separately from the Registry-distributed dynamic gateway image, compiled from official, unmodified Bifrost sources. This is not a qualified official prebuilt image. The panel is served by the plugin on its own port (8099) with its own admin token.
+- Bifrost 2.2.6 remains the v0.3 gateway baseline; the latest published release is v0.3.0-rc.8. Its native qualification uses synthetic providers, not real-provider inference or production certification ([STATUS](STATUS.md)). Changes are tried on a test copy before any real use; the diagnosed 2.3.0 candidate is [parked](https://github.com/sofianbll/bifrost-plugin-registry/issues/109#issuecomment-6172496668), not implicitly resumed.
 - Two reading levels share the same draft: Basic (plain words) and Expert (technical detail, from 1280 px up).
 - The interface exists in French and English, light and dark, and down to 375 px wide.
 
 ## Capabilities and Constraints
 
 - Confirmed: Bifrost stays the owner of keys and secrets. Registry stores no secret and relays no inference; it describes, selects and verifies.
-- Confirmed: the plugin stays separate from the official Bifrost image.
+- Confirmed: the plugin stays separate from the Registry-distributed gateway image; Bifrost sources remain unmodified.
 - Confirmed: French and English, light and dark, mobile.
 - Terminology lives in `CONTEXT.md`; the decisions already taken for the interface live in `docs/design/component-library.md` and are not reopened without the owner.
-- Undecided: team features; five structural design questions recorded in issue #102 (subscription versus pay-per-token, splitting "To add", bulk register, a safe adoption default, per-page help).
+- Team administration remains a hypothesis, not a delivered feature or requirement.
+- Approved future v0.4 scope: the [complete #102 specification, published October 15, 2026](https://github.com/sofianbll/bifrost-plugin-registry/issues/102#issuecomment-6188326439), accepts connection-level subscription declarations with model exceptions, subscription/other-access To add sections, batch registration, conservative safe-default adoption and contextual help, including their behavioral rules and help content. These are not delivered features or unanswered product questions. Approval covers specification publication only: implementation, storage/compatibility/migration design, release and deployment require a separate mandate; v0.3 scope stays frozen.
 
 ## Brand Commitments
 
@@ -39,9 +40,9 @@ The interface reuses Bifrost's shadcn/Radix components, Geist and the accepted v
 
 ## Evidence on Hand
 
-- A real test copy of the gateway (59 saved model cards, 11 virtual keys) on the owner's server.
-- Dated critique snapshots in `.impeccable/critique/` (18/40 at the first, 25/40 at the latest).
-- Issues #99 to #102 and the "Known, not fixed" list on pull request #98.
+- Historical test-copy observation on October 10, 2026: 59 saved model cards, 11 virtual keys and 771 discovered accesses, not a current inventory ([dated critique](.impeccable/critique/2026-10-10T18-42-15Z__ui-src-app-app-tsx.md)).
+- Dated critique snapshots in `.impeccable/critique/`: first measure 18/40; the [last recorded critique, October 13](.impeccable/critique/2026-10-13T22-43-06Z__ui-src-app-app-tsx.md), measured the older build `dev-cd10fa936b4d` at 27/40, 0 P0 and 3 P1. Subsequent fixes are not remeasured; no current 36/40 result is established.
+- Issues #99–#101 and #110 are completed through #108/#115, not a current unresolved list inherited from #98. #102 remains the approved future v0.4 specification; [STATUS](STATUS.md) distinguishes integrated changes, historical runtime evidence and the still-published rc.8.
 - No testimonials, customers or benchmarks exist; none may be invented.
 
 ## Product Principles
