@@ -42,15 +42,19 @@ def plugin_state(native):
 
 
 def probe_reactivation(expected_version, plugin_config, native,
-                        panel_closed, panel_ready, restart, check):
+                        panel_closed, panel_ready, restart, check, recovery_path=None):
     """Check URL activation recovery through gateway/panel APIs and a process restart."""
+    restores_disabled = expected_version == '2.3.0'
+    if restores_disabled:
+        check('recovery requires a stable absolute local plugin path',
+              isinstance(recovery_path, (str, Path)) and Path(recovery_path).is_absolute())
+    activation_config = plugin_config
     status, _, _ = native('/api/plugins/bifrost-registry', 'PUT',
                            {**plugin_config, 'enabled': False})
     check('disable accepted', status == 200, status=status)
     check('disable closes standalone server', panel_closed())
     status, reactivation, _ = native('/api/plugins/bifrost-registry', 'PUT', plugin_config)
     hot_supported = status == 200
-    restores_disabled = expected_version == '2.3.0'
     if restores_disabled:
         check('2.3 URL hot reactivation remains unsupported', not hot_supported)
     if hot_supported:
@@ -66,22 +70,35 @@ def probe_reactivation(expected_version, plugin_config, native,
         check('failed reactivation restores disabled config', api_status == loaded_status == 200
               and row is not None and row.get('enabled') is False
               and row.get('path') == plugin_config['path'] and 'bifrost-registry' not in names)
+        activation_config = {**plugin_config, 'path': str(recovery_path)}
+        status, _, _ = native('/api/plugins/bifrost-registry', 'PUT',
+                               {**activation_config, 'enabled': False})
+        check('stable local path saved disabled before restart', status == 200, status=status,
+              path=str(recovery_path))
+        api_status, loaded_status, row, names = plugin_state(native)
+        check('disabled local path and settings read back before restart',
+              api_status == loaded_status == 200 and row is not None and row.get('enabled') is False
+              and all(row.get(field) == activation_config.get(field)
+                      for field in ('path', 'config', 'placement', 'order'))
+              and 'bifrost-registry' not in names and panel_closed())
     else:
         check('reactivation config remains enabled for restart', row is not None
               and row.get('enabled') is True)
     restart()
     if restores_disabled:
         api_status, loaded_status, row, names = plugin_state(native)
-        check('restart alone keeps plugin disabled', api_status == loaded_status == 200
+        check('restart alone keeps local plugin disabled', api_status == loaded_status == 200
               and row is not None and row.get('enabled') is False
-              and row.get('path') == plugin_config['path'] and 'bifrost-registry' not in names)
+              and all(row.get(field) == activation_config.get(field)
+                      for field in ('path', 'config', 'placement', 'order'))
+              and 'bifrost-registry' not in names)
         check('restart alone leaves panel closed', panel_closed())
-        status, _, _ = native('/api/plugins/bifrost-registry', 'PUT', plugin_config)
-        check('fresh enable after restart accepted', status == 200, status=status)
+        status, _, _ = native('/api/plugins/bifrost-registry', 'PUT', activation_config)
+        check('fresh local enable after restart accepted', status == 200, status=status)
     api_status, loaded_status, row, names = plugin_state(native)
     check('plugin recovers after reactivation restart', api_status == loaded_status == 200
           and row is not None and row.get('enabled') is True
-          and row.get('path') == plugin_config['path']
+          and row.get('path') == activation_config['path']
           and row.get('status', {}).get('status') == 'active'
           and 'bifrost-registry' in names and panel_ready())
     return hot_supported
@@ -666,9 +683,18 @@ def main():
                     stop()
                     start()
 
+                if args.expected_version == '2.3.0':
+                    report['reactivation_recovery'] = {
+                        'initial_installation': 'url', 'final_installation': 'local',
+                        'stable_local_path': str(args.plugin),
+                        'same_plugin_sha256': report['artifacts']['plugin']['sha256'],
+                        'path_contract': 'Keep these immutable bytes at the same absolute gateway-container '
+                                         'filename across restarts, using a persistent read-only mount.',
+                    }
                 report['hot_url_reactivation_supported'] = probe_reactivation(
                     args.expected_version, plugin_config, native,
-                    panel_closed, lambda: call(panel, '/')[0] == 200, restart, check)
+                    panel_closed, lambda: call(panel, '/')[0] == 200, restart, check,
+                    recovery_path=args.plugin)
                 status, fresh, _ = admin('/api/workspace')
                 check('saved workspace recovers after reactivation restart', status == 200
                       and any(m['id'] == model['id'] for m in fresh.get('data', {}).get('models', []))
