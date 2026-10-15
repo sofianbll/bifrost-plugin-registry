@@ -38,7 +38,7 @@ export type Model = {
   accesses: Access[];
 };
 export type AccessSelector = { added: string[]; excluded: string[] };
-export type Group = { id: string; name: string; description: string; members: string[] };
+export type Group = { id: string; name: string; description: string; members: string[]; membersLocked?: boolean };
 export type Policy = {
   groups: string[];
   added: string[];

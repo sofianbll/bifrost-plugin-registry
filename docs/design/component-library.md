@@ -318,6 +318,10 @@ Vérifications locales: collections aux contenus de longueurs différentes, Grid
 La revue réelle utilise le serveur existant `cmd/registry-review` sur `127.0.0.1:8774`, une capture privée datée du 25 septembre et une copie de travail dans `dist/checks/interface-real-data/`. La capture partielle contient 9 fournisseurs, 119 modèles, 43 clés et 10 règles de routage. Les fichiers originaux sont préservés. La copie permet l’examen et des modifications locales; elle ne fournit ni secrets, ni inférence, ni création de clé native, ni relecture vérifiée en direct. Aucun déploiement.
 
 
+## Group rule preservation — approved cleanup #143 / #144
+
+The whole-card group selector cannot express saved filters, exclusions or partial provider-access choices. For these groups, Basic and Expert keep name/description editing and publishing reachable (including filter-only groups), replace the member selector with a read-only explanation in FR/EN, and preserve the canonical rules on unrelated workspace saves. The server independently rejects ambiguous membership edits, regardless of the read-only `membersLocked` workspace hint. Referenced access removal, replacement or call-name changes are rejected before persistence/native writes rather than redirecting an exclusion to another access. No advanced rules editor, schema change or new visual component is introduced.
+
 ## Explicit operations per provider access — 2026-09-27
 
 Sofian approved independent endpoint checkboxes on each provider access. Chat Completions and Responses are separate choices. Existing choices survive edit/save unchanged; new accesses require at least one explicit supported operation. Model modalities, historical `kind`, and Models.dev provider metadata never select permissions. The shared editor, review and save validation use this same rule.

@@ -35,7 +35,7 @@ export function useGroupEditing(
     else setGroupDraft(null);
   };
   const publishGroup = async () => {
-    if (!groupDraft?.name.trim() || !groupDraft.members.length) {
+    if (!groupDraft?.name.trim() || (!groupDraft.members.length && !groupDraft.membersLocked)) {
       toast.error(
         copyText("Enter a name and select at least one model.", "Saisissez un nom et sélectionnez au moins un modèle."),
       );

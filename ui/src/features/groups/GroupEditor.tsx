@@ -91,9 +91,21 @@ export function GroupEditor({
           placeholder={copy("What is this group for?", "À quoi sert ce groupe ?")}
         />
       </Field>
+      {group.membersLocked && (
+        <p className="text-sm text-muted-foreground">
+          {copy(
+            "Saved filters, exclusions or access choices are preserved. Member editing is unavailable in this panel.",
+            "Les filtres, exclusions ou choix d’accès enregistrés sont conservés. La modification des membres est indisponible dans ce panneau.",
+          )}
+        </p>
+      )}
     </div>
   );
-  const browser = (
+  const browser = group.membersLocked ? (
+    <p className="text-sm text-muted-foreground">
+      {copy("The saved selection is unchanged.", "La sélection enregistrée reste inchangée.")}
+    </p>
+  ) : (
     <section className="space-y-3">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
@@ -247,7 +259,7 @@ export function GroupEditor({
       setStep(0);
       return false;
     }
-    if (next > 1 && !group.members.length) {
+    if (next > 1 && !group.members.length && !group.membersLocked) {
       setStep(1);
       return false;
     }
@@ -277,14 +289,18 @@ export function GroupEditor({
         {!expert && step < 2 ? (
           <Button
             type="button"
-            disabled={step === 0 ? !group.name.trim() : !group.members.length}
+            disabled={step === 0 ? !group.name.trim() : !group.members.length && !group.membersLocked}
             onClick={() => changeStep(step + 1)}
           >
             {copy("Continue", "Continuer")}
             <ArrowRight className="size-3.5" />
           </Button>
         ) : (
-          <Button type="button" disabled={busy || !group.name.trim() || !group.members.length} onClick={onSave}>
+          <Button
+            type="button"
+            disabled={busy || !group.name.trim() || (!group.members.length && !group.membersLocked)}
+            onClick={onSave}
+          >
             {snapshotMode ? copy("Save locally", "Enregistrer localement") : copy("Publish group", "Publier le groupe")}
           </Button>
         )}
