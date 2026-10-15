@@ -616,14 +616,11 @@ func (s *Server) workspace(ctx context.Context) (workspace, error) {
 	sort.Slice(dto.Keys, func(i, j int) bool { return dto.Keys[i].Name < dto.Keys[j].Name })
 	ws := workspace{Revision: snap.Revision(), Data: dto, Discovery: discovered, Providers: providers}
 	for name, proof := range s.live.proofs {
-		if !strings.HasPrefix(name, "registry/") {
+		provider, _, model, ok := parsePricingOverrideName(name)
+		if !ok {
 			continue
 		}
-		parts := strings.Split(name, "/")
-		access := name
-		if len(parts) >= 4 {
-			access = parts[1] + "/" + parts[3]
-		}
+		access := provider + "/" + model
 		ws.PricingProofs = append(ws.PricingProofs, pricingProofDTO{Access: access, State: proof.State, Error: proof.Error, CheckedAt: proof.CheckedAt})
 	}
 	sort.Slice(ws.PricingProofs, func(i, j int) bool { return ws.PricingProofs[i].Access < ws.PricingProofs[j].Access })
