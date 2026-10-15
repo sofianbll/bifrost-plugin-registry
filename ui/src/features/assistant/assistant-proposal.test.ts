@@ -98,6 +98,15 @@ equal(
   model.accesses.map(access => access.nativeModel),
 );
 equal(model.accesses[0].referenceId, undefined);
+for (const creatorSource of ["inferred", "reference", "manual", undefined] as const) {
+  const draft = { ...model, creator: "Automatic Labs", creatorSource };
+  const proposalRows = suggestionRows(draft, suggestion);
+  const accepted = applySuggestion(draft, proposalRows, new Set(["creator"]));
+  equal(accepted, { ...draft, creator: "AI creator", creatorSource: "manual" });
+  equal(applySuggestion(draft, proposalRows, new Set()), draft);
+  equal(applySuggestion(draft, proposalRows, new Set(["name"])), { ...draft, name: "AI name" });
+  equal(draft.creatorSource, creatorSource);
+}
 equal(
   suggestionRows(model, {
     fields: { input_modalities: ["text", "credential"], context_length: -1, reasoning: "true" },
