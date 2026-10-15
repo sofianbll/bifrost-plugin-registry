@@ -1,4 +1,4 @@
-import { expect, test } from "../fixtures";
+import { expect, test, token } from "../fixtures";
 import type { JourneyContext } from "./helpers";
 
 export async function modelDraftJourney({ button, page, sheet, closeSheet }: JourneyContext) {
@@ -27,8 +27,25 @@ export async function modelEditorJourneys({
   cardSteps,
   scope,
   closeSheet,
+  api,
+  groupModels,
 }: JourneyContext) {
   await test.step("a saved card opens read-first: Edit and Cancel, one step order, No changes, Delete in a menu", async () => {
+    // #146: the deleted card owns the key's last access selector and both model references.
+    const seeded = await api("workspace");
+    const key = seeded.data.keys.find((key: { id: string }) => key.id === "vk-qa-dev");
+    key.policy.added.push("qa-image");
+    key.policy.excluded.push("qa-image");
+    key.policy.accessSelection = { "qa-image": { added: [], excluded: ["Google/qa-image"] } };
+    const seed = await page.request.put("/api/workspace", {
+      headers: { Authorization: `Bearer ${token}`, "If-Match": seeded.revision },
+      data: { data: seeded.data },
+    });
+    expect(seed.status()).toBe(200);
+    await page.reload();
+    await page.getByLabel("Admin token", { exact: true }).fill(token);
+    await button("Sign in").click();
+    await groupModels("No grouping");
     await searchModels().fill("qa-image");
     await button("Open QA Image details").click();
     // Read view: the name once as the title, the common ID under it, details to read, nothing to change.
@@ -113,6 +130,11 @@ export async function modelEditorJourneys({
     await page.getByRole("dialog").getByRole("button", { name: "Delete", exact: true }).click();
     expect((await removal).postDataJSON().data.models.map((m: { id: string }) => m.id)).not.toContain("qa-image");
     await sheet().waitFor({ state: "hidden" });
+    const reread = await api("workspace");
+    const policy = reread.data.keys.find((key: { id: string }) => key.id === "vk-qa-dev").policy;
+    expect(policy.added).not.toContain("qa-image");
+    expect(policy.excluded).not.toContain("qa-image");
+    expect(policy.accessSelection).toBeUndefined();
     await searchModels().fill("");
     await expect(scope(/^In Registry/)).toHaveAccessibleName("In Registry (12)");
   });

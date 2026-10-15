@@ -100,11 +100,32 @@ export function useModelEditing(
       return;
     }
     const saved = omitUnchangedReferenceIds(copy(modelDraft), getCatalog());
+    const removedAccessIds =
+      data.models
+        .find(m => m.id === saved.id)
+        ?.accesses.filter(a => !saved.accesses.some(next => next.id === a.id))
+        .map(a => a.id) ?? [];
     const next = {
       ...data,
       models: creatingModel
         ? [...data.models, copy(saved)]
         : data.models.map(m => (m.id === saved.id ? copy(saved) : m)),
+      keys: data.keys.map(key => {
+        const selection = key.policy.accessSelection?.[saved.id];
+        if (!selection || !removedAccessIds.some(id => selection.added.includes(id) || selection.excluded.includes(id)))
+          return key;
+        const added = selection.added.filter(id => !removedAccessIds.includes(id));
+        const excluded = selection.excluded.filter(id => !removedAccessIds.includes(id));
+        const { accessSelection, ...policy } = key.policy;
+        const remaining = { ...accessSelection };
+        // Empty selectors mean all accesses, not none; never discard a surviving exclusion.
+        if (added.length || excluded.length) remaining[saved.id] = { added, excluded };
+        else delete remaining[saved.id];
+        return {
+          ...key,
+          policy: { ...policy, ...(Object.keys(remaining).length ? { accessSelection: remaining } : {}) },
+        };
+      }),
     };
     const impacted = data.keys
       .filter(k => k.managed !== false && members(k.policy, data.groups).includes(saved.id))
@@ -144,21 +165,16 @@ export function useModelEditing(
         const models = data.models.filter(m => m.id !== model.id);
         const groups = data.groups.map(g => ({ ...g, members: g.members.filter(id => id !== model.id) }));
         const keys = data.keys.map(k => {
-          const accessSelection = k.policy.accessSelection ? { ...k.policy.accessSelection } : undefined;
-          if (accessSelection) {
-            delete accessSelection[model.id];
-            if (Object.keys(accessSelection).length === 0) {
-              const { accessSelection: _, ...rest } = k.policy;
-              return { ...k, policy: rest };
-            }
-          }
+          const { accessSelection, ...policy } = k.policy;
+          const remaining = { ...accessSelection };
+          delete remaining[model.id];
           return {
             ...k,
             policy: {
-              ...k.policy,
+              ...policy,
               added: k.policy.added.filter(id => id !== model.id),
               excluded: k.policy.excluded.filter(id => id !== model.id),
-              accessSelection,
+              ...(Object.keys(remaining).length ? { accessSelection: remaining } : {}),
             },
           };
         });
