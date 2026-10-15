@@ -97,6 +97,8 @@ If the download fails with a temporary-file permission error, see [Troubleshooti
 2. Make it reachable by the gateway either as a **local file path** (`path: "/plugins/bifrost-registry.so"` in the plugin entry, file readable by the Bifrost process) or as an **http(s) URL** (Bifrost downloads it at startup).
 3. Merge the [plugin fragment](https://github.com/sofianbll/bifrost-plugin-registry/blob/main/configs/plugin.fragment.json) with that `path` and the [plugin settings](#credentials-and-plugin-settings) below, through Bifrost's native plugin settings or `POST /api/plugins`.
 
+For the **2.3.0 source candidate**, an initial local installation can use the same immutable, versioned filename for **disable → restart → enable** recovery. Keep the exact paired `.so` bytes readable at that absolute container path across restarts, preferably on a read-only mount. This does not qualify local hot reactivation. Initial URL installation remains supported, but recovery needs the explicit [URL-to-local transition](#recover-activation-after-disabling) below.
+
 ## Credentials and plugin settings
 
 Both modes use two separate secrets, supplied as environment values (never committed in JSON or logs):
@@ -130,15 +132,25 @@ Verify the plugin is `active` in `GET /api/plugins` and present in `GET /api/plu
 Hot reactivation of a loaded Go `.so` is unsupported (`HTTP 500`, `plugin already loaded`); the Registry panel stays closed after the failed enable.
 
 - **Published v0.3.0 / Bifrost 2.2.6:** the failed enable leaves the saved row `enabled:true`. Restart the gateway to load it again.
-- **Bifrost 2.3.0 source candidate:** the failed enable restores the previous row, `enabled:false`. Restart alone leaves the plugin disabled and the panel closed. Keep the same plugin URL and settings: **disable → restart the gateway → enable** through Bifrost's native plugin settings (or `PUT /api/plugins/bifrost-registry`). Do not repeatedly retry enable before restarting.
+- **Bifrost 2.3.0 source candidate:** the failed URL enable restores the previous row, `enabled:false`. Restart alone leaves it disabled. Re-enabling the unchanged URL after restart also fails: disabled-start verification has already opened the Go module, and URL activation downloads it to another temporary filename (`plugin already loaded`). Do not repeatedly retry or treat 500 as success.
 
-After recovery, verify `enabled:true`, status `active`, the saved URL in `GET /api/plugins`, membership in `GET /api/plugins/loaded`, the panel, saved models/groups/key policies and the dedicated key's `/v1/models` readback. Recovery is not an upgrade or a volume rollback; it must not expand native permissions. The 2.3 procedure is a qualification target, not a compatibility claim.
+**2.3 candidate recovery from a URL installation — explicit switch to local mode:**
+
+1. Provision a local copy of the **same compatible plugin bytes**, verified against the installed artifact's SHA-256, at a new versioned persistent filename. The `path` must be absolute **inside the gateway container**, not on the Docker host. For example, use `/app/data/registry/plugins/sha256-<verified hash>/bifrost-registry.so` on the existing persistent data volume, or a versioned file bind-mounted read-only under `/plugins/`. Keep that file readable and read-only where possible; leave the data directory writable for Registry saves. Never overwrite an already loaded `.so`.
+2. Disable through native plugin settings or `PUT /api/plugins/bifrost-registry`. A previous failed URL enable must leave `enabled:false` and the panel closed.
+3. **Before restarting**, save the local `path` with `enabled:false` through the native API/settings, preserving all other plugin settings. Read back the disabled flag, exact local path and settings in `GET /api/plugins`; confirm absence from `GET /api/plugins/loaded` and a closed panel. Do not enable the local copy in the old process.
+4. Fully stop the gateway process and wait for its exit, then restart with the same file/mount available at the same filename. Confirm the saved row remains disabled/local, the plugin is not in the loaded list and the panel is closed.
+5. Enable that **same local path** through native settings/PUT. Require HTTP 200, then perform the verification below. For an initially local installation, keep its existing verified path and use disable → stop/restart → enable; no URL-to-local change is needed.
+
+This changes the saved installation mode to local: Bifrost no longer fetches the old plugin URL at startup. The operator must retain the immutable file and persistent mount; do not silently restore URL mode. No direct database edits or plugin deletion/recreation are part of recovery.
+
+After recovery, verify `enabled:true`, status `active`, the saved **path** in `GET /api/plugins`, membership in `GET /api/plugins/loaded`, the panel, saved models/groups/key policies and the dedicated key's unchanged `/v1/models` readback. Recovery uses the same bytes, not a new artifact, gateway upgrade, volume migration or qualified rollback; it must not expand native permissions. The 2.3 procedure remains subject to final exact-pair AMD64/ARM64 qualification, not a blanket compatibility claim.
 
 ## Upgrade and rollback
 
 Stop the gateway and back up **all of `/app/data`** before an update. For published v0.3.0 / Bifrost 2.2.6, save the new compatible `.so` URL and restart the gateway; Bifrost downloads the saved URL at startup. Disabling and re-enabling a Go plugin without restarting is not a supported update path (`plugin already loaded`). Verify loading, saved data and the test key again.
 
-For a separately built 2.3.0 candidate pair on disposable staging, disable the plugin, restart the gateway, then save the new compatible URL/settings and enable it. A failed hot update restores the previous row, including its URL: do not assume the new URL was saved. Read it back from `GET /api/plugins` and verify loading, data and the test key. Published v0.3.0 assets are not a 2.3 upgrade pair. Gateway upgrades may migrate Bifrost's database; activation recovery alone does not qualify such a migration or rollback.
+For the 2.3.0 source candidate, the recovery above verifies only the **same existing bytes**, not an update to new plugin bytes or another gateway. A new plugin requires its own compatible versioned file, checksum and update qualification; never replace a loaded file in place. A failed hot update restores the previous row, including its path: do not assume a new URL or local path was saved. Read it back. Published v0.3.0 assets are not a 2.3 upgrade pair. Gateway upgrades may migrate Bifrost's database; activation recovery alone does not qualify such a migration or rollback.
 
 Registry data written before v0.3 has no per-key access selection. From v0.3.0, when a key's model is offered by several provider accesses, the plugin still loads but leaves that model out of the key's catalog: the gateway log shows `bifrost-registry: warning: policy <key>: model <alias> has N accesses and no access_selection`, and the panel marks the key **Access choice needed**. Open the key, uncheck the accesses it must not use in the model's Accesses list, and publish.
 
