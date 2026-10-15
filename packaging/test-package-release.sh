@@ -35,7 +35,9 @@ for link in re.findall(r"\]\(([^)]+)\)", notices):
     target = (plugin / unquote(link)).resolve()
     assert target.is_relative_to(plugin.resolve()) and target.is_file(), link
 assert "MIT terms" in notices
-assert (plugin / "licenses/npm/react/19.2.3/LICENSE").read_bytes() == (root / "ui/node_modules/react/LICENSE").read_bytes()
+lock = json.loads((root / "ui/package-lock.json").read_text())
+react_version = lock["packages"]["node_modules/react"]["version"]
+assert (plugin / "licenses/npm/react" / react_version / "LICENSE").read_bytes() == (root / "ui/node_modules/react/LICENSE").read_bytes()
 assert (plugin / "licenses/npm/tslib/2.8.1/CopyrightNotice.txt").read_bytes() == (root / "ui/node_modules/tslib/CopyrightNotice.txt").read_bytes()
 PY
 

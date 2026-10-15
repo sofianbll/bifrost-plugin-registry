@@ -74,4 +74,23 @@ for (const [language, badge] of [
   const words = text(render(language, changed, { groups: fixture.groups }));
   must(words.includes(badge) && !/on save|à l’enregistrement/.test(words), `${language}: impact badge, got ${words}`);
 }
+for (const [language, explanation] of [
+  ["en", "Saved filters, exclusions or access choices are preserved. Member editing is unavailable in this panel."],
+  [
+    "fr",
+    "Les filtres, exclusions ou choix d’accès enregistrés sont conservés. La modification des membres est indisponible dans ce panneau.",
+  ],
+] as const) {
+  const locked = { ...used, members: [], membersLocked: true };
+  const html = render(language, locked, { groups: [locked] });
+  must(text(html).includes(explanation), `${language}: hidden rules are explained`);
+  must(
+    !html.includes('aria-label="Group models"') && !html.includes('aria-label="Modèles du groupe"'),
+    `${language}: no ambiguous member selector`,
+  );
+  must(
+    !/<button[^>]*disabled=""[^>]*>[^<]*(?:Publish group|Publier le groupe)/.test(html),
+    `${language}: filter-only groups can save details`,
+  );
+}
 console.log("Group editor checks passed");
