@@ -537,6 +537,8 @@ export default function ModelEditor({
   const [editing, setEditing] = useState<EditSection>(null);
   const [editDraft, setEditDraft] = useState<Model | null>(null);
   const [editingAccess, setEditingAccess] = useState(0);
+  const [removingAccess, setRemovingAccess] = useState(false);
+  const keepEditButton = useRef<HTMLButtonElement | null>(null);
   const [property, setProperty] = useState<{
     key: EditableProperty;
     target: "reference" | "access";
@@ -610,6 +612,7 @@ export default function ModelEditor({
   const closeEdit = () => {
     setEditing(null);
     setEditDraft(null);
+    setRemovingAccess(false);
     setValueEdits({});
     setValuesTouched(false);
   };
@@ -2254,7 +2257,10 @@ export default function ModelEditor({
           className="max-h-[90vh] overflow-y-auto"
           onCloseAutoFocus={event => {
             event.preventDefault();
-            editOpener.current?.focus();
+            (editOpener.current?.isConnected
+              ? editOpener.current
+              : document.querySelector<HTMLElement>('[data-slot="sheet-content"] [aria-current="step"]')
+            )?.focus();
           }}
         >
           <DialogHeader>
@@ -2421,7 +2427,15 @@ export default function ModelEditor({
               </p>
             </section>
           )}
-          {editing === "access" && editedAccess && (
+          {editing === "access" && editedAccess && removingAccess && (
+            <p className="text-sm">
+              {copy(
+                `Remove ${displayProvider(editedAccess.provider)}${showNative(editedAccess) ? ` · ${editedAccess.nativeModel}` : ""} from this card?`,
+                `Retirer ${displayProvider(editedAccess.provider)}${showNative(editedAccess) ? ` · ${editedAccess.nativeModel}` : ""} de cette fiche ?`,
+              )}
+            </p>
+          )}
+          {editing === "access" && editedAccess && !removingAccess && (
             <div className="space-y-3">
               <SearchableSelect
                 label={copy("Provider in Bifrost *", "Fournisseur dans Bifrost *")}
@@ -2515,7 +2529,10 @@ export default function ModelEditor({
                 variant="ghost"
                 size="sm"
                 disabled={form.accesses.length === 1}
-                onClick={() => updateEdit({ accesses: form.accesses.filter((_, index) => index !== editingAccess) })}
+                onClick={() => {
+                  setRemovingAccess(true);
+                  requestAnimationFrame(() => keepEditButton.current?.focus());
+                }}
               >
                 <X className="size-4" />
                 {copy("Remove access", "Retirer cet accès")}
@@ -2527,25 +2544,33 @@ export default function ModelEditor({
               {copy("Cancel", "Annuler")}
             </Button>
             <Button
+              ref={keepEditButton}
               disabled={
-                valueIssues ||
+                (!removingAccess && valueIssues) ||
                 (editing === "identity"
                   ? !form.name.trim()
                   : editing === "access"
-                    ? !form.accesses[editingAccess]?.endpoints?.length ||
-                      form.accesses.some(
-                        access =>
-                          !access.provider ||
-                          !access.nativeModel ||
-                          access.id !== `${access.provider}/${form.id}` ||
-                          (!!access.referenceId &&
-                            !catalog?.references.some(reference => reference.id === access.referenceId)),
-                      )
+                    ? removingAccess
+                      ? form.accesses.length <= 1
+                      : !form.accesses[editingAccess]?.endpoints?.length ||
+                        form.accesses.some(
+                          access =>
+                            !access.provider ||
+                            !access.nativeModel ||
+                            access.id !== `${access.provider}/${form.id}` ||
+                            (!!access.referenceId &&
+                              !catalog?.references.some(reference => reference.id === access.referenceId)),
+                        )
                     : false)
               }
               onClick={() => {
-                keepValueEdits();
-                if (editDraft) onChange(editDraft);
+                if (removingAccess) {
+                  if (form.accesses.length <= 1) return;
+                  onChange({ ...draft, accesses: draft.accesses.filter((_, index) => index !== editingAccess) });
+                } else {
+                  keepValueEdits();
+                  if (editDraft) onChange(editDraft);
+                }
                 closeEdit();
                 setRegistrationIssue(undefined);
               }}
