@@ -222,7 +222,7 @@ Similar appearance is not enough to justify merging responsibilities. Compare co
 | Filters and search | Repeated Input+Search and select/checkbox filters across main, laboratory and prototypes | Shared labeled search/filter primitives; domain predicates stay with callers |
 | Property/provenance rows | `FactValue`, prototype `Fact`, old prototype `Value`, `CatalogMetadata` | Consistent property/value/status/source presentation; retain different editing contracts |
 | Key copying | `VirtualKeySecret`, one-time secret dialog in main `App`, inert token dialog in `KeyLibrary` | Shared copy feedback; keep real secret retrieval and demo token generation separate |
-| Empty/loading/error feedback | Main `Empty`, inline notices, alerts, text placeholders, Skeleton, Sonner | Shared presentation patterns with relevant action and accessible announcement |
+| Empty/loading/error feedback | Inline notices, alerts, text placeholders, Skeleton, Sonner | Shared presentation patterns with relevant action and accessible announcement |
 | Tabs and navigation | Main route shell, prototype `NavigationLink`, detail tabs, main gateway/harness buttons | Consistent navigation semantics and active state; do not treat every tab as a form toggle |
 | Forms and validation | Inline labels/layouts and newly added `Field` family | Review one common field contract, validation, help, error and required states |
 | Dialogs and side panels | Radix Dialog/Sheet/Popover with many inline contents | Keep one primitive implementation and shared headers/actions; preserve each task's effects |
@@ -317,6 +317,10 @@ Vérifications locales: collections aux contenus de longueurs différentes, Grid
 
 La revue réelle utilise le serveur existant `cmd/registry-review` sur `127.0.0.1:8774`, une capture privée datée du 25 septembre et une copie de travail dans `dist/checks/interface-real-data/`. La capture partielle contient 9 fournisseurs, 119 modèles, 43 clés et 10 règles de routage. Les fichiers originaux sont préservés. La copie permet l’examen et des modifications locales; elle ne fournit ni secrets, ni inférence, ni création de clé native, ni relecture vérifiée en direct. Aucun déploiement.
 
+
+## Group rule preservation — approved cleanup #143 / #144
+
+The whole-card group selector cannot express saved filters, exclusions or partial provider-access choices. For these groups, Basic and Expert keep name/description editing and publishing reachable (including filter-only groups), replace the member selector with a read-only explanation in FR/EN, and preserve the canonical rules on unrelated workspace saves. The server independently rejects ambiguous membership edits, regardless of the read-only `membersLocked` workspace hint. Referenced access removal, replacement or call-name changes are rejected before persistence/native writes rather than redirecting an exclusion to another access. No advanced rules editor, schema change or new visual component is introduced.
 
 ## Explicit operations per provider access — 2026-09-27
 

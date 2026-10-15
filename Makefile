@@ -19,6 +19,7 @@ script-check:
 	bash scripts/test-github-setup.sh
 	bash scripts/test-verify.sh
 	bash scripts/test-test-copy-install.sh
+	bash scripts/test-package-provenance.sh
 	bash scripts/check-case-collisions.sh
 	@if command -v bun >/dev/null 2>&1 && [ -d dist/models-dev-upstream ]; then \
 		bun scripts/build-modelsdev-snapshot.test.ts; \
