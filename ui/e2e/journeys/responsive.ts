@@ -22,6 +22,38 @@ export async function responsiveJourneys({
   expectMinTarget,
   openDevelopmentKey,
 }: JourneyContext) {
+  await test.step("denied preference writes keep the panel and session view controls usable", async () => {
+    for (const error of ["SecurityError", "QuotaExceededError"]) {
+      const isolated = await browser.newPage({ baseURL });
+      isolated.on("pageerror", e => errors.push(e.message));
+      await skipTour(isolated);
+      await isolated.addInitScript(errorName => {
+        const setItem = Storage.prototype.setItem;
+        Storage.prototype.setItem = function (key, value) {
+          if (key === "registry-prototype-view") throw new DOMException("Preference write refused", errorName);
+          return setItem.call(this, key, value);
+        };
+      }, error);
+      await isolated.goto("/?lang=en");
+      await isolated.getByLabel("Admin token", { exact: true }).fill(token);
+      await isolated.getByRole("button", { name: "Sign in", exact: true }).click();
+      await isolated.getByRole("link", { name: "Settings", exact: true }).click();
+      await isolated.getByRole("button", { name: "Appearance", exact: true }).click();
+      await isolated.getByRole("radio", { name: "Table", exact: true }).click();
+      await expect(isolated.getByRole("radio", { name: "Table", exact: true })).toHaveAttribute("data-state", "on");
+      await isolated.getByRole("link", { name: "My models", exact: true }).click();
+      await isolated.getByRole("button", { name: "View options", exact: true }).click();
+      await expect(isolated.getByRole("radio", { name: "Table", exact: true })).toHaveAttribute("data-state", "on");
+      await isolated.getByRole("radio", { name: "Grid", exact: true }).click();
+      await expect(isolated.getByRole("radio", { name: "Grid", exact: true })).toHaveAttribute("data-state", "on");
+      await isolated.keyboard.press("Escape");
+      await isolated.getByRole("link", { name: "Settings", exact: true }).click();
+      await isolated.getByRole("button", { name: "Appearance", exact: true }).click();
+      await expect(isolated.getByRole("radio", { name: "Table", exact: true })).toHaveAttribute("data-state", "on");
+      await isolated.close();
+    }
+  });
+
   await test.step("mobile sheet, footer, focus and metadata detail fit viewport", async () => {
     await nav("Groups").click();
     await page.setViewportSize({ width: 390, height: 844 });
