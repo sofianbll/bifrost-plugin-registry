@@ -44,7 +44,7 @@ on:
         type: string
         default: ''
       prerelease:
-        description: Mark as pre-release even without -rc/-pre in the tag
+        description: Mark as pre-release even without a suffix in the tag
         type: boolean
         default: false
   workflow_dispatch:
@@ -57,6 +57,10 @@ on:
         description: Qualify, build, probe and assemble only; publish nothing
         type: boolean
         default: true
+      prerelease:
+        description: Mark as pre-release even without a suffix in the tag
+        type: boolean
+        default: false
 
 permissions: {}
 
@@ -97,7 +101,7 @@ jobs:
             echo "::error::tag $TAG already exists"; exit 1
           fi
           prerelease=false
-          if [[ $PRERELEASE == true || $TAG == *-rc* || $TAG == *-pre* ]]; then prerelease=true; fi
+          if [[ $PRERELEASE == true || $TAG == *-* ]]; then prerelease=true; fi
           {
             echo "tag=$TAG"
             echo "target=$(git rev-parse HEAD)"
