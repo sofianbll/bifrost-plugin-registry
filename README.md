@@ -74,6 +74,8 @@ Independent project, not an official Maxim/Bifrost product.
 
 ## Runtime & qualification
 
+**Source candidate:** the current `bifrost.pin` targets unmodified Bifrost 2.3.0 (`9237ec06672406e437b3cb33fc793ffd0403b3ae`); native AMD64/ARM64 compatibility remains to be qualified on the exact pair. This is not a published release. Stable v0.3.0 and the quickstart above remain on 2.2.6. See the [candidate activation recovery procedure](docs/INSTALL.md#recover-activation-after-disabling).
+
 Stable **v0.3.0**, published from Registry commit `9b900e986978e6997881d63f211303686e5acfb1`, targets unmodified Bifrost 2.2.6 (`transports/v2.2.6`, commit `8b4fce4`) on Linux AMD64 and ARM64 (musl), Go 1.27.1. It includes the Registry changes since rc.8: legacy registry files no longer stop the plugin, `/api/status` reports the release version and real Bifrost connection, malformed admin tokens receive a clear sign-in error, and key/access editing and review flows were refined. Bifrost 2.2.6 requires dashboard authentication for Registry's native API calls ([Install](docs/INSTALL.md#credentials-and-plugin-settings)). Native qualification and image probes use synthetic providers only; [STATUS](STATUS.md) records exact assets, hashes and limits.
 
 The results below were recorded on the older release **v0.3.0-rc.4** (ARM64, Bifrost 2.2.3, final commit `d588a9f`; English-first interface), whose code rc.5 to rc.8 rebuild and v0.3.0 extends.

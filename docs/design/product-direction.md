@@ -18,8 +18,10 @@ Deux modes d'installation sont retenus, sans supprimer le travail existant :
 
 | Mode | Priorité et prérequis |
 | --- | --- |
-| **Standard** | Prioritaire : image Bifrost dynamique et plugin compilés ensemble mais distribués séparément, URL directe du `.so`, panneau autonome, sans patch hôte. La réactivation à chaud échoue avec `plugin already loaded` ; le redémarrage restaure le panneau et les données. Distribution versionnée dans `v0.2.0-rc.1`. |
+| **Standard** | Prioritaire : image Bifrost dynamique et plugin compilés ensemble mais distribués séparément, URL directe du `.so`, panneau autonome, sans patch hôte. Sur Bifrost 2.2.2 qualifié ici, la réactivation à chaud échoue avec `plugin already loaded` ; le redémarrage restaure le panneau et les données. Distribution versionnée dans `v0.2.0-rc.1`. |
 | **Intégré** | Différé : pilote avec routes, menu et authentification Bifrost communs. Ses sources, patchs, binaires et preuves restent archivés ; [#7](https://github.com/sofianbll/bifrost-plugin-registry/issues/7) conserve ce jalon historique. |
+
+Cette récupération au redémarrage décrit les preuves Bifrost 2.2, pas une garantie pour les cibles suivantes. Pour le candidat source Bifrost 2.3.0, suivre la [procédure candidate à qualifier](../fr/INSTALL.md#recuperer-l-activation-apres-desactivation) : désactiver → redémarrer → activer ; le redémarrage seul ne réactive pas le plugin.
 
 Dans Bifrost 2.2.2 étudié, le contrat standard des plugins ne permet pas d'ajouter une route au serveur HTTP Bifrost. Le plugin sert donc l'UI React et son API sur son propre port, avec un jeton admin distinct, et appelle l'API native du gateway sur `8080`. Un reverse proxy externe peut présenter l'UI sous un domaine ou un chemin, avec une configuration réseau et d'accès propre au déploiement ; ce parcours externe n'est pas qualifié ici. Voir [la procédure de livraison](../fr/INSTALL.md) et [l'audit des surfaces](stock-plugin-install-research.md).
 

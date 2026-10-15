@@ -19,7 +19,9 @@ The static official Bifrost image downloads the `.so` but refuses to load it. Us
 
 ## `plugin already loaded` when re-enabling without restart
 
-Hot reactivation of a Go plugin is not supported. Restart the gateway; the panel, data and readback are restored.
+Hot reactivation of a Go plugin is not supported. With published v0.3.0 / Bifrost 2.2.6, the failed enable leaves `enabled:true`; restart the gateway, then verify the panel, data and readback.
+
+With the **Bifrost 2.3.0 source candidate (not yet qualified)**, the failed enable restores `enabled:false`. Restart alone leaves it disabled: use **disable → restart → enable**, keeping the same URL/settings. Verify the saved row is enabled and active, the plugin is loaded, the panel opens, models/groups/key policies persist and the dedicated key's `/v1/models` readback is unchanged. See [activation recovery](INSTALL.md#recover-activation-after-disabling). A failed URL update also restores the previous URL; activation recovery is not an upgrade or a complete-volume rollback.
 
 ## The plugin downloads but fails to activate
 
