@@ -7,7 +7,7 @@
 # --apply: checks the local SHA256SUMS line, backs up the mounted plugin and data/registry/registry.json on the host
 # (label from BACKUP_LABEL, default `install`), copies the new file next to the mounted one, compares its checksum on
 # the host and stops if it differs, swaps it in, runs `docker compose up -d --force-recreate` in the test copy's folder,
-# waits up to ~90 s for the container to be healthy, prints the plugin status log line and the rollback commands.
+# waits up to ~90 s for the container to be healthy, requires the plugin's active status and prints rollback commands.
 # Overrides, for another test copy only: TEST_COPY_HOST (default pulsar), TEST_COPY_DIR (default
 # build/bifrost-registry-test, relative to the host's home), TEST_COPY_CONTAINER (must stay bifrost-registry-test).
 # Never: touches the production container `bifrost` or port 9208 (any override that names them is refused), runs
@@ -80,7 +80,8 @@ while [ "$i" -lt 45 ]; do
   [ "$s" = healthy ] && break
   i=$((i + 1)); sleep 2
 done
-docker logs CONTAINER 2>&1 | grep 'plugin status: bifrost-registry' | tail -n 1
+logs=$(docker logs CONTAINER 2>&1) || { printf '%s\n' "$logs" >&2; exit 1; }
+printf '%s\n' "$logs" | grep 'plugin status: bifrost-registry - ' | tail -n 1
 echo "health=$s"
 EOF
 health_cmd=${health_tpl//CONTAINER/$CONTAINER}
@@ -97,7 +98,7 @@ echo "  4. ssh $HOST, checksum of the copy must equal $have, else stop:"
 echo "       $sha_cmd"
 echo "  5. ssh $HOST, swap it in and recreate the test copy only:"
 echo "       $swap_cmd"
-echo "  6. ssh $HOST, wait up to ~90 s for $CONTAINER to be healthy, print its plugin status line:"
+echo "  6. ssh $HOST, wait up to ~90 s for $CONTAINER to be healthy, require bifrost-registry active:"
 printf '%s\n' "$health_cmd" | sed 's/^/       /'
 echo "  7. rollback (printed again at the end):"
 echo "       ssh $HOST '$rollback_cmd'"
@@ -137,11 +138,14 @@ step 5 "swap in and recreate the test copy"
 swapping=1
 rssh "$swap_cmd"
 step 6 "wait for $CONTAINER to be healthy"
-out=$(rssh "$health_cmd") || true
-plugin_line=$(printf '%s\n' "$out" | grep 'plugin status: bifrost-registry' || true)
+out=$(rssh "$health_cmd") || die "could not verify $CONTAINER health and plugin status on $HOST; consider the rollback below"
+plugin_line=$(printf '%s\n' "$out" | grep 'plugin status: bifrost-registry - ' | tail -n 1 || true)
 echo "${plugin_line:-no 'plugin status: bifrost-registry' line in the container logs}"
 if printf '%s\n' "$out" | grep -qx 'health=healthy'; then
   echo "$CONTAINER is healthy"
 else
   die "$CONTAINER did not become healthy in ~90 s; consider the rollback below"
 fi
+# Bifrost's startup status is "<name> - <status>"; a matching name alone is not activation.
+printf '%s\n' "$plugin_line" | grep -Eq 'plugin status: bifrost-registry - active([[:space:]]*$|"[[:space:]]*}[[:space:]]*$)' \
+  || die "bifrost-registry is not confirmed active; consider the rollback below"
