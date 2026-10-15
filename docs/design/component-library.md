@@ -47,6 +47,8 @@ Décision précisée par Sofian le 27 septembre : **Grille/Tableau** choisit la 
 
 ## Composition et adaptation
 
+- **Identité Registry (#139, 15 octobre 2026).** La navigation utilise les SVG existants `branding/registry/registry-logo.svg` (clair) et `registry-logo-dark.svg` (sombre), sans déformation, et le lien d’accueil accessible « Registry » ramène à Mes modèles. Le favicon utilise `registry-icon.svg` ; les ressources suivent la base montée. Les en-têtes README EN/FR et le site documentaire EN/FR reprennent cette identité (base documentaire `/bifrost-plugin-registry/`). Le rail replié garde son contrôle d’expansion, sans nouveau logo ni changement de présentation ; menu mobile, clavier et focus sont préservés. Logos fournisseurs, anciens assets et attribution Bifrost restent intacts.
+
 - Basic et Expert partagent exactement le même brouillon et les mêmes données; seul le niveau de détail de l’interface varie.
 - Sous 1280 px, masquer le sélecteur Basic/Expert; sur mobile, garder Basic.
 - Placer le sélecteur près du thème, avec état actif vert et texte blanc. Aligner la barre latérale sur la recherche.
