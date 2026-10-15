@@ -12,6 +12,7 @@ import (
 	"math"
 	"net/http"
 	"net/url"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -74,10 +75,11 @@ type modelDTO struct {
 	Accesses         []accessDTO       `json:"accesses"`
 }
 type groupDTO struct {
-	ID          string   `json:"id"`
-	Name        string   `json:"name"`
-	Description string   `json:"description"`
-	Members     []string `json:"members"`
+	ID            string   `json:"id"`
+	Name          string   `json:"name"`
+	Description   string   `json:"description"`
+	Members       []string `json:"members"`
+	MembersLocked bool     `json:"membersLocked,omitempty"`
 }
 type policyDTO struct {
 	Groups          []string                           `json:"groups"`
@@ -591,16 +593,7 @@ func (s *Server) workspace(ctx context.Context) (workspace, error) {
 		accessIDs[m.ID] = m.Provider + "/" + m.Alias
 	}
 	for _, g := range config.Groups {
-		members := []string{}
-		seen := map[string]bool{}
-		for _, id := range g.ModelIDs {
-			v := refs[id]
-			if v != "" && !seen[v] {
-				members = append(members, v)
-				seen[v] = true
-			}
-		}
-		dto.Groups = append(dto.Groups, groupDTO{g.ID, g.Name, g.Description, members})
+		dto.Groups = append(dto.Groups, workspaceGroup(g, config.Models))
 	}
 	policies := map[string]registry.Policy{}
 	for _, p := range config.Policies {
@@ -670,6 +663,21 @@ func (s *Server) workspace(ctx context.Context) (workspace, error) {
 		ws.Connection.Version = version
 	}
 	return ws, nil
+}
+
+// The panel selects whole cards, not filters, exclusions or individual accesses.
+func workspaceGroup(g registry.Group, models []registry.Model) groupDTO {
+	refs := map[string]string{}
+	for _, m := range models {
+		refs[m.ID] = m.Alias
+	}
+	dto := groupDTO{ID: g.ID, Name: g.Name, Description: g.Description, Members: refsToAliases(g.ModelIDs, refs), MembersLocked: g.Filter != nil || len(g.Exclude) > 0}
+	for _, m := range models {
+		if slices.Contains(dto.Members, m.Alias) && !slices.Contains(g.ModelIDs, m.ID) {
+			dto.MembersLocked = true
+		}
+	}
+	return dto
 }
 func refsToAliases(ids []string, refs map[string]string) []string {
 	out := []string{}
@@ -752,11 +760,11 @@ func (s *Server) putWorkspace(w http.ResponseWriter, r *http.Request) {
 	old := s.Store.Load().Config()
 	oldEndpoints := map[string][]string{}
 	ambiguousOldEndpoints := map[string]bool{}
-	// Saving rebuilds access IDs; carry v0.1 preferences over to the new IDs.
-	rebuiltID := map[string]string{}
+	// Keep canonical identities across card edits, including legacy group references.
+	oldAccessModels := map[string]registry.Model{}
 	for _, m := range old.Models {
-		rebuiltID[m.ID] = registryID(m.Provider, m.UpstreamModel)
 		key := m.Provider + "\x00" + m.UpstreamModel
+		oldAccessModels[key] = m
 		if _, exists := oldEndpoints[key]; exists {
 			ambiguousOldEndpoints[key] = true
 		} else {
@@ -822,6 +830,10 @@ func (s *Server) putWorkspace(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			id := registryID(a.Provider, raw)
+			prior := oldAccessModels[a.Provider+"\x00"+raw]
+			if prior.ID != "" {
+				id = prior.ID
+			}
 			if seenRegistry[id] {
 				reply(w, 422, map[string]string{"error": "Duplicate model access"})
 				return
@@ -831,8 +843,16 @@ func (s *Server) putWorkspace(w http.ResponseWriter, r *http.Request) {
 				reply(w, 422, map[string]string{"error": e.Error()})
 				return
 			}
+			// Display-only enrichment must not change canonical group filter inputs.
+			creator, family := cleanUnknown(m.Creator), cleanUnknown(m.Family)
+			if m.CreatorSource == "inferred" || m.CreatorSource == "reference" {
+				creator = prior.Creator
+			}
 			persisted := persistedCreator(sanitizeLiveModel(m))
 			stripCatalogAutofill(&persisted, catalogFieldsForAccess(cfg.Catalog, a.Provider, raw))
+			if persisted.Family == "" && family != "" {
+				family = prior.Family
+			}
 			metadata, _ := json.Marshal(persisted)
 			endpoints := a.Endpoints
 			if a.endpointsNull {
@@ -852,7 +872,7 @@ func (s *Server) putWorkspace(w http.ResponseWriter, r *http.Request) {
 				reply(w, 422, map[string]string{"error": "Choose at least one endpoint for each provider access"})
 				return
 			}
-			cfg.Models = append(cfg.Models, registry.Model{ID: id, Alias: m.ID, Provider: a.Provider, ProviderKeyIDs: native.AccessibleByKeys, UpstreamModel: raw, Creator: cleanUnknown(m.Creator), Family: cleanUnknown(m.Family), Endpoints: append([]string{}, endpoints...), Enabled: true, Configured: true, Evidence: "Configured in Bifrost native model catalog; inference not observed", Metadata: map[string]json.RawMessage{"ui": metadata}})
+			cfg.Models = append(cfg.Models, registry.Model{ID: id, Alias: m.ID, Provider: a.Provider, ProviderKeyIDs: native.AccessibleByKeys, UpstreamModel: raw, Creator: creator, Family: family, Capabilities: prior.Capabilities, Endpoints: append([]string{}, endpoints...), Enabled: true, Configured: true, Evidence: "Configured in Bifrost native model catalog; inference not observed", Metadata: map[string]json.RawMessage{"ui": metadata}})
 			byLogical[m.ID] = append(byLogical[m.ID], id)
 			accessToRegistry[a.ID] = id
 		}
@@ -867,7 +887,34 @@ func (s *Server) putWorkspace(w http.ResponseWriter, r *http.Request) {
 			}
 			members = append(members, ids...)
 		}
-		cfg.Groups = append(cfg.Groups, registry.Group{ID: g.ID, Name: g.Name, Description: g.Description, ModelIDs: members})
+		next := registry.Group{ID: g.ID, Name: g.Name, Description: g.Description, ModelIDs: members}
+		for _, prior := range old.Groups {
+			if prior.ID != g.ID {
+				continue
+			}
+			projected := workspaceGroup(prior, old.Models)
+			if !projected.MembersLocked {
+				continue
+			}
+			unchanged := len(g.Members) == len(projected.Members)
+			for _, member := range projected.Members {
+				unchanged = unchanged && slices.Contains(g.Members, member)
+			}
+			for _, id := range append(append([]string{}, prior.ModelIDs...), prior.Exclude...) {
+				for _, m := range old.Models {
+					if m.ID == id {
+						unchanged = unchanged && slices.Contains(byLogical[m.Alias], id)
+					}
+				}
+			}
+			if !unchanged {
+				reply(w, 422, map[string]string{"error": "Group members cannot be changed: saved filters, exclusions or access choices are not editable in this panel"})
+				return
+			}
+			next = prior
+			next.Name, next.Description = g.Name, g.Description
+		}
+		cfg.Groups = append(cfg.Groups, next)
 	}
 	present := map[string]bool{}
 	for _, k := range input.Data.Keys {
@@ -910,16 +957,7 @@ func (s *Server) putWorkspace(w http.ResponseWriter, r *http.Request) {
 		oldp.Added = added
 		oldp.Excluded = excluded
 		oldp.Naming = k.Policy.Naming
-		oldp.Prefer = nil
-		if len(k.Policy.Prefer) > 0 {
-			oldp.Prefer = map[string]string{}
-			for alias, id := range k.Policy.Prefer {
-				if next, ok := rebuiltID[id]; ok {
-					id = next
-				}
-				oldp.Prefer[alias] = id
-			}
-		}
+		oldp.Prefer = k.Policy.Prefer
 		oldp.AccessSelection = accessSelection
 		cfg.Policies = append(cfg.Policies, oldp)
 	}
