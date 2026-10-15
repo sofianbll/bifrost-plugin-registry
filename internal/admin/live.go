@@ -1278,7 +1278,7 @@ func (s *Server) readback(w http.ResponseWriter, r *http.Request, id string) {
 		temp := *s.live.client
 		temp.authorization = "Bearer " + secret
 		e := temp.call(r.Context(), "GET", "/v1/models", nil, &body)
-		if e != nil {
+		if e != nil || body.Data == nil {
 			p.Error = "Model readback failed"
 		} else {
 			seen := map[string]bool{}
