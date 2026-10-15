@@ -1,6 +1,126 @@
 import type { Locator } from "@playwright/test";
-import { expect, skipTour, test, expectNoBasicJargon } from "../fixtures";
+import { expect, skipTour, test, expectNoBasicJargon, token } from "../fixtures";
 import type { JourneyContext } from "./helpers";
+
+export async function accessRemovalJourney({
+  api,
+  page,
+  sheet,
+  button,
+  closeSheet,
+  shot,
+  groupModels,
+}: Pick<JourneyContext, "api" | "page" | "sheet" | "button" | "closeSheet" | "shot" | "groupModels">) {
+  await test.step("access settings stage removal without retargeting; Cancel and Keep preserve access identities", async () => {
+    const original = (await api("workspace")).data.models.find((model: { id: string }) => model.id === "qa-shared");
+    const seeded = await api("workspace");
+    const key = seeded.data.keys.find((key: { id: string }) => key.id === "vk-qa-dev");
+    const originalPolicy = structuredClone(key.policy);
+    key.policy.added.push("qa-shared");
+    key.policy.accessSelection = { "qa-shared": { added: [], excluded: [original.accesses[1].id] } };
+    const seed = await page.request.put("/api/workspace", {
+      headers: { Authorization: `Bearer ${token}`, "If-Match": seeded.revision },
+      data: { data: seeded.data },
+    });
+    expect(seed.status()).toBe(200);
+    await page.reload();
+    await page.getByLabel("Admin token", { exact: true }).fill(token);
+    await button("Sign in").click();
+    await groupModels("No grouping");
+    const open = async () => {
+      await button("Open QA Shared details").first().click();
+      await sheet().getByRole("tab", { name: "Access", exact: true }).click();
+      await button("Edit accesses").click();
+    };
+    const dialog = page.getByRole("dialog", { name: "Edit provider access", exact: true });
+    for (const index of [1, 0]) {
+      if (index === 0) await page.setViewportSize({ width: 375, height: 812 });
+      await open();
+      const access = original.accesses[index];
+      const opener = sheet().getByRole("button", { name: `Access settings for ${access.provider}`, exact: true });
+      await opener.click();
+      await dialog.getByRole("button", { name: "Remove access", exact: true }).focus();
+      await page.keyboard.press("Enter");
+      await expect(dialog.getByRole("button", { name: "Keep changes", exact: true })).toBeEnabled();
+      await expect(dialog.getByRole("button", { name: "Keep changes", exact: true })).toBeInViewport({ ratio: 1 });
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+      await shot(`access-removal-${index === 0 ? "mobile" : "desktop"}`);
+      await expect(
+        dialog.getByRole("combobox", { name: "Access status", exact: true }),
+        "no remaining access becomes the edit target",
+      ).toHaveCount(0);
+      await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+      await expect(opener).toBeFocused();
+      await button("Review").click();
+      await expect(button("Save model")).toBeDisabled();
+      await button("Back").click();
+      await sheet().getByRole("button", { name: "1. Accesses", exact: true }).click();
+      await opener.click();
+      await dialog.getByRole("button", { name: "Remove access", exact: true }).click();
+      await expect(dialog.getByRole("button", { name: "Keep changes", exact: true })).toBeFocused();
+      await page.keyboard.press("Enter");
+      await expect(dialog).toBeHidden();
+      expect(
+        await sheet().evaluate(el => el.contains(document.activeElement)),
+        "focus returns to the editor after its opener is removed",
+      ).toBe(true);
+      const remaining = original.accesses[1 - index];
+      await sheet()
+        .getByRole("button", { name: `Access settings for ${remaining.provider}`, exact: true })
+        .click();
+      await expect(dialog.getByRole("button", { name: "Remove access", exact: true })).toBeDisabled();
+      await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+      await button("Review").click();
+      await expect(sheet().getByText(`Access removed: ${access.provider}`, { exact: true })).toBeVisible();
+      if (index === 1) {
+        const write = page.waitForRequest(r => r.method() === "PUT" && r.url().endsWith("/api/workspace"));
+        await button("Save model").click();
+        expect(
+          (await write).postDataJSON().data.models.find((model: { id: string }) => model.id === "qa-shared").accesses,
+        ).toEqual([remaining]);
+        await sheet().waitFor({ state: "hidden" });
+        expect(
+          (await api("workspace")).data.models.find((model: { id: string }) => model.id === "qa-shared").accesses,
+        ).toEqual([remaining]);
+        const read = await page.request.post("/api/keys/vk-qa-dev/readback", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        expect(read.status()).toBe(200);
+        const reread = await read.json();
+        const updated = reread.data.keys.find((key: { id: string }) => key.id === "vk-qa-dev");
+        expect(updated.policy.accessSelection).toBeUndefined();
+        expect(updated.publication.state).toBe("verified");
+        expect(updated.publication.actual).toContain(remaining.id);
+        expect(updated.publication.actual).not.toContain(access.id);
+        // Restore the key before restoring the second access: no implicit permission for it.
+        updated.policy = originalPolicy;
+        const restore = await page.request.put("/api/workspace", {
+          headers: { Authorization: `Bearer ${token}`, "If-Match": reread.revision },
+          data: { data: reread.data },
+        });
+        expect(restore.status()).toBe(200);
+        await page.reload();
+        await page.getByLabel("Admin token", { exact: true }).fill(token);
+        await button("Sign in").click();
+        await groupModels("No grouping");
+        // Restore the synthetic fixture through the same editor for the following journeys.
+        await open();
+        await sheet()
+          .getByRole("button", { name: new RegExp(`^Add ${access.provider}`) })
+          .click();
+        await button("Review").click();
+        await button("Save model").click();
+        await sheet().waitFor({ state: "hidden" });
+      } else {
+        await button("Cancel").click();
+        await button("Discard draft").click();
+        await closeSheet();
+        await sheet().waitFor({ state: "hidden" });
+      }
+    }
+    await page.setViewportSize({ width: 1440, height: 950 });
+  });
+}
 
 export async function addToCardJourney({
   sheet,
@@ -143,7 +263,10 @@ export async function modelAccessJourneys({
   baseURL,
   browser,
   errors,
+  shot,
+  groupModels,
 }: JourneyContext) {
+  await accessRemovalJourney({ api, page, sheet, button, closeSheet, shot, groupModels });
   await test.step("saved card keeps its own accesses; matching ones are offered, never merged", async () => {
     // Claude/qa-opus is saved; openrouter's anthropic/qa-opus shares its reference and is not.
     const before = (await api("workspace")).data.models;

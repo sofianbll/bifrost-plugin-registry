@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast, Toaster } from "sonner";
-import { Plus, Search } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -1085,26 +1085,5 @@ export function App() {
     <LanguageContext.Provider value={language}>
       <RegistryApp language={language} onLanguageChange={changeLanguage} />
     </LanguageContext.Provider>
-  );
-}
-
-function Empty({
-  icon: Icon,
-  title,
-  detail,
-  action,
-}: {
-  icon: typeof Search;
-  title: string;
-  detail: string;
-  action: React.ReactNode;
-}) {
-  return (
-    <div className="flex min-h-72 flex-col items-center justify-center gap-3 py-12 text-center">
-      <Icon className="size-16 stroke-1 text-muted-foreground" />
-      <h3 className="text-xl font-medium text-muted-foreground">{title}</h3>
-      <p className="max-w-lg text-sm text-muted-foreground">{detail}</p>
-      <div className="mt-2">{action}</div>
-    </div>
   );
 }
