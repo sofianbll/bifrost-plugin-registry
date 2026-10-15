@@ -2,9 +2,9 @@
 
 Release downloads and their exact source commits are listed in [GitHub Releases](https://github.com/sofianbll/bifrost-plugin-registry/releases).
 
-## Unreleased
+## [0.3.0] — 2026-10-15
 
-- Delta on `main` since **v0.3.0-rc.8**, as of October 15, 2026; no new release or production deployment is implied.
+- Stable release from Registry commit `9b900e986978e6997881d63f211303686e5acfb1`, against unmodified Bifrost 2.2.6, for Linux AMD64 and ARM64. The release workflow [38761865725](https://github.com/sofianbll/bifrost-plugin-registry/actions/runs/38761865725) passed native qualification, image probes, attestation and publication.
 - Bifrost catalogue parameter lookups use bounded concurrency (at most eight), retaining deterministic output and cancelling remaining work on failure (#62).
 - Registry files can reach **32 MiB** on load/save; an oversized save keeps the previous file and state. Admin API bodies remain capped at **4 MiB** (plus 1 KiB for the snapshot envelope); import refusal depends on received serialized bytes, so a compact export may fit even when the indented disk file exceeds 4 MiB (#64).
 - Catalogue browsing separates saved cards from To add, preserves saved accesses on edit and offers other accesses only through explicit Add; identity, provenance, matching, read-first cards and subscription-oriented browsing are improved (#76, #98).
@@ -15,6 +15,8 @@ Release downloads and their exact source commits are listed in [GitHub Releases]
 - Added `make verify`, session-state and test-copy tooling, fresh-UI-build guards and coding/UI conventions; updated Registry branding and locked UI/tooling dependencies (#111/#112, #114, #116 and dependency PRs).
 
 **Compatibility and rollback:** rc.8's `Policy` has no `kept_native`, and its `Parse` rejects unknown fields. An older plugin cannot reopen a newer Registry file containing this field; switching only the `.so` back is not a safe rollback. Follow [Install: Upgrade and rollback](docs/INSTALL.md#upgrade-and-rollback): stop the gateway and restore the complete saved volume (Bifrost database, plugin URL and Registry data together), plus the prior gateway image if changed. This documents the format boundary and existing rollback procedure, not a new runtime qualification of this delta.
+
+Published assets and exact hashes are in [GitHub Releases](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.3.0) and [STATUS](STATUS.md). The documentation-only follow-up after source commit `9b900e9` is not part of the immutable release tag. No real-provider inference or production rollout is claimed.
 
 ## Historical changes already included by rc.8 — September 24–October 2, 2026
 
@@ -67,6 +69,7 @@ Previously listed as Unreleased, the following entries predate rc.8 (Git history
 
 The integrated UI prototype and earlier build evidence are retained in the project history. Hot plugin reactivation, native sidebar integration and the laboratory runner are not part of this release.
 
+[0.3.0]: https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.3.0
 [0.3.0-rc.8]: https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.3.0-rc.8
 [0.3.0-rc.7]: https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.3.0-rc.7
 [0.3.0-rc.6]: https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.3.0-rc.6

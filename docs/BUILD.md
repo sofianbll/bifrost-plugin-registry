@@ -2,7 +2,7 @@
 
 > Page disponible en français uniquement. *(Developer page, French only.)*
 
-Le [guide d'installation](fr/INSTALL.md) indique les fichiers publiés pour chaque hôte, l'image Docker Bifrost compilée avec liaison dynamique, le `.so` séparé, l'installation, la mise à jour et le retour arrière. Les preuves de la première prérelease sont dans [`reports/v1-final/`](https://github.com/sofianbll/bifrost-plugin-registry/tree/main/reports/v1-final) ; celles de la paire ARM64 de `v0.3.0-rc.4` dans [`reports/bifrost-2.2.3-arm64-869e251/`](https://github.com/sofianbll/bifrost-plugin-registry/tree/main/reports/bifrost-2.2.3-arm64-869e251). Celles de `v0.3.0-rc.5` à `v0.3.0-rc.8` (AMD64 et ARM64) sont les fichiers `reports-linux-<arch>.tar.gz` de chaque release. Les compilations et pilotes ci-dessous expliquent la provenance et conservent les essais antérieurs.
+Le [guide d'installation](fr/INSTALL.md) indique les fichiers publiés pour chaque hôte, l'image Docker Bifrost compilée avec liaison dynamique, le `.so` séparé, l'installation, la mise à jour et le retour arrière. Les preuves de la première prérelease sont dans [`reports/v1-final/`](https://github.com/sofianbll/bifrost-plugin-registry/tree/main/reports/v1-final) ; celles de la paire ARM64 de `v0.3.0-rc.4` dans [`reports/bifrost-2.2.3-arm64-869e251/`](https://github.com/sofianbll/bifrost-plugin-registry/tree/main/reports/bifrost-2.2.3-arm64-869e251). Celles de `v0.3.0-rc.5` à `rc.8` (AMD64 et ARM64) sont les fichiers `reports-linux-<arch>.tar.gz` de chaque release ; v0.3.0 fournit également ces rapports dans ses [assets de release](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.3.0). Les compilations et pilotes ci-dessous expliquent la provenance et conservent les essais antérieurs.
 
 ## Mode standard prioritaire : plugin avec son propre serveur web
 
@@ -41,7 +41,7 @@ Sources :
 
 ## Préparation d’un checkout isolé
 
-Utiliser la version exacte de votre gateway, pas `dev`, pas `core@latest`. La dernière release (`v0.3.0-rc.8`) est compilée contre **Bifrost HTTP 2.2.6** : le tag `transports/v2.2.6` pointe vers `8b4fce4f1709d66f9208d02f50552da522535f9e`. Exemple de checkout isolé :
+Utiliser la version exacte de votre gateway, pas `dev`, pas `core@latest`. La release v0.3.0 est compilée contre **Bifrost HTTP 2.2.6** : le tag `transports/v2.2.6` pointe vers `8b4fce4f1709d66f9208d02f50552da522535f9e`. Exemple de checkout isolé :
 
 ```bash
 git clone --branch transports/v2.2.6 --depth 1 https://github.com/maximhq/bifrost.git bifrost-build
