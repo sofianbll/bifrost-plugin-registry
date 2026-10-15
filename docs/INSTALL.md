@@ -4,7 +4,7 @@ English · [Français](fr/INSTALL.md)
 
 Registry is installed as **two separate artifacts**: a Bifrost gateway image compiled with dynamic loading (it contains no plugin), and the Registry plugin, a `.so` file with its interface embedded. Both must come from the same build: same architecture, Go toolchain, dependency versions and libc. Starting the image does not install the plugin. Use a staging instance before migrating an existing deployment.
 
-**Source candidate, not a release:** `bifrost.pin` now targets unmodified Bifrost 2.3.0 (`transports/v2.3.0`, commit `9237ec06672406e437b3cb33fc793ffd0403b3ae`), with Go 1.27.1 and Alpine 3.23 unchanged. Compatibility is not established until the exact candidate pair passes native AMD64/ARM64 qualification. The published v0.3.0 files and examples below remain for Bifrost 2.2.6; do not install those plugins on a 2.3 gateway.
+**Source candidate, not a release:** `bifrost.pin` now targets unmodified Bifrost 2.3.0 (`transports/v2.3.0`, commit `9237ec06672406e437b3cb33fc793ffd0403b3ae`), with Go 1.27.1 and Alpine 3.23 unchanged. [STATUS records native AMD64/ARM64 qualification of the exact b73 checkpoint and its limits](https://github.com/sofianbll/bifrost-plugin-registry/blob/main/STATUS.md#foundation-checkpoint), not qualification of later commits or a distribution image. The published v0.3.0 files and examples below remain for Bifrost 2.2.6; do not install those plugins on a 2.3 gateway.
 
 ## Which files for which host
 
@@ -144,7 +144,7 @@ Hot reactivation of a loaded Go `.so` is unsupported (`HTTP 500`, `plugin alread
 
 This changes the saved installation mode to local: Bifrost no longer fetches the old plugin URL at startup. The operator must retain the immutable file and persistent mount; do not silently restore URL mode. No direct database edits or plugin deletion/recreation are part of recovery.
 
-After recovery, verify `enabled:true`, status `active`, the saved **path** in `GET /api/plugins`, membership in `GET /api/plugins/loaded`, the panel, saved models/groups/key policies and the dedicated key's unchanged `/v1/models` readback. Recovery uses the same bytes, not a new artifact, gateway upgrade, volume migration or qualified rollback; it must not expand native permissions. The 2.3 procedure remains subject to final exact-pair AMD64/ARM64 qualification, not a blanket compatibility claim.
+After recovery, verify `enabled:true`, status `active`, the saved **path** in `GET /api/plugins`, membership in `GET /api/plugins/loaded`, the panel, saved models/groups/key policies and the dedicated key's unchanged `/v1/models` readback. Recovery uses the same bytes, not a new artifact, gateway upgrade, volume migration or qualified rollback; it must not expand native permissions. [The 2.3 checkpoint evidence in STATUS](https://github.com/sofianbll/bifrost-plugin-registry/blob/main/STATUS.md#foundation-checkpoint) is bounded to its exact pairs, not a blanket compatibility claim.
 
 ## Upgrade and rollback
 
@@ -159,5 +159,7 @@ To roll back, stop the gateway, restore the complete stopped-volume backup, rest
 ## Qualification and limits
 
 v0.3.0 was natively qualified on Linux AMD64 and ARM64 against Bifrost 2.2.6 with synthetic providers; native suite results, image distribution probes, asset hashes and provenance are recorded in [STATUS](https://github.com/sofianbll/bifrost-plugin-registry/blob/main/STATUS.md) and the [release run](https://github.com/sofianbll/bifrost-plugin-registry/actions/runs/38761865725). The upstream Bifrost UI `npm ci` reported 9 vulnerabilities (1 low, 5 high, 3 critical) during both native builds; the upstream UI is compiled to static files, not a Node/Next server. No SBOM, bundle trace or exploitability test established a reachable path or exploitation; residual risk is plausible but unproven. The separate Registry UI install reported 0 vulnerabilities. This is not a security guarantee; upstream remediation is not included. Follow-up triage is tracked in [#141](https://github.com/sofianbll/bifrost-plugin-registry/issues/141). The official prebuilt Bifrost image, real-provider inference, production deployment and native sidebar integration are not certified by these checks.
+
+For the separate, unpublished 2.3 foundation, [STATUS records the exact native qualification and completed bounded #141 assessment](https://github.com/sofianbll/bifrost-plugin-registry/blob/main/STATUS.md#foundation-checkpoint). The assessment concludes that the candidate is acceptable for the captured advisory set under explicit limits, not universally secure or accepted for release/rollout; it does not correct the historical v0.3.0 findings above.
 
 The previous Bifrost 2.2.1 binary-mount recipe is retained in the [historical archive](https://github.com/sofianbll/bifrost-plugin-registry/blob/main/docs/archive/installation-2.2.1.md).
