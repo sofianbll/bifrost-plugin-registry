@@ -179,10 +179,18 @@ func (s *Server) applyPricingOverrides(ctx context.Context, snap *registry.Snaps
 		s.setPricingProof("", "", "", msg)
 	} else {
 		delete(s.live.proofs, pricingOverrideName("", "", ""))
+		nativeNames := map[string]bool{}
 		for _, o := range previous {
 			if ownedPricingOverride(o) {
+				nativeNames[o.Name] = true
 				provider, keyID, _, _ := parsePricingOverrideName(o.Name)
 				keysToSync[keyID] = provider
+			}
+		}
+		for name := range s.live.proofs {
+			_, wanted := expected[name]
+			if strings.HasPrefix(name, "registry/") && !wanted && !nativeNames[name] {
+				delete(s.live.proofs, name)
 			}
 		}
 	}

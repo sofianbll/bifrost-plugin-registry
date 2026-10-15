@@ -1,6 +1,7 @@
 package admin
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -169,6 +170,45 @@ func TestPricingReconcileLastAccessRemoved(t *testing.T) {
 	}
 	if len(ws.Data.Models) != 0 || len(ws.PricingProofs) != 0 {
 		t.Fatalf("removed access still has models or pricing proofs: %+v", ws)
+	}
+}
+
+func TestPricingReconcileAlreadyDeletedNativeOverride(t *testing.T) {
+	for _, discoveryFails := range []bool{false, true} {
+		t.Run(fmt.Sprintf("discoveryFails=%t", discoveryFails), func(t *testing.T) {
+			f := newPricingReconcileFixture(t)
+			ws := f.read()
+			if len(ws.PricingProofs) != 1 || ws.PricingProofs[0].State != "verified" {
+				t.Fatalf("initial publication not verified: %+v", ws.PricingProofs)
+			}
+			id := f.overrides[reconcileOverrideName].ID
+			if err := f.server.live.client.call(context.Background(), http.MethodDelete, "/api/governance/pricing-overrides/"+id, nil, nil); err != nil {
+				t.Fatal(err)
+			}
+			ws.Data.Models = nil
+			if discoveryFails {
+				f.failList = "all"
+			}
+			ws = f.save(ws, nil)
+			if discoveryFails {
+				if len(ws.PricingProofs) == 0 {
+					t.Fatal("failed discovery silently discarded pricing proofs")
+				}
+				for _, p := range ws.PricingProofs {
+					if p.State != "not_verified" || p.Error == "" {
+						t.Fatalf("failed discovery left a verified pricing proof: %+v", p)
+					}
+				}
+				f.failList = ""
+				ws = f.save(ws, nil)
+			}
+			if len(ws.PricingProofs) != 0 {
+				t.Fatalf("native override and last access are gone, but old proofs remain: %+v", ws.PricingProofs)
+			}
+			if len(f.overrides) != 0 || f.posts != 1 {
+				t.Fatalf("cleanup recreated an override: %+v, creates=%d", f.overrides, f.posts)
+			}
+		})
 	}
 }
 
