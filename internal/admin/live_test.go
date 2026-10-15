@@ -580,8 +580,8 @@ func TestWorkspaceSavesLegacyAmbiguityAndResolvesIt(t *testing.T) {
 	if pcs := fmt.Sprint(applied["vk-legacy"]["provider_configs"]); !strings.Contains(pcs, "allowed_models:[shared solo]") || strings.Contains(pcs, "beta") {
 		t.Fatalf("native allowlist does not follow the chosen access: %s", pcs)
 	}
-	if prefer := s.Store.Load().Config().Policies[0].Prefer["shared"]; prefer != registryID("alpha", "native-shared-a") {
-		t.Fatalf("v0.1 preference not carried to the rebuilt access ID: %q", prefer)
+	if prefer := s.Store.Load().Config().Policies[0].Prefer["shared"]; prefer != "shared-a" {
+		t.Fatalf("v0.1 preference did not retain its canonical access ID: %q", prefer)
 	}
 }
 
