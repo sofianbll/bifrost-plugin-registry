@@ -25,9 +25,29 @@ REGISTRY_SOURCE_COMMIT=${REGISTRY_SOURCE_COMMIT:-$(git -C "$ROOT" rev-parse HEAD
 # SOURCE_DIR: the Bifrost checkout at the same commit (entrypoint, license, notices).
 PAIR=${PAIR_DIR:?set PAIR_DIR to a qualified gateway/plugin pair}
 SOURCE=${SOURCE_DIR:?set SOURCE_DIR to the Bifrost checkout of that pair}
+for path in transports/docker-entrypoint.sh LICENSE THIRD_PARTY_NOTICES.md; do
+  [[ -f $SOURCE/$path && ! -L $SOURCE/$path ]] || fail "missing or linked input: $SOURCE/$path"
+done
+python3 - "$SOURCE" "$BIFROST_COMMIT" <<'PY'
+import pathlib, subprocess, sys
+source, commit = pathlib.Path(sys.argv[1]), sys.argv[2]
+def git(*args):
+    return subprocess.run(["git", "-C", str(source), *args], capture_output=True)
+if git("cat-file", "-e", f"{commit}^{{commit}}").returncode:
+    sys.exit(f"pinned upstream commit unavailable in SOURCE_DIR: {commit}")
+head = git("rev-parse", "HEAD")
+if head.returncode or head.stdout.decode().strip() != commit:
+    sys.exit(f"SOURCE_DIR is not at pinned upstream commit: {commit}")
+for path in ("transports/docker-entrypoint.sh", "LICENSE", "THIRD_PARTY_NOTICES.md"):
+    blob = git("show", f"{commit}:{path}")
+    if blob.returncode:
+        sys.exit(f"pinned upstream blob unavailable: {path}")
+    if (source / path).read_bytes() != blob.stdout:
+        sys.exit(f"upstream input differs from pinned commit: {path}")
+PY
 for file in "$PAIR/bifrost-http" "$PAIR/bifrost-registry.so" "$PAIR/SHA256SUMS" "$PAIR/build-environment.txt" \
   "$PAIR/gateway-build-info.txt" "$PAIR/plugin-build-info.txt" "$PAIR/source-verification.json" "$PAIR/manifest.json" \
-  "$SOURCE/transports/docker-entrypoint.sh" "$SOURCE/LICENSE" "$SOURCE/THIRD_PARTY_NOTICES.md" "$ROOT/LICENSE"; do
+  "$ROOT/LICENSE"; do
   [[ -f $file && ! -L $file ]] || fail "missing or linked input: $file"
 done
 (cd "$PAIR" && sha256sum -c SHA256SUMS >/dev/null) || fail "verified pair checksum failed"
