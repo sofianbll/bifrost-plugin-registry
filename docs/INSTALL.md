@@ -4,6 +4,8 @@ English · [Français](fr/INSTALL.md)
 
 Registry is installed as **two separate artifacts**: a Bifrost gateway image compiled with dynamic loading (it contains no plugin), and the Registry plugin, a `.so` file with its interface embedded. Both must come from the same build: same architecture, Go toolchain, dependency versions and libc. Starting the image does not install the plugin. Use a staging instance before migrating an existing deployment.
 
+**Source candidate, not a release:** `bifrost.pin` now targets unmodified Bifrost 2.3.0 (`transports/v2.3.0`, commit `9237ec06672406e437b3cb33fc793ffd0403b3ae`), with Go 1.27.1 and Alpine 3.23 unchanged. Compatibility is not established until the exact candidate pair passes native AMD64/ARM64 qualification. The published v0.3.0 files and examples below remain for Bifrost 2.2.6; do not install those plugins on a 2.3 gateway.
+
 ## Which files for which host
 
 Pick the row for your host.
@@ -123,9 +125,20 @@ Open **http://127.0.0.1:8099/model-registry** and enter the Registry admin token
 
 Verify the plugin is `active` in `GET /api/plugins` and present in `GET /api/plugins/loaded`. Publish a small test catalog and read back `/v1/models` with a dedicated virtual key. Existing native keys remain unmanaged until explicitly adopted; adoption cannot expand their native permissions. From v0.3.0, `GET http://127.0.0.1:8099/api/status` with the Registry admin token as a Bearer token returns the installed release as `version`, and `bifrost_connected: true` once Registry reaches Bifrost.
 
+## Recover activation after disabling
+
+Hot reactivation of a loaded Go `.so` is unsupported (`HTTP 500`, `plugin already loaded`); the Registry panel stays closed after the failed enable.
+
+- **Published v0.3.0 / Bifrost 2.2.6:** the failed enable leaves the saved row `enabled:true`. Restart the gateway to load it again.
+- **Bifrost 2.3.0 source candidate:** the failed enable restores the previous row, `enabled:false`. Restart alone leaves the plugin disabled and the panel closed. Keep the same plugin URL and settings: **disable → restart the gateway → enable** through Bifrost's native plugin settings (or `PUT /api/plugins/bifrost-registry`). Do not repeatedly retry enable before restarting.
+
+After recovery, verify `enabled:true`, status `active`, the saved URL in `GET /api/plugins`, membership in `GET /api/plugins/loaded`, the panel, saved models/groups/key policies and the dedicated key's `/v1/models` readback. Recovery is not an upgrade or a volume rollback; it must not expand native permissions. The 2.3 procedure is a qualification target, not a compatibility claim.
+
 ## Upgrade and rollback
 
-Stop the gateway and back up **all of `/app/data`** before an update. Save the new compatible `.so` URL and restart the gateway; Bifrost downloads the saved URL at startup. Disabling and re-enabling a Go plugin without restarting is not a supported update path (`plugin already loaded`). Verify loading, saved data and the test key again.
+Stop the gateway and back up **all of `/app/data`** before an update. For published v0.3.0 / Bifrost 2.2.6, save the new compatible `.so` URL and restart the gateway; Bifrost downloads the saved URL at startup. Disabling and re-enabling a Go plugin without restarting is not a supported update path (`plugin already loaded`). Verify loading, saved data and the test key again.
+
+For a separately built 2.3.0 candidate pair on disposable staging, disable the plugin, restart the gateway, then save the new compatible URL/settings and enable it. A failed hot update restores the previous row, including its URL: do not assume the new URL was saved. Read it back from `GET /api/plugins` and verify loading, data and the test key. Published v0.3.0 assets are not a 2.3 upgrade pair. Gateway upgrades may migrate Bifrost's database; activation recovery alone does not qualify such a migration or rollback.
 
 Registry data written before v0.3 has no per-key access selection. From v0.3.0, when a key's model is offered by several provider accesses, the plugin still loads but leaves that model out of the key's catalog: the gateway log shows `bifrost-registry: warning: policy <key>: model <alias> has N accesses and no access_selection`, and the panel marks the key **Access choice needed**. Open the key, uncheck the accesses it must not use in the model's Accesses list, and publish.
 

@@ -19,7 +19,9 @@ L'image officielle statique télécharge le `.so` puis refuse de le charger. Uti
 
 ## `plugin already loaded` en réactivant sans redémarrage
 
-La réactivation à chaud d'un plugin Go n'est pas prise en charge. Redémarrer le gateway ; le panneau, les données et la relecture sont restaurés.
+La réactivation à chaud d'un plugin Go n'est pas prise en charge. Avec v0.3.0 publiée / Bifrost 2.2.6, l'échec conserve `enabled:true` ; redémarrer le gateway, puis vérifier panneau, données et relecture.
+
+Avec le **candidat source Bifrost 2.3.0 (pas encore qualifié)**, l'échec restaure `enabled:false`. Le redémarrage seul le laisse désactivé : suivre **désactiver → redémarrer → activer**, sans changer les URL/réglages. Vérifier la ligne sauvegardée activée et active, le plugin chargé, le panneau ouvert, les modèles/groupes/politiques de clés conservés et la relecture `/v1/models` inchangée pour la clé témoin. Voir la [récupération d'activation](INSTALL.md#recuperer-l-activation-apres-desactivation). Une mise à jour d'URL échouée restaure aussi l'ancienne URL ; la récupération d'activation n'est ni une mise à jour ni une restauration du volume complet.
 
 ## Le plugin se télécharge mais échoue à s'activer
 

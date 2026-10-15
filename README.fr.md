@@ -73,6 +73,8 @@ Projet indépendant, pas un produit officiel Maxim/Bifrost.
 
 ## Exécution et qualification
 
+**Candidat source :** le `bifrost.pin` courant cible Bifrost 2.3.0 non modifié (`9237ec06672406e437b3cb33fc793ffd0403b3ae`) ; la compatibilité native AMD64/ARM64 reste à qualifier sur la paire exacte. Ce n'est pas une release publiée. La stable v0.3.0 et le démarrage rapide ci-dessus restent sur 2.2.6. Voir la [procédure de récupération d'activation du candidat](docs/fr/INSTALL.md#recuperer-l-activation-apres-desactivation).
+
 La release stable **v0.3.0**, publiée depuis le commit Registry `9b900e986978e6997881d63f211303686e5acfb1`, cible Bifrost 2.2.6 non modifié (`transports/v2.2.6`, commit `8b4fce4`), pour Linux AMD64 et ARM64 (musl), Go 1.27.1. Elle inclut les changements Registry depuis rc.8 : les anciens fichiers de registre ne bloquent plus le plugin, `/api/status` indique la version de release et l'état réel de la connexion à Bifrost, les jetons d'administration mal formés sont signalés clairement et les parcours de composition/revue des clés et accès ont été affinés. Bifrost 2.2.6 exige l'authentification du tableau de bord pour les appels de Registry à son API native ([Installation](docs/fr/INSTALL.md#identifiants-et-configuration-du-plugin)). La qualification native et les sondes d'image utilisent des fournisseurs synthétiques uniquement ; [STATUS](STATUS.md) donne les artefacts, empreintes et limites exactes.
 
 Les résultats ci-dessous ont été enregistrés sur la release plus ancienne **v0.3.0-rc.4** (ARM64, Bifrost 2.2.3, commit final `d588a9f` ; interface en anglais par défaut), dont rc.5 à rc.8 recompilent le code et que v0.3.0 fait évoluer.

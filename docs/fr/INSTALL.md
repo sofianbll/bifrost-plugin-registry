@@ -4,6 +4,8 @@
 
 Registry s'installe en **deux artefacts séparés** : une image de gateway Bifrost compilée avec chargement dynamique (elle ne contient aucun plugin) et le plugin Registry, un fichier `.so` qui embarque son interface. Les deux doivent provenir de la même compilation : même architecture, chaîne Go, versions de dépendances et libc. Démarrer l'image n'installe pas le plugin. Utilisez une instance de staging avant de migrer un déploiement existant.
 
+**Candidat source, pas une release :** `bifrost.pin` cible désormais Bifrost 2.3.0 non modifié (`transports/v2.3.0`, commit `9237ec06672406e437b3cb33fc793ffd0403b3ae`), avec Go 1.27.1 et Alpine 3.23 inchangés. La compatibilité reste à établir par qualification native AMD64/ARM64 de la paire candidate exacte. Les fichiers publiés v0.3.0 et les exemples ci-dessous restent destinés à Bifrost 2.2.6 ; n'installez pas ces plugins sur un gateway 2.3.
+
 ## Quels fichiers pour quel hôte
 
 Choisissez la ligne de votre hôte.
@@ -123,9 +125,20 @@ Ouvrez **http://127.0.0.1:8099/model-registry** et saisissez le jeton d'administ
 
 Vérifiez que le plugin est `active` dans `GET /api/plugins` et présent dans `GET /api/plugins/loaded`. Publiez un petit catalogue de test et relisez `/v1/models` avec une clé virtuelle dédiée. Les clés natives préexistantes restent non gérées jusqu'à adoption explicite ; l'adoption n'élargit pas leurs droits natifs. À partir de v0.3.0, `GET http://127.0.0.1:8099/api/status`, avec le jeton d'administration Registry en jeton Bearer, renvoie la release installée dans `version`, et `bifrost_connected: true` dès que Registry joint Bifrost.
 
+## Récupérer l'activation après désactivation
+
+La réactivation à chaud d'un `.so` Go déjà chargé n'est pas prise en charge (`HTTP 500`, `plugin already loaded`) ; le panneau Registry reste fermé après l'échec.
+
+- **v0.3.0 publiée / Bifrost 2.2.6 :** l'échec conserve la ligne sauvegardée `enabled:true`. Redémarrez le gateway pour recharger le plugin.
+- **Candidat source Bifrost 2.3.0 :** l'échec restaure la ligne précédente, `enabled:false`. Le redémarrage seul laisse le plugin désactivé et le panneau fermé. Gardez les mêmes URL et réglages : **désactiver → redémarrer le gateway → activer** depuis les réglages plugin natifs Bifrost (ou `PUT /api/plugins/bifrost-registry`). Ne répétez pas l'activation avant le redémarrage.
+
+Après récupération, vérifiez `enabled:true`, le statut `active` et l'URL sauvegardée dans `GET /api/plugins`, la présence dans `GET /api/plugins/loaded`, le panneau, les modèles/groupes/politiques de clés conservés et la relecture `/v1/models` de la clé témoin. La récupération n'est ni une mise à jour ni une restauration de volume ; elle ne doit pas élargir les permissions natives. La procédure 2.3 est une cible de qualification, pas une compatibilité acquise.
+
 ## Mettre à jour et revenir en arrière
 
-Arrêtez le gateway et sauvegardez **tout** `/app/data` avant une mise à jour. Enregistrez l'URL du nouveau `.so` compatible et redémarrez le gateway : Bifrost retélécharge l'URL sauvegardée au démarrage. Désactiver puis réactiver un plugin Go sans redémarrage n'est pas un chemin de mise à jour pris en charge (`plugin already loaded`). Vérifiez de nouveau le chargement, les données conservées et la clé témoin.
+Arrêtez le gateway et sauvegardez **tout** `/app/data` avant une mise à jour. Pour v0.3.0 publiée / Bifrost 2.2.6, enregistrez l'URL du nouveau `.so` compatible et redémarrez le gateway : Bifrost retélécharge l'URL sauvegardée au démarrage. Désactiver puis réactiver un plugin Go sans redémarrage n'est pas un chemin de mise à jour pris en charge (`plugin already loaded`). Vérifiez de nouveau le chargement, les données conservées et la clé témoin.
+
+Pour une paire candidate 2.3.0 compilée séparément sur staging jetable, désactivez le plugin, redémarrez le gateway, puis enregistrez les nouveaux URL/réglages compatibles et activez-le. Une mise à jour à chaud échouée restaure la ligne précédente, URL comprise : ne supposez pas la nouvelle URL enregistrée. Relisez-la dans `GET /api/plugins` et vérifiez chargement, données et clé témoin. Les assets publiés v0.3.0 ne constituent pas une paire de mise à jour 2.3. Une mise à niveau du gateway peut migrer la base Bifrost ; la récupération d'activation ne qualifie pas à elle seule cette migration ou son retour arrière.
 
 Les données Registry écrites avant v0.3 n'ont pas de sélection d'accès par clé. À partir de v0.3.0, quand un modèle d'une clé est proposé par plusieurs accès fournisseurs, le plugin se charge mais retire ce modèle du catalogue de la clé : le journal du gateway affiche `bifrost-registry: warning: policy <clé>: model <alias> has N accesses and no access_selection`, et le panneau marque la clé **Choix d'accès requis**. Ouvrez la clé, décochez dans la liste Accès du modèle ceux qu'elle ne doit pas utiliser, puis publiez.
 
