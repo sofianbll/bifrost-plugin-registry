@@ -104,9 +104,6 @@ func requestTypesForEndpoints(endpoints []string) []string {
 // pricing overrides. It runs under the live mutex held by putWorkspace.
 func (s *Server) applyPricingOverrides(ctx context.Context, snap *registry.Snapshot) {
 	cfg := snap.Config()
-	if cfg.Catalog == nil {
-		return
-	}
 
 	plan := snap.Plan()
 	keyPlansByProvider := map[string][]registry.KeyPlan{}
@@ -170,16 +167,42 @@ func (s *Server) applyPricingOverrides(ctx context.Context, snap *registry.Snaps
 	for _, po := range expected {
 		keysToSync[po.KeyID] = po.Provider
 	}
+	// Native names retain ownership across removed accesses and Registry restarts.
+	previous, discoveryErr := s.listPricingOverrides(ctx, "")
+	if discoveryErr != nil {
+		msg := "Failed to discover managed pricing overrides: " + discoveryErr.Error()
+		for name := range s.live.proofs {
+			if provider, keyID, model, ok := parsePricingOverrideName(name); ok {
+				s.setPricingProof(provider, keyID, model, msg)
+			}
+		}
+		s.setPricingProof("", "", "", msg)
+	} else {
+		delete(s.live.proofs, pricingOverrideName("", "", ""))
+		for _, o := range previous {
+			if ownedPricingOverride(o) {
+				provider, keyID, _, _ := parsePricingOverrideName(o.Name)
+				keysToSync[keyID] = provider
+			}
+		}
+	}
 
 	for keyID, provider := range keysToSync {
 		existing, err := s.listPricingOverrides(ctx, keyID)
 		if err != nil {
-			s.setPricingProof(provider, keyID, "", "Failed to list pricing overrides: "+err.Error())
+			msg := "Failed to list pricing overrides: " + err.Error()
+			for name := range s.live.proofs {
+				if priorProvider, priorKey, model, ok := parsePricingOverrideName(name); ok && priorKey == keyID {
+					s.setPricingProof(priorProvider, keyID, model, msg)
+				}
+			}
+			s.setPricingProof(provider, keyID, "", msg)
 			continue
 		}
+		delete(s.live.proofs, pricingOverrideName(provider, keyID, ""))
 		existingByName := map[string]nativePricingOverride{}
 		for _, o := range existing {
-			if strings.HasPrefix(o.Name, "registry/") {
+			if ownedPricingOverride(o) && o.KeyID == keyID {
 				existingByName[o.Name] = o
 			}
 		}
@@ -236,10 +259,7 @@ func (s *Server) applyPricingOverrides(ctx context.Context, snap *registry.Snaps
 			if _, ok := expected[name]; ok {
 				continue
 			}
-			staleProvider, staleKey, staleModel, parsed := parsePricingOverrideName(name)
-			if !parsed {
-				staleProvider, staleKey, staleModel = o.Provider, o.KeyID, o.Pattern
-			}
+			staleProvider, staleKey, staleModel, _ := parsePricingOverrideName(name)
 			if err := s.live.client.call(ctx, "DELETE", "/api/governance/pricing-overrides/"+url.PathEscape(o.ID), nil, nil); err != nil {
 				s.setPricingProof(staleProvider, staleKey, staleModel, "Failed to delete stale pricing override: "+err.Error())
 			} else {
@@ -247,6 +267,13 @@ func (s *Server) applyPricingOverrides(ctx context.Context, snap *registry.Snaps
 			}
 		}
 	}
+}
+
+func ownedPricingOverride(o nativePricingOverride) bool {
+	provider, keyID, model, ok := parsePricingOverrideName(o.Name)
+	return ok && provider != "" && keyID != "" && model != "" && o.ID != "" &&
+		o.ScopeKind == "provider_key" && o.KeyID == keyID &&
+		o.MatchType == "exact" && o.Pattern == model && (o.Provider == "" || o.Provider == provider)
 }
 
 func parsePricingOverrideName(name string) (provider, keyID, model string, ok bool) {
@@ -339,7 +366,10 @@ func (s *Server) listPricingOverrides(ctx context.Context, keyID string) ([]nati
 	var resp struct {
 		PricingOverrides []nativePricingOverride `json:"pricing_overrides"`
 	}
-	query := url.Values{"provider_key_id": {keyID}}
+	query := url.Values{}
+	if keyID != "" {
+		query.Set("provider_key_id", keyID)
+	}
 	if err := s.live.client.callQuery(ctx, "/api/governance/pricing-overrides", query, &resp); err != nil {
 		return nil, err
 	}
