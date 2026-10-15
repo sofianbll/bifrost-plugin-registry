@@ -12,7 +12,11 @@ export function useViewPreferences() {
   });
   const [listOverrides, setListOverrides] = useState<Record<string, Partial<ViewOptions>>>({});
   useEffect(() => {
-    localStorage.setItem("registry-prototype-view", JSON.stringify(preferences));
+    try {
+      localStorage.setItem("registry-prototype-view", JSON.stringify(preferences));
+    } catch {
+      // Browser storage is optional; preferences still work in memory.
+    }
   }, [preferences]);
 
   const viewFor = (scope: string) => ({ ...preferences, ...listOverrides[scope] });
