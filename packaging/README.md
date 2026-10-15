@@ -9,7 +9,9 @@ PAIR_DIR=/path/to/pair SOURCE_DIR=/path/to/bifrost-checkout \
 docker build --platform linux/<arch> -t "local/bifrost-dynamic:${RELEASE_ID}" ./dist/new-release/image-context
 ```
 
-The Bifrost tag, commit and Go version come from [`bifrost.pin`](../bifrost.pin). The pair must have been qualified at `REGISTRY_SOURCE_COMMIT` (default: this checkout's `HEAD`).
+The Bifrost tag, commit and Go version come from [`bifrost.pin`](../bifrost.pin). The pair must have been qualified at `REGISTRY_SOURCE_COMMIT` (default: this checkout's `HEAD`). `SOURCE_DIR` must be a Git checkout at the pinned Bifrost commit with that commit's objects available locally. Before staging, the entrypoint, license and notices are compared byte-for-byte with the pinned Git blobs; changed or missing inputs are rejected independently of the pair's proof.
+
+`bash scripts/test-package-provenance.sh` tests this source guard with small local Git fixtures, without claiming binary qualification. The full `packaging/test-package-release.sh` regression still requires the exact qualified pair and installed locked UI dependencies.
 
 The command checks the pair's SHA-256 sums and Registry commit, the pinned Bifrost source and Go version, and Linux ARM64 or AMD64 musl metadata and ELF headers for the detected architecture. Run `npm --prefix ui ci` first so the exact locked dependency license files are available. The Docker context contains the unchanged gateway, Bifrost's official entrypoint, its Apache license and third-party notices. The plugin directory contains `bifrost-registry-<release-id>-linux-<arch>.so`, its SHA-256, the Registry MIT license, and a relocatable `THIRD_PARTY_NOTICES.md` with full available Bifrost UI, Geist font, and npm dependency license texts under `licenses/`. Its npm inventory covers the locked runtime dependency closure and Tailwind CSS; packages without a distributed license file are identified and linked to common MIT terms. `manifest.json` and `provenance/` tie the two outputs to the verified compilation. This command does not build or push an image, or upload the plugin.
 
