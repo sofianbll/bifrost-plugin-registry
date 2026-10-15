@@ -222,7 +222,7 @@ Similar appearance is not enough to justify merging responsibilities. Compare co
 | Filters and search | Repeated Input+Search and select/checkbox filters across main, laboratory and prototypes | Shared labeled search/filter primitives; domain predicates stay with callers |
 | Property/provenance rows | `FactValue`, prototype `Fact`, old prototype `Value`, `CatalogMetadata` | Consistent property/value/status/source presentation; retain different editing contracts |
 | Key copying | `VirtualKeySecret`, one-time secret dialog in main `App`, inert token dialog in `KeyLibrary` | Shared copy feedback; keep real secret retrieval and demo token generation separate |
-| Empty/loading/error feedback | Main `Empty`, inline notices, alerts, text placeholders, Skeleton, Sonner | Shared presentation patterns with relevant action and accessible announcement |
+| Empty/loading/error feedback | Inline notices, alerts, text placeholders, Skeleton, Sonner | Shared presentation patterns with relevant action and accessible announcement |
 | Tabs and navigation | Main route shell, prototype `NavigationLink`, detail tabs, main gateway/harness buttons | Consistent navigation semantics and active state; do not treat every tab as a form toggle |
 | Forms and validation | Inline labels/layouts and newly added `Field` family | Review one common field contract, validation, help, error and required states |
 | Dialogs and side panels | Radix Dialog/Sheet/Popover with many inline contents | Keep one primitive implementation and shared headers/actions; preserve each task's effects |

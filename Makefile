@@ -14,6 +14,7 @@ ui-check:
 
 script-check:
 	python3 scripts/test_import_bifrost_datasheets.py
+	python3 scripts/test_release_metadata.py
 	for f in scripts/*.sh packaging/*.sh; do bash -n "$$f" || exit 1; done
 	bash scripts/test-github-setup.sh
 	bash scripts/test-verify.sh

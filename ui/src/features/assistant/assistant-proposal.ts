@@ -123,8 +123,10 @@ export function applySuggestion(model: Model, rows: SuggestionRow[], selected: R
       next.accesses = model.accesses.map(access => ({ ...access, referenceId: row.value as string }));
     else if (row.key === "input_modalities") next.inputModalities = [...(row.value as string[])];
     else if (row.key === "output_modalities") next.outputModalities = [...(row.value as string[])];
-    else if (row.key === "name" || row.key === "creator" || row.key === "family" || row.key === "context")
-      next[row.key] = row.value as string;
+    else if (row.key === "creator") {
+      next.creator = row.value as string;
+      next.creatorSource = "manual";
+    } else if (row.key === "name" || row.key === "family" || row.key === "context") next[row.key] = row.value as string;
   }
   return next;
 }
