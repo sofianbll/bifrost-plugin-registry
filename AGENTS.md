@@ -24,3 +24,4 @@ Delegate bounded implementation and focused audits to subagents, each with a nam
 - Reviewers apply the [coding standards](CODING_STANDARDS.md).
 - UI work follows [the Impeccable flow](docs/agents/ui-work.md); the product and the visual system are described in [PRODUCT.md](PRODUCT.md) and [DESIGN.md](DESIGN.md).
 - The test copy of the gateway and how to put a plugin build on it: [docs/agents/test-copy.md](docs/agents/test-copy.md). Never touch the production gateway.
+- The project is in maintenance; what runs on its own and what the weekly agent pass may do alone: [docs/agents/maintenance.md](docs/agents/maintenance.md).
