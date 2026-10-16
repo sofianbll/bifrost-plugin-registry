@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { LanguageContext } from "../../lib/locale";
 import { cardFormat, defaultViewOptions, gridColumns } from "../../components/registry/ViewOptions";
-import { fixture } from "../../dev/fixtures/registry";
+import { fixture } from "../../test/fixtures/registry";
 import type { Key } from "../../domain/registry";
 import { KeyLibrary } from "./KeyLibrary";
 

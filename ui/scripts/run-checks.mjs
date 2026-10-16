@@ -5,12 +5,10 @@ import { readdirSync } from "node:fs";
 import { join } from "node:path";
 
 const root = process.argv[2] ?? "src";
-// shortcut: prototypes run via their own scripts (check:key-composer) and dev/ tests never ran in `check`; edit this list to bring them in.
-const skipped = new Set(["experiments", "dev"]);
 
 const files = readdirSync(root, { recursive: true })
   .map(path => path.split("\\").join("/"))
-  .filter(path => /\.test\.tsx?$/.test(path) && !skipped.has(path.split("/")[0]))
+  .filter(path => /\.test\.tsx?$/.test(path))
   .sort();
 
 if (files.length === 0) {

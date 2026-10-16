@@ -1,4 +1,4 @@
-import { fixture } from "../../dev/fixtures/registry";
+import { fixture } from "../../test/fixtures/registry";
 import { filterKeys, keyShelves, nearDuplicates } from "./key-library-state";
 
 const { groups, models } = fixture;
