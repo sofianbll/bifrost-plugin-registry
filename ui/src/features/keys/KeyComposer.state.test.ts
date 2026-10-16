@@ -1,4 +1,4 @@
-import { fixture } from "../../dev/fixtures/registry";
+import { fixture } from "../../test/fixtures/registry";
 import {
   delta,
   emptyModelFilters,

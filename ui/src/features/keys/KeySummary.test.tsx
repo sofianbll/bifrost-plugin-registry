@@ -1,5 +1,5 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { fixture } from "../../dev/fixtures/registry";
+import { fixture } from "../../test/fixtures/registry";
 import type { Key, Model } from "../../domain/registry";
 import { LanguageContext } from "../../lib/locale";
 import {

@@ -1,4 +1,4 @@
-import { fixture } from "../../dev/fixtures/registry";
+import { fixture } from "../../test/fixtures/registry";
 import type { Key, Readiness, ReadinessBlocker } from "../../domain/registry";
 import type { Copy } from "../../lib/locale";
 import {

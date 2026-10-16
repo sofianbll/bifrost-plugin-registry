@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { defaultViewOptions } from "../../components/registry/ViewOptions";
-import { fixture } from "../../dev/fixtures/registry";
+import { fixture } from "../../test/fixtures/registry";
 import type { Group, Model } from "../../domain/registry";
 import { LanguageContext } from "../../lib/locale";
 import { GroupEditor } from "./GroupEditor";

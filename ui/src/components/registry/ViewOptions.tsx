@@ -255,7 +255,7 @@ export function ViewControls({
     );
   }
 
-  // Legacy compact controls for non-catalog surfaces (laboratory, harness, etc.)
+  // Legacy compact controls for non-catalog surfaces.
   const format = displayFormat(value);
   const chooseFormat = (next: string) => {
     if (next === "table") onChange({ ...value, layout: "table" });

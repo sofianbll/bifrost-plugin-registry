@@ -2,6 +2,8 @@
 
 Ce contrat regroupe les décisions validées pour finaliser l’interface complète. Il s’applique avant chaque modification visuelle. Les choix déjà validés restent acquis et ne sont pas à redemander. Dans ce mandat, l’agent peut finaliser les détails cohérents qui restent ouverts; toute modification d’une décision validée exige l’accord de Sofian.
 
+**16 octobre 2026 — interface acceptée, retrait #19.** Le [site documentaire](https://sofianbll.github.io/bifrost-plugin-registry/) et les [captures E2E Linux](../images/README.md) remplacent la galerie comme référence visuelle. Les prototypes, le Laboratory, la galerie, la page design-system et les pages de revue locales sont supprimés, avec leurs données de démonstration. Pour examiner les composants en contexte, utiliser l’interface de production avec la [fixture synthétique](../../tests/ui-fixture/README.md). Les décisions acceptées ci-dessous restent acquises ; les anciens chemins et commandes dans les relevés historiques ne sont plus des instructions exécutables. Cette acceptation ne qualifie ni inférence réelle ni déploiement.
+
 **Où chercher.** Cette page fait 70 Ko : cherchez le titre avec `grep -n '^## ' docs/design/component-library.md` et lisez seulement la section qui répond, au lieu de la lire en entier.
 
 | Question | Section |
@@ -19,18 +21,18 @@ Ce contrat regroupe les décisions validées pour finaliser l’interface compl�
 
 ## Source, composition et portée
 
-La version intégrée se trouve maintenant dans le checkout principal `/Users/sofian/Developer/50-Experiments/bifrost-plugin-registry`, sous `ui/src/app`, `ui/src/features` et `ui/src/components/registry`. Elle reprend le dernier prototype du worktree `review-catalog-pr15`; ce dernier est conservé comme source de la consolidation. Ne pas repartir des anciens fichiers plats ni des snapshots historiques.
+La version intégrée se trouve sous `ui/src/app`, `ui/src/features` et `ui/src/components/registry`. Elle est la source canonique ; ne pas repartir des anciens prototypes ni des snapshots historiques.
 
-- Partir du dernier prototype réel examiné par Sofian et de ses composants réutilisables. Le rendu `ReferenceCatalogBrowser` montré dans le présent chat a été rejeté et ne constitue pas une référence valide.
+- Partir de l’interface intégrée acceptée et de ses composants réutilisables, avec le site documentaire et les captures E2E comme référence visuelle.
 - Composer avec la bibliothèque et les versions déjà validées selon Atomic Design. Réutiliser les composants existants; ne pas créer de doublons ni réécrire les fondations validées.
-- Finaliser les parcours Catalogue, détail du modèle, groupes, clés, Gateway, documentation des données, import/export et réglages. Le laboratoire est exclu de la navigation et des parcours finaux; garder son code historique.
+- Les parcours Catalogue, détail du modèle, groupes, clés, Gateway, documentation des données, import/export et réglages sont conservés. Le laboratoire est exclu de la navigation et son code de démonstration est retiré après acceptation.
 - Les écrans qui publient doivent appeler les vrais services et montrer séparément tout état simulé. Ne jamais exposer de secret ni modifier la production.
 
 ## Cartes de catalogue
 
 Décision précisée par Sofian le 27 septembre : **Grille/Tableau** choisit la vue ; dans Grille, **Rectangle/Carré** choisit la forme ; **Petit/Moyen/Grand** règle indépendamment la densité. Sur écran large, proposer respectivement **4/3/2 colonnes**, identiques pour les deux formes et adaptées à la largeur disponible. Ces tailles ne changent pas la sélection métier ni les données.
 
-**Structure validée, rendu à ajuster :** Sofian a confirmé « Structure correcte, ajuster encore le rendu des cartes ». Présenter les six combinaisons dans `ui/display-options-review.html` avant de migrer les contrôles actuels. Ne pas propager cette proposition au catalogue, aux groupes et aux clés sans le retour demandé par Sofian. Les références de structure sont [Geist Grid](https://vercel.com/geist/grid) et [Carbon Content Switcher](https://carbondesignsystem.com/components/content-switcher/usage/), adaptées à nos composants.
+**Structure et interface intégrée acceptées.** Examiner les six combinaisons dans l’application avec la fixture synthétique ; la page locale de revue a été retirée après acceptation. Les références de structure sont [Geist Grid](https://vercel.com/geist/grid) et [Carbon Content Switcher](https://carbondesignsystem.com/components/content-switcher/usage/), adaptées à nos composants.
 
 - Rectangle : cartes plus larges que hautes, hauteur et espacements cohérents même avec du contenu court.
 - Carré : rapport réellement 1:1, sans défilement interne. Résumé compact et détails accessibles par les contrôles partagés.
@@ -131,7 +133,7 @@ Ces ajouts complètent la section précédente (badges d’attention, parcourir 
 
 ## Historique
 
-Les prototypes, rendus rejetés et notes datées restent des éléments d’historique ou de comparaison. Ils ne remplacent pas ce contrat actuel.
+Les rendus rejetés et notes datées restent des éléments d’historique. Les sources des prototypes et de la galerie retirées restent consultables dans Git, pas comme pages locales. Ils ne remplacent pas ce contrat actuel.
 
 Les inventaires, la galerie de comparaison et les journaux de vérification de cette page sont déplacés tels quels dans [component-library-history.md](component-library-history.md).
 
@@ -140,6 +142,8 @@ Les inventaires, la galerie de comparaison et les journaux de vérification de c
 # Inventaire du 27 septembre 2026 et décisions acceptées de septembre
 
 La suite conserve le relevé et les observations de cette date. Elle contient aussi des décisions acceptées que le contrat actuel ci-dessus ne reprend pas (fondation shadcn/Radix, capacités et modalités, opérations par accès, corrections de rendu du 28 septembre) : elles restent en vigueur tant que le contrat actuel ne dit pas autre chose. Les hypothèses de validation et les inventaires ne remplacent pas ce contrat.
+
+**Relevé historique, non exécutable depuis le retrait #19 :** les instructions de galerie et de prototype, inventaires de consommateurs et choix encore « pending » décrivent septembre 2026, pas l’état accepté du 16 octobre. La référence visuelle actuelle est le site documentaire et les captures E2E indiqués en tête de ce contrat.
 
 Status: the local gallery aggregates 124 previews across 19 families, including current implementations, historical versions and visual references. The separate validated design-system page contains the two accepted families: the latest card structure and icon-only capability summaries. Sofian subsequently approved the Vercel comparison panel presentation with the Braces (`{}`) icon for Structured Output. The approved presentation now backs the shared panel using Registry facts; missing values remain unknown. The previously rejected panel is historical. Other component choices and complete page composition remain pending.
 
