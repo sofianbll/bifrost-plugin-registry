@@ -2,6 +2,21 @@ import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import test from 'node:test'
 
+test('legacy root fragments retain unique static links to their equivalent guide sections', async () => {
+  const legacy = JSON.parse(await readFile(new URL('./legacy-anchors.json', import.meta.url), 'utf8'))
+  for (const locale of ['', 'fr/']) {
+    const html = await readFile(new URL(`../.vitepress/dist/${locale}index.html`, import.meta.url), 'utf8')
+    const guides = await readFile(new URL(`../.vitepress/dist/${locale}guides.html`, import.meta.url), 'utf8')
+    const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1])
+    assert.equal(ids.length, new Set(ids).size, `${locale}: unique homepage IDs`)
+    for (const anchor of legacy[`${locale}guides.html`]) {
+      assert.ok(ids.includes(anchor), `${locale || '/'}#${anchor}: legacy root target exists without JavaScript`)
+      assert.ok(html.includes(`href="/bifrost-plugin-registry/${locale}guides#${anchor}"`), `${anchor}: static link keeps base, locale and section`)
+      assert.ok(guides.includes(`id="${anchor}"`), `${anchor}: destination exists`)
+    }
+  }
+})
+
 test('both generated homepages present the accepted product-first copy without JavaScript', async () => {
   for (const [locale, title] of [
     ['', 'Organize your models and choose which ones each Bifrost key lists.'],

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, onUnmounted } from 'vue'
 import { useData, withBase } from 'vitepress'
 import { copy } from './copy'
 import catalogueEn from '../../images/en/catalogue-grid.png'
@@ -16,10 +16,33 @@ const shots = computed(() => [
   { ...text.value.key, src: french.value ? keyFr : keyEn },
 ])
 const links = computed(() => [page('INSTALL'), page('USER-GUIDE'), page('SECURITY'), 'https://github.com/sofianbll/bifrost-plugin-registry/blob/main/STATUS.md'])
+const legacySections = computed(() => french.value ? [
+  ['documentation-de-bifrost-registry', 'Documentation de Bifrost Registry'],
+  ['utiliser-registry', 'Utiliser Registry'],
+  ['developper-et-valider', 'Développer et valider'],
+  ['conception-et-historique', 'Conception et historique'],
+] : [
+  ['bifrost-registry-documentation', 'Bifrost Registry documentation'],
+  ['use-registry', 'Use Registry'],
+  ['develop-and-validate', 'Develop and validate'],
+  ['design-and-history', 'Design and history'],
+])
+const followLegacySection = () => {
+  const hash = window.location.hash
+  if (legacySections.value.some(([id]) => `#${id}` === hash)) {
+    window.location.replace(`${page('guides')}${hash}`)
+  }
+}
+onMounted(() => {
+  window.addEventListener('hashchange', followLegacySection)
+  followLegacySection()
+})
+onUnmounted(() => window.removeEventListener('hashchange', followLegacySection))
 </script>
 
 <template>
   <div class="registry-home">
+    <a v-for="[id, label] in legacySections" :id="id" :key="id" class="home-legacy-anchor" :href="`${page('guides')}#${id}`">{{ label }} →</a>
     <header class="home-hero">
       <h1>{{ text.title }}</h1>
       <p class="home-intro">{{ text.intro }}</p>
