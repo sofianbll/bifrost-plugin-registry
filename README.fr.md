@@ -1,6 +1,9 @@
 <div align="center">
 
-<img src="ui/public/bifrost-logo.webp" alt="Bifrost Registry" width="200">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="ui/public/branding/registry/registry-logo-dark.svg">
+  <img src="ui/public/branding/registry/registry-logo.svg" alt="Bifrost Registry" width="200">
+</picture>
 
 # Bifrost Registry
 

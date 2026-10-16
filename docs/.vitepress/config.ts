@@ -5,11 +5,19 @@ const repo = 'https://github.com/sofianbll/bifrost-plugin-registry'
 export default defineConfig({
   title: 'Bifrost Registry',
   base: '/bifrost-plugin-registry/',
+  head: [['link', { rel: 'icon', type: 'image/svg+xml', href: '/bifrost-plugin-registry/branding/registry/registry-icon.svg' }]],
   // Internal records stay on GitHub; only the user and operator guides are published.
   srcExclude: ['adr/**', 'design/**', 'reviews/**', 'archive/**', 'agents/**', 'research/**', 'images/README.md', 'SOURCES.md'],
   // README.md is the docs index on GitHub and the home page here.
   rewrites: { 'README.md': 'index.md', 'fr/README.md': 'fr/index.md' },
   themeConfig: {
+    // Crop transparent SVG margins without redrawing the existing identity.
+    logo: {
+      light: { src: '/branding/registry/registry-logo.svg', style: 'width: 145px; height: 32px; object-fit: cover' },
+      dark: { src: '/branding/registry/registry-logo-dark.svg', style: 'width: 145px; height: 32px; object-fit: cover' },
+      alt: 'Bifrost Registry',
+    },
+    siteTitle: false,
     socialLinks: [{ icon: 'github', link: repo }],
     search: {
       provider: 'local',
