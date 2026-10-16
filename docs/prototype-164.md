@@ -18,3 +18,7 @@ Code jetable sur `prototype/164-showcase`, non publié, non déployé : ne pas f
 Juger la compréhension de la promesse, la distinction catalogue/sélection/vérification, la visibilité des limites, la lecture mobile et le chemin vers l’installation. Comparer EN/FR, clair/sombre, clavier, recherche, langue et images entières. Les captures existantes sont des fixtures synthétiques historiques, pas des résultats réels ni une connexion directe.
 
 Les guides restent dans [l’index anglais](README.md) et [l’index français](fr/README.md), servis sous `guides` et `fr/guides`. Voir la [grille de captures](images/README.md). Les polices Geist existantes sont importées depuis `ui/public/static/fonts`, sans copie ni dépendance. Cette note est exclue du site par `srcExclude`.
+
+## Verdict — 16 octobre 2026
+
+Sofian a choisi **B — Voir le produit** comme base : introduction compacte, grande capture du catalogue avant les fonctions. A et C restent conservées avec le sélecteur comme sources de comparaison, pas comme fonctionnalités à livrer. La composition B alimente l'étape `/to-spec` ; ce choix ne publie pas le prototype et n'autorise ni fusion ni déploiement. Le build de cette branche reste volontairement déterministe sur A pour conserver le dispositif de comparaison initial.
