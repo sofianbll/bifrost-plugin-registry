@@ -2,16 +2,17 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useData } from 'vitepress'
 import { copy, type Variant } from './copy'
+import { editorialCopy } from './editorialCopy'
 import VariantA from './VariantA.vue'
 import VariantB from './VariantB.vue'
 import VariantC from './VariantC.vue'
 
 // Throwaway #164: three hierarchies on the existing EN/FR home routes.
 const { lang } = useData()
-const text = computed(() => copy[lang.value === 'fr' ? 'fr' : 'en'])
 const prefix = computed(() => lang.value === 'fr' ? '/fr' : '')
 const variant = ref<Variant>('A')
 const dev = import.meta.env.DEV
+const text = computed(() => (dev && variant.value === 'B' ? editorialCopy : copy)[lang.value === 'fr' ? 'fr' : 'en'])
 const variants: Variant[] = ['A', 'B', 'C']
 const components = { A: VariantA, B: VariantB, C: VariantC }
 

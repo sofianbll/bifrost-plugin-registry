@@ -89,8 +89,8 @@ onUnmounted(() => {
     <slot v-if="view === 'A'" />
     <template v-else>
       <p class="doc-pilot-notice">
-        {{ fr ? 'Proposition de documentation, ne pas exécuter sur un gateway réel.' : 'Documentation proposal; do not execute on a real gateway.' }}
-        <a :href="original">{{ fr ? 'Lire le texte original' : 'Read the original' }}</a>
+        {{ fr ? 'Prototype non publié. Ne l’utilisez pas pour intervenir sur un gateway réel.' : 'Unpublished prototype. Do not use it to make changes to a real gateway.' }}
+        <a :href="original">{{ fr ? 'Voir le texte d’origine' : 'View the original text' }}</a>
       </p>
       <h1>{{ data.title }}</h1>
       <p class="doc-pilot-goal">{{ data.goal }}</p>
@@ -109,7 +109,7 @@ onUnmounted(() => {
         <aside class="doc-pilot-prerequisites" :aria-label="fr ? 'Avant de commencer' : 'Before you start'">
           <h2>{{ fr ? 'Avant de commencer' : 'Before you start' }}</h2>
           <p v-for="item in data.before" :key="item" v-html="item" />
-          <p class="doc-pilot-caution" v-html="data.caution" />
+          <p v-if="data.caution" class="doc-pilot-caution" v-html="data.caution" />
           <template v-if="view === 'C'">
             <h3>{{ fr ? 'Détails et autres cas' : 'Details and other cases' }}</h3>
             <ul><li v-for="link in data.links" :key="link.href"><a :href="link.href">{{ link.title }}</a></li></ul>
@@ -126,12 +126,12 @@ onUnmounted(() => {
               </table>
             </div>
             <pre v-if="step.command"><code>{{ step.command }}</code></pre>
-            <p class="doc-pilot-result"><strong>{{ fr ? 'Attendu : ' : 'Expected: ' }}</strong>{{ step.result }}</p>
+            <p v-if="step.result" class="doc-pilot-result"><strong>{{ fr ? 'Vérifiez : ' : 'Check: ' }}</strong>{{ step.result }}</p>
+            <figure v-if="page === 'key' && step.id === 'selection'">
+              <img :src="`${site.base}images/${fr ? 'fr' : 'en'}/key-composer.png`" :alt="fr ? 'Sélection des modèles d’une clé dans Registry' : 'Model selection for a key in Registry'" />
+              <figcaption>{{ data.caption }}</figcaption>
+            </figure>
           </section>
-          <figure v-if="page === 'key'">
-            <img :src="`${site.base}images/${fr ? 'fr' : 'en'}/key-composer.png`" :alt="fr ? 'Compositeur de clé virtuelle' : 'Virtual key composer'" />
-            <figcaption>{{ fr ? 'Repère : regardez les accès retenus et les exclusions de cette clé. Capture de fixture synthétique historique, pas un gateway connecté ni une preuve d’appel modèle.' : 'Look at the selected accesses and this key’s exclusions. Historical synthetic fixture screenshot, not a connected gateway or proof of a model call.' }}</figcaption>
-          </figure>
           <section v-if="view === 'B'" class="doc-pilot-details">
             <h2>{{ fr ? 'Détails et autres cas' : 'Details and other cases' }}</h2>
             <ul><li v-for="link in data.links" :key="link.href"><a :href="link.href">{{ link.title }}</a></li></ul>

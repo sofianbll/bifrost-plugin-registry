@@ -15,88 +15,312 @@ export function content(fr: boolean, base: string) {
   const evidence = 'https://github.com/sofianbll/bifrost-plugin-registry/blob/main/STATUS.md'
   return {
     index: {
-      title: t('What do you want to do?', 'Que voulez-vous faire ?'),
-      goal: t('Install Registry, choose models for one application, then find the operational details when you need them.', 'Installer Registry, choisir les modèles d’une application, puis retrouver les détails d’exploitation au bon moment.'),
+      title: t('Registry guides', 'Guides Registry'),
+      goal: t(
+        'Install Registry, choose models for an application, or find help with your gateway.',
+        'Installez Registry, choisissez les modèles d’une application ou trouvez de l’aide pour votre gateway.',
+      ),
       groups: [
-        { title: t('Start', 'Démarrer'), links: [
-          { ...link(path('INSTALL'), 'Install the compatible pair', 'Installer la paire compatible'), text: t('Choose the Linux files, prepare credentials and storage, install the separate plugin and check loading.', 'Choisir les fichiers Linux, préparer identifiants et stockage, installer le plugin séparé et vérifier son chargement.') },
-          { ...link(path('USER-GUIDE'), 'Choose models for a first key', 'Choisir les modèles d’une première clé'), text: t('Use an existing Bifrost test key, compose its selection and compare what Bifrost lists.', 'Partir d’une clé de test Bifrost existante, composer sa sélection et comparer ce que Bifrost liste.') },
+        { title: t('Get started', 'Démarrer'), links: [
+          { ...link(path('INSTALL'), 'Install Registry', 'Installer Registry'), text: t(
+            'Start a new test instance, install the plugin and connect its panel to Bifrost.',
+            'Démarrez une nouvelle instance de test, installez le plugin et connectez son panneau à Bifrost.',
+          ) },
+          { ...link(path('USER-GUIDE'), 'Choose models for an application', 'Choisir les modèles d’une application'), text: t(
+            'Prepare an existing key’s selection, publish it and read the result returned by Bifrost.',
+            'Préparez la sélection d’une clé existante, publiez-la et lisez le résultat renvoyé par Bifrost.',
+          ) },
         ] },
         { title: t('Manage access', 'Gérer les accès'), links: [
-          { ...link(registration, 'Register a model card', 'Enregistrer une fiche modèle'), text: t('Prepare the call name and provider accesses; a card alone grants no permission.', 'Préparer le nom d’appel et les accès fournisseurs ; une fiche seule ne donne aucun droit.') },
-          { ...link(composition, 'Reuse a group or adopt a key', 'Réutiliser un groupe ou adopter une clé'), text: t('Read the full composition and native-permission rules in the original guide.', 'Lire les règles complètes de composition et de permissions natives dans le guide original.') },
+          { ...link(registration, 'Register a model', 'Enregistrer un modèle'), text: t(
+            'Create a model card with its call name and provider accesses.',
+            'Créez une fiche modèle avec son nom d’appel et ses accès fournisseurs.',
+          ) },
+          { ...link(composition, 'Reuse a selection with a group', 'Réutiliser une sélection avec un groupe'), text: t(
+            'Share a model selection across several keys without configuring each one separately.',
+            'Partagez une sélection de modèles entre plusieurs clés sans les configurer une par une.',
+          ) },
+          { ...link(composition, 'Adopt an existing key', 'Adopter une clé existante'), text: t(
+            'Let Registry manage the model selection of a Bifrost key without widening its permissions.',
+            'Confiez à Registry la sélection d’une clé Bifrost sans élargir ses permissions.',
+          ) },
         ] },
         { title: t('Operate and troubleshoot', 'Exploiter et dépanner'), links: [
-          { ...link(migration, 'Prepare a backup and version change', 'Préparer une sauvegarde et un changement de version'), text: t('Find the stopped-volume backup and the limits of migration and coordinated rollback.', 'Retrouver la sauvegarde du volume à l’arrêt et les limites de migration et de restauration coordonnée.') },
-          { ...link(recovery, 'Recover plugin activation', 'Récupérer l’activation du plugin'), text: t('Follow the version-specific procedure, not repeated hot-reactivation attempts.', 'Suivre la procédure propre à la version, sans répéter les tentatives de réactivation à chaud.') },
-          { ...link(path('TROUBLESHOOTING'), 'Diagnose an installation failure', 'Diagnostiquer un échec d’installation'), text: t('Find permission errors, dynamic loading failures and activation symptoms.', 'Retrouver les erreurs de permission, de chargement dynamique et d’activation.') },
+          { ...link(migration, 'Back up before changing versions', 'Sauvegarder avant un changement de version'), text: t(
+            'Find what to save with the gateway stopped and how to restore the image and data together.',
+            'Retrouvez quoi sauvegarder à l’arrêt et comment restaurer ensemble l’image et les données.',
+          ) },
+          { ...link(recovery, 'Recover plugin activation', 'Récupérer l’activation du plugin'), text: t(
+            'Follow the procedure for your version after disabling the plugin.',
+            'Suivez la procédure de votre version après avoir désactivé le plugin.',
+          ) },
+          { ...link(path('TROUBLESHOOTING'), 'Solve an installation problem', 'Résoudre un problème d’installation'), text: t(
+            'Identify download, permission and plugin-loading errors.',
+            'Identifiez les erreurs de téléchargement, de permission et de chargement du plugin.',
+          ) },
+          { ...link(path('SECURITY'), 'Secure administration', 'Sécuriser l’administration'), text: t(
+            'Check admin access, network exposure and the documented security limits.',
+            'Contrôlez les accès admin, l’exposition réseau et les limites de sécurité documentées.',
+          ) },
         ] },
         { title: t('Reference', 'Référence'), links: [
-          { ...link(path('CONFIGURATION'), 'Look up configuration', 'Consulter la configuration'), text: t('Registry records, groups, key policies and panel API.', 'Fiches Registry, groupes, politiques de clé et API du panneau.') },
-          { ...link(path('SECURITY'), 'Understand trust boundaries', 'Comprendre les frontières de confiance'), text: t('Admin exposure, native governance and documented security limits.', 'Exposition admin, gouvernance native et limites de sécurité documentées.') },
-          { ...link(evidence, 'Read current release evidence', 'Lire les preuves de la release courante'), text: t('Distinguish published artifacts, synthetic qualification and unproven production behavior.', 'Distinguer artefacts publiés, qualification synthétique et comportement en production non établi.') },
+          { ...link(path('CONFIGURATION'), 'Look up configuration', 'Consulter la configuration'), text: t(
+            'Find the fields for model cards, groups, keys and the panel API.',
+            'Retrouvez les champs des fiches modèles, des groupes, des clés et de l’API du panneau.',
+          ) },
+          { ...link(detail('INSTALL', 'which-files-for-which-host', 'quels-fichiers-pour-quel-hote'), 'Find compatible files and previous versions', 'Trouver les fichiers compatibles et les versions précédentes'), text: t(
+            'Match each plugin file to its host and Bifrost version.',
+            'Associez chaque fichier du plugin à son hôte et à sa version de Bifrost.',
+          ) },
+          { ...link(`${base}BUILD.html`, 'Build the gateway and plugin (French)', 'Compiler le gateway et le plugin'), text: t(
+            'Follow the French native build procedure for a matching pair.',
+            'Suivez la procédure de compilation native pour obtenir une paire compatible.',
+          ) },
+          { ...link(evidence, 'Check the published release status', 'Consulter l’état de la version publiée'), text: t(
+            'See which version is available, what was checked and what remains untested.',
+            'Consultez la version disponible, les contrôles réalisés et ce qui reste non testé.',
+          ) },
         ] },
       ],
     },
     install: {
-      title: t('Install Registry on a test gateway', 'Installer Registry sur un gateway de test'),
-      goal: t('Reach a loaded plugin and an accessible panel on a new or staging instance. This is not an existing-gateway migration procedure.', 'Obtenir un plugin chargé et un panneau accessible sur une instance neuve ou de staging. Ce parcours n’est pas une procédure de migration d’un gateway existant.'),
+      title: t('Install Registry on a test instance', 'Installer Registry sur une instance de test'),
+      goal: t(
+        'Start a new Bifrost instance, load Registry and open its panel connected to the gateway.',
+        'Démarrez une nouvelle instance Bifrost, chargez Registry et ouvrez son panneau connecté au gateway.',
+      ),
       before: [
-        t('<strong>Two separate artifacts:</strong> the dynamic Bifrost image contains no plugin; install the Registry <code>.so</code> separately. Both must match exactly: architecture, Go toolchain, dependency versions, OS and libc.', '<strong>Deux artefacts séparés :</strong> l’image Bifrost dynamique ne contient aucun plugin ; installer le <code>.so</code> Registry séparément. Ils doivent correspondre exactement : architecture, chaîne Go, versions de dépendances, OS et libc.'),
-        t('<strong>Current pair:</strong> Registry v0.4.0 / unmodified Bifrost 2.3.0, Linux AMD64 or ARM64, Go 1.27.1, Alpine 3.23 / musl. The official prebuilt static image refuses dynamic plugins and is not qualified.', '<strong>Paire courante :</strong> Registry v0.4.0 / Bifrost 2.3.0 non modifié, Linux AMD64 ou ARM64, Go 1.27.1, Alpine 3.23 / musl. L’image officielle précompilée statique refuse les plugins dynamiques et n’est pas qualifiée.'),
+        t(
+          'Use a Linux AMD64 or ARM64 host with Docker and writable persistent storage. Prepare your Bifrost admin and provider configuration with dashboard authentication enabled.',
+          'Prévoyez un hôte Linux AMD64 ou ARM64 avec Docker et un stockage persistant inscriptible. Préparez la configuration de l’administration et des fournisseurs Bifrost, avec l’authentification du tableau de bord activée.',
+        ),
+        t(
+          'You need two components: the compatible dynamic Bifrost image and the Registry <code>.so</code> plugin. The image contains no plugin; the official static image cannot load it.',
+          'Deux éléments sont nécessaires : l’image Bifrost dynamique compatible et le fichier <code>.so</code> du plugin Registry. L’image ne contient pas le plugin ; l’image officielle statique ne peut pas le charger.',
+        ),
       ],
-      caution: t('<strong>Existing gateway: stop here before any command.</strong> Prepare staging, a complete stopped-volume backup (SQLite and WAL included) and migration qualification. Never run two writers on the volume. An in-place v0.3.0/2.2.6 → v0.4.0/2.3.0 upgrade is not qualified; switch image and plugin together. Activation recovery does not qualify migration or rollback.', '<strong>Gateway existant : arrêter ce parcours avant toute commande.</strong> Préparer le staging, la sauvegarde complète du volume à l’arrêt (SQLite et WAL compris) et la qualification de migration. Jamais deux writers sur le volume. La mise à niveau en place v0.3.0/2.2.6 → v0.4.0/2.3.0 n’est pas qualifiée ; changer image et plugin ensemble. La récupération d’activation ne qualifie ni migration ni retour arrière.'),
+      caution: t(
+        '<strong>Already running a gateway? Stop here.</strong> Prepare a separate test instance and back up the complete volume with the gateway stopped, including SQLite and WAL files. Never allow two processes to write to that volume at the same time. An in-place upgrade is not established as compatible. Read the ',
+        '<strong>Vous avez déjà un gateway ? Arrêtez-vous ici.</strong> Préparez une instance de test séparée et sauvegardez le volume complet, gateway à l’arrêt, fichiers SQLite et WAL compris. Ne laissez jamais deux processus écrire sur ce volume en même temps. La compatibilité d’une mise à jour en place n’est pas établie. Consultez les ',
+      ) + a(migration, 'migration limits and coordinated restore procedure', 'limites de migration et la restauration coordonnée') + '.',
       links: [
-        link(installMode, 'Complete image procedure / API installation', 'Procédure image complète / installation API'),
-        link(detail('INSTALL', 'mode-b-plugin-only', 'mode-b-plugin-seul'), 'Plugin only on another gateway build', 'Plugin seul sur une autre compilation du gateway'),
-        link(settings, 'Complete credentials and plugin settings', 'Identifiants et réglages complets du plugin'),
-        link(detail('INSTALL', 'which-files-for-which-host', 'quels-fichiers-pour-quel-hote'), 'Artifact history and hashes', 'Historique des artefacts et empreintes'),
-        link(migration, 'Migration, backup and coordinated restore', 'Migration, sauvegarde et restauration coordonnée'),
-        link(recovery, 'Activation recovery (not hot reactivation)', 'Récupération d’activation (pas à chaud)'),
-        link(evidence, 'Release evidence and limits', 'Preuves et limites de release'),
+        link(installMode, 'Full image procedure and API installation', 'Procédure image complète et installation par API'),
+        link(detail('INSTALL', 'mode-b-plugin-only', 'mode-b-plugin-seul'), 'Install on another compatible gateway build', 'Installer sur une autre compilation compatible de Bifrost'),
+        link(settings, 'Credentials and plugin settings', 'Identifiants et réglages du plugin'),
+        link(detail('INSTALL', 'which-files-for-which-host', 'quels-fichiers-pour-quel-hote'), 'Previous versions and file hashes', 'Versions précédentes et empreintes des fichiers'),
+        link(migration, 'Back up, change versions and restore', 'Sauvegarder, changer de version et restaurer'),
+        link(recovery, 'Recover activation after disabling', 'Récupérer l’activation après désactivation'),
+        link(evidence, 'Release checks and limits: no real-provider inference or production readiness established', 'Contrôles et limites de la version : ni inférence réelle ni préparation à la production établies'),
       ],
       steps: [
-        { id: 'download', title: t('Download the plugin for your host', 'Télécharger le plugin de votre hôte'), downloads: true,
-          text: [t('Both rows use the dynamic gateway image <code>ghcr.io/sofianbll/bifrost-dynamic:2.3.0</code>, without the plugin. Download one matching <code>.so</code> and ', 'Les deux lignes utilisent l’image dynamique <code>ghcr.io/sofianbll/bifrost-dynamic:2.3.0</code>, sans plugin. Télécharger un seul <code>.so</code> correspondant et ') + a(`${release}SHA256SUMS`, 'the release SHA256SUMS', 'le SHA256SUMS de la release') + t(' into the same directory. Verify every downloaded file; missing assets are skipped by this command.', ' dans le même dossier. Vérifier chaque fichier téléchargé ; cette commande ignore les assets absents.')],
-          command: 'sha256sum -c --ignore-missing SHA256SUMS', result: t('The downloaded plugin matches the v0.4.0 checksum for your architecture.', 'Le plugin téléchargé correspond à l’empreinte v0.4.0 de votre architecture.') },
-        { id: 'credentials', title: t('Prepare two distinct server-side secrets', 'Préparer deux secrets distincts côté serveur'),
-          text: [t('<code>REGISTRY_ADMIN_TOKEN</code>: at least 32 characters, opens the Registry panel. <code>REGISTRY_BIFROST_AUTH</code>: the complete <code>Authorization</code> header for the native Bifrost admin API; it must match the gateway authentication.', '<code>REGISTRY_ADMIN_TOKEN</code> : au moins 32 caractères, ouvre le panneau Registry. <code>REGISTRY_BIFROST_AUTH</code> : valeur complète de l’en-tête <code>Authorization</code> pour l’API admin native Bifrost ; elle doit correspondre à l’authentification du gateway.'),
-            t('Supply environment values through a secret manager or private environment file, never committed JSON or logs. Keep Bifrost dashboard authentication enabled and configure native administration and providers for the new gateway. These are not application virtual keys.', 'Fournir les valeurs d’environnement par un gestionnaire de secrets ou un fichier privé, jamais dans le JSON versionné ni les logs. Garder l’authentification du tableau de bord Bifrost activée et configurer l’administration native et les providers du gateway neuf. Ce ne sont pas les clés virtuelles des applications.')],
-          result: t('The panel credential and the plugin’s native-admin credential have separate roles.', 'L’identifiant du panneau et celui de l’API admin native ont des rôles distincts.') },
-        { id: 'gateway', title: t('Prepare the persistent gateway', 'Préparer le gateway persistant'),
-          text: [t('Pull the published pinned multi-architecture image below; Docker selects AMD64 or ARM64. Tags can move. Starting it does not install Registry.', 'Récupérer l’image multi-architecture épinglée ci-dessous ; Docker choisit AMD64 ou ARM64. Les tags peuvent changer. La démarrer n’installe pas Registry.'),
-            t('Use the normal image entrypoint and a writable persistent volume at <code>/app/data</code>. The usual gateway port is <code>8080</code>; expose Registry <code>8099</code> on host loopback only (<code>127.0.0.1:8099:8099</code>). Inside the container, keep <code>admin_listen: "0.0.0.0:8099"</code>. Adapt ports, storage and hardening to the target; ', 'Utiliser l’entrypoint normal et un volume persistant inscriptible sur <code>/app/data</code>. Le port habituel du gateway est <code>8080</code> ; exposer Registry <code>8099</code> uniquement sur le loopback hôte (<code>127.0.0.1:8099:8099</code>). Dans le conteneur, garder <code>admin_listen: "0.0.0.0:8099"</code>. Adapter ports, stockage et durcissement à la cible ; ') + a(installMode, 'read the full illustrative start command', 'lire la commande de démarrage illustrative complète') + '.'],
-          command: 'docker pull ghcr.io/sofianbll/bifrost-dynamic@sha256:29e026ab80de357938e3e6df5ac1c3c54c3f6877f4daa2c859e980140fdbbaa0\n\n' + t('docker run -d --name bifrost \\\n  -p 8080:8080 -p 127.0.0.1:8099:8099 \\\n  -v bifrost-data:/app/data \\\n  -e REGISTRY_ADMIN_TOKEN -e REGISTRY_BIFROST_AUTH \\\n  <image reference>', 'docker run -d --name bifrost \\\n  -p 8080:8080 -p 127.0.0.1:8099:8099 \\\n  -v bifrost-data:/app/data \\\n  -e REGISTRY_ADMIN_TOKEN -e REGISTRY_BIFROST_AUTH \\\n  <référence de l\'image>'),
-          result: t('The gateway uses persistent storage; the future Registry panel is not publicly exposed.', 'Le gateway utilise un stockage persistant ; le futur panneau Registry n’est pas exposé publiquement.') },
-        { id: 'plugin', title: t('Install the separate plugin by direct URL', 'Installer le plugin séparé par URL directe'),
-          text: [t('In native Bifrost plugin settings, use the direct <code>.so</code> URL from the matching row, not the release-page URL. Merge the existing ', 'Dans les réglages plugin natifs Bifrost, utiliser l’URL directe du <code>.so</code> de la bonne ligne, pas l’URL de la page de release. Fusionner le ') + a('https://github.com/sofianbll/bifrost-plugin-registry/blob/main/configs/plugin.fragment.json', 'plugin fragment', 'fragment plugin existant') + t(' into your configuration, replacing only its placeholder path and preserving existing configuration.', ' dans votre configuration, remplacer son chemin fictif et conserver la configuration existante.'),
-            t('Keep <code>placement: "post_builtin"</code>, <code>order: 0</code>, <code>registry_path: "/app/data/registry/registry.json"</code>, <code>admin_token_env: "REGISTRY_ADMIN_TOKEN"</code>, <code>bifrost_auth_env: "REGISTRY_BIFROST_AUTH"</code> and <code>bifrost_url: "http://127.0.0.1:8080"</code> when sharing the container. Keep the listener above. Bifrost downloads the saved URL at installation and each start: retain those versioned bytes there.', 'Garder <code>placement: "post_builtin"</code>, <code>order: 0</code>, <code>registry_path: "/app/data/registry/registry.json"</code>, <code>admin_token_env: "REGISTRY_ADMIN_TOKEN"</code>, <code>bifrost_auth_env: "REGISTRY_BIFROST_AUTH"</code> et <code>bifrost_url: "http://127.0.0.1:8080"</code> si le conteneur est partagé. Conserver l’écoute indiquée plus haut. Bifrost télécharge l’URL enregistrée à l’installation et à chaque démarrage : conserver ces octets versionnés à cette URL.')],
-          result: t('Registry is installed separately; its interface is embedded, with no extra frontend mount.', 'Registry est installé séparément ; son interface est embarquée, sans montage frontend supplémentaire.') },
-        { id: 'verify', title: t('Check loading, then the listed models', 'Vérifier le chargement, puis les modèles listés'),
-          text: [t('Require status <code>active</code> in <code>GET /api/plugins</code> AND membership in <code>GET /api/plugins/loaded</code>. Open <code>http://127.0.0.1:8099/model-registry</code> with the Registry admin token (tab memory only; enter again after reload).', 'Exiger le statut <code>active</code> dans <code>GET /api/plugins</code> ET la présence dans <code>GET /api/plugins/loaded</code>. Ouvrir <code>http://127.0.0.1:8099/model-registry</code> avec le jeton admin Registry (mémoire de l’onglet seulement ; à ressaisir après rechargement).'),
-            t('Publish a small test catalogue and read <code>/v1/models</code> using a dedicated virtual key. Native keys remain unmanaged until explicit adoption, which cannot widen native permissions. A listed catalogue is not proof of inference. Current qualification uses synthetic providers; production readiness, real-provider inference and hot reactivation are not qualified.', 'Publier un petit catalogue de test et lire <code>/v1/models</code> avec une clé virtuelle dédiée. Les clés natives restent non gérées jusqu’à adoption explicite, sans élargissement de leurs droits. Une liste observée ne prouve pas l’inférence. La qualification courante utilise des fournisseurs synthétiques ; préparation à la production, inférence réelle et réactivation à chaud ne sont pas qualifiées.')],
-          result: t('The plugin is active and loaded, the panel opens, and the dedicated key’s observed list is distinguished from a model-call test.', 'Le plugin est actif et chargé, le panneau s’ouvre et la liste observée de la clé dédiée reste distincte d’un test d’appel modèle.') },
+        {
+          id: 'download', title: t('Download the compatible files', 'Télécharger les fichiers compatibles'), downloads: true,
+          text: [
+            t(
+              'Use Registry v0.4.0 with unmodified Bifrost 2.3.0, Go 1.27.1 and Alpine 3.23 (musl). Image and plugin must match exactly: architecture, Go toolchain, dependency versions, OS and libc. Choose the plugin for your host below.',
+              'Utilisez Registry v0.4.0 avec Bifrost 2.3.0 non modifié, Go 1.27.1 et Alpine 3.23 (musl). Image et plugin doivent correspondre exactement : architecture, chaîne Go, versions des dépendances, OS et libc. Choisissez ci-dessous le plugin de votre hôte.',
+            ),
+            t('Download the plugin and ', 'Téléchargez le plugin et ') + a(`${release}SHA256SUMS`, 'SHA256SUMS', 'SHA256SUMS') + t(
+              ' into the same directory. Run the checksum command there and check that your plugin reports OK; files you did not download are skipped. Then pull the pinned image below. Docker selects the host architecture.',
+              ' dans le même dossier. Lancez-y la commande de vérification et contrôlez que votre plugin indique OK ; les fichiers non téléchargés sont ignorés. Récupérez ensuite l’image épinglée ci-dessous. Docker choisit l’architecture de l’hôte.',
+            ),
+          ],
+          command: 'sha256sum -c --ignore-missing SHA256SUMS\n\ndocker pull ghcr.io/sofianbll/bifrost-dynamic@sha256:29e026ab80de357938e3e6df5ac1c3c54c3f6877f4daa2c859e980140fdbbaa0',
+          result: t('The downloaded plugin reports OK and Docker has pulled the image.', 'Le plugin téléchargé indique OK et Docker a récupéré l’image.'),
+        },
+        {
+          id: 'credentials', title: t('Prepare the credentials', 'Préparer les identifiants'),
+          text: [
+            t(
+              'Create a secret of at least 32 characters for <code>REGISTRY_ADMIN_TOKEN</code>. You will enter it to open the Registry panel.',
+              'Créez un secret d’au moins 32 caractères pour <code>REGISTRY_ADMIN_TOKEN</code>. Vous le saisirez pour ouvrir le panneau Registry.',
+            ),
+            t(
+              'Set <code>REGISTRY_BIFROST_AUTH</code> to the complete <code>Authorization</code> header matching your Bifrost admin authentication, including its scheme (for example <code>Basic &lt;base64(username:password)&gt;</code>, with your own credentials). The plugin uses it to reach the native admin API; it is not an application key.',
+              'Renseignez <code>REGISTRY_BIFROST_AUTH</code> avec l’en-tête <code>Authorization</code> complet correspondant à votre authentification admin Bifrost, préfixe compris (par exemple <code>Basic &lt;base64(username:password)&gt;</code>, avec vos propres identifiants). Le plugin l’utilise pour joindre l’API admin native ; ce n’est pas une clé d’application.',
+            ),
+            t(
+              'Keep both values in a secret manager or private environment file, never in committed JSON or logs. Make them available in the environment of the shell that will start Docker: the next command passes these two variables into the container.',
+              'Conservez ces deux valeurs dans un gestionnaire de secrets ou un fichier d’environnement privé, jamais dans le JSON versionné ni les logs. Rendez-les disponibles dans l’environnement du shell qui lancera Docker : la commande suivante transmet ces deux variables au conteneur.',
+            ),
+          ],
+        },
+        {
+          id: 'gateway', title: t('Start Bifrost', 'Démarrer Bifrost'),
+          text: [
+            t(
+              'The example below comes from the installation guide. Replace <code>&lt;image reference&gt;</code> with the full pinned image reference from step 1. Adapt the container name, ports and volume to your test instance; keep the normal image entrypoint and writable persistent storage at <code>/app/data</code>.',
+              'L’exemple ci-dessous provient du guide d’installation. Remplacez <code>&lt;image reference&gt;</code> par la référence complète de l’image épinglée à l’étape 1. Adaptez le nom du conteneur, les ports et le volume à votre instance de test ; gardez l’entrypoint normal de l’image et un stockage persistant inscriptible sur <code>/app/data</code>.',
+            ),
+            t(
+              'Bifrost uses port <code>8080</code>. The mapping <code>127.0.0.1:8099:8099</code> exposes the future Registry panel only on host loopback. Inside the container, its listener must be <code>0.0.0.0:8099</code>, as configured in step 4. Starting this image does not install Registry.',
+              'Bifrost utilise le port <code>8080</code>. Le port publié <code>127.0.0.1:8099:8099</code> rend le futur panneau Registry accessible uniquement sur le loopback de l’hôte. Dans le conteneur, son écoute doit être <code>0.0.0.0:8099</code>, comme prévu à l’étape 4. Démarrer cette image n’installe pas Registry.',
+            ),
+          ],
+          command: 'docker run -d --name bifrost \\\n  -p 8080:8080 -p 127.0.0.1:8099:8099 \\\n  -v bifrost-data:/app/data \\\n  -e REGISTRY_ADMIN_TOKEN -e REGISTRY_BIFROST_AUTH \\\n  <image reference>',
+        },
+        {
+          id: 'plugin', title: t('Install the Registry plugin', 'Installer le plugin Registry'),
+          text: [
+            t('Open the native Bifrost plugin settings and the ', 'Ouvrez les réglages de plugins natifs Bifrost et le ') + a(
+              'https://github.com/sofianbll/bifrost-plugin-registry/blob/main/configs/plugin.fragment.json',
+              'plugin configuration fragment', 'fragment de configuration du plugin',
+            ) + t(
+              '. Merge that entry into your configuration without replacing the existing settings. Set <code>path</code> to the direct URL of your architecture’s <code>.so</code> in step 1, not the release-page URL.',
+              '. Fusionnez cette entrée avec votre configuration sans remplacer les réglages existants. Renseignez <code>path</code> avec l’URL directe du <code>.so</code> de votre architecture à l’étape 1, pas celle de la page de release.',
+            ),
+            t(
+              'Keep <code>name: "bifrost-registry"</code>, <code>enabled: true</code>, <code>placement: "post_builtin"</code> and <code>order: 0</code>. In <code>config</code>, keep <code>registry_path: "/app/data/registry/registry.json"</code>, <code>admin_listen: "0.0.0.0:8099"</code>, <code>admin_token_env: "REGISTRY_ADMIN_TOKEN"</code>, <code>bifrost_auth_env: "REGISTRY_BIFROST_AUTH"</code> and <code>bifrost_url: "http://127.0.0.1:8080"</code> for this shared-container setup.',
+              'Gardez <code>name: "bifrost-registry"</code>, <code>enabled: true</code>, <code>placement: "post_builtin"</code> et <code>order: 0</code>. Dans <code>config</code>, gardez <code>registry_path: "/app/data/registry/registry.json"</code>, <code>admin_listen: "0.0.0.0:8099"</code>, <code>admin_token_env: "REGISTRY_ADMIN_TOKEN"</code>, <code>bifrost_auth_env: "REGISTRY_BIFROST_AUTH"</code> et <code>bifrost_url: "http://127.0.0.1:8080"</code> pour cette installation dans un même conteneur.',
+            ),
+            t(
+              'Save the entry. Bifrost downloads the URL at installation and on every start: keep that versioned file available. Registry creates its data file if missing and includes its own interface; no frontend mount is needed.',
+              'Enregistrez l’entrée. Bifrost télécharge l’URL à l’installation et à chaque démarrage : conservez ce fichier versionné à disposition. Registry crée son fichier de données s’il manque et embarque son interface ; aucun montage frontend n’est nécessaire.',
+            ),
+          ],
+        },
+        {
+          id: 'verify', title: t('Check loading and connection', 'Vérifier le chargement et la connexion'),
+          text: [
+            t(
+              'Using authenticated Bifrost administration, check that Registry is <code>active</code> in <code>GET /api/plugins</code> and also present in <code>GET /api/plugins/loaded</code>. Both checks are required.',
+              'Avec l’administration Bifrost authentifiée, vérifiez que Registry est <code>active</code> dans <code>GET /api/plugins</code> et aussi présent dans <code>GET /api/plugins/loaded</code>. Les deux contrôles sont nécessaires.',
+            ),
+            t(
+              'Open <code>http://127.0.0.1:8099/model-registry</code> and enter the token you set in <code>REGISTRY_ADMIN_TOKEN</code>. The token stays in tab memory; enter it again after a reload. Then query <code>GET http://127.0.0.1:8099/api/status</code> with that token as a Bearer token and check for <code>bifrost_connected: true</code>.',
+              'Ouvrez <code>http://127.0.0.1:8099/model-registry</code> et saisissez le jeton défini dans <code>REGISTRY_ADMIN_TOKEN</code>. Le jeton reste en mémoire dans l’onglet ; ressaisissez-le après rechargement. Interrogez ensuite <code>GET http://127.0.0.1:8099/api/status</code> avec ce jeton en Bearer et contrôlez <code>bifrost_connected: true</code>.',
+            ),
+            t('If loading fails or the panel cannot connect, ', 'Si le chargement échoue ou si le panneau ne se connecte pas, ') + a(
+              path('TROUBLESHOOTING'), 'find the matching error in troubleshooting', 'recherchez l’erreur correspondante dans le dépannage',
+            ) + t(
+              '. Once connected, continue with the first-key guide to publish a selection and check the list Bifrost returns.',
+              '. Une fois connecté, poursuivez avec le guide de première clé pour publier une sélection et vérifier la liste renvoyée par Bifrost.',
+            ),
+          ],
+          result: t(
+            'The plugin is active and loaded, the panel opens, and status reports bifrost_connected: true.',
+            'Le plugin est actif et chargé, le panneau s’ouvre et le statut indique bifrost_connected: true.',
+          ),
+        },
       ],
-      next: link(path('USER-GUIDE'), 'Next: choose models for an existing test key', 'Suite : choisir les modèles d’une clé de test existante'),
+      next: link(path('USER-GUIDE'), 'Next: choose models for an application', 'Suite : choisir les modèles d’une application'),
     },
     key: {
-      title: t('Choose models for one application', 'Choisir les modèles d’une application'),
-      goal: t('Compose and verify the catalogue of one existing Bifrost test key. This bounded exercise does not create a key or test model calls.', 'Composer et vérifier le catalogue d’une clé de test Bifrost existante. Cet exercice borné ne crée pas de clé et ne teste pas les appels aux modèles.'),
+      title: t('Choose models for an application', 'Choisir les modèles d’une application'),
+      goal: t(
+        'Prepare the model selection for an existing Bifrost test key, publish it and check what Bifrost lists for that key.',
+        'Préparez la sélection d’une clé de test Bifrost existante, publiez-la et vérifiez les modèles que Bifrost liste pour cette clé.',
+      ),
       before: [
-        t('Use a connected staging gateway with Registry installed, available provider models and an existing enabled, unexpired Bifrost test key for this application.', 'Utiliser un gateway de staging connecté avec Registry installé, des modèles disponibles chez les fournisseurs et une clé de test Bifrost existante, active et non expirée pour cette application.'),
-        t('Missing model cards and a disabled or expired key are <strong>prerequisites</strong> to resolve first, not adoption decisions. Register the required models or correct the key in Bifrost, then refresh the preview.', 'Les fiches manquantes et une clé désactivée ou expirée sont des <strong>préalables</strong> à résoudre, pas des décisions d’adoption. Enregistrer les modèles requis ou corriger la clé dans Bifrost, puis actualiser l’aperçu.'),
-        t('A local snapshot only prepares a simulated selection; it cannot verify live access. The screenshot below is a historical synthetic fixture, not proof of a connected gateway.', 'Un instantané local ne prépare qu’une sélection simulée ; il ne vérifie pas l’accès en direct. La capture ci-dessous est une fixture synthétique historique, pas la preuve d’un gateway connecté.'),
+        t(
+          'Use a test gateway with Registry installed and connected, configured providers and models available through those providers.',
+          'Utilisez un gateway de test avec Registry installé et connecté, des fournisseurs configurés et des modèles disponibles chez ces fournisseurs.',
+        ),
+        t(
+          'Choose an existing, enabled and unexpired Bifrost key for this application. Create the key and set its initial permissions in Bifrost if needed; this guide does not create one.',
+          'Choisissez pour cette application une clé Bifrost existante, active et non expirée. Sa création et ses permissions initiales se règlent dans Bifrost si nécessaire ; ce guide ne crée pas de clé.',
+        ),
       ],
-      caution: t('<strong>Changes Bifrost:</strong> before any native permission reduction, review the exact before/after preview and explicitly confirm. Replacing “all providers” may remove unregistered models and no longer permits future providers automatically. Adoption itself does not widen rights. Do not treat a prerequisite as a permission-changing decision.', '<strong>Modifie Bifrost :</strong> avant toute réduction de permissions natives, relire l’aperçu exact avant/après et confirmer explicitement. Remplacer « tous les fournisseurs » peut retirer les modèles sans fiche et n’autorise plus automatiquement les futurs fournisseurs. L’adoption elle-même n’élargit pas les droits. Ne pas confondre préalable et décision qui modifie les permissions.'),
-      links: [link(registration, 'Full model registration details', 'Détails complets d’enregistrement'), link(composition, 'Full group and adoption rules (original wording)', 'Règles complètes de groupes et d’adoption (texte original)'), link(detail('USER-GUIDE', '_4-local-snapshot-versus-connected-gateway', '_4-instantane-local-ou-gateway-connecte'), 'Local snapshot limitations', 'Limites de l’instantané local'), link(path('INSTALL'), 'Check the installation first', 'Vérifier d’abord l’installation')],
+      caption: t(
+          'Example of a key’s model selection. Fictional data.',
+          'Exemple de sélection d’une clé. Données fictives.',
+      ),
+      links: [
+        link(registration, 'Model registration fields and operations', 'Champs et opérations d’enregistrement d’un modèle'),
+        link(composition, 'Reuse groups and review adoption options', 'Réutiliser des groupes et consulter les options d’adoption'),
+        link(detail('USER-GUIDE', '_4-local-snapshot-versus-connected-gateway', '_4-instantane-local-ou-gateway-connecte'), 'What a local snapshot cannot verify', 'Ce qu’un instantané local ne permet pas de vérifier'),
+        link(path('INSTALL'), 'Check the installation', 'Vérifier l’installation'),
+      ],
       steps: [
-        { id: 'model-card', title: t('Prepare model cards and their accesses', 'Préparer les fiches et leurs accès'), text: [t('In <strong>My models</strong>, examine a discovered model and choose its provider accesses. <strong>Register</strong> creates the model card: supply a valid call name, display name and at least one complete access. Select the exposed operations per access; Chat Completions and Responses are distinct. Review and register.', 'Dans <strong>Mes modèles</strong>, examiner un modèle découvert et choisir ses accès fournisseurs. <strong>Enregistrer</strong> crée la fiche : renseigner un nom d’appel valide, un nom d’affichage et au moins un accès complet. Choisir les opérations exposées par accès ; Chat Completions et Responses sont distincts. Relire et enregistrer.'), t('A card alone grants no key access. Choosing an operation does not prove that a provider supports it. <strong>Add</strong> attaches an access to a card, or a card to a group or key; it does not mean Register.', 'Une fiche seule ne donne aucun accès à une clé. Choisir une opération ne prouve pas sa prise en charge par le fournisseur. <strong>Ajouter</strong> rattache un accès à une fiche, ou une fiche à un groupe ou une clé ; ce n’est pas Enregistrer.')], result: t('The intended models have cards and explicit provider accesses; no new permission is implied.', 'Les modèles visés ont des fiches et des accès fournisseurs explicites, sans permission implicite.') },
-        { id: 'group', title: t('Optionally prepare a reusable group', 'Préparer un groupe réutilisable, si utile'), text: [t('A group shares a model selection and its access choices across keys. Use one only if you want reuse; individual additions are enough for this exercise. Changing a shared group affects keys that inherit it.', 'Un groupe partage une sélection de modèles et ses choix d’accès entre les clés. L’utiliser seulement pour réemployer cette sélection ; des ajouts individuels suffisent ici. Modifier un groupe partagé affecte les clés qui en héritent.')], result: t('Reuse is optional, and shared-group changes are distinguished from this key’s exceptions.', 'Le réemploi reste facultatif et les changements partagés sont distingués des exceptions de cette clé.') },
-        { id: 'adopt', title: t('Open or adopt the existing test key', 'Ouvrir ou adopter la clé de test existante'), text: [t('In <strong>Keys</strong>, follow the card action: <strong>Open</strong> for an already managed key, <strong>Adopt</strong> when ready, or <strong>See what blocks it</strong>. Compare the native permissions with the proposed Registry selection. Resolve prerequisites separately; answer each required provider decision before adopting.', 'Dans <strong>Clés</strong>, suivre l’action de la carte : <strong>Ouvrir</strong> si elle est déjà gérée, <strong>Adopter</strong> si elle est prête, ou <strong>Voir ce qui bloque</strong>. Comparer les permissions natives à la sélection Registry proposée. Résoudre les préalables séparément ; répondre aux décisions requises par fournisseur avant d’adopter.'), t('For unlisted provider models, keeping that provider in Bifrost leaves its permissions unmanaged and unchanged by Registry. Any option marked <strong>Changes Bifrost</strong> needs the exact-change preview and explicit confirmation described above. Adoption cannot widen native permissions and does not publish pending selection edits.', 'Pour les modèles d’un fournisseur non listés, garder ce fournisseur dans Bifrost laisse ses permissions non gérées et inchangées par Registry. Toute option <strong>Modifie Bifrost</strong> exige l’aperçu exact et la confirmation explicite décrits plus haut. Adopter ne peut pas élargir les permissions natives et ne publie pas les modifications de sélection en attente.')], result: t('The existing key is managed within its native permission boundary; pending edits still need review.', 'La clé existante est gérée dans les limites de ses droits natifs ; les modifications en attente restent à relire.') },
-        { id: 'selection', title: t('Choose models and local exclusions', 'Choisir les modèles et exclusions locales'), text: [t('Combine optional groups and individual model additions. Under a model’s <strong>Accesses</strong>, uncheck the provider accesses this application should not use. A local exclusion applies only to this key, even when groups provide that model; it changes neither the group nor other keys. Review the resulting call names and draft preview.', 'Combiner groupes facultatifs et ajouts individuels de modèles. Sous <strong>Accès</strong>, décocher les accès fournisseurs que cette application ne doit pas utiliser. Une exclusion locale ne concerne que cette clé, même si des groupes fournissent ce modèle ; elle ne change ni le groupe ni les autres clés. Relire les noms d’appel obtenus et l’aperçu du brouillon.')], result: t('The draft describes this application’s selection, not an already observed catalogue.', 'Le brouillon décrit la sélection de cette application, pas un catalogue déjà observé.') },
-        { id: 'publish', title: t('Publish, then check with Bifrost', 'Publier, puis vérifier avec Bifrost'), text: [t('Review and <strong>Publish</strong>. Publication already triggers verification with Bifrost: inspect its result, then use <strong>Check again</strong> if needed (<strong>Check with Bifrost</strong> before any check). Registry compares the expected catalogue with <code>/v1/models</code> for this key. Distinguish Verified, Differences found and Not yet verified; investigate missing or unexpected IDs.', 'Relire et <strong>Publier</strong>. La publication déclenche déjà une vérification avec Bifrost : lire son résultat, puis utiliser <strong>Vérifier à nouveau</strong> si nécessaire (<strong>Vérifier avec Bifrost</strong> tant qu’aucune vérification n’a eu lieu). Registry compare le catalogue prévu à <code>/v1/models</code> pour cette clé. Distinguer Vérifiée, Écarts trouvés et Pas encore vérifiée ; examiner les identifiants manquants ou inattendus.'), t('Models Bifrost does not list remain visible as differences and never count as verified models. The observed list proves neither inference, routing nor provider capabilities. A successful local-snapshot preparation proves no live access.', 'Les modèles que Bifrost ne liste pas restent visibles comme écarts et ne comptent jamais dans les modèles vérifiés. La liste observée ne prouve ni l’inférence, ni le routage, ni les capacités fournisseurs. Une préparation réussie sur instantané local ne prouve aucun accès en direct.')], result: t('You can distinguish the planned selection, the saved publication and what Bifrost actually lists, without claiming a model call.', 'Vous distinguez sélection prévue, publication enregistrée et liste réellement renvoyée par Bifrost, sans revendiquer d’appel modèle.') },
+        {
+          id: 'model-card', title: t('Prepare the models', 'Préparer les modèles'),
+          text: [
+            t(
+              'In <strong>My models</strong>, find the cards you want to use and check their provider accesses. If a card is missing, open the discovered model and choose <strong>Register</strong>. Provide a valid call name, a display name and at least one complete access with its provider and exact model ID.',
+              'Dans <strong>Mes modèles</strong>, retrouvez les fiches voulues et contrôlez leurs accès fournisseurs. Si une fiche manque, ouvrez le modèle découvert et choisissez <strong>Enregistrer</strong>. Renseignez un nom d’appel valide, un nom d’affichage et au moins un accès complet avec son fournisseur et son identifiant de modèle exact.',
+            ),
+            t(
+              'Select the exposed operations for each access: Chat Completions and Responses are separate choices. Review and register the card; optional details such as prices can remain unknown. Choosing an operation does not prove that the provider supports it.',
+              'Choisissez les opérations exposées pour chaque accès : Chat Completions et Responses sont deux choix distincts. Relisez puis enregistrez la fiche ; les détails facultatifs comme les prix peuvent rester inconnus. Choisir une opération ne prouve pas sa prise en charge par le fournisseur.',
+            ),
+            t(
+              '<strong>Register</strong> creates a model card, not access for a key. <strong>Add</strong> attaches an access to a card, or a card to a key or group. You will choose this key’s models in step 3.',
+              '<strong>Enregistrer</strong> crée une fiche modèle, pas un accès pour une clé. <strong>Ajouter</strong> rattache un accès à une fiche, ou une fiche à une clé ou à un groupe. Vous choisirez les modèles de cette clé à l’étape 3.',
+            ),
+          ],
+        },
+        {
+          id: 'adopt', title: t('Open or adopt the key', 'Ouvrir ou adopter la clé'),
+          text: [
+            t(
+              'In <strong>Keys</strong>, find the application’s key. Choose <strong>Open</strong> if Registry already manages it, <strong>Adopt</strong> if it is ready, or <strong>See what blocks it</strong> to inspect what is missing.',
+              'Dans <strong>Clés</strong>, retrouvez la clé de l’application. Choisissez <strong>Ouvrir</strong> si Registry la gère déjà, <strong>Adopter</strong> si elle est prête, ou <strong>Voir ce qui bloque</strong> pour consulter ce qui manque.',
+            ),
+            t(
+              'Resolve prerequisites first: register missing model cards, or enable or renew the key in Bifrost, then refresh the preview. These are separate from the provider decisions in the adoption dialog. For each decision, compare the existing permissions and the proposed selection; keeping a provider in Bifrost leaves its permissions outside Registry’s management.',
+              'Résolvez d’abord les préalables : enregistrez les fiches manquantes, ou activez ou renouvelez la clé dans Bifrost, puis actualisez l’aperçu. Ces actions sont distinctes des décisions par fournisseur dans la fenêtre d’adoption. Pour chaque décision, comparez les permissions existantes et la sélection proposée ; garder un fournisseur dans Bifrost laisse ses permissions hors de la gestion de Registry.',
+            ),
+            t(
+              'For an option marked <strong>Changes Bifrost</strong>, review the exact before/after preview before confirming the change. Replacing “all providers” can remove models without cards and no longer allows future providers automatically. Only these marked options change native permissions.',
+              'Pour une option <strong>Modifie Bifrost</strong>, relisez l’aperçu exact avant/après avant de confirmer le changement. Remplacer « tous les fournisseurs » peut retirer les modèles sans fiche et n’autorise plus automatiquement les futurs fournisseurs. Seules ces options signalées changent les permissions natives.',
+            ),
+            t(
+              'Once the prerequisites and decisions are resolved, adopt the key. Adoption does not widen native permissions or publish pending selection changes.',
+              'Une fois les préalables et les décisions résolus, adoptez la clé. L’adoption n’élargit pas les permissions natives et ne publie pas les modifications de sélection en attente.',
+            ),
+          ],
+        },
+        {
+          id: 'selection', title: t('Choose models and accesses', 'Choisir les modèles et les accès'),
+          text: [
+            t(
+              'Add the models this application needs. A selected model includes <strong>all its linked accesses by default</strong>: review the <strong>Accesses</strong> list and uncheck any this key should not use.',
+              'Ajoutez les modèles nécessaires à cette application. Un modèle sélectionné inclut <strong>tous ses accès liés par défaut</strong> : relisez la liste <strong>Accès</strong> et décochez ceux que cette clé ne doit pas utiliser.',
+            ),
+            t(
+              'These local exclusions affect only this key, including when a group supplies the model. They change neither the group nor other keys.',
+              'Ces exclusions locales ne concernent que cette clé, y compris lorsqu’un groupe fournit le modèle. Elles ne changent ni le groupe ni les autres clés.',
+            ),
+            t('To reuse a selection, you can also ', 'Pour réutiliser une sélection, vous pouvez aussi ') + a(
+              composition, 'use a group', 'utiliser un groupe',
+            ) + t(
+              '. This is optional. Changing a shared group affects all keys that inherit it; keep key-specific exceptions in the key.',
+              '. C’est facultatif. Modifier un groupe partagé affecte toutes les clés qui en héritent ; gardez les exceptions propres à une clé dans cette clé.',
+            ),
+          ],
+        },
+        {
+          id: 'publish', title: t('Review and publish', 'Relire et publier'),
+          text: [
+            t(
+              'Review the selected models, their call names and their accesses in the draft preview. This preview is the planned selection, not a list already confirmed by Bifrost.',
+              'Relisez les modèles retenus, leurs noms d’appel et leurs accès dans l’aperçu du brouillon. Cet aperçu est la sélection prévue, pas une liste déjà confirmée par Bifrost.',
+            ),
+            t(
+              'Click <strong>Publish</strong>. Registry saves the selection and immediately asks Bifrost which models this key lists. Read the result in the next step.',
+              'Cliquez sur <strong>Publier</strong>. Registry enregistre la sélection et demande aussitôt à Bifrost quels modèles cette clé liste. Consultez le résultat à l’étape suivante.',
+            ),
+          ],
+        },
+        {
+          id: 'read-result', title: t('Read the result', 'Lire le résultat'),
+          text: [
+            t(
+              '<strong>Verified</strong>: Bifrost confirmed the published selection. <strong>Differences found</strong>: inspect the missing or unexpected model IDs and correct the selection or gateway configuration as needed. <strong>Not checked yet</strong>: the total is still the planned selection; use <strong>Check with Bifrost</strong>.',
+              '<strong>Vérifiée</strong> : Bifrost a confirmé la sélection publiée. <strong>Écarts trouvés</strong> : examinez les identifiants de modèles manquants ou inattendus et corrigez si besoin la sélection ou la configuration du gateway. <strong>Pas encore vérifiée</strong> : le total reste la sélection prévue ; utilisez <strong>Vérifier avec Bifrost</strong>.',
+            ),
+            t(
+              '<strong>Verified · 1 difference</strong> is also possible: a permission kept in Bifrost is not listed by Bifrost. Inspect that difference; the unlisted model never counts in the verified total.',
+              '<strong>Vérifiée · 1 écart</strong> reste possible : une permission conservée dans Bifrost n’est pas listée par Bifrost. Consultez cet écart ; le modèle non listé ne compte jamais dans le total vérifié.',
+            ),
+            t(
+              'Use <strong>Check again</strong> if you need to repeat the comparison. This check reads <code>/v1/models</code> with the key; it calls no model and therefore does not prove that inference will succeed.',
+              'Utilisez <strong>Vérifier à nouveau</strong> si vous devez relancer la comparaison. Ce contrôle lit <code>/v1/models</code> avec la clé ; il n’appelle aucun modèle et ne prouve donc pas qu’un appel d’inférence réussira.',
+            ),
+          ],
+        },
       ],
-      next: link(path('guides'), 'Return to documentation tasks', 'Revenir aux tâches documentaires'),
+      next: link(path('guides'), 'Find another guide', 'Trouver un autre guide'),
     },
   }
 }

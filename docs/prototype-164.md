@@ -48,3 +48,13 @@ Après comparaison, Sofian a choisi **B — Parcours** comme base de présentati
 ### Skill de rédaction — 16 octobre 2026
 
 `documentation-writer`, source `github/awesome-copilot`, installé et chargé pour OpenCode au niveau de ce projet/worktree, sans installation globale. L’entrée de `skills-lock.json` permet sa réinstallation ; les deux entrées préexistantes sont conservées. Le contenu installé sous `.agents/skills/documentation-writer/` reste ignoré par Git. Aucune réécriture de guide n’est lancée par cette installation ; le skill prévoit de faire valider une structure éditoriale avant la rédaction complète.
+
+## Reprise éditoriale — 16 octobre 2026
+
+Sofian a ensuite approuvé le cadre « #164 — Reprise éditoriale de la vitrine et des guides » par « Valider ce cadre ». Cette approbation porte sur la structure et la direction de rédaction, pas sur les textes complets. Le mandat couvre rédaction représentative FR/EN, consolidation du prototype, contrôles et spécification, sans réalisation finale, push, PR, fusion, déploiement ou accès gateway.
+
+Huit drafts Markdown ont été rédigés avec le skill GitHub, puis adaptés au prototype : accueil, index, installation et première clé, dans les deux langues. L’accueil B emploie `editorialCopy.ts` uniquement en développement ; A/C gardent leurs textes initiaux. Les guides B/C partagent la nouvelle rédaction ; la vue A conserve exactement les six corps Markdown d’origine. Le lecteur suit cinq étapes par procédure, les groupes restent facultatifs et les avertissements sont placés avant l’action concernée. La capture de clé accompagne sa sélection. Aucun nouveau modèle, libellé UI ou succès d’inférence n’est inventé.
+
+Contrôles de ce cycle : relectures documentaires indépendantes sans blocage ; build docs ; conservation des huit textes de pages de production et absence de la nouvelle copie dans leur JavaScript ; 72 rendus et navigation complète, FR/EN, clair/sombre, mobile/bureau ; liens/ancres et ressources vérifiés ; `make verify` terminé par `VERIFY PASSED`. Le déterminisme Models.dev reste omis faute de prérequis. Preuves et drafts locaux : `dist/checks/editorial-164/`. Aucun test de compréhension modéré ni installation réelle n’a été effectué.
+
+La [spécification commune](design/showcase-and-guides-spec.md) décrit la future intégration, notamment la conservation des anciennes ancres sans dépendre de `docView=A`, les guides Markdown et le retour d’un sommaire/recherche sur le contenu final. **Nouveaux textes et spécification restent proposés, à valider ; aucune réalisation finale n’est autorisée.** Les URL de comparaison et la commande de lancement restent inchangées.
