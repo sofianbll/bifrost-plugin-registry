@@ -9,8 +9,9 @@ test('the installation starts with the accepted new-test-instance procedure in s
   assert.match(html, /Install Registry on a test instance/)
   assert.match(html, /1\. Download the compatible files/)
   assert.match(html, /5\. Check loading and connection/)
-  const text = html.replace(/<[^>]*>/g, '')
-  assert.ok(text.indexOf('Already running a gateway? Stop here.') < text.indexOf('docker pull'))
+  const warning = html.indexOf('Already running a gateway? Stop here.')
+  const pull = html.search(/>docker<\/span><span\b[^>]*> pull<\/span>/)
+  assert.ok(warning >= 0 && pull >= 0 && warning < pull)
 })
 
 test('French installation offers the equivalent five-step static procedure', async () => {
@@ -39,10 +40,8 @@ test('all four guides retain every independently captured legacy target and uniq
     assert.equal(ids.length, new Set(ids).size, `${route}: no duplicate IDs`)
     for (const anchor of legacy[route]) assert.ok(ids.includes(anchor), `${route}#${anchor}`)
     assert.equal((html.match(/<h1\b/g) || []).length, 1, `${route}: one task heading`)
-    const steps = [...html.matchAll(/<h2\b[^>]*>([\s\S]*?)<\/h2>/g)]
-      .map((match) => match[1].replace(/<[^>]*>/g, ''))
-      .filter((text) => /^[1-5]\. /.test(text))
-    assert.equal(steps.length, 5, `${route}: five primary actions`)
+    const steps = [...html.matchAll(/<h2\b[^>]*>\s*([1-5])\. /g)].map((match) => Number(match[1]))
+    assert.deepEqual(steps, [1, 2, 3, 4, 5], `${route}: five primary actions in order`)
     assert.doesNotMatch(html, /docView=|[?&]variant=|DocsPrototype|ClientOnly/)
   }
 })
