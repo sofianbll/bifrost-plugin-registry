@@ -8,8 +8,23 @@ export default defineConfig({
   head: [['link', { rel: 'icon', type: 'image/svg+xml', href: '/bifrost-plugin-registry/branding/registry/registry-icon.svg' }]],
   // Internal records stay on GitHub; only the user and operator guides are published.
   srcExclude: ['adr/**', 'design/**', 'reviews/**', 'archive/**', 'agents/**', 'research/**', 'images/README.md', 'SOURCES.md'],
-  // README.md is the docs index on GitHub and the home page here.
-  rewrites: { 'README.md': 'index.md', 'fr/README.md': 'fr/index.md' },
+  // Keep GitHub-readable task indexes separate from the product homepages.
+  rewrites: { 'README.md': 'guides.md', 'fr/README.md': 'fr/guides.md' },
+  markdown: {
+    config(md) {
+      // Source links remain readable on GitHub; VitePress needs the rewritten filenames.
+      md.core.ruler.after('inline', 'guide-index-links', (state) => {
+        for (const token of state.tokens) {
+          for (const child of token.children || []) {
+            const href = child.tag === 'a' && child.attrGet('href')
+            if (href && !/^(?:\w+:|\/\/)/.test(href)) {
+              child.attrSet('href', href.replace(/(^|\/)README\.md(?=[#?]|$)/, '$1guides.md'))
+            }
+          }
+        }
+      })
+    },
+  },
   themeConfig: {
     // Crop transparent SVG margins without redrawing the existing identity.
     logo: {
@@ -53,33 +68,38 @@ export default defineConfig({
       lang: 'en',
       description: 'Per-key model access for Bifrost virtual keys.',
       themeConfig: {
+        nav: [{ text: 'Home', link: '/' }, { text: 'Guides', link: '/guides' }],
         sidebar: [
           {
             text: 'Get started',
             items: [
-              { text: 'Overview', link: '/' },
+              { text: 'Guides', link: '/guides' },
               { text: 'Install', link: '/INSTALL' },
-              { text: 'Troubleshooting', link: '/TROUBLESHOOTING' },
+              { text: 'Choose models for an application', link: '/USER-GUIDE' },
             ],
           },
           {
-            text: 'Use Registry',
+            text: 'Manage access',
             items: [
-              { text: 'User guide', link: '/USER-GUIDE' },
-              { text: 'Configuration', link: '/CONFIGURATION' },
+              { text: 'Register a model', link: '/USER-GUIDE#_1-register-a-model' },
+              { text: 'Groups and existing keys', link: '/USER-GUIDE#_3-compose-groups-and-keys' },
+            ],
+          },
+          {
+            text: 'Operate and troubleshoot',
+            items: [
+              { text: 'Backup and version changes', link: '/INSTALL#upgrade-and-rollback' },
+              { text: 'Recover activation', link: '/INSTALL#recover-activation-after-disabling' },
+              { text: 'Troubleshooting', link: '/TROUBLESHOOTING' },
               { text: 'Security and trust boundaries', link: '/SECURITY' },
             ],
           },
           {
-            text: 'Operate and build',
+            text: 'Reference',
             items: [
+              { text: 'Configuration', link: '/CONFIGURATION' },
               { text: 'Native build (French only)', link: '/BUILD' },
               { text: 'Deployment acceptance (French only)', link: '/ACCEPTANCE' },
-            ],
-          },
-          {
-            text: 'Project',
-            items: [
               { text: 'Status', link: `${repo}/blob/main/STATUS.md` },
             ],
           },
@@ -92,33 +112,38 @@ export default defineConfig({
       link: '/fr/',
       description: 'Accès aux modèles par clé pour les clés virtuelles Bifrost.',
       themeConfig: {
+        nav: [{ text: 'Accueil', link: '/fr/' }, { text: 'Guides', link: '/fr/guides' }],
         sidebar: [
           {
             text: 'Démarrer',
             items: [
-              { text: 'Vue d’ensemble', link: '/fr/' },
+              { text: 'Guides', link: '/fr/guides' },
               { text: 'Installation', link: '/fr/INSTALL' },
-              { text: 'Dépannage', link: '/fr/TROUBLESHOOTING' },
+              { text: 'Choisir les modèles d’une application', link: '/fr/USER-GUIDE' },
             ],
           },
           {
-            text: 'Utiliser Registry',
+            text: 'Gérer les accès',
             items: [
-              { text: 'Guide utilisateur', link: '/fr/USER-GUIDE' },
-              { text: 'Configuration', link: '/fr/CONFIGURATION' },
+              { text: 'Enregistrer un modèle', link: '/fr/USER-GUIDE#_1-enregistrer-un-modele' },
+              { text: 'Groupes et clés existantes', link: '/fr/USER-GUIDE#_3-composer-des-groupes-et-des-cles' },
+            ],
+          },
+          {
+            text: 'Exploiter et dépanner',
+            items: [
+              { text: 'Sauvegarde et changement de version', link: '/fr/INSTALL#mettre-a-jour-et-revenir-en-arriere' },
+              { text: 'Récupérer l’activation', link: '/fr/INSTALL#recuperer-l-activation-apres-desactivation' },
+              { text: 'Dépannage', link: '/fr/TROUBLESHOOTING' },
               { text: 'Sécurité et frontière de confiance', link: '/fr/SECURITY' },
             ],
           },
           {
-            text: 'Exploiter et compiler',
+            text: 'Référence',
             items: [
+              { text: 'Configuration', link: '/fr/CONFIGURATION' },
               { text: 'Compilation native', link: '/BUILD' },
               { text: 'Acceptation du déploiement', link: '/ACCEPTANCE' },
-            ],
-          },
-          {
-            text: 'Projet',
-            items: [
               { text: 'État du projet (anglais)', link: `${repo}/blob/main/STATUS.md` },
             ],
           },

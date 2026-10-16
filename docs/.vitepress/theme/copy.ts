@@ -1,0 +1,48 @@
+export const copy = {
+  en: {
+    title: 'Organize your models and choose which ones each Bifrost key lists.',
+    intro: 'Registry brings your model cards together and helps you choose models for each application. Then compare its key’s published selection with the list returned by Bifrost.',
+    independent: 'Independent project, not affiliated with Maxim/Bifrost.',
+    install: 'Install Registry', docs: 'Read the guides',
+    featuresTitle: 'From the catalogue to each application’s models',
+    features: [
+      { title: 'Organize your models', text: 'Bring information from Bifrost and Models.dev into your model cards, alongside their provider accesses and your own corrections.' },
+      { title: 'Choose models for each key', text: 'Add models individually or reuse groups, then review the changes before publishing.' },
+      { title: 'Check the list with Bifrost', text: 'Compare the published selection with the models Bifrost lists for the key at the time of the check, and spot any differences.' },
+    ],
+    catalogue: { title: 'Find your models and provider accesses', text: 'See model cards, their characteristics and their associated provider accesses; use the filters to find the models you need.', alt: 'Registry catalogue grid showing model cards, characteristics and providers.' },
+    key: { title: 'Prepare an application’s selection', text: 'See the chosen models and their provider accesses in the key’s selection; optional groups let you reuse the same choices across several keys.', alt: 'Registry key selection showing shared groups and individual models.' },
+    caption: 'Example screenshot with fictional data.', full: 'Open full-size screenshot',
+    limitsTitle: 'Before you install',
+    limits: [
+      'A verified list confirms what Bifrost lists at that moment, not whether a model call will succeed.',
+      'Keys, permissions and secrets stay in Bifrost; Registry stores no secrets and relays no inference requests.',
+      'You need a Bifrost image that supports dynamic loading and a matching plugin file, installed separately; the official static image is not a substitute.',
+    ],
+    linksTitle: 'Installing and using Registry',
+    links: ['Installation', 'User guide', 'Security', 'Release status and limits'],
+  },
+  fr: {
+    title: 'Organisez vos modèles et choisissez ceux de chaque clé Bifrost.',
+    intro: 'Registry réunit vos fiches modèles et vous aide à choisir les modèles de chaque application. Comparez ensuite la sélection publiée de sa clé à la liste renvoyée par Bifrost.',
+    independent: 'Projet indépendant, non affilié à Maxim/Bifrost.',
+    install: 'Installer Registry', docs: 'Lire les guides',
+    featuresTitle: 'Du catalogue aux modèles de chaque application',
+    features: [
+      { title: 'Organisez vos modèles', text: 'Rassemblez les informations de Bifrost et de Models.dev dans vos fiches modèles, avec leurs accès fournisseurs et vos propres corrections.' },
+      { title: 'Choisissez les modèles de chaque clé', text: 'Ajoutez des modèles individuellement ou réutilisez des groupes, puis relisez les changements avant de publier.' },
+      { title: 'Vérifiez la liste avec Bifrost', text: 'Comparez la sélection publiée aux modèles que Bifrost liste pour la clé au moment du contrôle, et repérez les écarts.' },
+    ],
+    catalogue: { title: 'Retrouvez vos modèles et leurs accès', text: 'Repérez les fiches modèles, leurs caractéristiques et les accès fournisseurs associés ; les filtres vous aident à retrouver les modèles qui vous intéressent.', alt: 'Catalogue Registry en grille : fiches modèles, caractéristiques et fournisseurs.' },
+    key: { title: 'Préparez la sélection d’une application', text: 'Repérez les modèles retenus et leurs accès fournisseurs dans la sélection de la clé ; les groupes sont facultatifs et permettent de réutiliser les mêmes choix pour plusieurs clés.', alt: 'Sélection d’une clé Registry : groupes partagés et modèles individuels.' },
+    caption: 'Capture d’exemple, données fictives.', full: 'Ouvrir la capture en grand',
+    limitsTitle: 'À savoir avant d’installer',
+    limits: [
+      'Une liste vérifiée confirme ce que Bifrost liste à cet instant, pas qu’un appel de modèle réussira.',
+      'Les clés, permissions et secrets restent dans Bifrost ; Registry ne stocke aucun secret et ne relaie aucune inférence.',
+      'Il faut une image Bifrost compatible avec le chargement dynamique et un fichier du plugin préparé pour elle, installé séparément ; l’image officielle statique ne la remplace pas.',
+    ],
+    linksTitle: 'Pour installer et utiliser Registry',
+    links: ['Installation', 'Guide utilisateur', 'Sécurité', 'État et limites de la version publiée'],
+  },
+}
