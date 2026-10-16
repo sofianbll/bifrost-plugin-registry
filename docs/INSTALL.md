@@ -1,8 +1,89 @@
-# Install Registry
+# Install Registry on a test instance
+
+<a id="install-registry"></a>
 
 English · [Français](fr/INSTALL.md)
 
-Registry is installed as **two separate artifacts**: a Bifrost gateway image compiled with dynamic loading (it contains no plugin), and the Registry plugin, a `.so` file with its interface embedded. Both must come from the same build: same architecture, Go toolchain, dependency versions and libc. Starting the image does not install the plugin. Use a staging instance before migrating an existing deployment.
+Start a new Bifrost instance, load Registry and open its panel connected to the gateway.
+
+## Before you start
+
+Use a Linux AMD64 or ARM64 host with Docker and writable persistent storage. Prepare your Bifrost admin and provider configuration with dashboard authentication enabled.
+
+You need two components: the compatible dynamic Bifrost image and the Registry `.so` plugin. The image contains no plugin; the official static image cannot load it.
+
+**Already running a gateway? Stop here.** Prepare a separate test instance and back up the complete volume with the gateway stopped, including SQLite and WAL files. Never allow two processes to write to that volume at the same time. An in-place upgrade is not established as compatible. Read the [migration limits and coordinated restore procedure](#upgrade-and-rollback).
+
+## 1. Download the compatible files
+
+<a id="_1-download-and-verify"></a>
+
+Use Registry v0.4.0 with unmodified Bifrost 2.3.0, Go 1.27.1 and Alpine 3.23 (musl). Image and plugin must match exactly: architecture, Go toolchain, dependency versions, OS and libc. Choose the plugin for your host below.
+
+Download the plugin and [SHA256SUMS](https://github.com/sofianbll/bifrost-plugin-registry/releases/download/v0.4.0/SHA256SUMS) into the same directory. Run the checksum command there and check that your plugin reports OK; files you did not download are skipped. Then pull the pinned image below. Docker selects the host architecture.
+
+| Linux host | Registry v0.4.0 · Bifrost 2.3.0 |
+| --- | --- |
+| AMD64 (x86_64) | [bifrost-registry-v0.4.0-linux-amd64.so](https://github.com/sofianbll/bifrost-plugin-registry/releases/download/v0.4.0/bifrost-registry-v0.4.0-linux-amd64.so) |
+| ARM64 | [bifrost-registry-v0.4.0-linux-arm64.so](https://github.com/sofianbll/bifrost-plugin-registry/releases/download/v0.4.0/bifrost-registry-v0.4.0-linux-arm64.so) |
+
+```bash
+sha256sum -c --ignore-missing SHA256SUMS
+
+docker pull ghcr.io/sofianbll/bifrost-dynamic@sha256:29e026ab80de357938e3e6df5ac1c3c54c3f6877f4daa2c859e980140fdbbaa0
+```
+
+**Expected:** The downloaded plugin reports OK and Docker has pulled the image.
+
+## 2. Prepare the credentials
+
+Create a secret of at least 32 characters for `REGISTRY_ADMIN_TOKEN`. You will enter it to open the Registry panel.
+
+Set `REGISTRY_BIFROST_AUTH` to the complete `Authorization` header matching your Bifrost admin authentication, including its scheme (for example `Basic <base64(username:password)>`, with your own credentials). The plugin uses it to reach the native admin API; it is not an application key.
+
+Keep both values in a secret manager or private environment file, never in committed JSON or logs. Make them available in the environment of the shell that will start Docker: the next command passes these two variables into the container.
+
+## 3. Start Bifrost
+
+<a id="_2-get-the-image-and-start-the-gateway"></a>
+
+Replace `<image reference>` below with the full pinned image reference from step 1. Adapt the container name, ports and volume to your test instance; keep the normal image entrypoint and writable persistent storage at `/app/data`.
+
+Bifrost uses port `8080`. The mapping `127.0.0.1:8099:8099` exposes the future Registry panel only on host loopback. Inside the container, its listener must be `0.0.0.0:8099`, as configured in step 4. Starting this image does not install Registry.
+
+```bash
+docker run -d --name bifrost \
+  -p 8080:8080 -p 127.0.0.1:8099:8099 \
+  -v bifrost-data:/app/data \
+  -e REGISTRY_ADMIN_TOKEN -e REGISTRY_BIFROST_AUTH \
+  <image reference>
+```
+
+## 4. Install the Registry plugin
+
+<a id="_3-install-the-plugin-by-url"></a>
+
+Open the native Bifrost plugin settings and the [plugin configuration fragment](https://github.com/sofianbll/bifrost-plugin-registry/blob/main/configs/plugin.fragment.json). Merge that entry into your configuration without replacing the existing settings. Set `path` to the direct URL of your architecture’s `.so` in step 1, not the release-page URL.
+
+Keep `name: "bifrost-registry"`, `enabled: true`, `placement: "post_builtin"` and `order: 0`. In `config`, keep `registry_path: "/app/data/registry/registry.json"`, `admin_listen: "0.0.0.0:8099"`, `admin_token_env: "REGISTRY_ADMIN_TOKEN"`, `bifrost_auth_env: "REGISTRY_BIFROST_AUTH"` and `bifrost_url: "http://127.0.0.1:8080"` for this shared-container setup.
+
+Save the entry. Bifrost downloads the URL at installation and on every start: keep that versioned file available with the same bytes. Registry creates its data file if missing and includes its own interface; no frontend mount is needed.
+
+## 5. Check loading and connection
+
+<a id="verify"></a>
+
+Using authenticated Bifrost administration, check that Registry is `active` in `GET /api/plugins` and also present in `GET /api/plugins/loaded`. Both checks are required.
+
+Open `http://127.0.0.1:8099/model-registry` and enter the **value** of the token you set in `REGISTRY_ADMIN_TOKEN`, not the variable name. The token stays in tab memory; enter it again after a reload. Then query `GET http://127.0.0.1:8099/api/status` with that token as a Bearer token and check for `bifrost_connected: true`; `version` identifies the installed release.
+
+If loading fails or the panel cannot connect, [find the matching error in troubleshooting](TROUBLESHOOTING.md). Once connected, [choose models for an application](USER-GUIDE.md) to publish a test selection and check the list Bifrost returns. Existing native keys remain unmanaged until explicitly adopted; adoption cannot expand their native permissions.
+
+**Expected:** The plugin is active and loaded, the panel opens, and status reports `bifrost_connected: true`.
+
+## Other cases and reference
+
+The following sections retain earlier files, alternative installation modes, recovery and qualification details. [Find another guide](README.md).
 
 **Current stable release:** [v0.4.0](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.4.0), published October 16, 2026 from Registry `ba59b878f824f04e54bdd5e9760352c2727ea245`, pairs unmodified Bifrost 2.3.0 (`transports/v2.3.0`, commit `9237ec06672406e437b3cb33fc793ffd0403b3ae`) with Go 1.27.1 and Alpine 3.23. [The release run](https://github.com/sofianbll/bifrost-plugin-registry/actions/runs/38887602494) natively qualified both architectures and built, started and probed each image with the URL-installed separate plugin before pushing it (container recreation, synthetic provider, no inference). v0.3.0 stays published for Bifrost 2.2.6; never install its plugins on a 2.3 gateway.
 
@@ -42,28 +123,13 @@ Pick the row for your host.
 
 ## Mode A: image and plugin URL
 
-### 1. Download and verify
+The five-step procedure above is Mode A for the current release. Use [step 1](#_1-download-and-verify) for downloads, [step 3](#_2-get-the-image-and-start-the-gateway) for startup and [step 4](#_3-install-the-plugin-by-url) for installation. Keep existing Bifrost providers, keys, budgets and routing when preparing a separate test copy.
 
-Download the `.so` for your host from the table, plus `SHA256SUMS`, into one folder, then check it:
-
-```bash
-sha256sum -c --ignore-missing SHA256SUMS
-```
-
-`SHA256SUMS` lists every asset of the release; `--ignore-missing` skips the ones you did not download. On macOS, `shasum -a 256 <file>` gives the checksum to compare by hand.
+On macOS, `shasum -a 256 <file>` gives the checksum to compare by hand.
 
 For v0.3.0-rc.4 and v0.2.0-rc.1, also download the image archive from the table and check it the same way.
 
-### 2. Get the image and start the gateway
-
-For v0.4.0 the gateway image (no plugin) is a multi-arch image on GHCR: Docker picks `linux/amd64` or `linux/arm64` for your host. Pin the published digest below; convenience tags `2.3.0` and `2.3.0-go1.27.1` currently point to it but can move.
-
-```bash
-# pinned
-docker pull ghcr.io/sofianbll/bifrost-dynamic@sha256:29e026ab80de357938e3e6df5ac1c3c54c3f6877f4daa2c859e980140fdbbaa0
-# convenient
-docker pull ghcr.io/sofianbll/bifrost-dynamic:2.3.0
-```
+Convenience tags `2.3.0` and `2.3.0-go1.27.1` currently point to the digest in step 1 but can move; pin the digest instead.
 
 For previous stable v0.3.0 / Bifrost 2.2.6, pin `ghcr.io/sofianbll/bifrost-dynamic@sha256:849fe441be5215a3c4783a9fcdd9989dde1f3c8c201dc6b4c140060880f07a66`; tag `2.2.6` still points to it, not to the 2.3.0 image.
 
@@ -75,23 +141,7 @@ For v0.3.0-rc.4 and v0.2.0-rc.1, load the archive instead:
 docker load -i <image archive>   # prints the loaded image tag
 ```
 
-Keep the existing Bifrost providers, keys, budgets and routing. Use the image's normal entrypoint and a **writable, persistent** volume mounted at `/app/data`. Before replacing the image of an existing gateway, stop it and back up the **complete** volume, including the SQLite and WAL files. Never run two writers against that volume.
-
-For a new gateway, configure native Bifrost administration and providers first. Supply the two [credentials](#credentials-and-plugin-settings) through your secret manager or a private environment file, then start the container. This command is illustrative; adapt ports, volume and hardening to your environment:
-
-```bash
-docker run -d --name bifrost \
-  -p 8080:8080 -p 127.0.0.1:8099:8099 \
-  -v bifrost-data:/app/data \
-  -e REGISTRY_ADMIN_TOKEN -e REGISTRY_BIFROST_AUTH \
-  <image reference>
-```
-
-The gateway's usual port is `8080`. Publish the Registry port `8099` only on host loopback, as above. Inside the container, `admin_listen` must be `0.0.0.0:8099` for that mapping to work.
-
-### 3. Install the plugin by URL
-
-Add the plugin through Bifrost's native plugin settings or `POST /api/plugins`, using the plugin URL built from the table. Merge the [plugin fragment](https://github.com/sofianbll/bifrost-plugin-registry/blob/main/configs/plugin.fragment.json) into the existing configuration, replacing its placeholder `path` with that URL, and keep the [plugin settings](#credentials-and-plugin-settings) below. Bifrost downloads the saved URL at installation and at every start, so keep the bytes of that version available at that URL.
+For API installation, use `POST /api/plugins` with the same merged fragment and [plugin settings](#credentials-and-plugin-settings) as step 4. Keep the bytes of that version available at its saved URL for every start.
 
 If the download fails with a temporary-file permission error, see [Troubleshooting](TROUBLESHOOTING.md).
 
@@ -127,11 +177,7 @@ In the plugin entry keep:
 
 The plugin initializes a missing Registry file. Its UI assets are embedded; no separate frontend mount is needed.
 
-## Verify
-
-Open **http://127.0.0.1:8099/model-registry** and enter the Registry admin token. It stays in tab memory and must be entered again after reloading. The interface of v0.4.0, v0.3.0 and v0.3.0-rc.4 through rc.8 starts in English; French is one toggle or `?lang=fr` away. v0.2.0-rc.1, installed by the older rows, starts French-first.
-
-Verify the plugin is `active` in `GET /api/plugins` and present in `GET /api/plugins/loaded`. Publish a small test catalog and read back `/v1/models` with a dedicated virtual key. Existing native keys remain unmanaged until explicitly adopted; adoption cannot expand their native permissions. From v0.3.0, `GET http://127.0.0.1:8099/api/status` with the Registry admin token as a Bearer token returns the installed release as `version`, and `bifrost_connected: true` once Registry reaches Bifrost.
+The interface of v0.4.0, v0.3.0 and v0.3.0-rc.4 through rc.8 starts in English; French is one toggle or `?lang=fr` away. v0.2.0-rc.1, installed by the older rows, starts French-first. The release version in `/api/status` is available from v0.3.0.
 
 ## Recover activation after disabling
 
