@@ -145,12 +145,12 @@ jobs:
         with:
           ref: ${{ needs.meta.outputs.target }}
           persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '22.23.1'
       # License notices only read package.json and license files: no install scripts, and the pair is not on disk yet.
       - run: npm --prefix ui ci --ignore-scripts
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: pair-linux-${{ matrix.arch }}*
           path: ${{ runner.temp }}/pair
@@ -213,12 +213,12 @@ jobs:
           [[ -n $PROBED && $pushed == "$PROBED" ]] || { echo "::error::pushed linux/$ARCH manifest $pushed is not the probed $PROBED"; exit 1; }
           mkdir "$RUNNER_TEMP/digest" && touch "$RUNNER_TEMP/digest/${DIGEST#sha256:}"
       - if: inputs.dry_run != true
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: digest-linux-${{ matrix.arch }}
           path: ${{ runner.temp }}/digest/*
           if-no-files-found: error
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: package-linux-${{ matrix.arch }}
           path: |
@@ -241,7 +241,7 @@ jobs:
     outputs:
       digest: ${{ steps.index.outputs.digest }}
     steps:
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: digest-linux-*
           merge-multiple: true
@@ -287,11 +287,11 @@ jobs:
       TARGET: ${{ needs.meta.outputs.target }}
       DIGEST: ${{ needs.merge.outputs.digest }}
     steps:
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: package-linux-*
           path: ${{ runner.temp }}/in
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: reports-linux-*
           path: ${{ runner.temp }}/in
@@ -309,7 +309,7 @@ jobs:
           jq -s --arg image "${DIGEST:+$IMAGE@$DIGEST}" '{image: $image, platforms: .}' package-linux-*/manifest.json > ../assets/manifest.json
           # shellcheck disable=SC2035 # the assets directory is ours: no file name starts with a dash
           cd ../assets && sha256sum * > SHA256SUMS
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-assets
           path: ${{ runner.temp }}/assets
