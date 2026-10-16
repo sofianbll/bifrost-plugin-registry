@@ -4,6 +4,12 @@ Catalogue de modèles et sélections réutilisables pour construire la liste de 
 
 ## Language
 
+**Accueil vitrine** :
+Présentation publique de Registry destinée à un opérateur Bifrost qui découvre le projet, ses usages et ses limites. Elle se distingue du panneau d'administration et du catalogue publié d'une clé.
+
+**Documentation Registry** :
+Ensemble des guides destinés à installer, utiliser et exploiter Registry. Son index oriente vers ces guides ; il se distingue de l'accueil vitrine.
+
 **Catalogue central** :
 Référence commune des fiches modèles, de leurs accès et des métadonnées retenues après rapprochement des sources. Les vues, l'API et les exports consultent ce même catalogue ; les droits et secrets des clés restent gérés par Bifrost.
 _Avoid_ : catalogue publié, liste des modèles autorisés
