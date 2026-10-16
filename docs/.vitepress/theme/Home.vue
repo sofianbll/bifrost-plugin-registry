@@ -30,9 +30,11 @@ const links = computed(() => [page('INSTALL'), page('USER-GUIDE'), page('SECURIT
       <p class="home-independent">{{ text.independent }}</p>
     </header>
     <template v-for="(shot, index) in shots" :key="shot.src">
-      <section class="home-shot">
-        <h2>{{ shot.title }}</h2>
-        <p>{{ shot.text }}</p>
+      <section class="home-shot" :class="{ 'home-shot-primary': index === 0 }">
+        <div class="home-shot-text">
+          <h2>{{ shot.title }}</h2>
+          <p>{{ shot.text }}</p>
+        </div>
         <figure>
           <a :href="shot.src" :aria-label="`${text.full}: ${shot.title}`"><img :src="shot.src" :alt="shot.alt" :loading="index === 0 ? 'eager' : 'lazy'" width="1440" height="900" /></a>
           <figcaption>{{ text.caption }}</figcaption>
