@@ -4,6 +4,8 @@
 
 Registry s'installe en **deux artefacts séparés** : une image de gateway Bifrost compilée avec chargement dynamique (elle ne contient aucun plugin) et le plugin Registry, un fichier `.so` qui embarque son interface. Les deux doivent provenir de la même compilation : même architecture, chaîne Go, versions de dépendances et libc. Démarrer l'image n'installe pas le plugin. Utilisez une instance de staging avant de migrer un déploiement existant.
 
+**Candidat source, pas une release :** `bifrost.pin` cible désormais Bifrost 2.3.0 non modifié (`transports/v2.3.0`, commit `9237ec06672406e437b3cb33fc793ffd0403b3ae`), avec Go 1.27.1 et Alpine 3.23 inchangés. [Le checkpoint public consigne la qualification native AMD64/ARM64 de b73 exact et ses limites](https://github.com/sofianbll/bifrost-plugin-registry/issues/109#issuecomment-6203460908), pas celle des commits suivants ou d'une image distribuée. Les fichiers publiés v0.3.0 et les exemples ci-dessous restent destinés à Bifrost 2.2.6 ; n'installez pas ces plugins sur un gateway 2.3.
+
 ## Quels fichiers pour quel hôte
 
 Choisissez la ligne de votre hôte.
@@ -95,6 +97,8 @@ Si le téléchargement échoue avec une erreur de permission sur un fichier temp
 2. Rendez-le accessible au gateway soit par **chemin de fichier local** (`path: "/plugins/bifrost-registry.so"` dans l'entrée plugin, fichier lisible par le processus Bifrost) soit par **URL http(s)** (Bifrost le télécharge au démarrage).
 3. Fusionnez le [fragment de configuration](https://github.com/sofianbll/bifrost-plugin-registry/blob/main/configs/plugin.fragment.json) avec ce `path` et la [configuration du plugin](#identifiants-et-configuration-du-plugin) ci-dessous, depuis l'interface native Bifrost ou `POST /api/plugins`.
 
+Pour le **candidat source 2.3.0**, une installation locale initiale peut conserver le même nom de fichier immuable et versionné pour récupérer par **désactiver → redémarrer → activer**. Gardez les octets du `.so` de la paire exacte lisibles à ce chemin absolu dans le conteneur entre les redémarrages, de préférence sur un montage en lecture seule. Cela ne qualifie pas la réactivation locale à chaud. L'installation initiale par URL reste prise en charge, mais sa récupération exige la [transition explicite URL→local](#recuperer-l-activation-apres-desactivation) ci-dessous.
+
 ## Identifiants et configuration du plugin
 
 Les deux modes utilisent deux secrets distincts, fournis comme valeurs d'environnement (jamais dans le JSON versionné ni dans les logs) :
@@ -123,9 +127,30 @@ Ouvrez **http://127.0.0.1:8099/model-registry** et saisissez le jeton d'administ
 
 Vérifiez que le plugin est `active` dans `GET /api/plugins` et présent dans `GET /api/plugins/loaded`. Publiez un petit catalogue de test et relisez `/v1/models` avec une clé virtuelle dédiée. Les clés natives préexistantes restent non gérées jusqu'à adoption explicite ; l'adoption n'élargit pas leurs droits natifs. À partir de v0.3.0, `GET http://127.0.0.1:8099/api/status`, avec le jeton d'administration Registry en jeton Bearer, renvoie la release installée dans `version`, et `bifrost_connected: true` dès que Registry joint Bifrost.
 
+## Récupérer l'activation après désactivation
+
+La réactivation à chaud d'un `.so` Go déjà chargé n'est pas prise en charge (`HTTP 500`, `plugin already loaded`) ; le panneau Registry reste fermé après l'échec.
+
+- **v0.3.0 publiée / Bifrost 2.2.6 :** l'échec conserve la ligne sauvegardée `enabled:true`. Redémarrez le gateway pour recharger le plugin.
+- **Candidat source Bifrost 2.3.0 :** l'échec d'activation par URL restaure la ligne précédente, `enabled:false`. Le redémarrage seul le laisse désactivé. Réactiver l'URL inchangée après redémarrage échoue aussi : la vérification au démarrage désactivé a déjà ouvert le module Go, et l'activation par URL le retélécharge sous un autre nom temporaire (`plugin already loaded`). Ne répétez pas les tentatives et ne traitez pas un 500 comme un succès.
+
+**Récupération du candidat 2.3 installé par URL — passage explicite en mode local :**
+
+1. Préparez une copie locale des **mêmes octets du plugin compatible**, vérifiés contre le SHA-256 de l'artefact installé, sous un nouveau nom de fichier versionné et persistant. Le `path` est absolu **dans le conteneur du gateway**, pas sur l'hôte Docker. Par exemple, utilisez `/app/data/registry/plugins/sha256-<empreinte vérifiée>/bifrost-registry.so` sur le volume persistant existant, ou un fichier versionné monté en lecture seule sous `/plugins/`. Gardez le fichier lisible et si possible en lecture seule ; le répertoire de données reste inscriptible pour les sauvegardes Registry. N'écrasez jamais un `.so` déjà chargé.
+2. Désactivez depuis les réglages plugin natifs ou `PUT /api/plugins/bifrost-registry`. Un échec d'activation par URL antérieur doit laisser `enabled:false` et le panneau fermé.
+3. **Avant de redémarrer**, enregistrez le `path` local avec `enabled:false` depuis l'API/les réglages natifs, sans changer les autres réglages du plugin. Relisez le flag désactivé, le chemin local exact et les réglages dans `GET /api/plugins` ; confirmez l'absence dans `GET /api/plugins/loaded` et le panneau fermé. N'activez pas la copie locale dans l'ancien processus.
+4. Arrêtez complètement le processus gateway et attendez sa fin, puis redémarrez avec le même fichier/montage au même nom. Confirmez la ligne sauvegardée désactivée/locale, l'absence dans la liste chargée et le panneau fermé.
+5. Activez ce **même chemin local** depuis les réglages/PUT natifs. Exigez HTTP 200, puis effectuez les vérifications ci-dessous. Pour une installation initialement locale, gardez son chemin vérifié existant et suivez désactiver → arrêter/redémarrer → activer ; aucune transition URL→local n'est nécessaire.
+
+Le mode d'installation sauvegardé devient durablement local : Bifrost ne télécharge plus l'ancienne URL du plugin au démarrage. L'opérateur conserve le fichier immuable et son montage persistant ; ne rétablissez pas silencieusement le mode URL. Aucune édition directe de base ni suppression/recréation du plugin ne fait partie de la récupération.
+
+Après récupération, vérifiez `enabled:true`, le statut `active` et le **chemin** sauvegardé dans `GET /api/plugins`, la présence dans `GET /api/plugins/loaded`, le panneau, les modèles/groupes/politiques de clés conservés et la relecture `/v1/models` inchangée de la clé témoin. La récupération utilise les mêmes octets, pas un nouvel artefact, une mise à niveau du gateway, une migration de volume ou un retour arrière qualifié ; elle ne doit pas élargir les permissions natives. [Les preuves du checkpoint public 2.3](https://github.com/sofianbll/bifrost-plugin-registry/issues/109#issuecomment-6203460908) sont bornées à ses paires exactes, pas une garantie générale de compatibilité.
+
 ## Mettre à jour et revenir en arrière
 
-Arrêtez le gateway et sauvegardez **tout** `/app/data` avant une mise à jour. Enregistrez l'URL du nouveau `.so` compatible et redémarrez le gateway : Bifrost retélécharge l'URL sauvegardée au démarrage. Désactiver puis réactiver un plugin Go sans redémarrage n'est pas un chemin de mise à jour pris en charge (`plugin already loaded`). Vérifiez de nouveau le chargement, les données conservées et la clé témoin.
+Arrêtez le gateway et sauvegardez **tout** `/app/data` avant une mise à jour. Pour v0.3.0 publiée / Bifrost 2.2.6, enregistrez l'URL du nouveau `.so` compatible et redémarrez le gateway : Bifrost retélécharge l'URL sauvegardée au démarrage. Désactiver puis réactiver un plugin Go sans redémarrage n'est pas un chemin de mise à jour pris en charge (`plugin already loaded`). Vérifiez de nouveau le chargement, les données conservées et la clé témoin.
+
+Pour le candidat source 2.3.0, la récupération ci-dessus vérifie seulement les **mêmes octets existants**, pas une mise à jour vers de nouveaux octets ou un autre gateway. Un nouveau plugin exige son propre fichier versionné compatible, son empreinte et une qualification de mise à jour ; ne remplacez jamais un fichier chargé en place. Une mise à jour à chaud échouée restaure la ligne précédente, chemin compris : ne supposez pas la nouvelle URL ou le nouveau chemin local enregistré. Relisez-le. Les assets publiés v0.3.0 ne constituent pas une paire de mise à jour 2.3. Une mise à niveau du gateway peut migrer la base Bifrost ; la récupération d'activation ne qualifie pas à elle seule cette migration ou son retour arrière.
 
 Les données Registry écrites avant v0.3 n'ont pas de sélection d'accès par clé. À partir de v0.3.0, quand un modèle d'une clé est proposé par plusieurs accès fournisseurs, le plugin se charge mais retire ce modèle du catalogue de la clé : le journal du gateway affiche `bifrost-registry: warning: policy <clé>: model <alias> has N accesses and no access_selection`, et le panneau marque la clé **Choix d'accès requis**. Ouvrez la clé, décochez dans la liste Accès du modèle ceux qu'elle ne doit pas utiliser, puis publiez.
 
@@ -134,5 +159,7 @@ Pour revenir en arrière, arrêtez le gateway, restaurez **l'intégralité** de 
 ## Qualification et limites
 
 v0.3.0 a été qualifiée nativement sur Linux AMD64 et ARM64 contre Bifrost 2.2.6 avec des fournisseurs synthétiques ; résultats des suites, sondes de distribution, empreintes et provenance figurent dans [STATUS](https://github.com/sofianbll/bifrost-plugin-registry/blob/main/STATUS.md) et l'[exécution de release](https://github.com/sofianbll/bifrost-plugin-registry/actions/runs/38761865725). Le `npm ci` de l'interface upstream Bifrost a signalé 9 vulnérabilités (1 basse, 5 élevées, 3 critiques) durant les deux builds natifs ; cette interface est compilée en fichiers statiques, pas en serveur Node/Next. Aucun SBOM, traçage du bundle ou test d'exploitabilité n'a établi de chemin atteignable ni d'exploitation ; le risque résiduel est plausible mais non démontré. L'installation séparée de l'interface Registry a signalé 0 vulnérabilité. Ce n'est pas une garantie de sécurité ; aucune correction upstream n'est incluse. Le triage est suivi dans [#141](https://github.com/sofianbll/bifrost-plugin-registry/issues/141). L'image Bifrost officielle précompilée, l'inférence réelle, un déploiement en production et l'intégration native à la barre latérale ne sont pas qualifiés par ces contrôles.
+
+Pour le socle 2.3 distinct et non publié, [le checkpoint public consigne la qualification native exacte et l'assessment borné #141 terminé](https://github.com/sofianbll/bifrost-plugin-registry/issues/109#issuecomment-6203460908). L'assessment conclut que le candidat est acceptable pour le jeu d'advisories capturé sous limites explicites, pas universellement sûr ni accepté pour une release ou un rollout ; il ne corrige pas les constats historiques v0.3.0 ci-dessus.
 
 L'ancienne recette de montage binaire pour Bifrost 2.2.1 est conservée dans [l'archive historique](https://github.com/sofianbll/bifrost-plugin-registry/blob/main/docs/archive/installation-2.2.1.md).

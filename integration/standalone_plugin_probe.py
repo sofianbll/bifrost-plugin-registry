@@ -32,6 +32,78 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
         return None
 
 
+def plugin_state(native):
+    status, listed, _ = native('/api/plugins')
+    status_loaded, loaded, _ = native('/api/plugins/loaded')
+    rows = listed.get('plugins', []) if isinstance(listed, dict) else []
+    names = loaded.get('plugins', []) if isinstance(loaded, dict) else []
+    row = next((r for r in rows if r.get('name') == 'bifrost-registry'), None)
+    return status, status_loaded, row, names
+
+
+def probe_reactivation(expected_version, plugin_config, native,
+                        panel_closed, panel_ready, restart, check, recovery_path=None):
+    """Check URL activation recovery through gateway/panel APIs and a process restart."""
+    restores_disabled = expected_version == '2.3.0'
+    if restores_disabled:
+        check('recovery requires a stable absolute local plugin path',
+              isinstance(recovery_path, (str, Path)) and Path(recovery_path).is_absolute())
+    activation_config = plugin_config
+    status, _, _ = native('/api/plugins/bifrost-registry', 'PUT',
+                           {**plugin_config, 'enabled': False})
+    check('disable accepted', status == 200, status=status)
+    check('disable closes standalone server', panel_closed())
+    status, reactivation, _ = native('/api/plugins/bifrost-registry', 'PUT', plugin_config)
+    hot_supported = status == 200
+    if restores_disabled:
+        check('2.3 URL hot reactivation remains unsupported', not hot_supported)
+    if hot_supported:
+        check('hot URL reactivation reopens panel', panel_ready())
+    else:
+        message = reactivation.get('error', {}).get('message', '') if isinstance(reactivation, dict) else ''
+        check('known URL reload limitation reported clearly', status == 500
+              and 'plugin already loaded' in message, status=status,
+              error_class='plugin already loaded' if 'plugin already loaded' in message else 'other')
+        check('failed reactivation leaves panel closed', panel_closed())
+    api_status, loaded_status, row, names = plugin_state(native)
+    if restores_disabled:
+        check('failed reactivation restores disabled config', api_status == loaded_status == 200
+              and row is not None and row.get('enabled') is False
+              and row.get('path') == plugin_config['path'] and 'bifrost-registry' not in names)
+        activation_config = {**plugin_config, 'path': str(recovery_path)}
+        status, _, _ = native('/api/plugins/bifrost-registry', 'PUT',
+                               {**activation_config, 'enabled': False})
+        check('stable local path saved disabled before restart', status == 200, status=status,
+              path=str(recovery_path))
+        api_status, loaded_status, row, names = plugin_state(native)
+        check('disabled local path and settings read back before restart',
+              api_status == loaded_status == 200 and row is not None and row.get('enabled') is False
+              and all(row.get(field) == activation_config.get(field)
+                      for field in ('path', 'config', 'placement', 'order'))
+              and 'bifrost-registry' not in names and panel_closed())
+    else:
+        check('reactivation config remains enabled for restart', row is not None
+              and row.get('enabled') is True)
+    restart()
+    if restores_disabled:
+        api_status, loaded_status, row, names = plugin_state(native)
+        check('restart alone keeps local plugin disabled', api_status == loaded_status == 200
+              and row is not None and row.get('enabled') is False
+              and all(row.get(field) == activation_config.get(field)
+                      for field in ('path', 'config', 'placement', 'order'))
+              and 'bifrost-registry' not in names)
+        check('restart alone leaves panel closed', panel_closed())
+        status, _, _ = native('/api/plugins/bifrost-registry', 'PUT', activation_config)
+        check('fresh local enable after restart accepted', status == 200, status=status)
+    api_status, loaded_status, row, names = plugin_state(native)
+    check('plugin recovers after reactivation restart', api_status == loaded_status == 200
+          and row is not None and row.get('enabled') is True
+          and row.get('path') == activation_config['path']
+          and row.get('status', {}).get('status') == 'active'
+          and 'bifrost-registry' in names and panel_ready())
+    return hot_supported
+
+
 def main():
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
     parser = argparse.ArgumentParser(description=__doc__)
@@ -265,14 +337,6 @@ def main():
                     time.sleep(.2)
                 raise RuntimeError('gateway readiness timed out')
 
-            def plugin_state():
-                status, listed, _ = native('/api/plugins')
-                status_loaded, loaded, _ = native('/api/plugins/loaded')
-                rows = listed.get('plugins', []) if isinstance(listed, dict) else []
-                names = loaded.get('plugins', []) if isinstance(loaded, dict) else []
-                row = next((r for r in rows if r.get('name') == 'bifrost-registry'), None)
-                return status, status_loaded, row, names
-
             plugin_config = {'name': 'bifrost-registry', 'enabled': True, 'path': asset_url,
                              'placement': 'post_builtin', 'order': 0,
                              'config': {'registry_path': str(registry_file),
@@ -292,7 +356,7 @@ def main():
                 check('plugin installed from URL', status == 201, status=status)
                 check('URL downloaded completely', Asset.gets == 1 and Asset.bytes_sent == args.plugin.stat().st_size,
                       requests=Asset.gets)
-                api_status, loaded_status, row, names = plugin_state()
+                api_status, loaded_status, row, names = plugin_state(native)
                 check('plugin saved active and loaded', api_status == loaded_status == 200
                       and row is not None and row.get('enabled') is True
                       and row.get('status', {}).get('status') == 'active'
@@ -590,7 +654,7 @@ def main():
 
                 stop()
                 start()
-                api_status, loaded_status, row, names = plugin_state()
+                api_status, loaded_status, row, names = plugin_state(native)
                 check('URL plugin survives gateway restart', api_status == loaded_status == 200
                       and row is not None and row.get('enabled') is True
                       and row.get('status', {}).get('status') == 'active'
@@ -615,31 +679,25 @@ def main():
                       status=status)
                 check('UI survives gateway restart', call(panel, '/')[0] == 200)
 
-                status, _, _ = native('/api/plugins/bifrost-registry', 'PUT',
-                                      {**plugin_config, 'enabled': False})
-                check('disable accepted', status == 200, status=status)
-                check('disable closes standalone server', panel_closed())
-                status, reactivation, _ = native('/api/plugins/bifrost-registry', 'PUT', plugin_config)
-                report['hot_url_reactivation_supported'] = status == 200
-                if status == 200:
-                    check('hot URL reactivation reopens panel', call(panel, '/')[0] == 200)
-                else:
-                    message = reactivation.get('error', {}).get('message', '') if isinstance(reactivation, dict) else ''
-                    check('known URL reload limitation reported clearly', status == 500
-                          and 'plugin already loaded' in message, status=status,
-                          error_class='plugin already loaded' if 'plugin already loaded' in message else 'other')
-                    check('failed reactivation leaves panel closed', panel_closed())
-                _, _, row, _ = plugin_state()
-                check('reactivation config remains enabled for restart', row is not None
-                      and row.get('enabled') is True)
-                stop()
-                start()
-                _, _, row, names = plugin_state()
-                check('plugin recovers after reactivation restart', row is not None
-                      and row.get('status', {}).get('status') == 'active'
-                      and 'bifrost-registry' in names and call(panel, '/')[0] == 200)
+                def restart():
+                    stop()
+                    start()
+
+                if args.expected_version == '2.3.0':
+                    report['reactivation_recovery'] = {
+                        'initial_installation': 'url', 'final_installation': 'local',
+                        'stable_local_path': str(args.plugin),
+                        'same_plugin_sha256': report['artifacts']['plugin']['sha256'],
+                        'path_contract': 'Keep these immutable bytes at the same absolute gateway-container '
+                                         'filename across restarts, using a persistent read-only mount.',
+                    }
+                report['hot_url_reactivation_supported'] = probe_reactivation(
+                    args.expected_version, plugin_config, native,
+                    panel_closed, lambda: call(panel, '/')[0] == 200, restart, check,
+                    recovery_path=args.plugin)
                 status, fresh, _ = admin('/api/workspace')
                 check('saved workspace recovers after reactivation restart', status == 200
+                      and any(m['id'] == model['id'] for m in fresh.get('data', {}).get('models', []))
                       and any(g['id'] == 'persisted-proof' for g in fresh.get('data', {}).get('groups', []))
                       and any(k['id'] == key_id and k['policy']['groups'] == ['persisted-proof']
                               for k in fresh.get('data', {}).get('keys', [])))
@@ -648,6 +706,7 @@ def main():
                 check('native readback recovers after restart', status == 200
                       and publication['state'] == 'verified'
                       and publication['actual'] == publication['expected']
+                      and publication['actual'] == ids
                       and len(publication['actual']) == 1)
                 if args.assistant_fixture:
                     check('provider received only two safe synthetic AI calls',
