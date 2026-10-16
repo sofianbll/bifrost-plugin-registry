@@ -2,6 +2,15 @@
 
 Release downloads and their exact source commits are listed in [GitHub Releases](https://github.com/sofianbll/bifrost-plugin-registry/releases).
 
+## [0.4.0] — 2026-10-16
+
+- Stable release from Registry `ba59b878f824f04e54bdd5e9760352c2727ea245`, against unmodified Bifrost `transports/v2.3.0` (`9237ec06672406e437b3cb33fc793ffd0403b3ae`), Go 1.27.1, Alpine 3.23, Linux AMD64 and ARM64 (musl). [Release run 38887602494](https://github.com/sofianbll/bifrost-plugin-registry/actions/runs/38887602494) built and qualified each pair natively, then built, started and probed each image with the plugin installed by URL before push (container recreation, synthetic provider, no inference).
+- Registry identity (#158, closes #139) and Bifrost 2.3.0 with persistent local-path activation recovery (#159, closes #109). URL installation remains supported; recovery requires the same verified bytes at a persistent local path saved disabled before restart, not URL-only recovery or local hot reactivation.
+- Correctness cleanup (#157), removal of prototypes/Laboratory/gallery (#162, closes #19), dependency groups (#136/#137), and maintenance tooling (#161). Plugins shrink from 35,148,120 to 29,184,536 bytes on AMD64 and from 30,089,688 to 24,060,568 bytes on ARM64, matching approximately 6.2 MB of unused development assets removed.
+- Maintenance mode: daily Bifrost watcher, weekly Dependabot with automatic merge of green npm/docker groups, weekly agent pass. #102 is deferred with its approved specification kept; #7 and draft PR #60 were closed. Retrospective and Sandcastle were not launched and are outside the routine.
+
+**Compatibility and limits:** v0.3.0 remains published for Bifrost 2.2.6. An in-place upgrade to v0.4.0/2.3.0 is not qualified: stop the gateway, back up the whole volume, then switch image and plugin together; never install v0.3.0 assets on the 2.3 gateway. [Install](docs/INSTALL.md#upgrade-and-rollback) preserves the recovery/upgrade/rollback boundaries. No real-provider inference, production readiness or deployment is claimed; no real gateway or production was touched. [STATUS](STATUS.md) records exact assets, hashes and evidence. This documentation follow-up does not change the immutable release source or binaries.
+
 ## [0.3.0] — 2026-10-15
 
 - Stable release from Registry commit `9b900e986978e6997881d63f211303686e5acfb1`, against unmodified Bifrost 2.2.6, for Linux AMD64 and ARM64. The release workflow [38761865725](https://github.com/sofianbll/bifrost-plugin-registry/actions/runs/38761865725) passed native qualification, image probes, attestation and publication.
@@ -69,6 +78,7 @@ Previously listed as Unreleased, the following entries predate rc.8 (Git history
 
 The integrated UI prototype and earlier build evidence are retained in the project history. Hot plugin reactivation, native sidebar integration and the laboratory runner are not part of this release.
 
+[0.4.0]: https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.4.0
 [0.3.0]: https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.3.0
 [0.3.0-rc.8]: https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.3.0-rc.8
 [0.3.0-rc.7]: https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.3.0-rc.7
