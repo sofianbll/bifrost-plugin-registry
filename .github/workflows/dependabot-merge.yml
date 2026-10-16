@@ -1,14 +1,16 @@
-# Merge Dependabot's grouped npm and docker updates once every check on the pull request has passed.
+# Merge every Dependabot pull request once every check on it has passed: grouped minor and patch updates, majors
+# and security updates alike (owner decision, October 16, 2026).
 #
-# dependabot.yml groups minor and patch updates only, so a pull request outside a group is a major or a security
-# update; it stays open. So does the github-actions group: merging a change to .github/workflows needs the
-# `workflows` permission, which a job token cannot hold. The weekly maintenance pass (docs/agents/maintenance.md)
-# handles what is left. A group is recognized by its title, which reads "the npm group" or "the docker group"
-# whether it holds one update ("Bump alpine from … in the docker group …") or several ("Bump the npm group …").
+# The merge uses DEPENDABOT_MERGE_TOKEN, a fine-grained token limited to this repository (contents, pull requests and
+# workflows: read and write), because merging a change to .github/workflows needs the `workflows` permission, which a
+# job token cannot hold; scripts/setup-dependabot-merge-token.sh creates it. Without that secret the job token still
+# merges updates that leave .github/workflows alone, and the github-actions group waits for the weekly maintenance
+# pass (docs/agents/maintenance.md). A merge made with the token starts the workflows on main like any other merge;
+# one made with the job token starts none.
 #
 # Each listed workflow that completes for a Dependabot pull request re-reads every check run of the head commit;
-# the last one to finish merges. Nothing from the pull request is checked out or run. A merge made with
-# GITHUB_TOKEN starts no workflow on main.
+# the last one to finish merges. Nothing from the pull request is checked out or run. Unlike pull_request,
+# workflow_run gets secrets and a write token even when Dependabot started the workflow that triggered it.
 name: Dependabot merge
 
 on:
@@ -37,14 +39,15 @@ jobs:
     steps:
       - env:
           GH_TOKEN: ${{ github.token }}
+          MERGE_TOKEN: ${{ secrets.DEPENDABOT_MERGE_TOKEN || github.token }}
           GH_REPO: ${{ github.repository }}
           BRANCH: ${{ github.event.workflow_run.head_branch }}
           SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
-          pr=$(gh pr view "$BRANCH" --json number,state,headRefOid,title \
-            --jq "select(.state == \"OPEN\" and .headRefOid == \"$SHA\" and (.title | test(\"the (npm|docker) group\"))) | .number")
-          [[ -n $pr ]] || { echo "::notice::$BRANCH: no open npm or docker group at $SHA"; exit 0; }
+          pr=$(gh pr view "$BRANCH" --json number,state,headRefOid,author \
+            --jq "select(.state == \"OPEN\" and .headRefOid == \"$SHA\" and .author.login == \"app/dependabot\") | .number")
+          [[ -n $pr ]] || { echo "::notice::$BRANCH: no open Dependabot pull request at $SHA"; exit 0; }
           left=$(gh api "repos/$GH_REPO/commits/$SHA/check-runs?per_page=100" \
             --jq '[.check_runs[] | select(.status != "completed" or (.conclusion | IN("success", "skipped", "neutral") | not))] | length')
           (( left == 0 )) || { echo "::notice::#$pr: $left check(s) still running or not passed"; exit 0; }
-          gh pr merge "$pr" --merge --match-head-commit "$SHA"
+          GH_TOKEN=$MERGE_TOKEN gh pr merge "$pr" --merge --match-head-commit "$SHA"
