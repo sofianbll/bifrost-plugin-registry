@@ -12,3 +12,18 @@ test('both generated homepages present the accepted product-first copy without J
     assert.equal((html.match(/<h1\b/g) || []).length, 1)
   }
 })
+
+test('generated guide indexes expose the accepted tasks and preserve their legacy anchors', async () => {
+  const anchors = JSON.parse(await readFile(new URL('./legacy-anchors.json', import.meta.url), 'utf8'))
+  for (const [route, title, tasks] of [
+    ['guides.html', 'Registry guides', ['Get started', 'Manage access', 'Operate and troubleshoot', 'Reference']],
+    ['fr/guides.html', 'Guides Registry', ['Démarrer', 'Gérer les accès', 'Exploiter et dépanner', 'Référence']],
+  ]) {
+    const html = await readFile(new URL(`../.vitepress/dist/${route}`, import.meta.url), 'utf8')
+    assert.ok(html.includes(title), `${route} presents the task index without JavaScript`)
+    for (const task of tasks) assert.ok(html.includes(task), `${route} offers ${task}`)
+    for (const anchor of anchors[route]) assert.ok(html.includes(`id="${anchor}"`), `${route} preserves #${anchor}`)
+    assert.doesNotMatch(html, /docView=|[?&]variant=/)
+    assert.doesNotMatch(html, /href="[^"]*README\.html/, 'GitHub-relative README links resolve to published guide indexes')
+  }
+})
