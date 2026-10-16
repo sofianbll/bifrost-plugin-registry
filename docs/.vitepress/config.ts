@@ -62,27 +62,31 @@ export default defineConfig({
             items: [
               { text: 'Guides', link: '/guides' },
               { text: 'Install', link: '/INSTALL' },
+              { text: 'First key', link: '/USER-GUIDE' },
+            ],
+          },
+          {
+            text: 'Manage access',
+            items: [
+              { text: 'Register a model', link: '/USER-GUIDE?docView=A#_1-register-a-model' },
+              { text: 'Groups and adoption', link: '/USER-GUIDE?docView=A#_3-compose-groups-and-keys' },
+            ],
+          },
+          {
+            text: 'Operate',
+            items: [
               { text: 'Troubleshooting', link: '/TROUBLESHOOTING' },
-            ],
-          },
-          {
-            text: 'Use Registry',
-            items: [
-              { text: 'User guide', link: '/USER-GUIDE' },
-              { text: 'Configuration', link: '/CONFIGURATION' },
+              { text: 'Backup and version changes', link: '/INSTALL?docView=A#upgrade-and-rollback' },
+              { text: 'Activation recovery', link: '/INSTALL?docView=A#recover-activation-after-disabling' },
               { text: 'Security and trust boundaries', link: '/SECURITY' },
-            ],
-          },
-          {
-            text: 'Operate and build',
-            items: [
-              { text: 'Native build (French only)', link: '/BUILD' },
               { text: 'Deployment acceptance (French only)', link: '/ACCEPTANCE' },
             ],
           },
           {
-            text: 'Project',
+            text: 'Reference',
             items: [
+              { text: 'Configuration', link: '/CONFIGURATION' },
+              { text: 'Native build (French only)', link: '/BUILD' },
               { text: 'Status', link: `${repo}/blob/main/STATUS.md` },
             ],
           },
@@ -101,27 +105,31 @@ export default defineConfig({
             items: [
               { text: 'Guides', link: '/fr/guides' },
               { text: 'Installation', link: '/fr/INSTALL' },
+              { text: 'Première clé', link: '/fr/USER-GUIDE' },
+            ],
+          },
+          {
+            text: 'Gérer les accès',
+            items: [
+              { text: 'Enregistrer un modèle', link: '/fr/USER-GUIDE?docView=A#_1-enregistrer-un-modele' },
+              { text: 'Groupes et adoption', link: '/fr/USER-GUIDE?docView=A#_3-composer-des-groupes-et-des-cles' },
+            ],
+          },
+          {
+            text: 'Exploiter',
+            items: [
               { text: 'Dépannage', link: '/fr/TROUBLESHOOTING' },
-            ],
-          },
-          {
-            text: 'Utiliser Registry',
-            items: [
-              { text: 'Guide utilisateur', link: '/fr/USER-GUIDE' },
-              { text: 'Configuration', link: '/fr/CONFIGURATION' },
+              { text: 'Sauvegarde et changement de version', link: '/fr/INSTALL?docView=A#mettre-a-jour-et-revenir-en-arriere' },
+              { text: 'Récupérer l’activation', link: '/fr/INSTALL?docView=A#recuperer-l-activation-apres-desactivation' },
               { text: 'Sécurité et frontière de confiance', link: '/fr/SECURITY' },
-            ],
-          },
-          {
-            text: 'Exploiter et compiler',
-            items: [
-              { text: 'Compilation native', link: '/BUILD' },
               { text: 'Acceptation du déploiement', link: '/ACCEPTANCE' },
             ],
           },
           {
-            text: 'Projet',
+            text: 'Référence',
             items: [
+              { text: 'Configuration', link: '/fr/CONFIGURATION' },
+              { text: 'Compilation native', link: '/BUILD' },
               { text: 'État du projet (anglais)', link: `${repo}/blob/main/STATUS.md` },
             ],
           },

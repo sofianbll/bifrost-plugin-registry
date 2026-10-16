@@ -1,3 +1,9 @@
+---
+outline: false
+---
+
+<DocsPrototype page="install">
+
 # Install Registry
 
 English · [Français](fr/INSTALL.md)
@@ -173,3 +179,5 @@ v0.3.0 was natively qualified on Linux AMD64 and ARM64 against Bifrost 2.2.6 wit
 Current v0.4.0 was natively qualified on Linux AMD64 and ARM64 (musl) against Bifrost 2.3.0; each published image was built from its qualified pair and probed with the plugin installed by URL, container recreation and a synthetic provider, without inference ([release run](https://github.com/sofianbll/bifrost-plugin-registry/actions/runs/38887602494)). Verify asset provenance with `gh attestation verify <file> --repo sofianbll/bifrost-plugin-registry`. No real gateway or production was touched; real-provider inference, production readiness and local hot reactivation are not qualified. The [historical foundation checkpoint and bounded #141 assessment](https://github.com/sofianbll/bifrost-plugin-registry/issues/109#issuecomment-6203460908) apply to their exact subjects, not a universal security guarantee or remediation of the historical v0.3.0 findings above.
 
 The previous Bifrost 2.2.1 binary-mount recipe is retained in the [historical archive](https://github.com/sofianbll/bifrost-plugin-registry/blob/main/docs/archive/installation-2.2.1.md).
+
+</DocsPrototype>

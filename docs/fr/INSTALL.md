@@ -1,3 +1,9 @@
+---
+outline: false
+---
+
+<DocsPrototype page="install">
+
 # Installer Registry
 
 [English](../INSTALL.md) · Français
@@ -173,3 +179,5 @@ v0.3.0 a été qualifiée nativement sur Linux AMD64 et ARM64 contre Bifrost 2.2
 La v0.4.0 courante a été qualifiée nativement sur Linux AMD64 et ARM64 (musl) contre Bifrost 2.3.0 ; chaque image publiée a été construite depuis sa paire qualifiée puis sondée avec installation du plugin par URL, conteneur recréé et fournisseur synthétique, sans inférence ([exécution de release](https://github.com/sofianbll/bifrost-plugin-registry/actions/runs/38887602494)). Vérifiez la provenance des assets avec `gh attestation verify <fichier> --repo sofianbll/bifrost-plugin-registry`. Aucun gateway réel ni la production n'ont été touchés ; l'inférence réelle, la préparation à la production et la réactivation locale à chaud ne sont pas qualifiées. Le [checkpoint historique et l'assessment borné #141](https://github.com/sofianbll/bifrost-plugin-registry/issues/109#issuecomment-6203460908) concernent leurs sujets exacts, sans garantie universelle de sécurité ni correction des constats historiques v0.3.0 ci-dessus.
 
 L'ancienne recette de montage binaire pour Bifrost 2.2.1 est conservée dans [l'archive historique](https://github.com/sofianbll/bifrost-plugin-registry/blob/main/docs/archive/installation-2.2.1.md).
+
+</DocsPrototype>

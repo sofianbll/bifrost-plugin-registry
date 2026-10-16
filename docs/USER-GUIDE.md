@@ -1,3 +1,9 @@
+---
+outline: false
+---
+
+<DocsPrototype page="key">
+
 # Using Registry
 
 English · [Français](fr/USER-GUIDE.md)
@@ -58,3 +64,5 @@ Catalogue pages offer Grid and Table views. In Grid, cards can be Rectangle or S
 ![Grid view, square cards, medium density](./images/en/display-options.png)
 
 The gateway inventory shows captured providers, key permissions, aliases and routing. Tree and detail views show the same data. An alias maps a requested name to a provider target; a deployment can be that provider-specific target. Routing rules select targets using the captured conditions and weights. Missing or encrypted aliases remain explicitly unavailable.
+
+</DocsPrototype>

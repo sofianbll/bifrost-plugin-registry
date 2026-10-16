@@ -1,3 +1,9 @@
+---
+outline: false
+---
+
+<DocsPrototype page="index">
+
 # Bifrost Registry documentation
 
 English · [Français](fr/README.md)
@@ -30,3 +36,5 @@ For the current release, its evidence and its limits, read [STATUS](https://gith
 ## Design and history
 
 The [domain vocabulary](https://github.com/sofianbll/bifrost-plugin-registry/blob/main/CONTEXT.md), the [V1 release specification](https://github.com/sofianbll/bifrost-plugin-registry/blob/main/docs/design/core-v1-spec.md) and the [current product decisions](https://github.com/sofianbll/bifrost-plugin-registry/blob/main/docs/design/product-direction.md) capture the project's scope. Dated reviews, the archive and the reports are evidence of past checkpoints, not current installation instructions; they stay on GitHub and are not published here.
+
+</DocsPrototype>

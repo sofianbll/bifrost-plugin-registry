@@ -1,3 +1,9 @@
+---
+outline: false
+---
+
+<DocsPrototype page="key">
+
 # Utiliser Registry
 
 [English](../USER-GUIDE.md) · Français
@@ -58,3 +64,5 @@ Les pages de catalogue proposent les vues Grille et Tableau. En grille, les cart
 ![Vue grille, cartes carrées, densité moyenne](../images/fr/display-options.png)
 
 L'inventaire du gateway affiche les fournisseurs capturés, les permissions des clés, les alias et le routage. Les vues arborescente et détaillée montrent les mêmes données. Un alias associe un nom demandé à une cible fournisseur ; un déploiement peut être cette cible propre au fournisseur. Les règles de routage choisissent les cibles selon les conditions et pondérations capturées. Les alias manquants ou chiffrés restent explicitement indisponibles.
+
+</DocsPrototype>
