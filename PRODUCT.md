@@ -21,7 +21,8 @@ Catalogue and key verification carry equal weight (confirmed by Sofian): one pla
 ## Operating Context
 
 - The plugin is a `.so` installed separately from the Registry-distributed dynamic gateway image, compiled from official, unmodified Bifrost sources. This is not a qualified official prebuilt image. The panel is served by the plugin on its own port (8099) with its own admin token.
-- Bifrost 2.2.6 remains the v0.3 gateway baseline; stable v0.3.0 was published from immutable source checkpoint `9b900e9`. The 2.3.0 foundation is merged in #158/#159, with exact native qualification recorded in the [foundation checkpoint](STATUS.md#foundation-checkpoint), not a release. Synthetic qualification is not real-provider inference or production certification.
+- Stable v0.4.0 was published October 16, 2026 from source `ba59b878f824f04e54bdd5e9760352c2727ea245`, paired with unmodified Bifrost 2.3.0. Native AMD64/ARM64 qualification and published-image probes are recorded in [STATUS](STATUS.md); synthetic qualification is not real-provider inference or production certification. Previous stable v0.3.0 stays published for Bifrost 2.2.6; an in-place upgrade is not qualified.
+- The project is in [maintenance](docs/agents/maintenance.md): daily Bifrost watcher, weekly Dependabot with automatic merge of green npm/docker groups, and a weekly agent pass. The Laboratory and its runner were removed (#19/#162); native-menu issue #7 and draft PR #60 were closed. Retrospective and Sandcastle were not launched and are not part of the routine.
 - Two reading levels share the same draft: Basic (plain words) and Expert (technical detail, from 1280 px up).
 - The interface exists in French and English, light and dark, and down to 375 px wide.
 
@@ -32,7 +33,7 @@ Catalogue and key verification carry equal weight (confirmed by Sofian): one pla
 - Confirmed: French and English, light and dark, mobile.
 - Terminology lives in `CONTEXT.md`; the decisions already taken for the interface live in `docs/design/component-library.md` and are not reopened without the owner.
 - Team administration remains a hypothesis, not a delivered feature or requirement.
-- Approved future v0.4 scope: the [complete #102 specification, published October 15, 2026](https://github.com/sofianbll/bifrost-plugin-registry/issues/102#issuecomment-6188326439), accepts connection-level subscription declarations with model exceptions, subscription/other-access To add sections, batch registration, conservative safe-default adoption and contextual help, including their behavioral rules and help content. These are not delivered features or unanswered product questions. Approval covers specification publication only: implementation, storage/compatibility/migration design, release and deployment require a separate mandate; v0.3 scope stays frozen.
+- Deferred scope (owner decision, October 16, 2026): the [complete #102 specification, published October 15](https://github.com/sofianbll/bifrost-plugin-registry/issues/102#issuecomment-6188326439), is kept approved, not delivered in v0.4.0. It accepts connection-level subscription declarations with model exceptions, subscription/other-access To add sections, batch registration, conservative safe-default adoption and contextual help, including their behavioral rules and help content. These are not unanswered product questions. Implementation, storage/compatibility/migration design and deployment require a separate mandate.
 
 ## Brand Commitments
 
@@ -42,7 +43,7 @@ The interface reuses Bifrost's shadcn/Radix components, Geist and the accepted v
 
 - Historical test-copy observation on October 10, 2026: 59 saved model cards, 11 virtual keys and 771 discovered accesses, not a current inventory ([dated critique](.impeccable/critique/2026-10-10T18-42-15Z__ui-src-app-app-tsx.md)).
 - Dated critique snapshots in `.impeccable/critique/`: first measure 18/40; the [last recorded critique, October 13](.impeccable/critique/2026-10-13T22-43-06Z__ui-src-app-app-tsx.md), measured the older build `dev-cd10fa936b4d` at 27/40, 0 P0 and 3 P1. Subsequent fixes are not remeasured; no current 36/40 result is established.
-- Issues #99–#101 and #110 are completed through #108/#115, not a current unresolved list inherited from #98. #102 remains approved future v0.4 scope; #139 identity and #109 Bifrost 2.3.0 are delivered in #158/#159. [STATUS](STATUS.md#foundation-checkpoint) records the dated qualification and bounded #141 assessment, distinct from publication or deployment.
+- Issues #99–#101 and #110 are completed through #108/#115. #102 remains deferred with its approved spec kept; #139 identity and #109 Bifrost 2.3.0 are delivered in #158/#159 and published in v0.4.0. [STATUS](STATUS.md) separates release evidence from the dated foundation qualification and bounded #141 assessment. Publication is not deployment.
 - No testimonials, customers or benchmarks exist; none may be invented.
 
 ## Product Principles

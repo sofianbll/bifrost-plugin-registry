@@ -12,7 +12,7 @@
 Organize every model once, then decide exactly what each virtual key can reach — through an embedded interface that runs beside your existing Bifrost gateway.
 
 [![CI](https://github.com/sofianbll/bifrost-plugin-registry/actions/workflows/ci.yml/badge.svg)](https://github.com/sofianbll/bifrost-plugin-registry/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/release-v0.3.0-blue)](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.3.0)
+[![Release](https://img.shields.io/badge/release-v0.4.0-blue)](https://github.com/sofianbll/bifrost-plugin-registry/releases/tag/v0.4.0)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 English · [Français](README.fr.md)
@@ -35,12 +35,12 @@ English · [Français](README.fr.md)
 ## Quickstart
 
 ```bash
-# 1. Pull the published dynamic Bifrost 2.2.6 image (Linux AMD64 or ARM64, no plugin inside)
-docker pull ghcr.io/sofianbll/bifrost-dynamic:2.2.6
+# 1. Pull the published dynamic Bifrost 2.3.0 image (Linux AMD64 or ARM64, no plugin inside)
+docker pull ghcr.io/sofianbll/bifrost-dynamic:2.3.0
 # 2. Provide the two admin credentials and a persistent volume at /app/data
 export REGISTRY_ADMIN_TOKEN=…  REGISTRY_BIFROST_AUTH='Basic …'
 # 3. Add the matching .so by direct URL in Bifrost's plugin settings
-#    https://github.com/sofianbll/bifrost-plugin-registry/releases/download/v0.3.0/bifrost-registry-v0.3.0-linux-<amd64|arm64>.so
+#    https://github.com/sofianbll/bifrost-plugin-registry/releases/download/v0.4.0/bifrost-registry-v0.4.0-linux-<amd64|arm64>.so
 # 4. Open the panel
 open http://127.0.0.1:8099/model-registry
 ```
@@ -59,7 +59,7 @@ open http://127.0.0.1:8099/model-registry
 
 Bifrost governs inference, credentials, budgets and routing. What it does not give an operator is a trustworthy, reviewable picture of what each virtual key can actually reach. Registry fills that gap: one catalogue of Models.dev and Bifrost references, with per-field provenance and manual corrections that survive refreshes, composed into access policies for virtual keys.
 
-Embedding a versioned Models.dev snapshot keeps the catalogue reproducible and offline — there is no runtime dependency on a third-party API. The gateway image ships unmodified Bifrost 2.2.6 compiled with dynamic loading, and Registry stays a separately installed plugin, so the inference path you already trust is never patched.
+Embedding a versioned Models.dev snapshot keeps the catalogue reproducible and offline — there is no runtime dependency on a third-party API. The gateway image ships unmodified Bifrost 2.3.0 compiled with dynamic loading, and Registry stays a separately installed plugin, so the inference path you already trust is never patched.
 
 Independent project, not an official Maxim/Bifrost product.
 
@@ -74,9 +74,9 @@ Independent project, not an official Maxim/Bifrost product.
 
 ## Runtime & qualification
 
-**Source candidate:** the current `bifrost.pin` targets unmodified Bifrost 2.3.0 (`9237ec06672406e437b3cb33fc793ffd0403b3ae`); [STATUS records exact-b73 native AMD64/ARM64 qualification and its limits](STATUS.md#foundation-checkpoint). This is not a published release or qualification of later commits. Stable v0.3.0 and the quickstart above remain on 2.2.6. Initial URL installation remains supported, but 2.3 recovery explicitly switches to a persistent local path containing the same verified plugin bytes before restart; URL-only recovery and local hot reactivation are not claimed. See the [candidate activation recovery procedure](docs/INSTALL.md#recover-activation-after-disabling).
+**Current stable release:** v0.4.0 targets unmodified Bifrost 2.3.0 (`9237ec06672406e437b3cb33fc793ffd0403b3ae`); [STATUS records its native AMD64/ARM64 qualification and published-image probes](STATUS.md). Initial URL installation remains supported, but activation recovery explicitly switches to a persistent local path containing the same verified plugin bytes before restart; URL-only recovery and local hot reactivation are not claimed. See the [activation recovery procedure](docs/INSTALL.md#recover-activation-after-disabling). An in-place upgrade from v0.3.0/2.2.6 is not qualified: stop the gateway, back up the whole volume, then switch image and plugin together. Never install v0.3.0 assets on the 2.3 gateway.
 
-Stable **v0.3.0**, published from Registry commit `9b900e986978e6997881d63f211303686e5acfb1`, targets unmodified Bifrost 2.2.6 (`transports/v2.2.6`, commit `8b4fce4`) on Linux AMD64 and ARM64 (musl), Go 1.27.1. It includes the Registry changes since rc.8: legacy registry files no longer stop the plugin, `/api/status` reports the release version and real Bifrost connection, malformed admin tokens receive a clear sign-in error, and key/access editing and review flows were refined. Bifrost 2.2.6 requires dashboard authentication for Registry's native API calls ([Install](docs/INSTALL.md#credentials-and-plugin-settings)). Native qualification and image probes use synthetic providers only; [STATUS](STATUS.md) records exact assets, hashes and limits.
+Stable **v0.4.0**, published October 16, 2026 from Registry commit `ba59b878f824f04e54bdd5e9760352c2727ea245`, pairs Bifrost 2.3.0 with Go 1.27.1 and Alpine 3.23 on Linux AMD64 and ARM64 (musl). Since v0.3.0 it adds Registry identity (#158), persistent local-path activation recovery (#159), correctness cleanup (#157), removal of prototypes/Laboratory/gallery (#162), dependency groups (#136/#137) and maintenance tooling (#161). The project is now in [maintenance](docs/agents/maintenance.md); #102 remains deferred with its approved specification kept. v0.3.0 stays published for Bifrost 2.2.6. Native qualification and image probes use synthetic providers only, without real inference or production certification; [STATUS](STATUS.md) records exact assets, hashes and limits. No real gateway or production was touched by this release.
 
 The results below were recorded on the older release **v0.3.0-rc.4** (ARM64, Bifrost 2.2.3, final commit `d588a9f`; English-first interface), whose code rc.5 to rc.8 rebuild and v0.3.0 extends.
 
@@ -92,7 +92,7 @@ The results below were recorded on the older release **v0.3.0-rc.4** (ARM64, Bif
 
 [ARM64 qualification report](reports/bifrost-2.2.3-arm64-869e251/README.md) · [Final audit](docs/reviews/2026-09-28-final-audit.md)
 
-**Honest limits.** The detailed results above are ARM64 only; rc.5 added AMD64 and ARM64 qualification for Bifrost 2.2.4, and rc.6 through v0.3.0 repeat it for later targets. The prebuilt official image remains unqualified, and the downloaded dynamic gateway image is qualified separately from the `.so`. All release suites use synthetic providers with **no real inference**. The rc.4 adoption suite runs its fixture over bridge networking bound to loopback; the other suites use `--network none`. A prior release-candidate pair was installed by URL on a test copy of a production gateway ([STATUS](STATUS.md)); no production deployment was performed, and native sidebar integration is deferred.
+**Honest limits.** The detailed results above are ARM64 only; rc.5 added AMD64 and ARM64 qualification for Bifrost 2.2.4, and rc.6 through v0.3.0 repeated it for later targets; v0.4.0's own evidence is recorded above. The prebuilt official image remains unqualified, and the downloaded dynamic gateway image is qualified separately from the `.so`. All release suites use synthetic providers with **no real inference**. The rc.4 adoption suite runs its fixture over bridge networking bound to loopback; the other suites use `--network none`. A prior release-candidate pair was installed by URL on a test copy of a production gateway ([STATUS](STATUS.md)); no production deployment was performed. Native sidebar integration is not delivered; #7 and draft PR #60 were closed.
 
 ## Contributing
 
