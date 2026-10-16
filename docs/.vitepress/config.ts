@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitepress'
+import { fileURLToPath } from 'node:url'
 
 const repo = 'https://github.com/sofianbll/bifrost-plugin-registry'
 
@@ -7,9 +8,11 @@ export default defineConfig({
   base: '/bifrost-plugin-registry/',
   head: [['link', { rel: 'icon', type: 'image/svg+xml', href: '/bifrost-plugin-registry/branding/registry/registry-icon.svg' }]],
   // Internal records stay on GitHub; only the user and operator guides are published.
-  srcExclude: ['adr/**', 'design/**', 'reviews/**', 'archive/**', 'agents/**', 'research/**', 'images/README.md', 'SOURCES.md'],
-  // README.md is the docs index on GitHub and the home page here.
-  rewrites: { 'README.md': 'index.md', 'fr/README.md': 'fr/index.md' },
+  srcExclude: ['adr/**', 'design/**', 'reviews/**', 'archive/**', 'agents/**', 'research/**', 'images/README.md', 'SOURCES.md', 'prototype-164.md'],
+  // Keep the GitHub documentation indexes separate from the showcase.
+  rewrites: { 'README.md': 'guides.md', 'fr/README.md': 'fr/guides.md' },
+  // The local prototype imports existing panel fonts outside docs/.
+  vite: { server: { fs: { allow: [fileURLToPath(new URL('../..', import.meta.url))] } } },
   themeConfig: {
     // Crop transparent SVG margins without redrawing the existing identity.
     logo: {
@@ -57,7 +60,7 @@ export default defineConfig({
           {
             text: 'Get started',
             items: [
-              { text: 'Overview', link: '/' },
+              { text: 'Guides', link: '/guides' },
               { text: 'Install', link: '/INSTALL' },
               { text: 'Troubleshooting', link: '/TROUBLESHOOTING' },
             ],
@@ -96,7 +99,7 @@ export default defineConfig({
           {
             text: 'Démarrer',
             items: [
-              { text: 'Vue d’ensemble', link: '/fr/' },
+              { text: 'Guides', link: '/fr/guides' },
               { text: 'Installation', link: '/fr/INSTALL' },
               { text: 'Dépannage', link: '/fr/TROUBLESHOOTING' },
             ],

@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vitepress dev",
+    "prototype": "vitepress dev --host 127.0.0.1 --port 5173 --strictPort",
     "build": "vitepress build",
     "preview": "vitepress preview"
   },

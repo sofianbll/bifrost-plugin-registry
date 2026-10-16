@@ -1,6 +1,6 @@
 # Documentation de Bifrost Registry
 
-[English](../) · Français
+[English](../README.md) · Français
 
 Registry ajoute un catalogue de modèles fiable et une composition d'accès par clé aux clés virtuelles Bifrost. Il tourne comme plugin à côté d'un gateway Bifrost non modifié et sert sa propre interface. C'est un projet indépendant, pas un produit officiel Maxim/Bifrost.
 
