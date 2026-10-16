@@ -1,0 +1,8 @@
+{
+  "guides.html": ["bifrost-registry-documentation", "use-registry", "develop-and-validate", "design-and-history"],
+  "INSTALL.html": ["install-registry", "which-files-for-which-host", "choose-an-installation-mode", "mode-a-image-and-plugin-url", "_1-download-and-verify", "_2-get-the-image-and-start-the-gateway", "_3-install-the-plugin-by-url", "mode-b-plugin-only", "credentials-and-plugin-settings", "verify", "recover-activation-after-disabling", "upgrade-and-rollback", "qualification-and-limits", "previous-v0-3-0-evidence-historical", "current-v0-4-0-evidence"],
+  "USER-GUIDE.html": ["using-registry", "_1-register-a-model", "_2-understand-source-data", "_3-compose-groups-and-keys", "_4-local-snapshot-versus-connected-gateway", "_5-appearance-and-gateway-details"],
+  "fr/guides.html": ["documentation-de-bifrost-registry", "utiliser-registry", "developper-et-valider", "conception-et-historique"],
+  "fr/INSTALL.html": ["installer-registry", "quels-fichiers-pour-quel-hote", "choisir-un-mode-d-installation", "mode-a-image-et-url-du-plugin", "_1-telecharger-et-verifier", "_2-recuperer-l-image-et-demarrer-le-gateway", "_3-installer-le-plugin-par-url", "mode-b-plugin-seul", "identifiants-et-configuration-du-plugin", "verifier", "recuperer-l-activation-apres-desactivation", "mettre-a-jour-et-revenir-en-arriere", "qualification-et-limites", "preuves-precedentes-v0-3-0-historiques", "preuves-courantes-v0-4-0"],
+  "fr/USER-GUIDE.html": ["utiliser-registry", "_1-enregistrer-un-modele", "_2-comprendre-les-donnees-de-source", "_3-composer-des-groupes-et-des-cles", "_4-instantane-local-ou-gateway-connecte", "_5-affichage-et-details-du-gateway"]
+}
