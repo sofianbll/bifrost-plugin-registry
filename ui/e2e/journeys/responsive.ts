@@ -359,6 +359,7 @@ export async function responsiveJourneys({
     await page.keyboard.press("Escape");
     await sheet().waitFor({ state: "hidden" });
     // The keyboard opens it, every control is inside, a choice shows in the count, Escape closes it and gives the focus back.
+    await expect(page.getByRole("button", { name: /^Open .* details$/ }).first()).toBeFocused();
     await filters.focus();
     await page.keyboard.press("Enter");
     for (const name of [
